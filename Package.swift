@@ -13,5 +13,9 @@ let package = Package(
             resources: [
             ]
         ),
+        .executableTarget(
+            name: "PhoebusCoreSmokeTest",
+            dependencies: ["PhoebusCore"]
+        ),
     ]
 )

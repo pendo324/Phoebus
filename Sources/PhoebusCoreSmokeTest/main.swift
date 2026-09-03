@@ -98,3 +98,90 @@ let postWithFlairColorsJSON = """
 let postWithFlairColors = try! JSONDecoder.reddit.decode(RedditPost.self, from: postWithFlairColorsJSON)
 check("post.linkFlairBackgroundColor decoded", postWithFlairColors.linkFlairBackgroundColor == "#0079D3")
 check("post.linkFlairTextColorRaw decoded", postWithFlairColors.linkFlairTextColorRaw == "light")
+// --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
+// sign-in flow) ---
+let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")
+check("WebSessionCredential lowercases the username", webSession.username == "testuser")
+check("WebSessionCredential with a modhash is not read-only", webSession.isReadOnly == false)
+let readOnlySession = WebSessionCredential(username: "testuser", cookieHeader: "reddit_session=abc", modhash: nil)
+check("WebSessionCredential with no modhash matches the real read-only state", readOnlySession.isReadOnly == true)
+
+let webSessionStore = InMemoryWebSessionStore()
+try? webSessionStore.save(webSession)
+check("WebSessionStore round-trips a saved session", webSessionStore.load() == webSession)
+webSessionStore.clear()
+check("WebSessionStore.clear() removes the session", webSessionStore.load() == nil)
+
+do {
+    let authClient = RedditAuthClient(credentialStore: InMemoryCredentialStore(), webSessionStore: InMemoryWebSessionStore())
+    let isSignedInBefore = await authClient.isSignedIn
+    check("RedditAuthClient starts signed out with no OAuth credential or web session", isSignedInBefore == false)
+    await authClient.setWebSession(webSession)
+    let isSignedInAfter = await authClient.isSignedIn
+    check("RedditAuthClient.isSignedIn is true after setWebSession (real Reborn 'account synthesis' parity)", isSignedInAfter == true)
+    let storedSession = await authClient.webSession
+    check("RedditAuthClient exposes the stored web session", storedSession == webSession)
+    await authClient.signOut()
+    let isSignedInAfterSignOut = await authClient.isSignedIn
+    check("RedditAuthClient.signOut() clears the web session too", isSignedInAfterSignOut == false)
+}
+// Splitting on blank lines matches how `RedditMarkdown` separates the
+// blocks it emits.
+let sampleBody = "First paragraph.\n\nSecond paragraph.\n\n\nThird."
+check("paragraph splitting divides on blank lines",
+      BodyParagraphs.split(sampleBody) == ["First paragraph.", "Second paragraph.", "Third."])
+check("...and a body with no blank lines stays one paragraph",
+      BodyParagraphs.split("No breaks here at all.") == ["No breaks here at all."])
+// Never return an empty list: that would drop the body entirely.
+check("...and an empty body never yields zero paragraphs",
+      BodyParagraphs.split("").count == 1)
+// --- Reddit-only inline syntax the Markdown parser does not know ---
+//
+// `render()` parses Markdown only under `#if canImport(Darwin)`. The parser
+// handles bold, italic, bold-italic, partial-word emphasis, strikethrough,
+// inline code, escapes, HTML entities, hard breaks, thematic breaks and
+// ordered lists, but leaks raw syntax for:
+//   `^(text)` / `^word`  -> literal carets
+//   `>!text!<`           -> literal >! and !<
+//   `| a | b |`          -> cells scrambled into separate paragraphs
+check("a parenthesised superscript loses its caret",
+      !RedditMarkdown.expandRedditInlineSyntax("reddit ^(and be)").contains("^"))
+check("a bare word superscript loses its caret",
+      !RedditMarkdown.expandRedditInlineSyntax("just ^reddit here").contains("^"))
+check("...and keeps the word itself",
+      RedditMarkdown.expandRedditInlineSyntax("just ^reddit here").contains("reddit"))
+check("a spoiler loses its markers",
+      RedditMarkdown.expandRedditInlineSyntax("to >!hidden!< now") == "to hidden now")
+check("a caret with no superscript is untouched",
+      RedditMarkdown.expandRedditInlineSyntax("2 ^ 3") == "2 ^ 3")
+
+// Tables: pipe rows become plain markdown lines, since the parser has no
+// table support. Fencing them as a code block would preserve column spacing
+// but a fence means verbatim, so each cell's own markdown (`**bold**`,
+// [`hash`](url)) would stop being parsed.
+let table = "| a | bb |\n|---|---:|\n| 1 | 2 |"
+let rewritten = RedditMarkdown.rewriteTables(table)
+check("a table is NOT fenced, so its cells keep their markdown",
+      !rewritten.contains("```"))
+check("...and its cells are preserved",
+      rewritten.contains("a") && rewritten.contains("bb") && rewritten.contains("1"))
+// Markdown inside a cell survives the rewrite.
+let richTable = "| Game | Change |\n|---|---|\n| **Lineage II** | Fixed. [`d442b416`](https://e/c) |"
+let richRewritten = RedditMarkdown.rewriteTables(richTable)
+check("bold inside a cell survives the rewrite",
+      richRewritten.contains("**Lineage II**"))
+check("a link inside a cell survives the rewrite",
+      richRewritten.contains("[`d442b416`](https://e/c)"))
+check("a rewritten table is not wrapped in a code fence",
+      !richRewritten.contains("```"))
+// Each row becomes its own paragraph, or the parser folds them into one
+// run-on block.
+check("rows are separated by blank lines",
+      richRewritten.contains("\n\n"))
+// A marker row is required: a lone pipe line is ordinary text.
+check("a pipe line with no marker row is not a table",
+      RedditMarkdown.rewriteTables("a | b") == "a | b")
+check("the marker row is recognized",
+      RedditMarkdown.isTableMarkerRow("|---|:---:|"))
+check("...and a data row is not mistaken for one",
+      !RedditMarkdown.isTableMarkerRow("| a | b |"))

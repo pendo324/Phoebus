@@ -25,6 +25,25 @@ func check(_ name: String, _ condition: @autoclosure () -> Bool) {
     }
 }
 
+func makeComment(id: String) -> RedditComment {
+    let json = """
+    {"id":"\(id)","name":"t1_\(id)","author":"u","body":"b","score":0,
+     "created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,
+     "score_hidden":false,"stickied":false}
+    """.data(using: .utf8)!
+    return try! JSONDecoder.reddit.decode(RedditComment.self, from: json)
+}
+
+func makeTestPost(id: String) -> RedditPost {
+    let json = """
+    {"id":"\(id)","name":"t3_\(id)","title":"t","author":"u",
+     "subreddit":"test","permalink":"/r/test/comments/\(id)/",
+     "score":1,"num_comments":0,"created_utc":0,"is_self":false,
+     "over_18":false,"spoiler":false,"stickied":false,"saved":false}
+    """.data(using: .utf8)!
+    return try! JSONDecoder.reddit.decode(RedditPost.self, from: json)
+}
+
 // --- Post decoding ---
 let postJSON = """
 {
@@ -98,6 +117,104 @@ let postWithFlairColorsJSON = """
 let postWithFlairColors = try! JSONDecoder.reddit.decode(RedditPost.self, from: postWithFlairColorsJSON)
 check("post.linkFlairBackgroundColor decoded", postWithFlairColors.linkFlairBackgroundColor == "#0079D3")
 check("post.linkFlairTextColorRaw decoded", postWithFlairColors.linkFlairTextColorRaw == "light")
+
+// --- Nested comment tree building ---
+let treeJSON = """
+[
+  {"kind":"t1","data":{"id":"c1","name":"t1_c1","author":"a1","body":"top1",
+    "score":10,"created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false,
+    "replies":{"kind":"Listing","data":{"children":[
+      {"kind":"t1","data":{"id":"c2","name":"t1_c2","author":"a2","body":"nested",
+        "score":3,"created_utc":0,"parent_id":"t1_c1","link_id":"t3_x","saved":false,
+        "score_hidden":false,"stickied":false}}
+    ]}}}},
+  {"kind":"t1","data":{"id":"c3","name":"t1_c3","author":"a3","body":"top2",
+    "score":1,"created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false}}
+]
+""".data(using: .utf8)!
+let jsonValues = try! JSONDecoder().decode([JSONValue].self, from: treeJSON)
+let tree = CommentTreeBuilder.build(from: jsonValues)
+check("tree has 2 top-level nodes", tree.count == 2)
+check("tree[0].id == c1", tree[0].comment.id == "c1")
+check("tree[0].depth == 0", tree[0].depth == 0)
+check("tree[0] has 1 child", tree[0].children.count == 1)
+check("tree[0].children[0].id == c2", tree[0].children[0].comment.id == "c2")
+check("tree[0].children[0].depth == 1", tree[0].children[0].depth == 1)
+check("tree[1].id == c3", tree[1].comment.id == "c3")
+check("tree[1] has no children", tree[1].children.isEmpty)
+// --- "more" comment continuation stubs: threads show "N more replies" rows,
+// so CommentTreeBuilder must not drop kind=="more" objects ---
+let moreJSON = """
+[
+  {"kind":"t1","data":{"id":"m1","name":"t1_m1","author":"a1","body":"top",
+    "score":1,"created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false,
+    "replies":{"kind":"Listing","data":{"children":[
+      {"kind":"more","data":{"id":"abc","count":5,"children":["c4","c5","c6","c7","c8"]}}
+    ]}}}},
+  {"kind":"more","data":{"id":"xyz","count":3,"children":["c9","c10","c11"]}}
+]
+""".data(using: .utf8)!
+let moreJSONValues = try! JSONDecoder().decode([JSONValue].self, from: moreJSON)
+let moreBuild = CommentTreeBuilder.buildRoots(from: moreJSONValues, postFullname: "t3_x")
+check("buildRoots returns the one real t1 node (more-kind sibling excluded from roots)", moreBuild.roots.count == 1)
+check("nested 'more' stub attached to its parent node", moreBuild.roots.first?.moreStub?.count == 5)
+check("nested 'more' stub has the right parent fullname for /api/morechildren's link_id", moreBuild.roots.first?.moreStub?.parentID == "t1_m1")
+check("nested 'more' stub carries the real child ids to resolve", moreBuild.roots.first?.moreStub?.children == ["c4", "c5", "c6", "c7", "c8"])
+check("root-level trailing 'more' stub surfaced separately from nested ones", moreBuild.moreStub?.count == 3)
+check("root-level 'more' stub uses the post fullname as its parent id", moreBuild.moreStub?.parentID == "t3_x")
+
+let plainBuild = CommentTreeBuilder.build(from: moreJSONValues)
+check("plain build(from:) still returns only real t1 nodes, more-kind siblings dropped from the array", plainBuild.count == 1)
+
+check("visibleFlattenedWithMore yields the comment then its nested more-stub inline", moreBuild.roots.first?.visibleFlattenedWithMore().map(\.id) == ["m1", "t1_abc"])
+
+let resolvedNode = moreBuild.roots.first!.resolvingMoreStub(stubID: "t1_abc", with: [CommentTreeNode(comment: makeComment(id: "c4"), depth: 1)])
+check("resolvingMoreStub splices real children in and clears the stub", resolvedNode.moreStub == nil && resolvedNode.children.count == 1 && resolvedNode.children[0].comment.id == "c4")
+
+// Reddit's /api/morechildren response is a flat array with no nested
+// `replies`, so resolving a "more replies" stub rebuilds the tree from each
+// comment's own parent_id, starting at the stub's depth.
+let flatMoreJSON = """
+[
+  {"kind":"t1","data":{"id":"r1","name":"t1_r1","author":"a1","body":"first level",
+    "score":1,"created_utc":0,"parent_id":"t1_parent","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false}},
+  {"kind":"t1","data":{"id":"r2","name":"t1_r2","author":"a2","body":"second level",
+    "score":1,"created_utc":0,"parent_id":"t1_r1","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false}},
+  {"kind":"t1","data":{"id":"r3","name":"t1_r3","author":"a3","body":"third level",
+    "score":1,"created_utc":0,"parent_id":"t1_r2","link_id":"t3_x","saved":false,
+    "score_hidden":false,"stickied":false}}
+]
+""".data(using: .utf8)!
+let flatMoreJSONValues = try! JSONDecoder().decode([JSONValue].self, from: flatMoreJSON)
+let resolvingStub = MoreStub(id: "t1_stub", count: 3, children: ["r1", "r2", "r3"], parentID: "t1_parent", depth: 2)
+let resolvedBuild = CommentTreeBuilder.buildResolved(from: flatMoreJSONValues, stub: resolvingStub)
+check("buildResolved reconstructs exactly one real root from the flat batch (r2/r3 are nested under r1, not siblings)", resolvedBuild.roots.count == 1)
+check("buildResolved's root is the actual shallowest comment (r1), not just array order", resolvedBuild.roots.first?.comment.id == "r1")
+check("buildResolved starts depth at the stub's own depth, not always 0", resolvedBuild.roots.first?.depth == 2)
+check("buildResolved nests r2 one level below the stub's depth", resolvedBuild.roots.first?.children.first?.comment.id == "r2" && resolvedBuild.roots.first?.children.first?.depth == 3)
+check("buildResolved nests r3 two levels below the stub's depth (real multi-level reconstruction, not flat siblings)", resolvedBuild.roots.first?.children.first?.children.first?.comment.id == "r3" && resolvedBuild.roots.first?.children.first?.children.first?.depth == 4)
+// --- Auto-collapse child comments (CommentTreeBuilder) ---
+let nestedCommentJSON = """
+[{"kind": "t1", "data": {"id": "c1", "name": "t1_c1", "author": "a", "body": "top", "score": 1,
+  "created_utc": 0, "parent_id": "t3_x", "link_id": "t3_x", "saved": false, "score_hidden": false, "stickied": false,
+  "replies": {"kind": "Listing", "data": {"children": [
+    {"kind": "t1", "data": {"id": "c2", "name": "t1_c2", "author": "b", "body": "reply", "score": 1,
+      "created_utc": 0, "parent_id": "t1_c1", "link_id": "t3_x", "saved": false, "score_hidden": false, "stickied": false}}
+  ]}}}}]
+""".data(using: .utf8)!
+let nestedValues = try! JSONDecoder().decode([JSONValue].self, from: nestedCommentJSON)
+let collapsedTree = CommentTreeBuilder.build(from: nestedValues, autoCollapse: true)
+// Stock "Auto collapse replies to top-level comments": the top-level
+// comment stays open and its replies fold.
+check("autoCollapse keeps top-level comments open and folds their replies",
+      collapsedTree.first?.isCollapsed == false && collapsedTree.first?.children.first?.isCollapsed == true)
+let uncollapsedTree = CommentTreeBuilder.build(from: nestedValues, autoCollapse: false)
+check("autoCollapse: false leaves top-level comments expanded", uncollapsedTree.first?.isCollapsed == false)
 // --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
 // sign-in flow) ---
 let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")
@@ -125,6 +242,7 @@ do {
     let isSignedInAfterSignOut = await authClient.isSignedIn
     check("RedditAuthClient.signOut() clears the web session too", isSignedInAfterSignOut == false)
 }
+check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
 // Splitting on blank lines matches how `RedditMarkdown` separates the
 // blocks it emits.
 let sampleBody = "First paragraph.\n\nSecond paragraph.\n\n\nThird."

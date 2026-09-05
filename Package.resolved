@@ -1,0 +1,15 @@
+{
+  "originHash" : "f6ac706beea1b9b4892b46ae54f3f69f19ad0c1ea6243352b22e8b798f728703",
+  "pins" : [
+    {
+      "identity" : "animatedimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/noppefoxwolf/AnimatedImage",
+      "state" : {
+        "revision" : "d64237a33ce91b0513dd850589fea32fa28f4f80",
+        "version" : "0.2.4"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -36,6 +36,10 @@ let package = Package(
     dependencies: [
         // Real GIF/APNG/WebP animation (Apollo uses FLAnimatedImage).
         .package(url: "https://github.com/noppefoxwolf/AnimatedImage", from: "0.2.0"),
+        // Apollo-Reborn's local crash recorder: KSCrash's recording
+        // layer only. Pinned by revision because upstream's manifest uses
+        // `unsafeFlags`, which SwiftPM rejects for version-range dependencies.
+        .package(url: "https://github.com/kstenerud/KSCrash", revision: "95a8895d75f3c22aa9ad9f2a15d2fbd97b0a55e2"),
     ],
     targets: [
         .target(
@@ -51,6 +55,7 @@ let package = Package(
             dependencies: [
                 "PhoebusCore",
                 .product(name: "AnimatedImage", package: "AnimatedImage"),
+                .product(name: "Recording", package: "KSCrash", condition: .when(platforms: [.iOS])),
             ],
             // Preview art for the App Icon picker.
             // Apollo-style vector glyphs (info row, vote arrows); see

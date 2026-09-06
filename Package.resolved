@@ -1,5 +1,5 @@
 {
-  "originHash" : "f6ac706beea1b9b4892b46ae54f3f69f19ad0c1ea6243352b22e8b798f728703",
+  "originHash" : "ac20ede8c7d5f508333bd0affea6dd6e8589186a50f178eedc223be973030861",
   "pins" : [
     {
       "identity" : "animatedimage",
@@ -8,6 +8,14 @@
       "state" : {
         "revision" : "d64237a33ce91b0513dd850589fea32fa28f4f80",
         "version" : "0.2.4"
+      }
+    },
+    {
+      "identity" : "kscrash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kstenerud/KSCrash",
+      "state" : {
+        "revision" : "95a8895d75f3c22aa9ad9f2a15d2fbd97b0a55e2"
       }
     }
   ],

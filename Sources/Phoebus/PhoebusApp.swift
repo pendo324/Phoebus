@@ -11,6 +11,9 @@ struct PhoebusApp: App {
     @State private var themeRevision = 0
     @State private var checkedPersistedLogin = false
     init() {
+        // Local crash recording first, so it covers everything after.
+        CrashRecorder.start()
+
         // Applies user-configured Custom API settings before anything
         // else touches RedditOAuthConfig/RedditAPIClient.
         CustomAPISettingsStore.applyPersisted()

@@ -41,6 +41,12 @@ let package = Package(
                 "PhoebusCore",
                 .product(name: "AnimatedImage", package: "AnimatedImage"),
             ],
+            // Preview art for the App Icon picker.
+            // Apollo-style vector glyphs (info row, vote arrows); see
+            // `Shared/Chrome/StockIcon.swift`.
+            resources: [
+                .copy("Resources/StockIcons"),
+            ],
             linkerSettings: weakSwiftUICore
         ),
         .executableTarget(

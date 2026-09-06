@@ -50,6 +50,108 @@ public enum LinkPreviewStyleSetting: String, Codable, Sendable, CaseIterable, Id
     public var id: String { rawValue }
     public var displayName: String { rawValue.capitalized }
 }
+
+/// Matches the real `UnmuteVideosWhenOpenedSetting` key. "Remember"
+/// (default) keeps the unmute state until you re-mute or close the app.
+public enum UnmuteWhenOpenedSetting: String, Codable, Sendable, CaseIterable, Identifiable {
+    case remember
+    case always
+    case never
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .remember: return "Remember"
+        case .always: return "Always"
+        case .never: return "Never"
+        }
+    }
+}
+
+/// Matches the real GIF-vs-video save preference: "Automatic" chooses
+/// based on length, or always save as Video/GIF, or ask each time.
+public enum GIFSaveFormat: String, Codable, Sendable, CaseIterable, Identifiable {
+    case automatic
+    case alwaysVideo
+    case alwaysGIF
+    case askEachTime
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .automatic: return "Automatic"
+        case .alwaysVideo: return "Always Video"
+        case .alwaysGIF: return "Always GIF"
+        case .askEachTime: return "Ask Each Time"
+        }
+    }
+}
+
+/// Matches the real `OpenTwitterLinksIn` key ("Open Tweets in…").
+/// Aviary and Spring are third-party X clients Apollo lists as
+/// destinations; both fall back to the in-app browser when not
+/// installed, like every other choice here.
+public enum TwitterLinkDestination: String, Codable, Sendable, CaseIterable, Identifiable {
+    case inApp
+    case twitterApp
+    case twitterrific
+    case tweetbot
+    case aviary
+    case spring
+    case externalBrowser
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .inApp: return "In-App Safari"
+        case .twitterApp: return "X/Twitter App"
+        case .twitterrific: return "Twitterrific"
+        case .tweetbot: return "Tweetbot"
+        case .aviary: return "Aviary"
+        case .spring: return "Spring"
+        case .externalBrowser: return "Default Browser"
+        }
+    }
+}
+
+/// Matches the real `DefaultPostsSort`/`DefaultPostsTimeSort` keys and
+/// Reddit's own post-sort case list.
+public enum DefaultPostSort: String, Codable, Sendable, CaseIterable, Identifiable {
+    case best
+    case hot
+    case new
+    case top
+    case rising
+    case controversial
+
+    public var id: String { rawValue }
+    public var displayName: String { rawValue.capitalized }
+
+    /// Only Top and Controversial take a time-range qualifier.
+    public var supportsTimeRange: Bool { self == .top || self == .controversial }
+}
+
+/// Reborn's subreddit feed icon style: the icon appearance of the
+/// Home/Popular/All/Moderator pseudo-feed rows in the Subreddits root list.
+public enum FeedIconStyle: String, Codable, Sendable, CaseIterable, Identifiable {
+    case classic
+    case circle
+    case tinted
+    case softTile
+    case solidTile
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .classic: return "Classic"
+        case .circle: return "Circle"
+        case .tinted: return "Tinted"
+        case .softTile: return "Soft Tile"
+        case .solidTile: return "Solid Tile"
+        }
+    }
+}
+
 /// Reborn's `UDKeyNSFWBlurOverride` ("Blur NSFW Media"): a device-only
 /// override of the account's Reddit NSFW-blur pref.
 public enum NSFWBlurOverride: Int, Codable, Sendable, CaseIterable, Identifiable {
@@ -63,6 +165,77 @@ public enum NSFWBlurOverride: Int, Codable, Sendable, CaseIterable, Identifiable
         case .redditSetting: return "Reddit Setting"
         case .always: return "Always"
         case .never: return "Never"
+        }
+    }
+}
+
+/// Reborn's `UDKeyPreferredGIFFallbackFormat`: playback fallback format
+/// when a GIF can't play as a true animated GIF. Distinct from
+/// `GIFSaveFormat` (saving/downloading). Default MP4.
+public enum PreferredGIFFallbackFormat: Int, Codable, Sendable, CaseIterable, Identifiable {
+    // Listed MP4 first, as Reborn's picker.
+    case mp4 = 1
+    case gif = 0
+
+    public var id: Int { rawValue }
+    public var displayName: String {
+        switch self {
+        case .gif: return "GIF"
+        case .mp4: return "MP4"
+        }
+    }
+}
+
+/// Reborn's independent `UDKeyUnmuteFeedVideos` /
+/// `UDKeyUnmuteCommentsVideos` controls. Both default to Never.
+public enum VideoUnmuteMode: Int, Codable, Sendable, CaseIterable, Identifiable {
+    case never = 0
+    case remember = 1
+    case always = 2
+
+    public var id: Int { rawValue }
+    public var displayName: String {
+        switch self {
+        case .never: return "Never"
+        case .remember: return "Remember"
+        case .always: return "Always"
+        }
+    }
+
+    public init(legacy: UnmuteWhenOpenedSetting) {
+        switch legacy {
+        case .remember: self = .remember
+        case .always: self = .always
+        case .never: self = .never
+        }
+    }
+}
+
+/// Reborn's `UDKeyShareLinkHost` ("Share Link Host"): Reddit, old.reddit,
+/// vxReddit or fxReddit. Supersedes the boolean `shareOldRedditLinks`.
+public enum ShareLinkHost: Int, Codable, Sendable, CaseIterable, Identifiable {
+    case reddit = 0
+    case oldReddit = 1
+    case vxReddit = 2
+    case fxReddit = 3
+
+    public var id: Int { rawValue }
+    public var displayName: String {
+        switch self {
+        case .reddit: return "Reddit"
+        case .oldReddit: return "old.reddit"
+        case .vxReddit: return "vxReddit"
+        case .fxReddit: return "fxReddit (fxddit.com)"
+        }
+    }
+    /// Host domain to substitute; `nil` for `.reddit` means keep
+    /// Apollo's original reddit.com host.
+    public var domain: String? {
+        switch self {
+        case .reddit: return nil
+        case .oldReddit: return "old.reddit.com"
+        case .vxReddit: return "vxreddit.com"
+        case .fxReddit: return "fxddit.com"
         }
     }
 }
@@ -101,6 +274,42 @@ public enum CommentLinkHost: Int, Codable, Sendable, CaseIterable, Identifiable 
         }
     }
 }
+
+/// Reborn's subreddit feed layout: how the Home/Popular/All/Moderator
+/// rows arrange in the Subreddits root list.
+public enum FeedShortcutLayout: String, Codable, Sendable, CaseIterable, Identifiable {
+    case rows
+    case grid
+    case sideBySide
+    case iconDock
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .rows: return "Rows"
+        case .grid: return "Grid"
+        case .sideBySide: return "Side-by-Side"
+        case .iconDock: return "Icon Dock"
+        }
+    }
+}
+
+/// Real Apollo "Autoplay GIFs/Videos" (Settings > General > Posts):
+/// Always, Wi-Fi Only, or Never.
+public enum AutoplayMode: String, Codable, Sendable, CaseIterable, Identifiable {
+    case always
+    case wifiOnly
+    case never
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .always: return "Always"
+        case .wifiOnly: return "Wi-Fi Only"
+        case .never: return "Never"
+        }
+    }
+}
 public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Matches Apollo's `CompactModeLeftThumbnails` (default: true): whether
     /// the row thumbnail sits left of the title or right of it.
@@ -124,10 +333,52 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Full (image-on-top) or compact (thumbnail-left) card layout for
     /// rich link previews, matching Apollo-Reborn's two-style picker.
     public var linkPreviewStyle: LinkPreviewStyleSetting
+    /// Reborn "Hide Feed Descriptions": hides a subreddit's description text
+    /// in subreddit list rows.
+    public var hideFeedDescriptions: Bool
+    /// Matches the real base-Apollo (not Reborn) "Share old.reddit
+    /// Links" setting. Real key: `ShareOldRedditLinks`.
+    public var shareOldRedditLinks: Bool
+
+    /// The host share links use. Independent settings, as in Reborn: stock
+    /// "Share old.reddit Links" builds old.reddit links, then a Share Link
+    /// Host other than Reddit rewrites them.
+    public var effectiveShareLinkHost: ShareLinkHost {
+        shareLinkHost == .reddit && shareOldRedditLinks ? .oldReddit : shareLinkHost
+    }
+
+    // MARK: - General settings (base Apollo)
+
+    /// Real key: `DefaultRedditToLoad`. Empty string means Apollo's
+    /// own default (Home). "Default Reddit to Load…" in the real UI.
+    public var defaultRedditToLoad: String
+    /// Real key: `HideRPopularRedditList` ("Hide the following rows
+    /// in the subreddit listing…").
+    public var hidePopularInSubredditList: Bool
+    /// Real key: `HideRAllRedditList`.
+    public var hideAllInSubredditList: Bool
+    /// Real key: `HideModeratorRedditList`.
+    public var hideModeratorInSubredditList: Bool
     /// Phoebus addition: subreddit icons use the current community icon,
     /// falling back to the classic one. Off is Apollo's classic-only rule
     /// (a subreddit without one gets the letter badge).
     public var useCommunityIcons: Bool = true
+    /// Real keys: `sSubredditFeedIconStyle` / `sSubredditFeedLayout` —
+    /// appearance and arrangement of the Home/Popular/All/Moderator
+    /// pseudo-feed rows. Independent of the hide-toggles above.
+    public var subredditFeedIconStyle: FeedIconStyle
+    public var subredditFeedLayout: FeedShortcutLayout
+    /// Real key: `3DTouchMarksRead` ("3D Touch Marks Read") — a
+    /// 3D-Touch/long-press peek on a post row marks it read.
+    public var threeDTouchMarksRead: Bool
+    /// Real key: `HideBarsOnScroll`.
+    public var hideBarsOnScroll: Bool
+    /// Reborn's "Hide Style": 0 Left, 1 Right, 2 Fade, 3 Down. Shown
+    /// only while Hide Bars on Scroll is on.
+    public var tabBarHideStyle: Int
+    /// Apollo-Reborn "Hide Header on Scroll" (#1079, `HideTopBarOnScroll`,
+    /// default off): nav bar slides away with the tab bar while scrolling.
+    public var hideTopBarOnScroll: Bool
     /// Reborn "Collapse Navigation Actions" (`CollapseNavigationActions`,
     /// default off): actions strip collapses on scroll/back-gesture
     /// triggers when on. Visible only under Liquid Glass.
@@ -137,6 +388,11 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// bar tap); the saved-position restore and double status-bar-tap
     /// stay unconditional regardless of this setting.
     public var scrollReturnButton: Bool
+    /// Real Apollo "Upvote on Save" (Settings > General > Posts, real
+    /// default off): saving a post also upvotes it.
+    public var upvoteOnSave: Bool
+    /// Real Apollo "Autoplay GIFs/Videos" - see `AutoplayMode`.
+    public var autoplayMode: AutoplayMode
     /// Real Apollo "New Comments Highlightifier": highlights comments
     /// posted since last visit. Distinct from `highlightAccountAge`.
     public var newCommentsHighlightifier: Bool
@@ -146,13 +402,43 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real Apollo "Post Flair" (Settings > Appearance > Flair):
     /// show or hide a post's own link flair chip.
     public var showPostFlair: Bool
+    /// Real Apollo "User Flair" (Settings > Appearance > Flair):
+    /// show or hide author flair.
+    public var showUserFlair: Bool
+    /// Real key: `OpenTwitterLinksIn` ("Open Tweets in…").
+    public var openTwitterLinksIn: TwitterLinkDestination
     /// Real key: `ExcludeSubsFromAllPopular` ("No Subscribed in
     /// All/Popular") — hides posts from subreddits you're subscribed
     /// to when browsing r/all or r/popular.
     public var excludeSubscribedFromAllPopular: Bool
+    /// Real key: `UnifyModmailInInbox` ("Unify Modmail in Inbox").
+    public var unifyModmailInInbox: Bool
     /// Real key: `LiveTextAnalyzer` — iOS Live Text OCR support for
     /// images shown in the media viewer.
     public var liveTextAnalyzer: Bool
+    /// Real key: `LoopVideosWithAudio` — by default Apollo only loops
+    /// silent (GIF-equivalent) videos; this extends looping to videos
+    /// with audio too.
+    public var loopVideosWithAudio: Bool
+    /// Real key: `SaveToApolloAlbum` ("Save to "Apollo" Album") —
+    /// saved media goes into a dedicated "Apollo" Photos album instead
+    /// of the Camera Roll.
+    public var saveToApolloAlbum: Bool
+    /// Real key: `ShowMediaViewerControlsWhenOpened` ("Show Controls
+    /// When Opened") — video controls are visible by default rather
+    /// than requiring a tap to reveal.
+    public var showMediaViewerControlsWhenOpened: Bool
+    /// Real key implied by "Saving as GIF versus Video" / "Download
+    /// GIFs as…" footer copy.
+    public var gifSaveFormat: GIFSaveFormat
+    /// Real key: `UnmuteVideosWhenOpenedSetting`.
+    public var unmuteVideosWhenOpened: UnmuteWhenOpenedSetting
+    /// Real key: `ShowCommentsButton` — the in-app browser's floating
+    /// button that goes to the post's comments.
+    public var showCommentsButton: Bool
+    /// Real key: `AlwaysUseReaderMode` — the in-app browser opens pages
+    /// in Reader Mode when available.
+    public var alwaysUseReaderMode: Bool
     /// Real key: `HighlightAccountAge` ("New Account Highlight") —
     /// visually flags comments/posts from very new Reddit accounts.
     public var highlightAccountAge: Bool
@@ -165,6 +451,10 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// `CommentSortMemoryStore`'s `.subreddit` mode instead; this field
     /// is kept only so old persisted JSON still decodes.
     public var rememberCommentsSortPerSubreddit: Bool
+    /// Real key: `SharePostIncludesTitle` ("Share Includes Title") —
+    /// shared post links include the post title as share-sheet text,
+    /// not just the bare URL.
+    public var sharePostIncludesTitle: Bool
     /// Real key: `DoomscrollDefeater3` ("Infinite Scrolling") — when
     /// false, feeds stop auto-loading more pages past a point,
     /// requiring an explicit tap to continue (a doomscrolling guard).
@@ -173,6 +463,22 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Sort") — the posts-sort analog of
     /// `rememberCommentsSortPerSubreddit`.
     public var rememberPostsSortPerSubreddit: Bool
+    /// Real keys: `DefaultPostsSort` / `DefaultPostsTimeSort`
+    /// ("Default Posts Sort…").
+    public var defaultPostsSort: DefaultPostSort
+    /// Time range qualifier for Top/Controversial post sorts, per the
+    /// real "Sort by Controversial for…" / "Sort by Top for…" copy.
+    public var defaultPostsTimeSort: String
+    /// "Open Reddit Links in Apollo": persisted intent only; Associated
+    /// Domains are not registered.
+    public var openRedditLinksInApollo: Bool
+
+    /// Real key: `RememberRedditToLoad`. Distinct from
+    /// `defaultRedditToLoad`: this remembers whichever subreddit was
+    /// last open and reopens it on launch, while that field always
+    /// opens one fixed subreddit.
+    public var rememberSubredditToLoad: Bool
+
     /// Real key: `HapticFeedback` (default on). Gates every
     /// `Haptics.light/medium/selection` call site throughout the app.
     public var hapticFeedbackEnabled: Bool
@@ -187,9 +493,41 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// `LiquidGlass.preferenceEnabled` in `UserDefaults` so it participates
     /// in backup/restore; `GeneralSettingsStore.save` writes through.
     public var enableLiquidGlass: Bool
+
+    /// Forces the glass or fallback render path, for testing. Not stored
+    /// in this struct: a forced render path shouldn't travel via
+    /// backup/restore, so this proxies `LiquidGlass.renderOverride` directly.
+    public var glassRenderOverride: LiquidGlass.RenderOverride {
+        get { LiquidGlass.renderOverride }
+        nonmutating set { LiquidGlass.renderOverride = newValue }
+    }
+    // MARK: - Interface sub-screen
+
+    /// Real key: `UDKeyUseProfileAvatarTabIcon` ("Profile Picture Tab
+    /// Icon") — when true, the Profile tab's icon shows the signed-in
+    /// user's avatar instead of the generic `person.circle` symbol.
+    /// Wired in `MainTabView`.
+    public var useProfileAvatarTabIcon: Bool
+    /// Real key: `UDKeyHideTabBarTitles` ("Icon-Only Tab Bar") — hides
+    /// every tab's text label, icons only. Hides the narrower "Hide
+    /// Username on Tab Bar" row while on, since icon-only already
+    /// implies no username text.
+    public var iconOnlyTabBar: Bool
+    /// Real key: `sClassicTabBarScrollBehavior` ("Scroll Behavior") —
+    /// only matters while `hideBarsOnScroll` is on. `false` = Two-Gesture
+    /// (default), `true` = Classic.
+    public var classicTabBarScrollBehavior: Bool
     /// Real key: `sLGTitleGapCentering`, Liquid-Glass-only. Cosmetically
     /// inert here: SwiftUI's `.principal` toolbar item already centers.
     public var centerTitleGapCentering: Bool
+    /// Real key: `UDKeyIPadTabBarBottom` (iPad stopgap #387),
+    /// Liquid-Glass-only on iPad. Docks the floating top tab bar at the bottom.
+    public var ipadTabBarBottom: Bool
+    /// Reborn "Swipe Tab Bar to Navigate" (#1075, `TabBarSwipeNavigation`,
+    /// default off, Liquid Glass only): trades the native drag-to-switch-tab
+    /// for left/right back/forward. Relaunch to apply, as upstream.
+    public var tabBarSwipeNavigation: Bool = false
+
     // MARK: - Shortcuts section
 
     /// Real key: `sEnableFlairColors` ("Color Flairs", default on).
@@ -203,6 +541,26 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Wired into `TagFilterSettings.shouldBlur` via
     /// `GeneralSettingsStore`.
     public var nsfwBlurOverride: NSFWBlurOverride
+
+    // MARK: - Media sub-screen: Playback
+
+    /// Real key: `UDKeyPreferredGIFFallbackFormat` — distinct from
+    /// `gifSaveFormat` (saving, not playback fallback).
+    public var preferredGIFFallbackFormat: PreferredGIFFallbackFormat
+    /// Real key: `UDKeyUnmuteFeedVideos` — replaces the feed half of the
+    /// old combined `unmuteVideosWhenOpened`; migrated on first decode.
+    public var unmuteFeedVideosMode: VideoUnmuteMode
+    /// Real key: `UDKeyUnmuteCommentsVideos` — replaces the comments half
+    /// of the old combined `unmuteVideosWhenOpened`.
+    public var unmuteCommentsVideosMode: VideoUnmuteMode
+
+    // MARK: - Media sub-screen: Sharing
+
+    /// Real key: `UDKeyShareLinkHost` — replaces boolean
+    /// `shareOldRedditLinks` with a 4-way host picker; that field is
+    /// kept only for migration.
+    public var shareLinkHost: ShareLinkHost
+
     // MARK: - Media sub-screen: Uploads
 
     /// Real key: `UDKeyImageUploadProvider` ("Media Upload Host") —
@@ -211,6 +569,12 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real key: `UDKeyCommentLinkHost` ("Comment Link Host") — a
     /// separate host for images added to a COMMENT/reply.
     public var commentLinkHost: CommentLinkHost
+    /// Real key: `UDKeyCommentLinkPreferNative` ("Prefer Native
+    /// Images") — only meaningful while `commentLinkHost != .off`:
+    /// comment images upload to Reddit natively wherever the subreddit
+    /// allows it, falling back to the link host only where it doesn't.
+    public var commentLinkPreferNative: Bool
+
     // MARK: - Media sub-screen: Network
 
     /// Real key: `UDKeyProxyImgurDDG` (default off) — loads Imgur images
@@ -219,6 +583,13 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real key: `UDKeyImgurAlbumFallbackProxies` (default on) — DDG can't
     /// fetch an album's image list, so this falls back to text proxies.
     public var imgurAlbumFallbackProxies: Bool
+
+    // MARK: - Feed section additions
+
+    /// Apollo-Reborn "Forget Forward Swipe After Scrolling" (real key
+    /// `UDKeyForwardSwipeForgetAfterScrolling`, default off). Wired in
+    /// `FeedScreen`'s `expireForwardTargetIfNeeded`.
+    public var forwardSwipeForgetAfterScrolling: Bool
     /// Apollo-Reborn "Text Post Thumbnails" (real key
     /// `UDKeyFeedTextPostThumbnails`, default on). Gates
     /// `RedditPost.derivedSelfPostThumbnailURL` in
@@ -232,28 +603,68 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showUserProfilePictures: false,
         showRichLinkPreviews: false,
         linkPreviewStyle: .full,
+        hideFeedDescriptions: false,
+        shareOldRedditLinks: false,
+        defaultRedditToLoad: "",
+        hidePopularInSubredditList: false,
+        hideAllInSubredditList: false,
+        hideModeratorInSubredditList: false,
+        subredditFeedIconStyle: .classic,
+        subredditFeedLayout: .rows,
+        threeDTouchMarksRead: true,
+        hideBarsOnScroll: false,
+        tabBarHideStyle: 0,
+        hideTopBarOnScroll: false,
         collapseNavigationActions: false,
         scrollReturnButton: true,
+        upvoteOnSave: false,
+        autoplayMode: .always,
         newCommentsHighlightifier: false,
         showAwards: true,
         showPostFlair: true,
+        showUserFlair: true,
+
+        openTwitterLinksIn: .inApp,
         excludeSubscribedFromAllPopular: false,
+        unifyModmailInInbox: true,
         liveTextAnalyzer: true,
+        loopVideosWithAudio: true,
+        saveToApolloAlbum: false,
+        showMediaViewerControlsWhenOpened: true,
+        gifSaveFormat: .automatic,
+        unmuteVideosWhenOpened: .remember,
+        showCommentsButton: true,
+        alwaysUseReaderMode: false,
         highlightAccountAge: false,
         ignoreSuggestedSort: false,
         rememberCommentsSortPerSubreddit: false,
+        sharePostIncludesTitle: false,
         infiniteScrollingEnabled: true,
         rememberPostsSortPerSubreddit: false,
+        defaultPostsSort: .best,
+        defaultPostsTimeSort: "day",
+        openRedditLinksInApollo: true,
+        rememberSubredditToLoad: false,
         hapticFeedbackEnabled: true,
         enableLiquidGlassTabBar: true,
         enableLiquidGlass: true,
+        useProfileAvatarTabIcon: false,
+        iconOnlyTabBar: false,
+        classicTabBarScrollBehavior: false,
         centerTitleGapCentering: false,
+        ipadTabBarBottom: false,
         enableFlairColors: false,
         nsfwBlurOverride: .redditSetting,
+        preferredGIFFallbackFormat: .mp4,
+        unmuteFeedVideosMode: .never,
+        unmuteCommentsVideosMode: .never,
+        shareLinkHost: .reddit,
         mediaUploadHost: .imgur,
         commentLinkHost: .off,
+        commentLinkPreferNative: false,
         proxyImgurViaDuckDuckGo: false,
         imgurAlbumFallbackProxies: true,
+        forwardSwipeForgetAfterScrolling: false,
         textPostThumbnailsEnabled: true,
     )
 
@@ -265,28 +676,67 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showUserProfilePictures: Bool,
         showRichLinkPreviews: Bool,
         linkPreviewStyle: LinkPreviewStyleSetting,
+        hideFeedDescriptions: Bool,
+        shareOldRedditLinks: Bool = false,
+        defaultRedditToLoad: String = "",
+        hidePopularInSubredditList: Bool = false,
+        hideAllInSubredditList: Bool = false,
+        hideModeratorInSubredditList: Bool = false,
+        subredditFeedIconStyle: FeedIconStyle = .classic,
+        subredditFeedLayout: FeedShortcutLayout = .rows,
+        threeDTouchMarksRead: Bool = false,
+        hideBarsOnScroll: Bool = false,
+        tabBarHideStyle: Int = 0,
+        hideTopBarOnScroll: Bool = false,
         collapseNavigationActions: Bool = false,
         scrollReturnButton: Bool = true,
+        upvoteOnSave: Bool = false,
+        autoplayMode: AutoplayMode = .always,
         newCommentsHighlightifier: Bool = false,
         showAwards: Bool = true,
         showPostFlair: Bool = true,
+        showUserFlair: Bool = true,
+        openTwitterLinksIn: TwitterLinkDestination = .inApp,
         excludeSubscribedFromAllPopular: Bool = false,
+        unifyModmailInInbox: Bool = false,
         liveTextAnalyzer: Bool = true,
+        loopVideosWithAudio: Bool = false,
+        saveToApolloAlbum: Bool = false,
+        showMediaViewerControlsWhenOpened: Bool = false,
+        gifSaveFormat: GIFSaveFormat = .automatic,
+        unmuteVideosWhenOpened: UnmuteWhenOpenedSetting = .remember,
+        showCommentsButton: Bool = false,
+        alwaysUseReaderMode: Bool = false,
         highlightAccountAge: Bool = false,
         ignoreSuggestedSort: Bool = false,
         rememberCommentsSortPerSubreddit: Bool = false,
+        sharePostIncludesTitle: Bool = true,
         infiniteScrollingEnabled: Bool = true,
         rememberPostsSortPerSubreddit: Bool = false,
+        defaultPostsSort: DefaultPostSort = .best,
+        defaultPostsTimeSort: String = "day",
+        openRedditLinksInApollo: Bool = true,
+        rememberSubredditToLoad: Bool = false,
         hapticFeedbackEnabled: Bool = true,
         enableLiquidGlassTabBar: Bool = true,
         enableLiquidGlass: Bool = true,
+        useProfileAvatarTabIcon: Bool = false,
+        iconOnlyTabBar: Bool = false,
+        classicTabBarScrollBehavior: Bool = false,
         centerTitleGapCentering: Bool = false,
+        ipadTabBarBottom: Bool = false,
         enableFlairColors: Bool = false,
         nsfwBlurOverride: NSFWBlurOverride = .redditSetting,
+        preferredGIFFallbackFormat: PreferredGIFFallbackFormat = .mp4,
+        unmuteFeedVideosMode: VideoUnmuteMode = .never,
+        unmuteCommentsVideosMode: VideoUnmuteMode = .never,
+        shareLinkHost: ShareLinkHost = .reddit,
         mediaUploadHost: MediaUploadHost = .imgur,
         commentLinkHost: CommentLinkHost = .off,
+        commentLinkPreferNative: Bool = false,
         proxyImgurViaDuckDuckGo: Bool = false,
         imgurAlbumFallbackProxies: Bool = true,
+        forwardSwipeForgetAfterScrolling: Bool = false,
         textPostThumbnailsEnabled: Bool = true,
     ) {
         self.thumbnailsOnLeft = thumbnailsOnLeft
@@ -296,28 +746,67 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.showUserProfilePictures = showUserProfilePictures
         self.showRichLinkPreviews = showRichLinkPreviews
         self.linkPreviewStyle = linkPreviewStyle
+        self.hideFeedDescriptions = hideFeedDescriptions
+        self.shareOldRedditLinks = shareOldRedditLinks
+        self.defaultRedditToLoad = defaultRedditToLoad
+        self.hidePopularInSubredditList = hidePopularInSubredditList
+        self.hideAllInSubredditList = hideAllInSubredditList
+        self.hideModeratorInSubredditList = hideModeratorInSubredditList
+        self.subredditFeedIconStyle = subredditFeedIconStyle
+        self.subredditFeedLayout = subredditFeedLayout
+        self.threeDTouchMarksRead = threeDTouchMarksRead
+        self.hideBarsOnScroll = hideBarsOnScroll
+        self.tabBarHideStyle = tabBarHideStyle
+        self.hideTopBarOnScroll = hideTopBarOnScroll
         self.collapseNavigationActions = collapseNavigationActions
         self.scrollReturnButton = scrollReturnButton
+        self.upvoteOnSave = upvoteOnSave
+        self.autoplayMode = autoplayMode
         self.newCommentsHighlightifier = newCommentsHighlightifier
         self.showAwards = showAwards
         self.showPostFlair = showPostFlair
+        self.showUserFlair = showUserFlair
+        self.openTwitterLinksIn = openTwitterLinksIn
         self.excludeSubscribedFromAllPopular = excludeSubscribedFromAllPopular
+        self.unifyModmailInInbox = unifyModmailInInbox
         self.liveTextAnalyzer = liveTextAnalyzer
+        self.loopVideosWithAudio = loopVideosWithAudio
+        self.saveToApolloAlbum = saveToApolloAlbum
+        self.showMediaViewerControlsWhenOpened = showMediaViewerControlsWhenOpened
+        self.gifSaveFormat = gifSaveFormat
+        self.unmuteVideosWhenOpened = unmuteVideosWhenOpened
+        self.showCommentsButton = showCommentsButton
+        self.alwaysUseReaderMode = alwaysUseReaderMode
         self.highlightAccountAge = highlightAccountAge
         self.ignoreSuggestedSort = ignoreSuggestedSort
         self.rememberCommentsSortPerSubreddit = rememberCommentsSortPerSubreddit
+        self.sharePostIncludesTitle = sharePostIncludesTitle
         self.infiniteScrollingEnabled = infiniteScrollingEnabled
         self.rememberPostsSortPerSubreddit = rememberPostsSortPerSubreddit
+        self.defaultPostsSort = defaultPostsSort
+        self.defaultPostsTimeSort = defaultPostsTimeSort
+        self.openRedditLinksInApollo = openRedditLinksInApollo
+        self.rememberSubredditToLoad = rememberSubredditToLoad
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
         self.enableLiquidGlassTabBar = enableLiquidGlassTabBar
         self.enableLiquidGlass = enableLiquidGlass
+        self.useProfileAvatarTabIcon = useProfileAvatarTabIcon
+        self.iconOnlyTabBar = iconOnlyTabBar
+        self.classicTabBarScrollBehavior = classicTabBarScrollBehavior
         self.centerTitleGapCentering = centerTitleGapCentering
+        self.ipadTabBarBottom = ipadTabBarBottom
         self.enableFlairColors = enableFlairColors
         self.nsfwBlurOverride = nsfwBlurOverride
+        self.preferredGIFFallbackFormat = preferredGIFFallbackFormat
+        self.unmuteFeedVideosMode = unmuteFeedVideosMode
+        self.unmuteCommentsVideosMode = unmuteCommentsVideosMode
+        self.shareLinkHost = shareLinkHost
         self.mediaUploadHost = mediaUploadHost
         self.commentLinkHost = commentLinkHost
+        self.commentLinkPreferNative = commentLinkPreferNative
         self.proxyImgurViaDuckDuckGo = proxyImgurViaDuckDuckGo
         self.imgurAlbumFallbackProxies = imgurAlbumFallbackProxies
+        self.forwardSwipeForgetAfterScrolling = forwardSwipeForgetAfterScrolling
         self.textPostThumbnailsEnabled = textPostThumbnailsEnabled
     }
 
@@ -333,29 +822,93 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showUserProfilePictures = try container.decode(.showUserProfilePictures, default: d, \.showUserProfilePictures)
         showRichLinkPreviews = try container.decode(.showRichLinkPreviews, default: d, \.showRichLinkPreviews)
         linkPreviewStyle = try container.decode(.linkPreviewStyle, default: d, \.linkPreviewStyle)
+        hideFeedDescriptions = try container.decode(.hideFeedDescriptions, default: d, \.hideFeedDescriptions)
+        shareOldRedditLinks = try container.decode(.shareOldRedditLinks, default: d, \.shareOldRedditLinks)
+        defaultRedditToLoad = try container.decode(.defaultRedditToLoad, default: d, \.defaultRedditToLoad)
+        hidePopularInSubredditList = try container.decode(.hidePopularInSubredditList, default: d, \.hidePopularInSubredditList)
+        hideAllInSubredditList = try container.decode(.hideAllInSubredditList, default: d, \.hideAllInSubredditList)
+        hideModeratorInSubredditList = try container.decode(.hideModeratorInSubredditList, default: d, \.hideModeratorInSubredditList)
         useCommunityIcons = try container.decode(.useCommunityIcons, default: d, \.useCommunityIcons)
+        subredditFeedIconStyle = try container.decode(.subredditFeedIconStyle, default: d, \.subredditFeedIconStyle)
+        subredditFeedLayout = try container.decode(.subredditFeedLayout, default: d, \.subredditFeedLayout)
+        threeDTouchMarksRead = try container.decode(.threeDTouchMarksRead, default: d, \.threeDTouchMarksRead)
+        hideBarsOnScroll = try container.decode(.hideBarsOnScroll, default: d, \.hideBarsOnScroll)
+        tabBarHideStyle = try container.decode(.tabBarHideStyle, default: d, \.tabBarHideStyle)
+        hideTopBarOnScroll = try container.decode(.hideTopBarOnScroll, default: d, \.hideTopBarOnScroll)
         collapseNavigationActions = try container.decode(.collapseNavigationActions, default: d, \.collapseNavigationActions)
         scrollReturnButton = try container.decode(.scrollReturnButton, default: d, \.scrollReturnButton)
+        upvoteOnSave = try container.decode(.upvoteOnSave, default: d, \.upvoteOnSave)
+        autoplayMode = try container.decode(.autoplayMode, default: d, \.autoplayMode)
         newCommentsHighlightifier = try container.decode(.newCommentsHighlightifier, default: d, \.newCommentsHighlightifier)
         showAwards = try container.decode(.showAwards, default: d, \.showAwards)
         showPostFlair = try container.decode(.showPostFlair, default: d, \.showPostFlair)
+        showUserFlair = try container.decode(.showUserFlair, default: d, \.showUserFlair)
+        openTwitterLinksIn = try container.decode(.openTwitterLinksIn, default: d, \.openTwitterLinksIn)
         excludeSubscribedFromAllPopular = try container.decode(.excludeSubscribedFromAllPopular, default: d, \.excludeSubscribedFromAllPopular)
+        unifyModmailInInbox = try container.decode(.unifyModmailInInbox, default: d, \.unifyModmailInInbox)
         liveTextAnalyzer = try container.decode(.liveTextAnalyzer, default: d, \.liveTextAnalyzer)
+        loopVideosWithAudio = try container.decode(.loopVideosWithAudio, default: d, \.loopVideosWithAudio)
+        saveToApolloAlbum = try container.decode(.saveToApolloAlbum, default: d, \.saveToApolloAlbum)
+        showMediaViewerControlsWhenOpened = try container.decode(.showMediaViewerControlsWhenOpened, default: d, \.showMediaViewerControlsWhenOpened)
+        gifSaveFormat = try container.decode(.gifSaveFormat, default: d, \.gifSaveFormat)
+        unmuteVideosWhenOpened = try container.decode(.unmuteVideosWhenOpened, default: d, \.unmuteVideosWhenOpened)
+        showCommentsButton = try container.decode(.showCommentsButton, default: d, \.showCommentsButton)
+        alwaysUseReaderMode = try container.decode(.alwaysUseReaderMode, default: d, \.alwaysUseReaderMode)
         highlightAccountAge = try container.decode(.highlightAccountAge, default: d, \.highlightAccountAge)
         ignoreSuggestedSort = try container.decode(.ignoreSuggestedSort, default: d, \.ignoreSuggestedSort)
         rememberCommentsSortPerSubreddit = try container.decode(.rememberCommentsSortPerSubreddit, default: d, \.rememberCommentsSortPerSubreddit)
+        sharePostIncludesTitle = try container.decode(.sharePostIncludesTitle, default: d, \.sharePostIncludesTitle)
         infiniteScrollingEnabled = try container.decode(.infiniteScrollingEnabled, default: d, \.infiniteScrollingEnabled)
         rememberPostsSortPerSubreddit = try container.decode(.rememberPostsSortPerSubreddit, default: d, \.rememberPostsSortPerSubreddit)
+        defaultPostsSort = try container.decode(.defaultPostsSort, default: d, \.defaultPostsSort)
+        defaultPostsTimeSort = try container.decode(.defaultPostsTimeSort, default: d, \.defaultPostsTimeSort)
+        openRedditLinksInApollo = try container.decode(.openRedditLinksInApollo, default: d, \.openRedditLinksInApollo)
+        rememberSubredditToLoad = try container.decode(.rememberSubredditToLoad, default: d, \.rememberSubredditToLoad)
         hapticFeedbackEnabled = try container.decode(.hapticFeedbackEnabled, default: d, \.hapticFeedbackEnabled)
         enableLiquidGlassTabBar = try container.decode(.enableLiquidGlassTabBar, default: d, \.enableLiquidGlassTabBar)
         enableLiquidGlass = try container.decode(.enableLiquidGlass, default: d, \.enableLiquidGlass)
+        useProfileAvatarTabIcon = try container.decode(.useProfileAvatarTabIcon, default: d, \.useProfileAvatarTabIcon)
+        iconOnlyTabBar = try container.decode(.iconOnlyTabBar, default: d, \.iconOnlyTabBar)
+        classicTabBarScrollBehavior = try container.decode(.classicTabBarScrollBehavior, default: d, \.classicTabBarScrollBehavior)
         centerTitleGapCentering = try container.decode(.centerTitleGapCentering, default: d, \.centerTitleGapCentering)
+        ipadTabBarBottom = try container.decode(.ipadTabBarBottom, default: d, \.ipadTabBarBottom)
+        tabBarSwipeNavigation = try container.decode(.tabBarSwipeNavigation, default: d, \.tabBarSwipeNavigation)
         enableFlairColors = try container.decode(.enableFlairColors, default: d, \.enableFlairColors)
         nsfwBlurOverride = try container.decode(.nsfwBlurOverride, default: d, \.nsfwBlurOverride)
+        preferredGIFFallbackFormat = try container.decode(.preferredGIFFallbackFormat, default: d, \.preferredGIFFallbackFormat)
+        // Migration: the old combined `unmuteVideosWhenOpened` carries
+        // into both new fields on first decode.
+        if let feedMode = (try? container.decodeIfPresent(VideoUnmuteMode.self, forKey: .unmuteFeedVideosMode)) {
+            unmuteFeedVideosMode = feedMode
+        } else {
+            switch unmuteVideosWhenOpened {
+            case .always: unmuteFeedVideosMode = .always
+            case .never: unmuteFeedVideosMode = .never
+            case .remember: unmuteFeedVideosMode = .remember
+            }
+        }
+        if let commentsMode = (try? container.decodeIfPresent(VideoUnmuteMode.self, forKey: .unmuteCommentsVideosMode)) {
+            unmuteCommentsVideosMode = commentsMode
+        } else {
+            switch unmuteVideosWhenOpened {
+            case .always: unmuteCommentsVideosMode = .always
+            case .never: unmuteCommentsVideosMode = .never
+            case .remember: unmuteCommentsVideosMode = .remember
+            }
+        }
+        // Migration: the old boolean `shareOldRedditLinks` maps onto
+        // the new 4-way host picker.
+        if let host = (try? container.decodeIfPresent(ShareLinkHost.self, forKey: .shareLinkHost)) {
+            shareLinkHost = host
+        } else {
+            shareLinkHost = shareOldRedditLinks ? .oldReddit : .reddit
+        }
         mediaUploadHost = try container.decode(.mediaUploadHost, default: d, \.mediaUploadHost)
         commentLinkHost = try container.decode(.commentLinkHost, default: d, \.commentLinkHost)
+        commentLinkPreferNative = try container.decode(.commentLinkPreferNative, default: d, \.commentLinkPreferNative)
         proxyImgurViaDuckDuckGo = try container.decode(.proxyImgurViaDuckDuckGo, default: d, \.proxyImgurViaDuckDuckGo)
         imgurAlbumFallbackProxies = try container.decode(.imgurAlbumFallbackProxies, default: d, \.imgurAlbumFallbackProxies)
+        forwardSwipeForgetAfterScrolling = try container.decode(.forwardSwipeForgetAfterScrolling, default: d, \.forwardSwipeForgetAfterScrolling)
         textPostThumbnailsEnabled = try container.decode(.textPostThumbnailsEnabled, default: d, \.textPostThumbnailsEnabled)
     }
 }
@@ -367,6 +920,7 @@ public enum GeneralSettingsStore {
     public static let storage = SettingsStore<GeneralSettings>(
         key: "com.pendo324.Phoebus.generalSettings",
         didChange: didChangeNotification,
+        mirror: { settings, defaults in defaults.set(settings.enableLiquidGlass, forKey: LiquidGlass.preferenceKey) }
     ) { .default }
 
     /// Posted after any save, alongside `.apolloSettingsChanged`.

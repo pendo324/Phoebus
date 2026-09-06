@@ -41,6 +41,9 @@ let package = Package(
         .target(
             name: "PhoebusCore",
             resources: [
+                // Apollo's own lowercase -> display-case subreddit table; see
+                // `SubredditCapitalization` for why it cannot be a rule.
+                .copy("Resources/SubredditCapitalization.json"),
             ]
         ),
         .target(

@@ -262,6 +262,14 @@ public actor RedditRepository {
             "sr": subredditFullname,
             "action": subscribe ? "sub" : "unsub",
         ])
+        await Self.announce(SubscriptionChange(fullname: subredditFullname, subscribed: subscribe))
+    }
+
+    /// Every surface showing subscription state hears about it, and the
+    /// All/Popular membership cache stops being stale.
+    public static func announce(_ change: SubscriptionChange) async {
+        await SubscribedSubredditsCache.shared.invalidate()
+        await MainActor.run { SubscriptionChange.post(change) }
     }
 
     /// Same endpoint as `subscribe(subredditFullname:)` but keyed by
@@ -273,12 +281,57 @@ public actor RedditRepository {
             "sr_name": subredditName,
             "action": subscribe ? "sub" : "unsub",
         ])
+        await Self.announce(SubscriptionChange(name: subredditName, subscribed: subscribe))
+    }
+    /// Fetches the signed-in user's saved multireddits (custom
+    /// subreddit groupings).
+    public func fetchMultireddits() async throws -> [RedditMultireddit] {
+        let data = try await client.get(path: "/api/multi/mine")
+        // Per item, so one multireddit with an unexpected field does not
+        // drop the whole section.
+        guard let items = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            throw RedditAPIError.decodingFailed("multi/mine: not an array")
+        }
+        return items.compactMap { item in
+            guard let inner = item["data"],
+                  let json = try? JSONSerialization.data(withJSONObject: inner) else { return nil }
+            return try? JSONDecoder.reddit.decode(RedditMultireddit.self, from: json)
+        }
     }
 
     /// Fetches a multireddit's combined feed. Path format matches
     /// Reddit's API: /user/<username>/m/<multiname>.
     public func fetchMultiredditListing(path: String, sort: String = "hot", after: String? = nil) async throws -> RedditListing {
         try await client.getListing(path: "\(path)/\(sort)", after: after)
+    }
+
+    /// Creates a new multireddit.
+    @discardableResult
+    public func createMultireddit(name: String, username: String) async throws -> Data {
+        let path = "/user/\(username)/m/\(name.replacingOccurrences(of: " ", with: "_"))"
+        let model = try Self.multiModel(["display_name": name, "subreddits": [[String: String]]()])
+        return try await client.put(path: "/api/multi\(path)", parameters: ["model": model])
+    }
+
+    /// A multireddit "model" parameter. Serialised, not concatenated:
+    /// the hand-built JSON escaped quotes and newlines but not
+    /// backslashes or control characters.
+    public static func multiModel(_ fields: [String: Any]) throws -> String {
+        String(decoding: try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys]), as: UTF8.self)
+    }
+
+    /// Reborn "in-app renaming and descriptions" for multireddits via
+    /// `PUT /api/multi/<path>` (a full "model" JSON replaces the
+    /// display_name/description_md fields; existing subreddits are
+    /// preserved by round-tripping the current subreddit list).
+    @discardableResult
+    public func updateMultireddit(path: String, displayName: String, descriptionMarkdown: String, subredditNames: [String]) async throws -> Data {
+        let model = try Self.multiModel([
+            "display_name": displayName,
+            "description_md": descriptionMarkdown,
+            "subreddits": subredditNames.map { ["name": $0] },
+        ])
+        return try await client.put(path: "/api/multi\(path)", parameters: ["model": model])
     }
     /// Under a cookie-authed web session `/api/v1/me` is rewritten to
     /// `www.reddit.com` and answers `{}` (it is OAuth-only), while

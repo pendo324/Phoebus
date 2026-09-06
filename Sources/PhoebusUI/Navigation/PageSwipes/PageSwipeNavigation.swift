@@ -81,6 +81,15 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
     }
 
     static var isSwipeActive: Bool { active != nil }
+
+    func canBegin(back: Bool) -> Bool {
+        guard let navigationController, Self.active == nil,
+              navigationController.transitionCoordinator == nil,
+              NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled,
+              !InfoRowHoldRecognizer.isHolding else { return false }
+        return back ? navigationController.viewControllers.count > 1 : ForwardNavigationStore.shared.canGoForward
+    }
+
     // MARK: - The pan
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -96,8 +105,14 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
               Self.innermostNavigationController(at: startInWindow, in: view.window) === navigationController
         else { return false }
         if PushPopGesturePolicy.shouldBeginBack(velocityX: Double(velocity.x), velocityY: Double(velocity.y),
-                                                locationX: Double(start.x)) {
+                                                locationX: Double(start.x)), canBegin(back: true) {
             isBack = true
+            return true
+        }
+        if PushPopGesturePolicy.shouldBeginForward(velocityX: Double(velocity.x), velocityY: Double(velocity.y),
+                                                   locationX: Double(start.x), viewWidth: Double(view.bounds.width)),
+           canBegin(back: false) {
+            isBack = false
             return true
         }
         return false

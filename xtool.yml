@@ -1,0 +1,5 @@
+version: 1
+bundleID: com.pendo324.Phoebus
+product: Phoebus
+entitlementsPath: Config/Phoebus/Phoebus.entitlements
+infoPath: Config/Phoebus/Info.plist

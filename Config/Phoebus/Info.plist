@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- A self-hosted notification backend (apollo-backend) and bark-server
+	     are usually reached over plain http on the LAN; ATS would block them. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Arbitrary loads only: alongside NSAllowsLocalNetworking, iOS
+		     ignores NSAllowsArbitraryLoads. Arbitrary loads already cover
+		     the local network. -->
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<!-- Declared here because xtool otherwise defaults the version to 1.0.0. -->
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.pendo324.Phoebus.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>phoebus</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

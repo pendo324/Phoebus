@@ -25,6 +25,14 @@ let package = Package(
         .iOS("17.0"),
         .macOS(.v14),
     ],
+    products: [
+        // An xtool project should contain exactly one library product,
+        // representing the main app.
+        .library(
+            name: "Phoebus",
+            targets: ["Phoebus"]
+        ),
+    ],
     dependencies: [
         // Real GIF/APNG/WebP animation (Apollo uses FLAnimatedImage).
         .package(url: "https://github.com/noppefoxwolf/AnimatedImage", from: "0.2.0"),
@@ -47,6 +55,11 @@ let package = Package(
             resources: [
                 .copy("Resources/StockIcons"),
             ],
+            linkerSettings: weakSwiftUICore
+        ),
+        .target(
+            name: "Phoebus",
+            dependencies: ["PhoebusCore", "PhoebusUI"],
             linkerSettings: weakSwiftUICore
         ),
         .executableTarget(

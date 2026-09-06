@@ -72,6 +72,16 @@ public final class AccountManager: ObservableObject {
         get async { await authClient.isSignedIn }
     }
 
+    /// Accounts a push backend can watch: those with a refresh token
+    /// (OAuth). The backend refreshes the access token itself before
+    /// using it, so an expired one is fine to send.
+    public func pushRegistrationAccounts() async -> [PushNotificationClient.Account] {
+        accounts.compactMap { account in
+            guard let credential = account.oauthCredential, let refresh = credential.refreshToken, !refresh.isEmpty else { return nil }
+            return PushNotificationClient.Account(username: account.username, accessToken: credential.accessToken, refreshToken: refresh)
+        }
+    }
+
     public func switchTo(index: Int) {
         store.switchTo(index: index)
         refreshFromStore()

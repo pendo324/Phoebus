@@ -198,8 +198,28 @@ check("buildResolved's root is the actual shallowest comment (r1), not just arra
 check("buildResolved starts depth at the stub's own depth, not always 0", resolvedBuild.roots.first?.depth == 2)
 check("buildResolved nests r2 one level below the stub's depth", resolvedBuild.roots.first?.children.first?.comment.id == "r2" && resolvedBuild.roots.first?.children.first?.depth == 3)
 check("buildResolved nests r3 two levels below the stub's depth (real multi-level reconstruction, not flat siblings)", resolvedBuild.roots.first?.children.first?.children.first?.comment.id == "r3" && resolvedBuild.roots.first?.children.first?.children.first?.depth == 4)
+// --- RedGifs ID extraction (media pipeline) ---
+let redgifsWatchURL = URL(string: "https://www.redgifs.com/watch/abcxyz")!
+check("extracts redgifs ID from watch URL", RedGifsClient.extractID(from: redgifsWatchURL) == "abcxyz")
+
+let redgifsDirectURL = URL(string: "https://i.redgifs.com/i/abcxyz.mp4")!
+check("extracts redgifs ID from direct media URL", RedGifsClient.extractID(from: redgifsDirectURL) == "abcxyz")
+
+let nonRedgifsURL = URL(string: "https://example.com/watch/abcxyz")!
+check("returns nil for non-redgifs URL", RedGifsClient.extractID(from: nonRedgifsURL) == nil)
+
+// --- Apollo regex edge cases (base app behaviour, not just Reborn) ---
+let redgifsCDNURL = URL(string: "https://thumbs2.redgifs.com/SomeSlugName-mobile.mp4")!
+check("extracts redgifs ID from a numbered CDN subdomain + trailing slug (real regex)", RedGifsClient.extractID(from: redgifsCDNURL) == "SomeSlugName")
+let streamableEditURL = URL(string: "https://streamable.com/edit/moo")!
+check("StreamableClient.extractID handles the real /edit/<id> creator-link variant", StreamableClient.extractID(from: streamableEditURL) == "moo")
+
 check("ImgurClient.extractAlbumID also recognizes the imgur.io TLD", ImgurClient.extractAlbumID(from: URL(string: "https://imgur.io/a/AbCdEfG")!) == "AbCdEfG")
 check("ImgurClient.matchesImgurHost recognizes a t/<tag>/ prefixed link", ImgurClient.matchesImgurHost(URL(string: "https://imgur.com/t/aww/abc123")!))
+
+/// The two third-party round-trips below run only with SMOKE_LIVE=1, so an
+/// offline run does not count their failure.
+let runsLiveChecks = ProcessInfo.processInfo.environment["SMOKE_LIVE"] == "1"
 // --- v.redd.it native video media decoding ---
 let redditVideoJSON = """
 {"reddit_video": {"fallback_url": "https://v.redd.it/abc123/DASH_720.mp4", "hls_url": "https://v.redd.it/abc123/HLSPlaylist.m3u8", "is_gif": false}}

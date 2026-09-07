@@ -7,12 +7,43 @@ import PhoebusCore
 /// the appropriate view.
 public enum PostMediaKind {
     case image(URL)
+    case gif(URL)
+    case video(URL)
+    /// The URL to download for `post`, not the URL to play: playback
+    /// uses the muxed HLS stream, but Save Video needs the
+    /// progressive `DASH_*.mp4` to pair with `DASH_audio.mp4` and mux
+    /// itself. See `RedditVideoStream.downloadURL`.
+    static func downloadableVideoURL(for post: RedditPost) -> URL? {
+        guard let redditVideo = post.media?.redditVideo else { return nil }
+        return RedditVideoStream.downloadURL(
+            hlsURL: redditVideo.hlsURL, fallbackURL: redditVideo.fallbackURL)
+    }
     case none
 
     public static func classify(post: RedditPost) -> PostMediaKind {
         guard !post.isSelf else { return .none }
+        // v.redd.it native Reddit-hosted video: the playable stream
+        // URL lives in post.media.reddit_video.fallback_url, not
+        // post.url (the human-facing watch page).
+        if let redditVideo = post.media?.redditVideo,
+           let url = RedditVideoStream.playbackURL(
+                hlsURL: redditVideo.hlsURL,
+                fallbackURL: redditVideo.fallbackURL,
+                isGif: redditVideo.isGif) {
+            // HLS, not `fallback_url`: Reddit stores v.redd.it audio
+            // as a separate track, so `fallback_url` alone plays silently.
+            return .video(url)
+        }
+
         guard let urlString = post.url, let url = URL(string: urlString) else {
             return .none
+        }
+        let lower = urlString.lowercased()
+        if lower.hasSuffix(".gif") || lower.hasSuffix(".gifv") {
+            return .gif(url)
+        }
+        if [".mp4", ".mov", ".m3u8", ".webm"].contains(where: lower.hasSuffix) {
+            return .video(url)
         }
             return .image(url)
     }
@@ -75,6 +106,9 @@ public struct PostMediaView: View {
                 blurOverlay(for: contentWarning)
             }
         }
+        // The post screen's own media: any player in it may hand over to
+        // the floating PiP card (Reborn scopes PiP to the post header).
+        .environment(\.floatingPiPSourceEnabled, true)
     }
     @ViewBuilder
     private var mediaContent: some View {
@@ -83,6 +117,43 @@ public struct PostMediaView: View {
             CachedAsyncImage(url: url)
                 .apolloMediaFrame()
                 .apolloMediaPager(items: [.image(url)], isPresented: $showingFullscreenImage, votePost: votePost, repository: voteRepository, onJumpToComments: onJumpToComments, onDoubleTap: onDoubleTapMedia)
+        case .gif(let url):
+            AnimatedGIFView(url: url,
+                            redditMP4URL: votePost?.preview?.images?.first?.variants?.mp4?.source?.url
+                                .flatMap { URL(string: GalleryTile.unescaped($0)) })
+                .environment(\.floatingPiPIsGIF, true)
+                .apolloMediaFrame()
+        case .video(let url):
+            // A standalone v.redd.it/native video post reaches the
+            // same fullscreen pager as an image via `.apolloMediaPager`.
+            //
+            // Reborn's "Unmute Videos in Comments" owns the post's own
+            // video here; the feed setting never reaches it.
+            //
+            // The trailing closure decorates the video surface only
+            // (`MutedVideoPlayerView.decorateVideo`); wrapping the
+            // whole thing would letterbox the controls into the
+            // media's aspect ratio and make a tap on the scrubber
+            // open the fullscreen pager.
+            MutedVideoPlayerView(
+                url: url,
+                unmuteContext: .commentsHeader,
+                enablesFeedScrubber: true,
+                // The post screen's own video hands off to the
+                // floating PiP card when scrolled away.
+                enablesFloatingPiP: true,
+                showsControlPanel: false,
+                initialAspectRatio: votePost?.media?.redditVideo?.aspectRatio.map { CGFloat($0) },
+                onRequestFullscreen: { showingFullscreenImage = true }
+            ) { video in
+                video
+                    .apolloMediaFrame()
+                    .apolloMediaPager(items: [.video(url)], isPresented: $showingFullscreenImage, votePost: votePost, repository: voteRepository, onJumpToComments: onJumpToComments, onDoubleTap: onDoubleTapMedia,
+                              // The player owns the taps here.
+                              attachesTapGestures: false)
+            }
+            // Reddit's GIF uploads arrive as silent videos flagged is_gif.
+            .environment(\.floatingPiPIsGIF, votePost?.media?.redditVideo?.isGif == true)
         case .none:
             EmptyView()
         }

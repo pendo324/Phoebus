@@ -198,6 +198,15 @@ check("buildResolved's root is the actual shallowest comment (r1), not just arra
 check("buildResolved starts depth at the stub's own depth, not always 0", resolvedBuild.roots.first?.depth == 2)
 check("buildResolved nests r2 one level below the stub's depth", resolvedBuild.roots.first?.children.first?.comment.id == "r2" && resolvedBuild.roots.first?.children.first?.depth == 3)
 check("buildResolved nests r3 two levels below the stub's depth (real multi-level reconstruction, not flat siblings)", resolvedBuild.roots.first?.children.first?.children.first?.comment.id == "r3" && resolvedBuild.roots.first?.children.first?.children.first?.depth == 4)
+check("ImgurClient.extractAlbumID also recognizes the imgur.io TLD", ImgurClient.extractAlbumID(from: URL(string: "https://imgur.io/a/AbCdEfG")!) == "AbCdEfG")
+check("ImgurClient.matchesImgurHost recognizes a t/<tag>/ prefixed link", ImgurClient.matchesImgurHost(URL(string: "https://imgur.com/t/aww/abc123")!))
+// --- v.redd.it native video media decoding ---
+let redditVideoJSON = """
+{"reddit_video": {"fallback_url": "https://v.redd.it/abc123/DASH_720.mp4", "hls_url": "https://v.redd.it/abc123/HLSPlaylist.m3u8", "is_gif": false}}
+""".data(using: .utf8)!
+let media = try! JSONDecoder().decode(RedditMedia.self, from: redditVideoJSON)
+check("decodes reddit_video fallback_url", media.redditVideo?.fallbackURL == "https://v.redd.it/abc123/DASH_720.mp4")
+check("decodes reddit_video hls_url", media.redditVideo?.hlsURL == "https://v.redd.it/abc123/HLSPlaylist.m3u8")
 // --- Auto-collapse child comments (CommentTreeBuilder) ---
 let nestedCommentJSON = """
 [{"kind": "t1", "data": {"id": "c1", "name": "t1_c1", "author": "a", "body": "top", "score": 1,
@@ -242,7 +251,27 @@ do {
     let isSignedInAfterSignOut = await authClient.isSignedIn
     check("RedditAuthClient.signOut() clears the web session too", isSignedInAfterSignOut == false)
 }
+
+check("PureBlackSettings.default has everything off", PureBlackSettings.default == PureBlackSettings(isEnabled: false, isPurerEnabled: false, reduceSmearing: false))
+PureBlackSettingsStore.save(PureBlackSettings(isEnabled: true, isPurerEnabled: true, reduceSmearing: true))
+check("PureBlackSettingsStore round-trips a saved selection", PureBlackSettingsStore.load() == PureBlackSettings(isEnabled: true, isPurerEnabled: true, reduceSmearing: true))
+PureBlackSettingsStore.save(.default)
+check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
+
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+// Liquid Glass detection, mirroring Reborn's IsLiquidGlass() and
+// ApolloSDKEnablesLiquidGlass. Two conditions, both required: iOS 26+ and
+// the UIGlassEffect class present at runtime (an @available check alone
+// would claim glass where the effect is unavailable).
+//
+// On Linux (no UIKit) it is false, so the non-glass path is exercised.
+#if canImport(UIKit)
+check("glass detection requires the runtime class, not just the OS version",
+      LiquidGlass.isAvailable == (NSClassFromString("UIGlassEffect") != nil))
+#else
+check("glass is unavailable without UIKit", !LiquidGlass.isAvailable)
+#endif
+
 // Splitting on blank lines matches how `RedditMarkdown` separates the
 // blocks it emits.
 let sampleBody = "First paragraph.\n\nSecond paragraph.\n\n\nThird."

@@ -8,9 +8,11 @@ import PhoebusCore
 /// comments" back to the caller.
 public enum MediaPagerItem: Identifiable, Equatable {
     case image(URL)
+    case video(URL)
     public var id: String {
         switch self {
         case .image(let url): return "image:\(url.absoluteString)"
+        case .video(let url): return "video:\(url.absoluteString)"
         }
     }
 }
@@ -54,6 +56,18 @@ public struct MediaPagerScreen: View {
     /// until tapped, matching a fullscreen viewer's "immersive by
     /// default" convention.
     @State private var controlsVisible = GeneralSettingsStore.load().showMediaViewerControlsWhenOpened
+    /// The video on the current page, handed over by the player.
+    /// Apollo's fullscreen viewer has no speedometer button, so
+    /// playback speed lives in the "..." menu here.
+    /// Each video page's player, by page. The current page's player drives PiP
+    /// and playback speed, not a pre-mounted neighbour's.
+    @State private var pagePlayers: [Int: AVPlayer] = [:]
+    private var currentPlayer: AVPlayer? { pagePlayers[selection] }
+    /// Every player this viewer has shown, and the inline ones it muted
+    /// while it's up (#1252); the latter get their sound back on close.
+    @State private var viewerPlayers: [AVPlayer] = []
+    @State private var silencedInline: [AVPlayer] = []
+    @State private var playbackSpeed: Float = 1
     public init(items: [MediaPagerItem], startIndex: Int = 0, votePost: RedditPost? = nil, repository: RedditRepository? = nil, onJumpToComments: (() -> Void)? = nil) {
         self.items = items
         self.startIndex = startIndex
@@ -78,6 +92,15 @@ public struct MediaPagerScreen: View {
                 ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                     MediaPagerPageView(item: item, isCurrentPage: index == selection, albumImageURLs: albumImageURLs, controlsVisible: controlsVisible, onSurfaceTapped: {
                         withAnimation(.easeInOut(duration: 0.2)) { controlsVisible.toggle() }
+                    }, onVerticalSwipe: { dy, dx in
+                        handleVerticalSwipe(verticalDistance: dy, horizontalDistance: abs(dx))
+                    }, onPlayerReady: { newPlayer, newURL in
+                        pagePlayers[index] = newPlayer
+                        if !viewerPlayers.contains(where: { $0 === newPlayer }) { viewerPlayers.append(newPlayer) }
+                        silencedInline += VideoPlayerCache.shared.silenceAudible(except: viewerPlayers)
+                        // The viewer takes the card's own player: the
+                        // card goes, playback carries on here.
+                        FloatingPiPController.shared.yield(to: newPlayer, url: newURL)
                     })
                         .tag(index)
                 }
@@ -86,6 +109,28 @@ public struct MediaPagerScreen: View {
             // No page dots: the album position is the "N / M" counter.
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
+            // A page left behind stops, unless another view (the post's
+            // own video) still shows the same player.
+            .onChange(of: selection) { _, current in
+                for (index, player) in pagePlayers where index != current && player !== pagePlayers[current] {
+                    if case .video(let url) = items[safe: index],
+                       VideoPlayerCache.shared.holderCount(url: url) > 1 { continue }
+                    player.pause()
+                }
+            }
+            .onAppear { FeedVideoSound.viewersShowing += 1 }
+            .onDisappear {
+                FeedVideoSound.viewersShowing = max(0, FeedVideoSound.viewersShowing - 1)
+                // Sound back for the inline video this viewer silenced,
+                // unless the video went on to an audible PiP card, which
+                // owns the sound now.
+                let pip = FloatingPiPController.shared
+                if !(pip.isShowing && pip.player?.isMuted == false) {
+                    VideoPlayerCache.shared.restoreSound(silencedInline)
+                }
+                silencedInline = []
+                NotificationCenter.default.post(name: .apolloFullscreenViewerClosed, object: nil)
+            }
             // "Show Controls When Opened": when off (default), the
             // chrome starts hidden and a single tap toggles it.
             // Placed on the background so it doesn't compete with
@@ -193,6 +238,28 @@ public struct MediaPagerScreen: View {
                         } label: {
                             Label("Open in Browser", systemImage: "safari")
                         }
+                        // Playback speed, for video pages only. An
+                        // icon-less checked row, so UIKit draws
+                        // the checkmark on the trailing edge.
+                        if let currentPlayer, case .video = items[safe: selection] {
+                            Section {
+                                ForEach(VideoPlaybackSpeeds.all, id: \.self) { speed in
+                                    Toggle(isOn: Binding(
+                                        get: { speed == playbackSpeed },
+                                        set: { isOn in
+                                            guard isOn else { return }
+                                            playbackSpeed = speed
+                                            if currentPlayer.timeControlStatus == .playing {
+                                                currentPlayer.rate = speed
+                                            }
+                                        }
+                                    )) {
+                                        Text(VideoPlaybackSpeeds.title(speed))
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("mediaPager.playbackSpeedSection")
+                        }
                     } label: {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 22))
@@ -227,9 +294,23 @@ public struct MediaPagerScreen: View {
             .accessibilityIdentifier("mediaPager.counter")
     }
 
+    /// The swipe decision, shared by the SwiftUI gesture (images) and
+    /// the player's UIKit pan recognizer (video), since the player's
+    /// `isUserInteractionEnabled` view swallows the drag before SwiftUI
+    /// sees it; `AVPlayerLayerView.onVerticalSwipe` reports it instead.
+    private func handleVerticalSwipe(verticalDistance: CGFloat, horizontalDistance: CGFloat) {
+        // Mostly-vertical only, either way, so this never steals the
+        // `TabView`'s horizontal paging between gallery images.
+        guard abs(verticalDistance) > 60,
+              abs(verticalDistance) > horizontalDistance * 1.5 else { return }
+        if verticalDistance > 0 {
+            // Down: leave the viewer, the standard fullscreen dismissal.
+            dismiss()
+        }
+    }
     private var currentURL: URL? {
         switch items[safe: selection] {
-        case .image(let url): return url
+        case .image(let url), .video(let url): return url
         case nil: return nil
         }
     }
@@ -283,6 +364,16 @@ private struct MediaPagerPageView: View {
                 .gesture(magnifyGesture)
                 .simultaneousGesture(scale > 1 ? dragGesture : nil)
                 .onTapGesture(count: 2) { toggleZoom() }
+        case .video(let url):
+            // Stock "Unmute Videos When Opened" owns the viewer's sound.
+            //
+            // The fullscreen viewer draws its control panel edge to
+            // edge: the player self-sizes to fill the container
+            // (`fillsContainer`), and `showsControlPanel` with
+            // `floatsControlPanel` overlays the panel rather than
+            // stacking it in a `VStack` below the video.
+            MutedVideoPlayerView(url: url, unmuteContext: .fullscreen, enablesHoldForSpeed: true, showsControlPanel: true, fillsContainer: true, floatsControlPanel: true, isCurrentPage: isCurrentPage, controlsVisible: controlsVisible, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe, onPlayerReady: onPlayerReady)
+                .ignoresSafeArea()
         }
     }
 

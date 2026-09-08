@@ -27,6 +27,7 @@ public final class AccountManager: ObservableObject {
         self.authClient = client
         self.repository = RedditRepository(client: RedditAPIClient(auth: client))
         let linkPreviewRepository = repository
+        LinkPreviewFetcher.redditProvider = { linkPreviewRepository }
         ActiveRedditRepository.provider = { linkPreviewRepository }
         refreshMatureMediaPreference()
         // Reborn "Per-Account Favorites": that store lives in PhoebusCore, which has
@@ -171,6 +172,7 @@ public final class AccountManager: ObservableObject {
         authClient = client
         repository = RedditRepository(client: RedditAPIClient(auth: client))
         let linkPreviewRepository = repository
+        LinkPreviewFetcher.redditProvider = { linkPreviewRepository }
         ActiveRedditRepository.provider = { linkPreviewRepository }
         refreshMatureMediaPreference()
     }

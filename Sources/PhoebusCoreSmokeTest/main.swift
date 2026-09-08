@@ -211,6 +211,12 @@ check("returns nil for non-redgifs URL", RedGifsClient.extractID(from: nonRedgif
 // --- Apollo regex edge cases (base app behaviour, not just Reborn) ---
 let redgifsCDNURL = URL(string: "https://thumbs2.redgifs.com/SomeSlugName-mobile.mp4")!
 check("extracts redgifs ID from a numbered CDN subdomain + trailing slug (real regex)", RedGifsClient.extractID(from: redgifsCDNURL) == "SomeSlugName")
+
+let gfycatURL = URL(string: "https://gfycat.com/watch/somegfyid")!
+check("GfycatURLParser extracts an ID from a legacy gfycat.com/watch/ URL", GfycatURLParser.extractID(from: gfycatURL) == "somegfyid")
+check("GfycatURLParser returns nil for a non-gfycat URL", GfycatURLParser.extractID(from: nonRedgifsURL) == nil)
+check("InlineMediaDetector classifies a gfycat URL as .gfycat", InlineMediaDetector.classify(gfycatURL) == .gfycat(id: "somegfyid"))
+
 let streamableEditURL = URL(string: "https://streamable.com/edit/moo")!
 check("StreamableClient.extractID handles the real /edit/<id> creator-link variant", StreamableClient.extractID(from: streamableEditURL) == "moo")
 
@@ -244,6 +250,25 @@ check("autoCollapse keeps top-level comments open and folds their replies",
       collapsedTree.first?.isCollapsed == false && collapsedTree.first?.children.first?.isCollapsed == true)
 let uncollapsedTree = CommentTreeBuilder.build(from: nestedValues, autoCollapse: false)
 check("autoCollapse: false leaves top-level comments expanded", uncollapsedTree.first?.isCollapsed == false)
+// --- Modmail conversation subreddit name ---
+let modmailJSON = """
+{
+    "id": "abc123", "subject": "Test conversation", "state": 0,
+    "lastUpdated": "2024-01-01T00:00:00Z", "isAuto": false, "numMessages": 2,
+    "owner": {"displayName": "swift"}
+}
+""".data(using: .utf8)!
+let modmailConvo = try! JSONDecoder().decode(ModmailConversation.self, from: modmailJSON)
+check("decodes modmail owner.displayName as subredditName", modmailConvo.subredditName == "swift")
+
+let modmailNoOwnerJSON = """
+{
+    "id": "abc456", "subject": "No owner", "state": 0,
+    "lastUpdated": null, "isAuto": false, "numMessages": 1
+}
+""".data(using: .utf8)!
+let modmailNoOwner = try! JSONDecoder().decode(ModmailConversation.self, from: modmailNoOwnerJSON)
+check("modmail conversation without owner decodes nil subredditName", modmailNoOwner.subredditName == nil)
 // --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
 // sign-in flow) ---
 let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")
@@ -279,6 +304,326 @@ PureBlackSettingsStore.save(.default)
 check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
 
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+// MARK: - Modmail conversation detail
+
+// Response envelope: `conversation`, `messages`, `modActions`. Messages
+// arrive as an unordered dictionary; the conversation's own objIds list is
+// the only source of display order.
+let modmailDetailJSON = """
+{
+  "conversation": {
+    "id": "abc123",
+    "subject": "Ban appeal",
+    "numMessages": 3,
+    "state": 1,
+    "isHighlighted": true,
+    "isArchived": false,
+    "lastUnread": "2025-01-02T03:04:05.000+0000",
+    "isRepliable": true,
+    "owner": { "displayName": "apolloapp" },
+    "participant": { "name": "someuser" },
+    "objIds": [
+      { "id": "m3", "key": "messages" },
+      { "id": "m1", "key": "messages" },
+      { "id": "mod1", "key": "modActions" },
+      { "id": "m2", "key": "messages" }
+    ]
+  },
+  "messages": {
+    "m1": { "id": "m1", "bodyMarkdown": "second shown", "date": "2025-01-01T10:00:00.000+0000",
+            "author": { "name": "someuser", "isMod": false, "isAuthorHidden": false } },
+    "m2": { "id": "m2", "bodyMarkdown": "third shown", "isInternal": true,
+            "author": { "name": "amod", "isMod": true, "isAuthorHidden": false } },
+    "m3": { "id": "m3", "bodyMarkdown": "first shown",
+            "author": { "name": "hidden", "isMod": false, "isAuthorHidden": true } }
+  }
+}
+"""
+let modmailDetail = try! ModmailConversationDetail.decode(from: Data(modmailDetailJSON.utf8))
+
+// A dictionary has no order, so decoding `messages` alone and showing
+// `.values` would render the thread differently on every launch.
+check("messages are ordered by the conversation's own objIds, not dictionary order",
+      modmailDetail.messages.map(\.id) == ["m3", "m1", "m2"])
+check("...and objIds entries that are NOT messages are skipped",
+      !modmailDetail.messages.contains { $0.id == "mod1" })
+
+// The key is bodyMarkdown, not body.
+check("the real bodyMarkdown key is read",
+      modmailDetail.messages.first?.body == "first shown")
+check("the internal-note flag is decoded",
+      modmailDetail.messages.first { $0.id == "m2" }?.isInternal == true)
+check("...and a normal reply is not marked internal",
+      modmailDetail.messages.first { $0.id == "m1" }?.isInternal == false)
+check("a hidden author is flagged rather than silently shown",
+      modmailDetail.messages.first { $0.id == "m3" }?.author?.isHidden == true)
+check("a moderator author is flagged",
+      modmailDetail.messages.first { $0.id == "m2" }?.author?.isMod == true)
+
+// Conversation-level state that drives the quick actions.
+check("highlight state is decoded",
+      modmailDetail.conversation.isHighlighted && !modmailDetail.conversation.isArchived)
+check("unread is derived from lastUnread being PRESENT, not a boolean",
+      modmailDetail.conversation.isUnread)
+check("the participant and subreddit are decoded",
+      modmailDetail.conversation.participantName == "someuser"
+        && modmailDetail.conversation.subredditName == "apolloapp")
+
+// Date format is pinned to en_US_POSIX so a non-Gregorian device calendar
+// cannot break it.
+check("the real yyyy-MM-dd'T'HH:mm:ss.SSSZ date format parses",
+      modmailDetail.messages.first { $0.id == "m1" }?.parsedDate != nil)
+
+// isRepliable defaults TRUE when absent: defaulting false would hide the
+// reply box on every conversation whose response omits it.
+let modmailMinimal = """
+{"conversation":{"id":"x","subject":"s"},"messages":{}}
+"""
+let minimalDetail = try! ModmailConversationDetail.decode(from: Data(modmailMinimal.utf8))
+check("an absent isRepliable means REPLIABLE, so the reply box is not wrongly hidden",
+      minimalDetail.conversation.isRepliable)
+check("an absent lastUnread means read",
+      !minimalDetail.conversation.isUnread)
+check("a conversation with no messages decodes rather than throwing",
+      minimalDetail.messages.isEmpty)
+
+// A message Reddit returned but did not list stays visible.
+let modmailOrphan = """
+{"conversation":{"id":"x","subject":"s","objIds":[]},
+ "messages":{"z1":{"id":"z1","bodyMarkdown":"orphan"}}}
+"""
+let orphanDetail = try! ModmailConversationDetail.decode(from: Data(modmailOrphan.utf8))
+check("a message missing from objIds is still shown, not silently dropped",
+      orphanDetail.messages.map(\.id) == ["z1"])
+
+// On a cookie/web-session account the modmail request 403s and returns
+// www.reddit.com's HTML forbidden page, because the cookie transport
+// rewrites oauth.reddit.com -> www.reddit.com where /api/mod/conversations
+// does not exist. New modmail is OAuth-only. It surfaces as its own error so
+// a web-session user is not told to retry something that cannot succeed.
+check("the OAuth-only modmail error explains the sign-in method, not a transient failure",
+      RedditRepository.ModmailRequiresOAuthError().errorDescription?.contains("API-key sign-in") == true)
+// MARK: - Native modmail over a web session
+//
+// These decode captured Reddit responses in Tests/Fixtures/ rather than
+// hand-written JSON, so they prove the decoder matches Reddit.
+
+func fixture(_ name: String) -> Data {
+    let candidates = [
+        "Tests/Fixtures/\(name)",
+        FileManager.default.currentDirectoryPath + "/Tests/Fixtures/\(name)",
+    ]
+    for path in candidates {
+        if let data = FileManager.default.contents(atPath: path) { return data }
+    }
+    return Data()
+}
+
+let convFixture = fixture("modmail-conversations-v2.json")
+check("the live modmail conversations fixture is present", !convFixture.isEmpty)
+if !convFixture.isEmpty,
+   let convJSON = (try? JSONSerialization.jsonObject(with: convFixture)) as? [String: Any] {
+    let conversations = (try? ModmailWebService.decodeConversations(from: convJSON)) ?? []
+    check("the live modmail listing decodes", conversations.count == 1)
+    if let first = conversations.first {
+        // The prefix is required: every mutation needs it, and a bare id is
+        // rejected.
+        check("the conversation id keeps its GraphQL prefix",
+              first.id == "ModmailConversation_3q3cd2")
+        check("...and exposes the bare id for display", first.bareID == "3q3cd2")
+        check("the real subject decodes", first.subject == "Modmail test")
+        check("the owning subreddit decodes", first.subredditName == "examplesub")
+        check("the inline last message decodes",
+              first.lastMessageMarkdown?.hasPrefix("Test message to verify") == true)
+        // Reddit's `2026-09-14T13:53:06.414000+0000` needs .withFractionalSeconds;
+        // a default ISO8601DateFormatter returns nil and rows would sort as undated.
+        check("microsecond timestamps with a +0000 offset parse",
+              first.lastModUpdateAt != nil)
+        check("a conversation with lastUnreadAt is unread", first.isUnread)
+        // A mod messaging their own subreddit produces an internal conversation,
+        // visible only in MOD_DISCUSSIONS.
+        check("a mod-to-own-subreddit conversation is INTERNAL", first.type == "INTERNAL")
+    }
+}
+
+let threadFixture = fixture("modmail-messages-and-actions.json")
+check("the live modmail thread fixture is present", !threadFixture.isEmpty)
+if !threadFixture.isEmpty,
+   let threadJSON = (try? JSONSerialization.jsonObject(with: threadFixture)) as? [String: Any] {
+    let entries = (try? ModmailWebService.decodeThread(from: threadJSON)) ?? []
+    // The thread is 1 message + 2 mod actions; a message-only model would
+    // render one third of it.
+    check("messages AND mod actions both decode", entries.count == 3)
+    check("...exactly one of them is a message", entries.filter(\.isMessage).count == 1)
+    check("...and two are mod actions", entries.filter { !$0.isMessage }.count == 2)
+    if let message = entries.first(where: \.isMessage) {
+        check("the message body markdown decodes",
+              message.markdown?.hasPrefix("Test message to verify") == true)
+        check("the message author decodes", message.authorName == "example_mod")
+        // A mod-discussion message is internal and shown differently, since
+        // mistaking a private mod note for a user-visible reply is the costly
+        // error.
+        check("a mod discussion message is internal", message.isInternal)
+    }
+    if case .action(let type)? = entries.last?.kind {
+        check("the newest action is the UNHIGHLIGHT we performed", type == "UNHIGHLIGHTED")
+    } else {
+        check("the newest action is the UNHIGHLIGHT we performed", false)
+    }
+    // Reddit returns newest-first; a thread must read oldest-first.
+    let dates = entries.compactMap(\.createdAt)
+    check("thread entries are sorted oldest-first", dates == dates.sorted())
+}
+
+// The archive trap: Reddit answers ok:true / errors:null and does nothing;
+// the refusal is a BAD_REQUEST warning in `extensions`. Highlight/read
+// return no warning and take effect.
+let archiveFallback: [String: Any] = [
+    "data": ["setModmailConversationsArchiveStatus": ["ok": true, "errors": NSNull()]],
+    "extensions": ["warnings": [["message": "Fallback value returned",
+                                 "extensions": ["code": "BAD_REQUEST"]]]],
+]
+check("a fallback 'ok: true' still surfaces its BAD_REQUEST warning",
+      ModmailWebService.warningCode(in: archiveFallback) == "BAD_REQUEST")
+let genuineSuccess: [String: Any] = [
+    "data": ["setModmailConversationsHighlightStatus": ["ok": true, "errors": NSNull()]],
+    "extensions": ["traceID": "abc"],
+]
+check("a genuine success carries no warning",
+      ModmailWebService.warningCode(in: genuineSuccess) == nil)
+
+// Ids are prefixed for every mutation, and prefixing twice does not
+// corrupt an already-prefixed id.
+check("a bare conversation id gets prefixed",
+      ModmailWebService.prefixed("3q3cd2") == "ModmailConversation_3q3cd2")
+check("an already-prefixed id is left alone",
+      ModmailWebService.prefixed("ModmailConversation_3q3cd2") == "ModmailConversation_3q3cd2")
+
+// Apollo's 5 tabs map onto Reddit's GraphQL enum, which is not the same as
+// uppercasing the REST `state` string.
+check("the Mod Discussions tab maps to MOD_DISCUSSIONS",
+      ModmailWebService.MailboxCategory(tab: .modDiscussions) == .modDiscussions)
+check("...whose GraphQL value differs from the REST state 'mod'",
+      ModmailWebService.MailboxCategory(tab: .modDiscussions).rawValue == "MOD_DISCUSSIONS"
+        && ModmailInboxTab.modDiscussions.apiState == "mod")
+check("the In Progress tab maps to IN_PROGRESS",
+      ModmailWebService.MailboxCategory(tab: .inProgress).rawValue == "IN_PROGRESS")
+
+// Reddit throttles modmail by answering HTTP 200 with a "Prove your
+// humanity" page and `Retry-After`, not a 429. This reads as a transient,
+// retryable condition rather than a parse failure.
+let rateLimited = ModmailWebService.ServiceError.rateLimited(retryAfterSeconds: 30)
+check("a throttled modmail call names the wait, not a parse failure",
+      rateLimited.errorDescription?.contains("30s") == true)
+check("...and still reads as rate limiting when Reddit omits a duration",
+      ModmailWebService.ServiceError.rateLimited(retryAfterSeconds: nil)
+        .errorDescription?.contains("rate limiting") == true)
+check("a throttle is distinct from an unreadable reply",
+      rateLimited != ModmailWebService.ServiceError.malformedResponse)
+
+// Reddit sends `Retry-After: 0` for this throttle. Honouring it literally
+// retries instantly and burns every attempt inside the window, so the
+// header is a floor, not a promise.
+func modmailBackoff(attempt: Int, retryAfter: Int?) -> Double {
+    max(Double(retryAfter ?? 0), pow(2.0, Double(attempt)) * 1.5)
+}
+check("a Retry-After of 0 still waits", modmailBackoff(attempt: 0, retryAfter: 0) >= 1.5)
+check("...and backs off further on later attempts",
+      modmailBackoff(attempt: 2, retryAfter: 0) > modmailBackoff(attempt: 0, retryAfter: 0))
+check("...while a longer Retry-After from Reddit still wins",
+      modmailBackoff(attempt: 0, retryAfter: 30) == 30)
+
+// Reddit pages the thread connection at 25 newest-first, counting mod
+// actions alongside messages. A conversation with one message and 25+
+// actions pushes the only message off page 1, so the thread must keep
+// paging until messages are found.
+let actionHeavy: [String: Any] = [
+    "data": ["modmailFullConversation": ["messagesAndActions": [
+        "edges": (0..<25).map { index in
+            ["node": ["__typename": "ModmailAction", "id": "ModmailAction_\(index)",
+                      "actionType": "HIGHLIGHTED",
+                      "createdAt": "2026-09-14T13:5\(index % 10):00.000000+0000"]]
+        }
+    ]]]
+]
+let actionsOnly = (try? ModmailWebService.decodeThread(from: actionHeavy)) ?? []
+check("a thread page of pure mod actions decodes without inventing messages",
+      actionsOnly.count == 25 && actionsOnly.allSatisfy { !$0.isMessage })
+
+// The modmail inbox has exactly three controls: a title-view mailbox
+// switcher button, a sort button, and a more-options button (no segmented
+// control).
+check("modmail mailboxes are menu items, so full titles always fit",
+      ModmailInboxTab.allCases.allSatisfy { !$0.title.isEmpty })
+check("...and Mod Discussions keeps its full name, not 'Mod Dis...'",
+      ModmailInboxTab.modDiscussions.title == "Mod Discussions")
+
+// All five sort orders, not just recent/unread.
+check("all five real modmail sort orders exist",
+      ModmailSortOption.allCases.count == 5)
+check("...including the three the reconstruction missed",
+      Set(ModmailSortOption.allCases.map(\.rawValue))
+        .isSuperset(of: ["mod", "user", "relevance"]))
+check("sort maps onto the real GraphQL enum",
+      ModmailSortOption.recent.graphQLValue == "RECENT"
+        && ModmailSortOption.unread.graphQLValue == "UNREAD")
+// RELEVANCE is search-only in Reddit's client; sending it for a plain
+// mailbox listing 500s, so it falls back.
+check("relevance falls back to RECENT for a plain listing",
+      ModmailSortOption.relevance.graphQLValue == "RECENT")
+
+// Apollo ships 189 distinct `option-*` menu icons, one per action, which
+// gives menus their at-a-glance distinction between sorts and votes.
+check("each modmail sort carries its own real Apollo icon name",
+      Set(ModmailSortOption.allCases.map(\.apolloIconName)).count
+        == ModmailSortOption.allCases.count)
+check("the unread sort uses Apollo's real option-sort-unread",
+      ModmailSortOption.unread.apolloIconName == "option-sort-unread")
+check("relevance uses Apollo's real option-sort-relevance",
+      ModmailSortOption.relevance.apolloIconName == "option-sort-relevance")
+
+// The four autoplay modes. "WiFi Only" keeps GIFs off cellular data, so
+// the setting cannot be a boolean.
+check("all four real GIF autoplay modes exist",
+      InlineGIFAutoplayMode.allCases.count == 4)
+check("...in the real sheet's order, Always/WiFi Only/Tap to Play/Never",
+      InlineGIFAutoplayMode.realOrder.map(\.displayName)
+        == ["Always", "WiFi Only", "Tap to Play", "Never"])
+check("only Tap to Play and Never hold a GIF behind a play button",
+      InlineGIFAutoplayMode.allCases.filter(\.requiresTapToPlay) == [.tapToPlay, .never])
+
+// A stored `tapToPlayGIFs: true` means "Tap to Play" and migrates rather
+// than resetting the preference.
+let legacyOn = Data(#"{"enabled":true,"alignment":"center","size":100,"tapToPlayGIFs":true}"#.utf8)
+let migratedOn = try? JSONDecoder().decode(InlineMediaSettings.self, from: legacyOn)
+check("a legacy tapToPlayGIFs=true migrates to .tapToPlay",
+      migratedOn?.autoplayMode == .tapToPlay)
+let legacyOff = Data(#"{"enabled":true,"alignment":"center","size":100,"tapToPlayGIFs":false}"#.utf8)
+let migratedOff = try? JSONDecoder().decode(InlineMediaSettings.self, from: legacyOff)
+check("a legacy tapToPlayGIFs=false migrates to .always", migratedOff?.autoplayMode == .always)
+// Round-trip, and keep writing the legacy key so an older build can read
+// the file instead of reverting to autoplay.
+if let encoded = try? JSONEncoder().encode(migratedOn),
+   let text = String(data: encoded, encoding: .utf8) {
+    check("the legacy tapToPlayGIFs key is still written for back-compat",
+          text.contains("tapToPlayGIFs"))
+    let round = try? JSONDecoder().decode(InlineMediaSettings.self, from: encoded)
+    check("...and the four-mode value round-trips", round?.autoplayMode == .tapToPlay)
+}
+
+// Size is a detent slider in Reborn (ApolloIMDetentSlider), snapping to
+// 50/75/100.
+check("a dragged slider value snaps to the nearest real detent",
+      InlineMediaSize.snapped(to: 61) == .small
+        && InlineMediaSize.snapped(to: 70) == .medium
+        && InlineMediaSize.snapped(to: 99) == .large)
+
+// Apollo has three separate moderator user-list controllers, reached as
+// three separate menu rows.
+check("the three moderator user lists are separate, titled destinations",
+      Set(ModeratorUserList.allCases.map(\.title)).count == 3)
+check("...each with its own real Apollo icon name",
+      Set(ModeratorUserList.allCases.map(\.apolloIconName)).count == 3)
 // Liquid Glass detection, mirroring Reborn's IsLiquidGlass() and
 // ApolloSDKEnablesLiquidGlass. Two conditions, both required: iOS 26+ and
 // the UIGlassEffect class present at runtime (an @available check alone

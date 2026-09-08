@@ -9,10 +9,15 @@ import PhoebusCore
 public enum MediaPagerItem: Identifiable, Equatable {
     case image(URL)
     case video(URL)
+    /// A GIF: drawn as a GIF (or its silent MP4 sibling) with only a
+    /// play/pause badge, never the video transport.
+    case gif(URL)
+
     public var id: String {
         switch self {
         case .image(let url): return "image:\(url.absoluteString)"
         case .video(let url): return "video:\(url.absoluteString)"
+        case .gif(let url): return "gif:\(url.absoluteString)"
         }
     }
 }
@@ -38,6 +43,26 @@ public struct MediaPagerScreen: View {
     private var albumImageURLs: [URL] {
         items.compactMap { if case .image(let u) = $0 { return u } else { return nil } }
     }
+
+    @State private var askingGIFFormat: URL?
+    /// Follows "Download GIFs as…"; Ask Each Time asks first.
+    private func saveGIF(_ url: URL, format: GIFSaveFormat? = nil) async {
+        let settings = generalSettings
+        if format == nil, settings.gifSaveFormat == .askEachTime {
+            askingGIFFormat = url
+            return
+        }
+        do {
+            try await GIFSaveService.save(gifURL: url, format: format ?? settings.gifSaveFormat,
+                                          useApolloAlbum: settings.saveToApolloAlbum)
+            saveToast = "Saved"
+        } catch {
+            saveToast = error.localizedDescription
+        }
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        saveToast = nil
+    }
+
     private func saveImages(_ urls: [URL]) async {
         saveToast = AlbumSaveCapacity.downloadingToast(count: urls.count)
         do {
@@ -79,6 +104,13 @@ public struct MediaPagerScreen: View {
 
     public var body: some View {
         crashTrackedBody.onAppear { CrashRecorder.record(.openedMediaViewer) }
+            // Download GIFs as… Ask Each Time.
+            .confirmationDialog("Save GIF", isPresented: $askingGIFFormat.isPresent(), titleVisibility: .visible,
+                                presenting: askingGIFFormat) { url in
+                Button("Save as GIF") { Task { await saveGIF(url, format: .alwaysGIF) } }
+                Button("Save as Video") { Task { await saveGIF(url, format: .alwaysVideo) } }
+                Button("Cancel", role: .cancel) {}
+            }
     }
 
     @ViewBuilder private var crashTrackedBody: some View {
@@ -136,6 +168,12 @@ public struct MediaPagerScreen: View {
             // Placed on the background so it doesn't compete with
             // `MediaPagerPageView`'s own double-tap-to-zoom gesture.
             .onTapGesture {
+                // An image or GIF page's zoom view toggles the chrome
+                // itself, once it knows the tap isn't a double-tap.
+                switch items[safe: selection] {
+                case .image, .gif: return
+                default: break
+                }
                 withAnimation(.easeInOut(duration: 0.2)) {
                     controlsVisible.toggle()
                 }
@@ -226,6 +264,13 @@ public struct MediaPagerScreen: View {
                                 Label("Save Image", systemImage: "square.and.arrow.down")
                             }
                         }
+                        if case .gif(let gifURL) = items[safe: selection] {
+                            Button {
+                                Task { await saveGIF(gifURL) }
+                            } label: {
+                                Label("Save GIF", systemImage: "square.and.arrow.down")
+                            }
+                        }
                         // `CopyMediaLinkActivity` sets the
                         // pasteboard's URL, not a plain string.
                         Button {
@@ -299,6 +344,10 @@ public struct MediaPagerScreen: View {
     /// `isUserInteractionEnabled` view swallows the drag before SwiftUI
     /// sees it; `AVPlayerLayerView.onVerticalSwipe` reports it instead.
     private func handleVerticalSwipe(verticalDistance: CGFloat, horizontalDistance: CGFloat) {
+        #if canImport(UIKit)
+        // A zoomed image's drag pans the image.
+        guard !ZoomingScrollView.isZoomedOnScreen else { return }
+        #endif
         // Mostly-vertical only, either way, so this never steals the
         // `TabView`'s horizontal paging between gallery images.
         guard abs(verticalDistance) > 60,
@@ -310,7 +359,7 @@ public struct MediaPagerScreen: View {
     }
     private var currentURL: URL? {
         switch items[safe: selection] {
-        case .image(let url), .video(let url): return url
+        case .image(let url), .video(let url), .gif(let url): return url
         case nil: return nil
         }
     }
@@ -358,12 +407,19 @@ private struct MediaPagerPageView: View {
     var body: some View {
         switch item {
         case .image(let url):
+            #if canImport(UIKit)
+            // UIKit's own zooming: anchored at the fingers, rubber-banded, with
+            // momentum; SwiftUI's scaleEffect zoom is not smooth.
+            ZoomableImageView(url: url, liveText: liveTextEnabled,
+                              onSingleTap: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe)
+            #else
             imageContent(url: url)
                 .scaleEffect(scale)
                 .offset(offset)
                 .gesture(magnifyGesture)
                 .simultaneousGesture(scale > 1 ? dragGesture : nil)
                 .onTapGesture(count: 2) { toggleZoom() }
+            #endif
         case .video(let url):
             // Stock "Unmute Videos When Opened" owns the viewer's sound.
             //
@@ -374,6 +430,8 @@ private struct MediaPagerPageView: View {
             // stacking it in a `VStack` below the video.
             MutedVideoPlayerView(url: url, unmuteContext: .fullscreen, enablesHoldForSpeed: true, showsControlPanel: true, fillsContainer: true, floatsControlPanel: true, isCurrentPage: isCurrentPage, controlsVisible: controlsVisible, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe, onPlayerReady: onPlayerReady)
                 .ignoresSafeArea()
+        case .gif(let url):
+            FullscreenGIFPage(url: url, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe)
         }
     }
 
@@ -545,5 +603,41 @@ struct MediaPagerTapGestures: ViewModifier {
             content.highPriorityGesture(
                 TapGesture().onEnded { isPresented.wrappedValue = true })
         }
+    }
+}
+
+/// A GIF in the viewer, as Reborn shows it: the GIF fitted to the screen,
+/// playing, with the small play/pause badge in its corner and no video
+/// controls. A tap elsewhere toggles the viewer's chrome.
+private struct FullscreenGIFPage: View {
+    let url: URL
+    var onSurfaceTapped: (() -> Void)?
+    var onVerticalSwipe: ((CGFloat, CGFloat) -> Void)?
+    @State private var isPlaying = true
+    @State private var ratio: CGFloat?
+
+    var body: some View {
+        #if canImport(UIKit)
+        // Pinch, double-tap and long-press as an image's page.
+        ZoomableGIFView(url: url, isPlaying: isPlaying,
+                        onSingleTap: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe,
+                        onRatio: { newRatio in DispatchQueue.main.async { ratio = newRatio } })
+            // On the GIF's own bottom-right corner at its fitted size.
+            .overlay {
+                GeometryReader { geo in
+                    let boxRatio = ratio ?? 9.0 / 16.0
+                    let width = min(geo.size.width, geo.size.height / boxRatio)
+                    Color.clear
+                        .frame(width: width, height: width * boxRatio)
+                        .overlay(alignment: .bottomTrailing) {
+                            GIFPlaybackBadge(isPlaying: isPlaying) { isPlaying.toggle() }
+                        }
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                }
+            }
+            .accessibilityIdentifier("mediaPager.gif")
+        #else
+        GIFSurface(url: url, isPlaying: isPlaying)
+        #endif
     }
 }

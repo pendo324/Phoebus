@@ -333,6 +333,43 @@ public actor RedditRepository {
         ])
         return try await client.put(path: "/api/multi\(path)", parameters: ["model": model])
     }
+
+    /// Casts a vote on a native Reddit poll. Requires the web/cookie
+    /// session transport since poll voting's GraphQL mutation isn't
+    /// reachable over OAuth. Not `client.webSessionCredential`: poll
+    /// voting must work for OAuth accounts too.
+    func webFeatureSession() async -> WebSessionCredential? {
+        if let username = FavoriteSubredditsAccountContext.currentUsernameProvider(),
+           let session = WebSessionRegistry.featureSession(for: username) {
+            return session
+        }
+        // Falls back to the transport session so a keyless (cookie
+        // transport) account still votes even before its entry has
+        // been migrated into the registry.
+        return await client.webSessionCredential
+    }
+
+    public func votePoll(postFullname: String, optionID: String) async throws {
+        guard let session = await webFeatureSession() else {
+            throw PollVoteService.VoteError.requiresWebSession
+        }
+        do {
+            try await PollVoteService.vote(postFullname: postFullname, optionID: optionID, session: session)
+        } catch let error as PollVoteService.VoteError {
+            // Reborn's poll voting: HTTP 401 means Reddit has declared the cookie
+            // dead, so the session is removed and the user re-harvests; otherwise
+            // every retry would hit the same 401.
+            //
+            // 403 is deliberately NOT destructive: it means this particular vote was
+            // refused (poll closed, quarantined sub, subreddit ban), which says
+            // nothing about session validity.
+            if case .sessionExpired = error {
+                WebSessionRegistry.remove(username: session.username)
+                await client.clearWebSessionIfMatching(username: session.username)
+            }
+            throw error
+        }
+    }
     /// Under a cookie-authed web session `/api/v1/me` is rewritten to
     /// `www.reddit.com` and answers `{}` (it is OAuth-only), while
     /// `/api/me.json` honors cookie auth and returns the full t2 blob
@@ -347,6 +384,9 @@ public actor RedditRepository {
         } else {
             let data = try await client.get(path: "/api/v1/me")
             user = try JSONDecoder.reddit.decode(RedditUser.self, from: data)
+        }
+        if let blurs = user.blursMatureMedia {
+            MatureMediaPreference.record(username: user.name, blursMatureMedia: blurs)
         }
         return user
     }
@@ -374,6 +414,28 @@ public actor RedditRepository {
             parameters["flair_id"] = flairID
         }
         return try await postChecked("/api/submit", parameters)
+    }
+
+    public func searchSubreddits(query: String, limit: Int = 25) async throws -> Data {
+        try await client.get(path: "/subreddits/search", parameters: [
+            "q": query,
+            "limit": String(limit),
+        ])
+    }
+
+    /// Name-prefix autocomplete for the Jump Bar, using
+    /// `api/subreddit_autocomplete_v2` rather than `subreddits/search`
+    /// (which ranks by relevance across descriptions, so typing
+    /// "athe" would return subreddits whose names don't start with
+    /// "athe" at all - useless for a jump-to-subreddit control, whose
+    /// every row should start with the typed prefix).
+    public func autocompleteSubreddits(query: String, limit: Int = 8, includeOver18: Bool = true) async throws -> Data {
+        try await client.get(path: "/api/subreddit_autocomplete_v2", parameters: [
+            "query": query,
+            "limit": String(limit),
+            "include_profiles": "false",
+            "include_over_18": includeOver18 ? "true" : "false",
+        ])
     }
 
     /// `/subreddits/mine/subscriber`, backing the Subreddits root screen: the
@@ -407,6 +469,19 @@ public actor RedditRepository {
     public func fetchModeratedSubreddits() async throws -> [RedditSubreddit] {
         try await fetchAllSubreddits(path: "/subreddits/mine/moderator")
     }
+
+    /// Full-text post search, either site-wide (empty `subreddit`) or
+    /// scoped to one subreddit (`restrict_sr=1`), matching Reddit's
+    /// own search UI options.
+    public func searchPosts(query: String, subreddit: String? = nil, sort: String = "relevance", limit: Int = 25) async throws -> RedditListing {
+        let path = if let subreddit, !subreddit.isEmpty { "/r/\(subreddit)/search" } else { "/search" }
+        var parameters = ["q": query, "sort": sort, "limit": String(limit)]
+        if let subreddit, !subreddit.isEmpty {
+            parameters["restrict_sr"] = "1"
+        }
+        return try await client.getListing(path: path, parameters: parameters)
+    }
+
     /// Raw authenticated GET for `HiddenContentFinder`, which reads the
     /// live listing and `/api/info` as plain JSON (it needs fields such
     /// as `removed_by_category` and `link_id` that the typed models do
@@ -414,10 +489,43 @@ public actor RedditRepository {
     public func rawGET(path: String, parameters: [String: String]) async throws -> Data {
         try await client.get(path: path, parameters: parameters)
     }
+
+    /// A user's post/comment history.
+    public func fetchUserOverview(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/overview", after: after, limit: limit)
+    }
+
+    public func fetchUserComments(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/comments", after: after, limit: limit)
+    }
+
+    /// Post-only counterpart to `fetchUserComments`.
+    public func fetchUserSubmitted(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/submitted", after: after, limit: limit)
+    }
+
     /// The signed-in user's saved posts/comments (only accessible for
     /// your own account).
     public func fetchSavedItems(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
         try await client.getListing(path: "/user/\(username)/saved", after: after, limit: limit)
+    }
+
+    /// The signed-in user's hidden posts (`/user/<me>/hidden`), for Reborn's
+    /// own-profile browser.
+    public func fetchUserHidden(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/hidden", after: after, limit: limit)
+    }
+
+    /// Profile row-list "Upvoted" segment (`/user/<name>/upvoted`) -
+    /// only visible for the signed-in user, or another user who has
+    /// made their votes public (`RedditUser.hasVotesPublic`).
+    public func fetchUserUpvoted(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/upvoted", after: after, limit: limit)
+    }
+
+    /// Profile row-list "Downvoted" segment (`/user/<name>/downvoted`).
+    public func fetchUserDownvoted(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
+        try await client.getListing(path: "/user/\(username)/downvoted", after: after, limit: limit)
     }
     /// Many users' names and pictures in one request, keyed by `t2_` id
     /// (`/api/user_data_by_account_ids`, what Apollo itself asks for every
@@ -455,5 +563,81 @@ public actor RedditRepository {
         let data = try await client.post(path: path, parameters: parameters)
         try PostedCommentResponse.throwIfRejected(data)
         return data
+    }
+}
+
+public struct RedditFlairOption: Decodable, Sendable, Identifiable, Hashable {
+    public let flairTemplateID: String
+    public let text: String
+    /// Old-reddit CSS class (sprite flairs such as r/nintendo's).
+    public let cssClass: String?
+
+    public var id: String { flairTemplateID }
+
+    /// The row title: the flair text, or for an old-reddit sprite flair
+    /// with no text, its prettified CSS class (Reborn #1215's fallback).
+    public var displayText: String {
+        if !text.trimmingCharacters(in: .whitespaces).isEmpty { return text }
+        return cssClass.flatMap(Self.prettifiedClass) ?? text
+    }
+
+    /// The CSS class whose sprite this row draws: only for a template with
+    /// no text of its own. Reborn leaves labelled templates (r/steinsgate
+    /// gives each both a class and a name) to their real text.
+    public var spriteClass: String? {
+        guard text.trimmingCharacters(in: .whitespaces).isEmpty,
+              let cssClass = cssClass?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !cssClass.isEmpty else { return nil }
+        return cssClass
+    }
+
+    public init(flairTemplateID: String, text: String, cssClass: String? = nil) {
+        self.flairTemplateID = flairTemplateID
+        self.text = text
+        self.cssClass = cssClass
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case flairTemplateID = "flair_template_id"
+        case text = "flair_text"
+        case cssClass = "flair_css_class"
+    }
+
+    /// "princessPeach" → "Princess Peach", "Beerus-001" → "Beerus".
+    public static func prettifiedClass(_ cssClass: String) -> String? {
+        var s = cssClass.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !s.isEmpty else { return nil }
+        func sub(_ pattern: String, _ template: String) {
+            s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+        }
+        sub("[-_]?[0-9]{1,4}$", "")
+        sub("[-_]+", " ")
+        sub("([a-z])([A-Z])", "$1 $2")
+        sub("([A-Za-z])([0-9])", "$1 $2")
+        sub("([0-9])([A-Za-z])", "$1 $2")
+        sub("\\s+", " ")
+        s = s.trimmingCharacters(in: .whitespaces)
+        return s.isEmpty ? nil : s.capitalized
+    }
+}
+
+struct FlairSelectorResponse: Decodable {
+    let choices: [RedditFlairOption]
+}
+
+/// Reddit's /api/mod/conversations response shape: a dict of
+/// conversations keyed by ID, plus an ordered ID list for display order.
+struct ModmailConversationsResponse: Decodable {
+    let conversations: [String: ModmailConversation]
+    let conversationIds: [String]
+}
+/// Reddit's wiki page response shape: `{"kind": "wikipage", "data": {"content_md": ...}}`.
+struct WikiPageResponse: Decodable {
+    let data: WikiPageData
+    struct WikiPageData: Decodable {
+        let contentMd: String
+        enum CodingKeys: String, CodingKey {
+            case contentMd = "content_md"
+        }
     }
 }

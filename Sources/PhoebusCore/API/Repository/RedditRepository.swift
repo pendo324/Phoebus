@@ -283,6 +283,57 @@ public actor RedditRepository {
         ])
         await Self.announce(SubscriptionChange(name: subredditName, subscribed: subscribe))
     }
+
+    @discardableResult
+    public func submitComment(parentFullname: String, text: String) async throws -> Data {
+        let data = try await client.post(path: "/api/comment", parameters: [
+            "parent": parentFullname,
+            "text": text,
+            "api_type": "json",
+        ])
+        try PostedCommentResponse.throwIfRejected(data)
+        return data
+    }
+
+    /// Reborn "Prefer Native Images": whether `subreddit` allows
+    /// uploaded images in comments, from `/about`'s
+    /// `allowed_media_in_comments`. nil when unknown.
+    public func subredditAllowsImageComments(_ subreddit: String) async -> Bool? {
+        guard let data = try? await client.get(path: "/r/\(subreddit)/about"),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let about = root["data"] as? [String: Any] else { return nil }
+        return NativeCommentImages.allowsImageComments(aboutData: about)
+    }
+
+    /// Uploads an image through Reddit's own media pipeline for use in
+    /// a comment and returns its asset id and `i.redd.it` URL.
+    public func uploadCommentImage(fileData: Data, filename: String, mimeType: String) async throws -> (assetID: String, url: String) {
+        let lease = try await RedditMediaUploadClient.requestUploadLease(kind: .image, filename: filename, mimeType: mimeType, client: client)
+        try await RedditMediaUploadClient.upload(fileData: fileData, filename: filename, mimeType: mimeType, lease: lease)
+        guard let assetID = lease.assetID, !assetID.isEmpty else { throw RedditMediaUploadClient.ClientError.invalidLeaseResponse }
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return (assetID, NativeCommentImages.mediaURL(assetID: assetID, fileExtension: ext == "jpg" ? "jpeg" : ext))
+    }
+
+    /// Submits a comment whose natively uploaded images ride in a
+    /// `richtext_json` document, keeping a markdown body for clients
+    /// that ignore RTJSON.
+    @discardableResult
+    public func submitComment(parentFullname: String, text: String, nativeImageAssetIDs: Set<String>) async throws -> Data {
+        guard let rich = NativeCommentImages.richTextJSON(for: text, assetIDs: nativeImageAssetIDs) else {
+            return try await submitComment(parentFullname: parentFullname, text: text)
+        }
+        let data = try await client.post(path: "/api/comment", parameters: [
+            "parent": parentFullname,
+            "text": NativeCommentImages.markdownBody(for: text, assetIDs: nativeImageAssetIDs),
+            "richtext_json": rich,
+            "return_rtjson": "true",
+            "api_type": "json",
+        ])
+        try PostedCommentResponse.throwIfRejected(data)
+        return data
+    }
+
     /// Fetches the signed-in user's saved multireddits (custom
     /// subreddit groupings).
     public func fetchMultireddits() async throws -> [RedditMultireddit] {
@@ -332,6 +383,14 @@ public actor RedditRepository {
             "subreddits": subredditNames.map { ["name": $0] },
         ])
         return try await client.put(path: "/api/multi\(path)", parameters: ["model": model])
+    }
+    /// The signed-in user's Reddit friends list. `/prefs/friends` is
+    /// the correct endpoint (`/api/v1/me/friends` returns HTML), but
+    /// returns per-category `UserList` listings; this flattens them.
+    public func fetchFriends() async throws -> [ModeratorListedUser] {
+        let data = try await client.get(path: "/prefs/friends")
+        let lists = try JSONDecoder().decode([ModeratorUserListResponse].self, from: data)
+        return lists.flatMap(\.data.children)
     }
 
     /// Casts a vote on a native Reddit poll. Requires the web/cookie

@@ -111,6 +111,7 @@ struct MainTabView: View {
     @Setting(GeneralSettingsStore.storage) private var generalSettings
     @State private var liquidGlassSelection = 0
     private static let tabBarSwipeNavigationAtLaunch = GeneralSettingsStore.load().tabBarSwipeNavigation
+    @ObservedObject private var selectText = SelectTextPresenter.shared
     /// "Remember Subreddit"/"Default Reddit to Load" push the launch
     /// destination onto the Posts tab's stack. Guards the one-time
     /// auto-push in `postsTab`'s `.task` so it only fires once per
@@ -127,10 +128,18 @@ struct MainTabView: View {
         tabBar
             // Header Style, for every screen's scroll views.
             .applyHeaderStyle()
+            // Select Text from a row swipe, on any screen.
+            .sheet(item: $selectText.request) { request in
+                SelectTextSheet(title: request.title, body: request.body) { selectText.request = nil }
+            }
         // Live-apply General settings changes (e.g. the Liquid Glass toggle).
         .onReceive(NotificationCenter.default.publisher(
             for: GeneralSettingsStore.didChangeNotification)) { _ in
         }
+        // "Sign In to Upvote"/"Downvote"/"Reply" alerts, hosted once
+        // at the tab-view root since the voting helpers have no view
+        // of their own. See `SignInRequiredPresenter`.
+        .apolloSignInRequiredAlert()
         .sheet(isPresented: $showingAccountsForReSignIn) {
             NavigationStack { AccountManagerScreen(accountManager: accountManager) }
         }

@@ -32,6 +32,10 @@ struct PostRow: View {
     /// The post's action menu, opened by the row's •••. Nil leaves the •••
     /// decorative (screens without a post menu).
     var moreMenu: (() -> AnyView)?
+    /// Vote state comes from the shared store, NOT from private
+    /// `@State`, so a swipe-to-vote gesture handled by the parent can
+    /// update the arrow highlight and score too. See `VoteStateStore`.
+    @ObservedObject var voteStore = VoteStateStore.shared
     /// Read state, refreshed when this post is marked read elsewhere
     /// (opening it), so the row dims on return without a reload.
     @State var isRead = false
@@ -39,6 +43,9 @@ struct PostRow: View {
     /// Scales the measured 15pt title with Dynamic Type (`apolloFont`).
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.apolloTheme) var themeColors
+
+    var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
+    var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }
     @State var ageDetail: AgeDetail?
     @State var ageOverlay: AgeDetail?
 
@@ -47,6 +54,9 @@ struct PostRow: View {
         let title: String
         let message: String?
     }
+    /// Drives the fullscreen pager for a VIDEO post in the large feed
+    /// row.
+    @State var showingFullscreenMedia = false
     init(post: RedditPost, repository: RedditRepository, displayStyle: PostDisplayStyle, isAggregateFeed: Bool = true, onSubredditTap: @escaping () -> Void, onAuthorTap: @escaping () -> Void, onCommentsTap: (() -> Void)? = nil, onTranslateTap: (() -> Void)? = nil, moreMenu: (() -> AnyView)? = nil) {
         self.post = post
         self.repository = repository
@@ -164,6 +174,12 @@ struct PostRow: View {
         guard generalSettings.enableFlairColors else { return nil }
         return RedditFlairColor.validHex(from: post.authorFlairTextColorRaw).map(Color.init(hex:))
     }
+
+    /// Whether this post is currently saved. Read through the shared
+    /// `VoteStateStore` rather than `post.saved`, since a save can be
+    /// written there without the feed's post model being refetched.
+    var isSaved: Bool { voteStore.isSaved(post.name, serverValue: post.saved) }
+
     /// How many comments arrived since this post's thread was last
     /// opened - the number Apollo's unread badge shows. 0 for a
     /// never-opened post, which is why a fresh feed shows no badges.
@@ -178,7 +194,23 @@ struct PostRow: View {
         // BOTH the compact and large layouts, hence it is attached
         // here rather than inside either one.
         Group {
+            if displayStyle == .large {
+                largeThumbnailBody
+            } else {
                 compactBody
+                    // VoiceOver: one stop per post, not a dozen.
+                    // Apollo's cell is a single accessible cell. Large
+                    // rows are NOT merged, since their media (videos,
+                    // galleries, link cards) is separately interactive.
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilitySummary)
+                    .accessibilityAddTraits(.isButton)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if isSaved {
+                SavedIndicatorBadge(size: .regular)
+            }
         }
         // Read posts are dimmed; the row owns this so it updates the
         // moment a post is marked read, not on the next feed reload.
@@ -187,9 +219,31 @@ struct PostRow: View {
         .onReceive(NotificationCenter.default.publisher(for: .apolloReadPostsChanged)) { note in
             if (note.object as? String) == post.name { isRead = true }
         }
+        // Vote/save/comments/subreddit/author, the same actions the
+        // row's arrows, swipes and context menu offer, reachable from
+        // the VoiceOver rotor on both layouts.
+        .accessibilityAction(named: voteState == true ? "Remove Upvote" : "Upvote") {
+            Task { await PostVoting.toggle(post: post, direction: 1, repository: repository) }
+        }
+        .accessibilityAction(named: voteState == false ? "Remove Downvote" : "Downvote") {
+            Task { await PostVoting.toggle(post: post, direction: -1, repository: repository) }
+        }
+        .accessibilityAction(named: isSaved ? "Unsave" : "Save") {
+            Task { await PostVoting.toggleSave(post: post, repository: repository) }
+        }
         .accessibilityAction(named: "View Comments") { onCommentsTap?() }
         .accessibilityAction(named: "Go to \(post.subreddit)") { onSubredditTap() }
         .accessibilityAction(named: "Go to \(post.author)") { onAuthorTap() }
+    }
+
+    /// Everything the compact row shows, in words (`AccessibilitySummary`).
+    var accessibilitySummary: String {
+        AccessibilitySummary.post(
+            title: titleString, subreddit: post.subreddit, author: post.author,
+            score: displayScore, comments: post.numComments, created: post.created,
+            flair: generalSettings.showPostFlair ? post.linkFlairText : nil,
+            domain: titleDomain, nsfw: post.over18, spoiler: post.spoiler,
+            stickied: post.stickied, saved: isSaved, vote: voteState)
     }
 
     /// Apollo's per-row stacked up/down-arrow vote control, pinned to
@@ -275,5 +329,12 @@ struct PostRow: View {
         }
         guard generalSettings.textPostThumbnailsEnabled else { return nil }
         return post.derivedSelfPostThumbnailURL
+    }
+
+    /// Mirrors Apollo's voting behavior: tapping an already-active vote
+    /// button un-votes (direction 0).
+    func vote(direction: Int) async {
+        Haptics.light()
+        await PostVoting.vote(post: post, direction: direction, repository: repository)
     }
 }

@@ -37,12 +37,29 @@ public struct FeedScreen: View {
     /// Separate from `posts.isEmpty`: an empty subreddit must still
     /// not refetch highlights/moderator status/identity on every pop back.
     @State var hasLoadedOnce = false
+
+    /// Identifies this feed in `FeedSnapshotCache`. A multireddit and a
+    /// subreddit of the same name are different feeds, so the path is
+    /// part of the key.
+    var snapshotKey: String {
+        if let multiredditPath { return "m:\(multiredditPath)" }
+        return "r:\(subreddit)"
+    }
     @Setting(ReadPostStore.settingsStorage) var markReadSettings
+    @State var reportTarget: RedditPost?
     @Setting(GeneralSettingsStore.storage) var generalSettings
     /// Bumped by each `load()`; a response for an older one is dropped.
     /// Reborn "Show Page Endings" - see `pageBoundaryPostIDs`'s doc
     /// comment for the divider this drives.
     @Setting(AppearanceSettingsStore.storage) var appearanceSettings
+    @State var selectedPost: RedditPost?
+    /// Swipe-action targets for Reply and Share.
+    @State var replyTarget: RedditPost?
+    @State var shareTarget: RedditPost?
+    /// Reborn "Info Row" tap action (`UDKeyInfoRowTapComments`): set
+    /// right before `selectedPost` when the comments count itself was
+    /// tapped, so the pushed `PostDetailScreen` auto-scrolls to comments.
+    @State var jumpToCommentsOnOpen = false
     /// Reborn "Forget Forward Swipe After Scrolling" - see
     /// `GeneralSettings.forwardSwipeForgetAfterScrolling`. `forwardTarget`
     /// is the post most recently popped back from, standing in for a
@@ -50,6 +67,11 @@ public struct FeedScreen: View {
     /// row index at that time, for row-count-based expiry.
     @State var forwardTarget: RedditPost?
     @State var forwardAnchorRowIndex: Int?
+    /// Reborn "Center Title Between Buttons" offset. Screen-owned
+    /// `@State` rather than read from a shared store: a `.toolbar` item
+    /// does not observe an external `ObservableObject`, so the title
+    /// would not re-render on a store-driven value.
+    @State var titleCenteringOffset: CGFloat = 0
     // See `JumpDestination`'s doc comment: SwiftUI dispatches
     // `.navigationDestination(item:)` by VALUE TYPE not binding identity,
     // so two `String?` destinations on one stack would collide.
@@ -69,8 +91,17 @@ public struct FeedScreen: View {
     /// button.
     @Setting(SubredditLayoutSettingsStore.storage) var subredditLayoutSettings
     @State var subredditInfo: RedditSubreddit?
+    /// Community Highlights (Reborn). See `CommunityHighlights` for the
+    /// rules; the mode lives in `SubredditLayoutSettings.communityHighlights`.
+    @State var highlightPosts: [RedditPost] = []
     /// Rows on screen, for Mark Read on Scroll.
     @State var scrollPastTracker = ScrollPastTracker()
+    /// Full-mode scrape results, which supplement the REST cards.
+    @State var scrapedHighlights: [ScrapedHighlight] = []
+    @State var highlightsWebFetch: CommunityHighlightsWebFetch?
+    /// A scraped card has only a permalink, so opening it routes
+    /// through the same loader deep links use.
+    @State var scrapedDestination: ScrapedHighlight?
     @State var isSubscribedOverride: Bool?
     let subreddit: String
     let multiredditPath: String?
@@ -133,6 +164,10 @@ public struct FeedScreen: View {
     }
 
     public var body: some View {
+        crashTrackedBody.onAppear { CrashRecorder.record(.openedFeed) }
+    }
+
+    @ViewBuilder private var crashTrackedBody: some View {
         // `JumpBarResultsList` is a ZStack sibling of `feedBody`, not an
         // `.overlay` on the List: an `.overlay` anchored to a `List`
         // can resolve to a zero-size overlay in some SwiftUI/List
@@ -153,6 +188,38 @@ public struct FeedScreen: View {
             // multireddit.
             if !subreddit.isEmpty, subredditLayoutSettings.showSubredditHeaders, let subredditInfo {
                 subredditLayoutHeader(subredditInfo)
+            }
+            // The carousel is the feed's table header, so it scrolls away with
+            // the content.
+            if !carouselPosts.isEmpty || !scrapedHighlights.isEmpty {
+                CommunityHighlightsCarousel(
+                    posts: carouselPosts,
+                    // Only supplement when the scrape genuinely found
+                    // more than the REST pair.
+                    scraped: carouselScrape,
+                    knownPosts: posts + highlightPosts,
+                    // Keys the remembered collapsed state. See
+                    // `HighlightsCollapseStore`.
+                    subreddit: subreddit
+                ) { post in
+                    selectedPost = post
+                } onSelectScraped: { highlight in
+                    // Prefer a post the feed has already loaded:
+                    // highlights are the subreddit's stickied posts, so
+                    // it is almost always already in `posts`, avoiding
+                    // a slow full `/comments` round trip.
+                    if let existing = CommunityHighlights.matchingPost(
+                        forPermalink: highlight.permalink,
+                        in: posts + highlightPosts
+                    ) {
+                        selectedPost = existing
+                    } else {
+                        scrapedDestination = highlight
+                    }
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
             if let errorMessage {
                 Text(errorMessage)
@@ -175,7 +242,7 @@ public struct FeedScreen: View {
                     .listRowBackground(Color.clear)
                     .accessibilityIdentifier("feed.loadingFirstPage")
             }
-            ForEach(posts) { post in
+            ForEach(feedPosts) { post in
                 // Apollo's feed rows have no trailing disclosure
                 // chevron, which a plain `NavigationLink` always draws.
                 // A plain view with `.onTapGesture` plus
@@ -272,9 +339,68 @@ public struct FeedScreen: View {
         .scrollContentBackground(.hidden)
         // Stock dark surface + Pure Black tiers (see `ApolloStockSurface`).
         .apolloStockSurface()
+        // Browser-style forward navigation: swiping back from a post
+        // can be undone by a right-edge forward swipe.
+        .apolloTracksForwardNavigation($selectedPost)
         .apolloOpensRedditTargetsHere()
+        // A scraped highlight pushes through its own binding, so it is
+        // registered with the forward-swipe machinery explicitly.
+        .apolloTracksForwardNavigation($scrapedDestination)
         .apolloForwardSwipe()
+        // Re-tapping Posts unwinds this whole stack, not just its root.
+        // Each pushed screen clears its own destination because these
+        // stacks are item-driven per screen rather than one shared
+        // path; see `apolloPopsOnTabReselection`.
+        .apolloPopsOnTabReselection(item: $selectedPost)
+        .apolloPopsOnTabReselection(item: $replyTarget)
+        .apolloPopsOnTabReselection(item: $scrapedDestination)
         .apolloPopsOnTabReselection(item: $jumpDestination)
+        // A scraped highlight has only a permalink, so it is resolved
+        // into a real post the same way a deep link is: fetch first,
+        // then present. `/r/<sub>/comments/<id>/<slug>` is the shape
+        // Reddit's own carousel links use.
+        .navigationDestination(item: $scrapedDestination) { highlight in
+            if let ids = CommunityHighlights.identifiers(fromPermalink: highlight.permalink) {
+                PostPermalinkLoader(
+                    subreddit: ids.subreddit,
+                    postID: ids.postID,
+                    repository: repository,
+                    // The card already knows the title, so the pushed
+                    // screen can show it immediately rather than a
+                    // spinner on an empty black screen.
+                    placeholderTitle: highlight.title
+                )
+            } else {
+                Text("Couldn't open this highlight.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationDestination(item: $selectedPost) { post in
+            PostDetailScreen(post: post, repository: repository, startScrolledToComments: jumpToCommentsOnOpen)
+                .onAppear {
+                    // Honours the "Mark Posts Read on Open" toggle.
+                    if markReadSettings.markReadOnOpen {
+                        ReadPostStore.markRead(post.name)
+                    }
+                    RecentlyReadStore.recordView(
+                        fullname: post.name,
+                        title: post.title,
+                        subreddit: post.subreddit,
+                        author: post.author,
+                        permalink: post.permalink,
+                        isNSFW: post.over18,
+                        thumbnailURL: post.thumbnail
+                    )
+                }
+                // "Forget Forward Swipe After Scrolling": see `forwardTarget`.
+                // `.onDisappear` records the forward-swipe target when popping back
+                // to the feed.
+                .onDisappear {
+                    guard selectedPost == nil else { return }
+                    forwardTarget = post
+                    forwardAnchorRowIndex = posts.firstIndex { $0.id == post.id }
+                }
+        }
         // Apollo's toolbar title is a "Jump Bar": an inline transformation of
         // the title into a full-width text field docked in the nav bar, with
         // ghost-text autocomplete.
@@ -283,6 +409,7 @@ public struct FeedScreen: View {
         // It lives in the inline nav bar, never a large title: in `.large`
         // mode SwiftUI drops the whole `.principal` toolbar item.
         .navigationBarTitleDisplayMode(.inline)
+        .apolloMeasuresTitleCentering(key: "feed", offset: $titleCenteringOffset)
         .toolbar {
             ToolbarItem(placement: .principal) {
                     Button {
@@ -300,6 +427,9 @@ public struct FeedScreen: View {
                         .foregroundStyle(.primary)
                     }
                     .disabled(multiredditDisplayName != nil)
+                    // Reborn "Center Title Between Buttons"; see
+                    // `CenterTitleBetweenButtonsModifier`. Inert unless the setting is on.
+                    .offset(x: titleCenteringOffset)
                     .accessibilityIdentifier("feed.titleJumpBarButton")
                 .apolloGlassBarTint()
             }
@@ -316,6 +446,11 @@ public struct FeedScreen: View {
                 }
             }
         }
+        .sheet(item: $reportTarget) { target in
+            ReportSheet(fullname: target.name, repository: repository) {
+                reportTarget = nil
+            }
+        }
         // Apollo's sort control is a full-width bottom action sheet titled
         // "Sort by…" with a per-sort icon, a trailing checkmark on the active
         // sort and a chevron on Top for the time-period sub-sheet.
@@ -330,16 +465,47 @@ public struct FeedScreen: View {
             Text(downloadMessage ?? "")
         }
         .task {
+            // SwiftUI re-runs `.task` on reappear, not only on first
+            // creation, so without a guard a swipe back would refetch
+            // and flash/reset the list. Loading only when nothing is
+            // shown makes a pop feel instant; every deliberate reload
+            // path (pull-to-refresh, sort/timeframe/subreddit/sign-in
+            // change) calls `load()` directly and is unaffected. Every
+            // fetch here is guarded, including highlights and identity.
+            // A forward swipe builds a new instance, so `@State` alone
+            // can't tell us we were just here; see `FeedSnapshotCache`.
+            // Restore first, then only fetch what the restore did not
+            // provide.
+            if !hasLoadedOnce, posts.isEmpty,
+               let cached = FeedSnapshotCache.shared.snapshot(for: snapshotKey) {
+                listing.restore(posts: cached.posts, afterToken: cached.afterToken, reachedEnd: cached.reachedEnd)
+                highlightPosts = cached.highlights
+                scrapedHighlights = cached.scrapedHighlights
+                subredditInfo = cached.subredditInfo
+                isModerator = cached.isModerator
+                signedInUsername = cached.signedInUsername
+                hasLoadedOnce = true
+            }
             if posts.isEmpty {
                 await load()
             }
             if !hasLoadedOnce {
                 hasLoadedOnce = true
                 await checkModeratorStatus()
+                await loadCommunityHighlights()
                 signedInUsername = try? await repository.fetchIdentity().name
+            } else {
+                // A restored or re-shown feed takes the highlights cache, which
+                // also holds a Full-mode scrape that finished after the snapshot.
+                await loadCommunityHighlights()
             }
+            storeSnapshot()
         }
-        .refreshable { await load() }
+        .refreshable {
+            async let highlights: Void = loadCommunityHighlights(force: true)
+            await load()
+            await highlights
+        }
         .onReceive(NotificationCenter.default.publisher(for: .apolloSubscriptionsChanged)) { note in
             applySubscriptionChange(note)
         }
@@ -354,6 +520,24 @@ public struct FeedScreen: View {
     /// budget.
     private var isLargeLayout: Bool { effectivePostDisplayStyle == .large }
 
+    /// The carousel's cards.
+    private var carouselPosts: [RedditPost] { highlightPosts }
+
+    private var carouselScrape: [ScrapedHighlight] {
+        scrapedHighlights.count > carouselPosts.count ? scrapedHighlights : []
+    }
+
+    /// The feed without the pinned rows the carousel already shows, as Reborn
+    /// collapses them while Community Highlights is on.
+    private var feedPosts: [RedditPost] {
+        let carousel = carouselPosts
+        let scrape = carouselScrape
+        guard !carousel.isEmpty || !scrape.isEmpty else { return posts }
+        let shown = CommunityHighlights.feedRowIDsShownInCarousel(
+            carouselPosts: scrape.isEmpty ? carousel : [], scrapedPermalinks: scrape.map(\.permalink))
+        return posts.filter { !CommunityHighlights.feedHides($0, shownInCarousel: shown) }
+    }
+
     @ViewBuilder
     func feedRow(for post: RedditPost) -> some View {
         PostRow(
@@ -363,8 +547,16 @@ public struct FeedScreen: View {
             isAggregateFeed: isAggregateFeed,
             onSubredditTap: { jumpDestination = .subreddit(post.subreddit) },
             onAuthorTap: { jumpDestination = .user(post.author) },
+            onCommentsTap: {
+                jumpToCommentsOnOpen = true
+                selectedPost = post
+            },
         )
         .contentShape(Rectangle())
+        .onTapGesture {
+            jumpToCommentsOnOpen = false
+            selectedPost = post
+        }
         .accessibilityIdentifier("feed.postRow.\(post.id)")
         .listRowBackground(Color.clear)
         // Compact: 12pt sides, 10.7pt top, 12.7pt bottom, 20pt trailing to

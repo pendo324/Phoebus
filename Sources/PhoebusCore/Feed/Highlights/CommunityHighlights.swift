@@ -126,6 +126,44 @@ public enum CommunityHighlights {
         }
     }
 
+    /// How long fetched highlights are shown as-is: a week, since pinned
+    /// posts rarely change. A visit after that shows them at once and
+    /// re-checks quietly in the background; pull-to-refresh always re-checks.
+    public static let cacheTTL: TimeInterval = 7 * 24 * 60 * 60
+
+    public static func isStale(fetchedAt: Date, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(fetchedAt) >= cacheTTL
+    }
+
+    /// What a refresh compares to decide whether the carousel needs
+    /// rebuilding: the posts, their titles and comment counts.
+    public static func signature(of posts: [RedditPost]) -> [String] {
+        posts.map { "\($0.id)|\($0.title)|\($0.numComments)" }
+    }
+
+    /// The carousel's cards: the highlights minus pinned posts the feed shows
+    /// as an interactive widget (a match thread, a game), which stay in the
+    /// feed as in Reborn.
+    public static func carouselPosts(from highlights: [RedditPost], feedShowsWidget: (RedditPost) -> Bool) -> [RedditPost] {
+        highlights.filter { !feedShowsWidget($0) }
+    }
+
+    /// The pinned feed rows the carousel already shows, which Reborn hides
+    /// from the feed: the REST cards, or the scraped cards' posts when those
+    /// replace them.
+    public static func feedRowIDsShownInCarousel(carouselPosts: [RedditPost], scrapedPermalinks: [String]) -> Set<String> {
+        var ids = Set(carouselPosts.map { $0.id.lowercased() })
+        for permalink in scrapedPermalinks {
+            if let parts = identifiers(fromPermalink: permalink) { ids.insert(parts.postID.lowercased()) }
+        }
+        return ids
+    }
+
+    /// Whether a feed row is hidden because the carousel shows it.
+    public static func feedHides(_ post: RedditPost, shownInCarousel ids: Set<String>) -> Bool {
+        post.stickied && ids.contains(post.id.lowercased())
+    }
+
     /// Picks the highlights out of a listing.
     /// Just the `stickied` filter, preserving listing order.
     public static func highlights(from posts: [RedditPost]) -> [RedditPost] {

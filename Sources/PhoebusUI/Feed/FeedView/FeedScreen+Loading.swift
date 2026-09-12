@@ -3,6 +3,76 @@ import PhoebusCore
 
 /// Loading, paging, filtering and the feed's side effects (snapshot, highlights, subscription, swipes).
 extension FeedScreen {
+    /// Fetches the subreddit's pinned posts for the highlights
+    /// carousel. Its own `hot` request, not a filter over the posts
+    /// already on screen, since highlights are sort-independent and a
+    /// New/Top/Rising feed wouldn't contain the stickied posts.
+    /// Records what this screen currently shows, so an immediate
+    /// forward swipe can restore it instead of refetching.
+    func storeSnapshot() {
+        guard !posts.isEmpty else { return }
+        FeedSnapshotCache.shared.store(
+            key: snapshotKey,
+            posts: posts,
+            highlights: highlightPosts,
+            scrapedHighlights: scrapedHighlights,
+            subredditInfo: subredditInfo,
+            isModerator: isModerator,
+            signedInUsername: signedInUsername,
+            afterToken: afterToken,
+            reachedEnd: reachedEnd)
+    }
+
+    /// Shows the subreddit's cached highlights at once, then re-checks them
+    /// when they're older than `CommunityHighlights.cacheTTL` (or always, for
+    /// pull-to-refresh), rebuilding the carousel only if they changed.
+    func loadCommunityHighlights(force: Bool = false) async {
+        let mode = subredditLayoutSettings.communityHighlights
+        guard mode != .off else {
+            highlightPosts = []
+            scrapedHighlights = []
+            return
+        }
+        guard !subreddit.isEmpty else { return }
+        let name = subreddit
+        let cache = CommunityHighlightsCache.shared
+        if let cached = cache.entry(subreddit: name, mode: mode) {
+            apply(posts: cached.posts, scraped: cached.scraped)
+            if !force, !CommunityHighlights.isStale(fetchedAt: cached.fetchedAt) { return }
+        }
+        guard let listing = try? await repository.fetchListing(
+            subreddit: name, sort: "hot", timeframe: nil, after: nil) else { return }
+        let decoded = await listing.postsInBackground()
+        let fresh = CommunityHighlights.highlights(from: decoded)
+        let keptScrape = cache.entry(subreddit: name, mode: mode)?.scraped ?? []
+        apply(posts: fresh, scraped: keptScrape)
+        cache.store(.init(posts: fresh, scraped: keptScrape, fetchedAt: Date()), subreddit: name, mode: mode)
+
+        // Full mode adds the web scrape on top of the REST result, after the
+        // REST cards are already on screen. A blocked or timed-out scrape
+        // leaves the existing cards.
+        guard mode == .full else { return }
+        let fetch = CommunityHighlightsWebFetch()
+        highlightsWebFetch = fetch
+        fetch.start(subreddit: name) { items in
+            guard !items.isEmpty else { return }
+            apply(posts: highlightPosts, scraped: items)
+            if var entry = cache.entry(subreddit: name, mode: mode) {
+                entry.scraped = items
+                cache.store(entry, subreddit: name, mode: mode)
+            }
+        }
+    }
+
+    /// Sets the carousel's content only when it differs, so an unchanged
+    /// refresh doesn't rebuild it.
+    private func apply(posts: [RedditPost], scraped: [ScrapedHighlight]) {
+        if CommunityHighlights.signature(of: posts) != CommunityHighlights.signature(of: highlightPosts) {
+            highlightPosts = posts
+        }
+        if scraped != scrapedHighlights { scrapedHighlights = scraped }
+    }
+
     func checkModeratorStatus() async {
         guard !subreddit.isEmpty else { return }
         // One fetch also backs the Subreddit Layout header (banner, subscriber
@@ -53,6 +123,26 @@ extension FeedScreen {
             forwardAnchorRowIndex = nil
         }
     }
+
+    func handleSwipeAction(_ action: SwipeAction, on post: RedditPost) async {
+        await ContentActions.perform(action, on: post, repository: repository, hooks: SwipeActionHooks(
+            // Opens the post so its composer is reachable.
+            onReply: { replyTarget = post },
+            onShare: { shareTarget = post },
+            onHide: { posts.removeAll { $0.id == post.id } },
+            onHidePostsAbove: { await hidePosts(above: post) },
+            author: post.author, subreddit: post.subreddit
+        ))
+    }
+
+    /// Stock's Hide Posts Above: hides every post above `post` in the feed.
+    func hidePosts(above post: RedditPost) async {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }), index > 0 else { return }
+        let above = Array(posts[..<index])
+        posts.removeAll { candidate in above.contains { $0.id == candidate.id } }
+        for item in above { _ = await ContentActions.hide(item, repository: repository) }
+    }
+
     func loadMoreIfNeeded(currentPost post: RedditPost) {
         guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
         // Doomscrolling guard (`infiniteScrollingEnabled`, key
@@ -98,6 +188,10 @@ extension FeedScreen {
     }
 
     func load() async {
+        // A deliberate reload always beats the cache. Every intentional
+        // path (pull-to-refresh, sort, timeframe, subreddit or sign-in
+        // change) funnels through here.
+        FeedSnapshotCache.shared.invalidate(key: snapshotKey)
         await autoHideReadPostsBeforeRefresh()
         let name = subreddit
         await listing.load(listingRequest, filter: filtered,
@@ -113,7 +207,10 @@ extension FeedScreen {
     /// quarantined or banned subreddit has its own sentence rather than
     /// the raw error.
     static func feedErrorMessage(for error: Error, subreddit: String) -> String {
+        guard case let RedditAPIError.httpError(status, body) = error else {
             return "Couldn't load posts."
+        }
+        return FeedErrorCopy.message(status: status, body: body, subreddit: subreddit)
     }
 
     /// Per-listing empty-state copy, verbatim from Apollo

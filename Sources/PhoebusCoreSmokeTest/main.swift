@@ -269,6 +269,34 @@ let modmailNoOwnerJSON = """
 """.data(using: .utf8)!
 let modmailNoOwner = try! JSONDecoder().decode(ModmailConversation.self, from: modmailNoOwnerJSON)
 check("modmail conversation without owner decodes nil subredditName", modmailNoOwner.subredditName == nil)
+// --- Gallery View post filtering (Reborn feature) ---
+let imagePostJSON = """
+{
+    "id": "img1", "name": "t3_img1", "title": "Image Post",
+    "author": "u1", "subreddit": "test", "selftext": "",
+    "url": "https://example.com/photo.jpg", "permalink": "/r/test/comments/img1/x/",
+    "score": 1, "upvote_ratio": 1.0, "num_comments": 0,
+    "created_utc": 0, "is_self": false, "over_18": false,
+    "spoiler": false, "stickied": false, "saved": false, "likes": null
+}
+""".data(using: .utf8)!
+let imagePost = try! JSONDecoder.reddit.decode(RedditPost.self, from: imagePostJSON)
+check("GalleryPostMedia.thumbnailURL finds a direct image post's own URL", GalleryPostMedia.thumbnailURL(for: imagePost) == URL(string: "https://example.com/photo.jpg"))
+
+let textPostJSON = """
+{
+    "id": "txt1", "name": "t3_txt1", "title": "Text Post",
+    "author": "u1", "subreddit": "test", "selftext": "just text",
+    "url": null, "permalink": "/r/test/comments/txt1/x/",
+    "score": 1, "upvote_ratio": 1.0, "num_comments": 0,
+    "created_utc": 0, "is_self": true, "over_18": false,
+    "spoiler": false, "stickied": false, "saved": false, "likes": null
+}
+""".data(using: .utf8)!
+let textPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: textPostJSON)
+check("GalleryPostMedia.thumbnailURL returns nil for a text post", GalleryPostMedia.thumbnailURL(for: textPost) == nil)
+let filteredGalleryPosts = GalleryPostMedia.filterMediaPosts([imagePost, textPost])
+check("GalleryPostMedia.filterMediaPosts keeps only posts with media", filteredGalleryPosts.count == 1 && filteredGalleryPosts.first?.id == imagePost.id)
 // --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
 // sign-in flow) ---
 let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")
@@ -624,6 +652,25 @@ check("the three moderator user lists are separate, titled destinations",
       Set(ModeratorUserList.allCases.map(\.title)).count == 3)
 check("...each with its own real Apollo icon name",
       Set(ModeratorUserList.allCases.map(\.apolloIconName)).count == 3)
+// Search sorts include "relevance" and "comments", which the feed's
+// enumerated arm does not list; they resolve through the shared table of
+// option-sort-* names. If that fallback stopped resolving they would render
+// the generic arrow.
+check("the real option-sort-relevance icon resolves",
+      ApolloMenuIcon.symbol("option-sort-relevance") != nil)
+check("the real option-sort-comments icon resolves",
+      ApolloMenuIcon.symbol("option-sort-comments") != nil)
+// Icons with known values keep them rather than name-derived guesses.
+check("Best stays the trophy seen in reference-screenshots/sort.png",
+      ApolloMenuIcon.symbol("option-sort-best") == "trophy")
+check("Hot stays the droplet seen in the same screenshot",
+      ApolloMenuIcon.symbol("option-sort-hot") == "drop")
+check("Controversial stays the crossed arrows, not a bolt",
+      ApolloMenuIcon.symbol("option-sort-controversial") == "scissors")
+// An unmapped name returns nil so a caller falls back deliberately rather
+// than rendering a wrong glyph.
+check("an unmapped icon name returns nil rather than a wrong glyph",
+      ApolloMenuIcon.symbol("option-sort-not-a-real-name") == nil)
 // Liquid Glass detection, mirroring Reborn's IsLiquidGlass() and
 // ApolloSDKEnablesLiquidGlass. Two conditions, both required: iOS 26+ and
 // the UIGlassEffect class present at runtime (an @available check alone

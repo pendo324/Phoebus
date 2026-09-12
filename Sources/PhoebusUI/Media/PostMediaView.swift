@@ -20,6 +20,8 @@ public enum PostMediaKind {
     case steam(kind: SteamURLParser.ItemKind, id: String)
     case imgurAlbum(id: String)
     case gallery([URL])
+    case link(URL)
+
     /// The URL to download for `post`, not the URL to play: playback
     /// uses the muxed HLS stream, but Save Video needs the
     /// progressive `DASH_*.mp4` to pair with `DASH_audio.mp4` and mux
@@ -108,17 +110,26 @@ public enum PostMediaKind {
         if [".mp4", ".mov", ".m3u8", ".webm"].contains(where: lower.hasSuffix) {
             return .video(url)
         }
+        if [".jpg", ".jpeg", ".png", ".webp"].contains(where: lower.hasSuffix) {
             return .image(url)
+        }
+        return .link(url)
     }
 }
 
 public struct PostMediaView: View {
+    @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     let kind: PostMediaKind
     /// When set, renders behind an interactive NSFW/spoiler blur
     /// overlay until tapped, mirroring Apollo's content warning overlay.
     let contentWarning: ContentWarning?
     @State private var showingFullscreenImage = false
     @State private var isRevealed = false
+    @State private var inAppBrowserURL: URL?
+    /// "Resolving share link..." state: a `/s/` link needs a network
+    /// round-trip before we know where it goes.
+    @State private var isResolvingShareLink = false
+    @Environment(\.openURL) private var openURLAction
     /// The fullscreen media viewer's "jump to comments" chrome button.
     /// Optional for callers without a comment thread to jump to.
     var onJumpToComments: (() -> Void)?
@@ -172,7 +183,74 @@ public struct PostMediaView: View {
         // The post screen's own media: any player in it may hand over to
         // the floating PiP card (Reborn scopes PiP to the post header).
         .environment(\.floatingPiPSourceEnabled, true)
+        // The browser opened from a post: its comments button closes it
+        // onto the comments.
+        .apolloInAppBrowser(url: $inAppBrowserURL, onComments: { onJumpToComments?() })
+        .overlay {
+            if isResolvingShareLink {
+                VStack(spacing: 10) {
+                    ProgressView()
+                    Text("Resolving share link\u{2026}")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(20)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityIdentifier("shareLink.resolving")
+            }
+        }
     }
+
+    /// Routes a tapped link through the user's link settings ("Open
+    /// Reddit Links in Apollo", "Open Tweets in…", "Open Links In").
+    /// See `LinkRouter`.
+    private func openLink(_ url: URL) {
+        // Reddit's own share button emits opaque `/s/` links with no
+        // post id; the real target is only discoverable via redirect.
+        if ShareLinkResolver.isShareLink(url) {
+            isResolvingShareLink = true
+            Task {
+                let resolved = await ShareLinkResolver.resolve(url)
+                await MainActor.run {
+                    isResolvingShareLink = false
+                    // On failure the original link still opens rather
+                    // than dead-ending.
+                    route(resolved ?? url)
+                }
+            }
+            return
+        }
+        // A media share wraps the real asset URL in a query parameter.
+        if let media = ShareLinkResolver.mediaShareTarget(url) {
+            route(media)
+            return
+        }
+        route(url)
+    }
+
+    private func route(_ url: URL) {
+        switch LinkRouter.route(url) {
+        case .native(let target):
+            RedditLinkNavigator.open(target)
+        case .twitterApp(let tweetURL, let client):
+            guard let appURL = LinkRouter.twitterAppURL(for: tweetURL, client: client) else {
+                inAppBrowserURL = tweetURL
+                return
+            }
+            // Fall back to the in-app browser when the X app isn't
+            // installed, rather than silently doing nothing.
+            openURLAction(appURL) { accepted in
+                if !accepted { inAppBrowserURL = tweetURL }
+            }
+        case .externalBrowser(let target):
+            ExternalLinkOpener.open(target, openURL: openURLAction) { fallbackURL in
+                inAppBrowserURL = fallbackURL
+            }
+        case .inApp(let target):
+            inAppBrowserURL = target
+        }
+    }
+
     @ViewBuilder
     private var mediaContent: some View {
         switch kind {
@@ -236,6 +314,18 @@ public struct PostMediaView: View {
             ImgurAlbumView(albumID: id)
         case .gallery(let urls):
             GalleryMediaView(urls: urls, onJumpToComments: onJumpToComments, votePost: votePost, voteRepository: voteRepository)
+        case .link(let url):
+            // Reborn "Rich Link Previews" > Body; the card draws Apollo's
+            // link button itself when that is Off.
+            Button {
+                openLink(url)
+            } label: {
+                LinkPreviewCard(url: url, context: .body,
+                                fallbackImageURL: votePost?.previewImageURL(displayWidth: 400),
+                                fallbackTitle: votePost?.title,
+                                onOpen: { openLink(url) })
+            }
+            .buttonStyle(.plain)
         case .none:
             EmptyView()
         }
@@ -373,6 +463,55 @@ struct GalleryMediaView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("gallery.thumbnail.\(index)")
+        }
+    }
+}
+
+/// "Swipe Through Feed Galleries": a gallery post's images page
+/// through directly in the feed row, without navigating away. A
+/// lighter-weight sibling of `GalleryMediaView` (no fullscreen pager
+/// wiring): the row's own tap-to-open-post-detail gesture still
+/// handles the "go look at this post" action.
+///
+/// "Swipe Past Gallery to Navigate": a pan past the first/last image,
+/// or one starting at a screen edge where navigation can act, is given to
+/// the row's swipe actions or the page swipe as it begins, so they follow
+/// the finger (`FeedGalleryPanYield`, Reborn #1271).
+struct FeedGalleryCarouselView: View {
+    let urls: [URL]
+    let shouldBlur: Bool
+    let isNSFW: Bool
+    @State private var selection = 0
+    @State private var isRevealed = false
+    var body: some View {
+        VStack(spacing: 4) {
+            TabView(selection: $selection) {
+                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                    CachedAsyncImage(url: url)
+                        .tag(index)
+                }
+            }
+            #if canImport(UIKit)
+            .tabViewStyle(.page(indexDisplayMode: urls.count > 1 ? .always : .never))
+            #endif
+            .frame(maxWidth: .infinity)
+            .frame(height: 240)
+            .clipped()
+            #if canImport(UIKit)
+            .background(FeedGalleryPanYield().frame(maxWidth: .infinity, maxHeight: .infinity))
+            #endif
+            .overlay {
+                if shouldBlur && !isRevealed {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .overlay {
+                            Image(systemName: isNSFW ? "eye.slash.fill" : "exclamationmark.triangle.fill")
+                                .foregroundStyle(.white)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { isRevealed = true }
+                }
+            }
         }
     }
 }
@@ -582,6 +721,18 @@ struct SportsClipView: View {
             } else {
                 ProgressView()
                     .frame(maxHeight: 200)
+            }
+        }
+        .task {
+            do {
+                let metadata = try await OpenGraphClient.fetchMetadata(for: pageURL)
+                if let videoURLString = metadata.videoURLString, let url = URL(string: videoURLString) {
+                    resolvedURL = url
+                } else {
+                    failed = true
+                }
+            } catch {
+                failed = true
             }
         }
     }

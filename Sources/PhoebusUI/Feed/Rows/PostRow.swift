@@ -5,6 +5,8 @@ struct PostRow: View {
     /// "Translate Post Titles" result for this row, nil when off or
     /// pending (see `TitleTranslation`).
     @State var translatedTitle: String?
+    /// Tag Filters cover parts the user revealed on this row.
+    @State var revealedTagParts: Set<TagFilterCover.Part> = []
     let post: RedditPost
     let repository: RedditRepository
     /// Passed explicitly from `FeedScreen` rather than re-read
@@ -86,6 +88,9 @@ struct PostRow: View {
             StockIcon("inline-more-options")
         }
     }
+    @Setting(LinkPreviewSettings.self) var linkPreviewSettings
+    @Setting(TagFilterSettings.self) var tagFilters
+    @Setting(MatureMediaPreference.storage) var matureMediaPrefs
     /// Loaded once per row render rather than per thumbnail-position
     /// check, matching the settings snapshot the rest of the feed
     /// already reads once per load.
@@ -104,11 +109,36 @@ struct PostRow: View {
     /// (`AppearanceSettings.votingButtonsPosition`), only meaningful
     /// while `showsVotingButtons` is on.
     var votingButtonsPosition: AppearanceEdgePosition { appearanceSettings.votingButtonsPosition }
+
+    /// Spoiler media, NSFW media per "Blur NSFW Media" (the account's
+    /// Reddit pref unless overridden), and Apollo-Reborn's Tag Filters.
+    var shouldBlurMedia: Bool {
+        tagFilters.shouldBlurMedia(subreddit: post.subreddit, isNSFW: post.over18, isSpoiler: post.spoiler,
+                                   nsfwBlurOverride: generalSettings.nsfwBlurOverride,
+                                   accountPref: MatureMediaPreference.activeAccountValue(in: matureMediaPrefs))
+    }
+
+    /// Only the Tag Filters cover a title.
+    var shouldBlurTitle: Bool {
+        tagFilters.shouldBlur(subreddit: post.subreddit, isNSFW: post.over18, isSpoiler: post.spoiler)
+    }
+
     /// The post title as ONE string; a tag filter covers it with
     /// `TagFilterCover` rather than altering the text.
     var titleString: String {
         translatedTitle ?? post.title
     }
+
+    var coversTitle: Bool { shouldBlurTitle && !revealedTagParts.contains(.title) }
+    var coversMediaByTagFilter: Bool { shouldBlurTitle && !revealedTagParts.contains(.media) }
+    /// Apollo's own media blur (spoilers, the NSFW preference), where the
+    /// Tag Filters cover doesn't already apply.
+    var nativeMediaBlur: Bool { shouldBlurMedia && !shouldBlurTitle }
+
+    func revealTagPart(_ part: TagFilterCover.Part) {
+        withAnimation(.easeOut(duration: 0.2)) { _ = revealedTagParts.insert(part) }
+    }
+
     /// A link post's bare host, shown INLINE at the end of the title,
     /// tinted tertiary in the same 15pt face.
     /// Reddit's own media hosts (v.redd.it, i.redd.it, galleries) show no
@@ -294,6 +324,23 @@ struct PostRow: View {
             CachedAsyncImage(url: url)
                 .frame(width: size, height: size)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                // Tag Filters: no pill on a thumbnail, as Reborn's.
+                .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
+                                cornerRadius: 6, showsPill: false) { revealTagPart(.media) }
+                .overlay {
+                    // Mirrors Apollo's list-row NSFW/spoiler blur
+                    // badge; full reveal-on-tap only happens in the
+                    // detail view.
+                    if nativeMediaBlur {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Image(systemName: post.over18 ? "eye.slash.fill" : "exclamationmark.triangle.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.white)
+                            }
+                    }
+                }
         }
     }
 

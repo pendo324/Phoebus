@@ -51,6 +51,7 @@ extension PostRow {
                     .fixedSize(horizontal: false, vertical: true)
                 if post.over18 { NSFWTag() }
             }
+                .tagFilterCover(.title, isNSFW: post.over18, isActive: coversTitle) { revealTagPart(.title) }
                 .padding(.horizontal)
                 // VoiceOver: the large row can't be merged whole
                 // (video/gallery/link card is separately operable), so
@@ -67,6 +68,10 @@ extension PostRow {
                 // Apollo shows a crosspost as its card alone (below), not the original's
                 // media or link.
                 EmptyView()
+            } else if generalSettings.feedGalleryCarousel, post.galleryImageURLs.count > 1 {
+                FeedGalleryCarouselView(urls: post.galleryImageURLs, shouldBlur: nativeMediaBlur, isNSFW: post.over18)
+                    .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
+                                    cornerRadius: 0) { revealTagPart(.media) }
             } else if case .video(let videoURL) = PostMediaKind.classify(post: post) {
                 // A video post gets a player, not a still frame: the
                 // large feed row does its own media rendering rather
@@ -89,6 +94,18 @@ extension PostRow {
                     // ratio, and pinning a height leaves an empty black box.
                     video
                         .apolloMediaFrame()
+                        .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
+                                        cornerRadius: 0) { revealTagPart(.media) }
+                        .overlay {
+                            if nativeMediaBlur {
+                                Rectangle()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay {
+                                        Image(systemName: post.over18 ? "eye.slash.fill" : "exclamationmark.triangle.fill")
+                                            .foregroundStyle(.white)
+                                    }
+                            }
+                        }
                         .apolloMediaPager(
                             items: [.video(videoURL)],
                             isPresented: $showingFullscreenMedia,
@@ -101,6 +118,14 @@ extension PostRow {
                 // and a system PiP candidate when leaving the app.
                 .environment(\.floatingPiPHome, true)
                 .environment(\.floatingPiPIsGIF, post.media?.redditVideo?.isGif == true)
+            } else if case .link(let linkURL) = PostMediaKind.classify(post: post),
+                      linkPreviewSettings.bodyDisplayMode != .off, !nativeMediaBlur {
+                // Rich Link Previews > Body covers feeds too: the link post's card in
+                // place of its thumbnail.
+                LinkPreviewCard(url: linkURL, context: .body,
+                                fallbackImageURL: post.previewImageURL(displayWidth: 400),
+                                fallbackTitle: post.title)
+                    .padding(.horizontal)
             } else if let url = resolvedThumbnailURL, post.isSelf {
                 // A text post's own embedded image (Text Post Thumbnails): Reborn's hero,
                 // 10pt corners at the text margin; a tap opens the image rather than the
@@ -111,6 +136,8 @@ extension PostRow {
                     .frame(height: 240)
                     .overlay { CachedAsyncImage(url: url, contentMode: .fill) }
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
+                                    cornerRadius: 10) { revealTagPart(.media) }
                     .contentShape(Rectangle())
                     .highPriorityGesture(TapGesture().onEnded { showingFullscreenMedia = true })
                     .padding(.horizontal)
@@ -121,6 +148,18 @@ extension PostRow {
                     .frame(maxWidth: .infinity)
                     .frame(height: 240)
                     .clipped()
+                    .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
+                                    cornerRadius: 0) { revealTagPart(.media) }
+                    .overlay {
+                        if nativeMediaBlur {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .overlay {
+                                    Image(systemName: post.over18 ? "eye.slash.fill" : "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.white)
+                                }
+                        }
+                    }
             } else if let urlString = post.url, let host = URL(string: urlString)?.host, !(post.isSelf) {
                 // Apollo shows a domain/URL row for link posts with no
                 // thumbnail image.

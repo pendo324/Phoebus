@@ -10,6 +10,12 @@ extension PostRow {
     /// left and a vote-arrow column on the right.
     var compactBody: some View {
         HStack(alignment: .top, spacing: 8) {
+            // "Voting Buttons Position" (`AppearanceSettings.votingButtonsPosition`):
+            // when on the left edge, renders here ahead of the title;
+            // the default right position renders after it.
+            if showsVotingButtons, votingButtonsPosition == .left {
+                voteArrowColumn
+            }
             VStack(alignment: .leading, spacing: 3) {
                 // Apollo renders a distinct banner for stickied posts,
                 // separate from the rest of the info row.
@@ -30,6 +36,16 @@ extension PostRow {
                         if showsSubredditIcon {
                             SubredditIconView(subreddit: post.subreddit, repository: repository, size: 16)
                         }
+                        Text(SubredditCapitalization.display(post.subreddit))
+                            // 15pt semibold, heavier than the 15pt
+                            // regular title.
+                            .apolloFont(size: 15, weight: .semibold)
+                            .foregroundStyle(Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: themeColors))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .contentShape(Rectangle())
+                            .highPriorityGesture(TapGesture().onEnded(onSubredditTap))
+                            .accessibilityIdentifier("feed.postRow.subredditHeader")
                         Spacer(minLength: 0)
                     }
                     // The list row's own 12.7pt top inset positions the header glyph.
@@ -53,9 +69,22 @@ extension PostRow {
                     if post.over18 || flair != nil {
                     HStack(spacing: 4) {
                     if post.over18 { NSFWTag() }
+                    if let flair {
+                        LinkFlairLabel(text: flair, parts: post.linkFlairRichtext)
+                            // 13pt regular in an 18pt-tall full
+                            // capsule with 6pt side padding.
+                            .apolloFont(size: 13)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 6)
+                            .frame(height: 18)
+                            .background(Capsule().fill(linkFlairBackgroundColor ?? Color.apolloFlairFill(colorScheme: colorScheme)))
+                            .foregroundStyle(linkFlairTextColor ?? Color.apolloTertiaryText(colorScheme: colorScheme, themeColors: themeColors))
+                    }
                     }
                     }
                 }
+                .tagFilterCover(.title, isNSFW: post.over18, isActive: coversTitle) { revealTagPart(.title) }
                 // `.lineLimit` has no effect on a `Layout` container (only on `Text`);
                 // titles are short enough that row-counting truncation isn't needed.
 
@@ -75,6 +104,17 @@ extension PostRow {
                     if showsSubredditIcon, !showsSubredditHeader {
                         SubredditIconView(subreddit: post.subreddit, repository: repository, size: 16)
                     }
+                    if !showsSubredditHeader {
+                        // Apollo's display capitalization, not Reddit's
+                        // lowercase URL form. See
+                        // `SubredditCapitalization`.
+                        Text(SubredditCapitalization.display(post.subreddit))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .contentShape(Rectangle())
+                            .highPriorityGesture(TapGesture().onEnded(onSubredditTap))
+                            .accessibilityIdentifier("feed.postRow.subredditLabel")
+                    }
                     // "by author" only when Usernames is on.
                     if appearanceSettings.alwaysShowUsernames {
                         if !showsSubredditHeader {
@@ -89,6 +129,19 @@ extension PostRow {
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
                             .accessibilityIdentifier("feed.postRow.authorLabel")
                     }
+
+                    // The author's flair chip goes with the author's name: with Usernames
+                    // off Apollo shows neither.
+                    if appearanceSettings.alwaysShowUsernames, generalSettings.showUserFlair,
+                       let authorFlair = post.authorFlairText, !authorFlair.isEmpty {
+                        LinkFlairLabel(text: authorFlair, parts: nil)
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(authorFlairBackgroundColor ?? Color.secondary.opacity(0.2)))
+                            .foregroundStyle(authorFlairTextColor ?? .secondary)
+                    }
                     // Reddit API field `author_cakeday`.
                     if post.authorCakeday == true {
                         Text("🎂").font(.caption2).accessibilityLabel("Cake day")
@@ -99,6 +152,9 @@ extension PostRow {
                 HStack(spacing: 10) {
                     if showsAuthorInInfoRow {
                         infoRowAuthor
+                    }
+                    if subredditLeadsInfoRow {
+                        infoRowSubreddit
                     }
                     infoRowStats
                     // The ••• is INLINE, 10pt after the age, not
@@ -120,6 +176,12 @@ extension PostRow {
             if generalSettings.thumbnailsOnLeft {
                 thumbnailView
             }
+
+            // Right edge (real default) - see the matching left-edge
+            // `if` at the top of this HStack.
+            if showsVotingButtons, votingButtonsPosition == .right {
+                voteArrowColumn
+            }
         }
     }
 
@@ -130,6 +192,22 @@ extension PostRow {
     var subredditLeadsInfoRow: Bool {
         isAggregateFeed && !showsSubredditHeader && !appearanceSettings.alwaysShowUsernames
     }
+
+    var infoRowSubreddit: some View {
+        HStack(spacing: 5) {
+            if showsSubredditIcon {
+                SubredditIconView(subreddit: post.subreddit, repository: repository, size: 16)
+            }
+            Text(SubredditCapitalization.display(post.subreddit))
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .layoutPriority(-1)
+        .contentShape(Rectangle())
+        .highPriorityGesture(TapGesture().onEnded(onSubredditTap))
+        .accessibilityIdentifier("feed.postRow.subredditLabel")
+    }
+
     var infoRowAuthor: some View {
         HStack(spacing: 5) {
             if generalSettings.showUserProfilePictures {
@@ -146,6 +224,31 @@ extension PostRow {
         .contentShape(Rectangle())
         .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
         .accessibilityIdentifier("feed.postRow.authorLabel")
+    }
+
+    var voteArrowColumn: some View {
+        // `inline-upvote`/`inline-downvote`, 14.75x18.19pt, 12pt apart.
+        VStack(spacing: 12) {
+            Button {
+                Task { await vote(direction: voteState == true ? 0 : 1) }
+            } label: {
+                StockIcon("inline-upvote")
+                    .foregroundStyle(voteState == true ? .orange : Color.apolloIdleVoteArrow)
+            }
+            .accessibilityIdentifier("feed.postRow.upvote")
+            .accessibilityLabel("Upvote")
+            Button {
+                Task { await vote(direction: voteState == false ? 0 : -1) }
+            } label: {
+                StockIcon("inline-downvote")
+                    .foregroundStyle(voteState == false ? .blue : Color.apolloIdleVoteArrow)
+            }
+            .accessibilityIdentifier("feed.postRow.downvote")
+            .accessibilityLabel("Downvote")
+        }
+        .buttonStyle(.plain)
+        // Arrow top is 17.7pt below the separator.
+        .padding(.top, 6.6)
     }
 }
 
@@ -181,6 +284,18 @@ extension PostRow {
     }
     @ViewBuilder
     var infoRowStatItems: some View {
+            // Info Row tap-to-upvote/magnify/popup-detail
+            // (`UDKeyInfoRowTapUpvote`, `UDKeyIconRowMagnifier`,
+            // `UDKeyInfoRowPopupMode`/`UDKeyInfoRowOverlayMode`).
+            // Uses `highPriorityGesture` so it wins over the
+            // row's own `.onTapGesture`. Apollo's own
+            // `posts-points` glyph (10x12pt), not SF
+            // `arrow.up`, with a 4pt icon->number gap.
+            HStack(spacing: 4) {
+                StockIcon("posts-points")
+                Text(displayScore.apolloAbbreviated)
+            }
+                .contentShape(Rectangle())
             // "% Upvoted" removed from feed rows: it's a
             // post-detail element, not shown in list rows.
             // Info Row tap-to-comments jumps to comments via

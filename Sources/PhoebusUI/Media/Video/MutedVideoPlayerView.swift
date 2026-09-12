@@ -102,6 +102,9 @@ struct MutedVideoPlayerView: View {
     /// Hands the `AVPlayer` to the caller once it exists, so
     /// `MediaPagerScreen`'s own "..." menu can reach it.
     var onPlayerReady: ((AVPlayer, URL) -> Void)?
+    /// Pinch-to-zoom on the picture, in the fullscreen viewer (`zoomable()`).
+    private var isZoomable = false
+    @State private var zoom = VideoZoom()
     @State private var naturalAspectRatio: CGFloat
     /// The post screen's own media opts in through the environment, so
     /// every host it plays (Reddit video, Streamable and friends, a GIF
@@ -294,7 +297,8 @@ struct MutedVideoPlayerView: View {
                 // "Enable PiP When Leaving App" for this inline video.
                 inlineSystemPiP.attach(layer: layer, player: player, isGIF: floatingPiPIsGIF,
                                        isFeedRow: isFloatingPiPHome)
-            } : nil)
+            } : nil,
+            zoom: isZoomable ? zoom : nil)
             .overlay {
                 if enablesHoldForSpeed, holdSpeedSettings.isEnabled, !hasSurfaceTapLayer {
                     // Right third of the video, leaving the
@@ -364,6 +368,9 @@ struct MutedVideoPlayerView: View {
                             .position(x: scrubWidth / 2, y: geo.size.height / 2)
                     }
                 }
+            }
+            .overlay {
+                if isZoomable { VideoPinchCatcher(zoom: zoom) }
             }
             .overlay(alignment: .bottom) {
                 // Feed Video Scrubber stands alone, as Reborn's; stock
@@ -552,6 +559,13 @@ struct MutedVideoPlayerView: View {
                 // itself when it takes an audible player.
                 VideoAudioSession.release(holderID)
             }
+    }
+
+    /// Pinch-to-zoom on the picture, as an image zooms in the same viewer.
+    func zoomable() -> Self {
+        var copy = self
+        copy.isZoomable = true
+        return copy
     }
 
     private var hasSurfaceTapLayer: Bool {
@@ -1070,7 +1084,8 @@ private struct VideoScrubGestureCatcher: UIViewRepresentable {
                 let x = sender.location(in: view).x
                 let deltaX = x - scrubStartX
                 if !scrubActive {
-                    guard abs(deltaX) >= 12 else { return }
+                    // A second finger is a pinch, not a scrub.
+                    guard abs(deltaX) >= 12, sender.numberOfTouches < 2 else { return }
                     scrubActive = true
                     _ = onScrubBegan?()
                 }
@@ -1126,6 +1141,8 @@ private struct VideoScrubGestureCatcher: UIViewRepresentable {
             guard let host = regionView,
                   let window = host.window
             else { return true }
+            // A zoomed picture's drag pans it.
+            if ZoomingScrollView.isZoomedOnScreen { return false }
             let region = host.convert(host.bounds, to: window)
             return region.contains(touch.location(in: window))
         }

@@ -22,8 +22,11 @@ struct AVPlayerLayerView: UIViewRepresentable {
     /// a layer rather than a player.
     var onLayer: ((AVPlayerLayer) -> Void)?
 
-    func makeUIView(context: Context) -> PlayerLayerBackedView {
-        let view = PlayerLayerBackedView()
+    /// The fullscreen viewer's pinch-to-zoom, which scales this view.
+    var zoom: VideoZoom?
+
+    func makeUIView(context: Context) -> PlayerHostView {
+        let view = PlayerHostView()
         view.playerLayer.player = player
         view.playerLayer.videoGravity = videoGravity
         view.backgroundColor = .black
@@ -51,10 +54,11 @@ struct AVPlayerLayerView: UIViewRepresentable {
         }
         context.coordinator.onTapAtPoint = onTapAtPoint
         onLayer?(view.playerLayer)
+        zoom?.target = view.picture
         return view
     }
 
-    func updateUIView(_ view: PlayerLayerBackedView, context: Context) {
+    func updateUIView(_ view: PlayerHostView, context: Context) {
         if view.playerLayer.player !== player {
             view.playerLayer.player = player
         }
@@ -90,6 +94,28 @@ struct AVPlayerLayerView: UIViewRepresentable {
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRequireFailureOf other: UIGestureRecognizer
         ) -> Bool { false }
+    }
+
+    /// The view SwiftUI sizes. The picture inside it is a separate view, so
+    /// a zoom can transform the picture while SwiftUI keeps setting this
+    /// one's frame.
+    final class PlayerHostView: UIView {
+        let picture = PlayerLayerBackedView()
+        var playerLayer: AVPlayerLayer { picture.playerLayer }
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            picture.isUserInteractionEnabled = false
+            addSubview(picture)
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            picture.bounds = CGRect(origin: .zero, size: bounds.size)
+            picture.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        }
     }
 
     /// Backing the view with `AVPlayerLayer` itself, rather than adding

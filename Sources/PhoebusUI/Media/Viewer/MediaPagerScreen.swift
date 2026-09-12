@@ -24,6 +24,7 @@ public enum MediaPagerItem: Identifiable, Equatable {
 
 public struct MediaPagerScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
+    @Setting(PictureInPictureSettings.self) private var pictureInPictureSettings
     let items: [MediaPagerItem]
     let startIndex: Int
     /// Post context for the vote chrome: Apollo's media viewer has
@@ -36,6 +37,11 @@ public struct MediaPagerScreen: View {
 
     @State private var selection: Int
     @Environment(\.dismiss) private var dismiss
+
+    @ObservedObject private var voteStore = VoteStateStore.shared
+    private var voteState: Bool? { votePost.flatMap { voteStore.vote(for: $0.name, serverValue: $0.likes) } }
+    private var displayScore: Int { votePost.map { $0.score + voteStore.scoreDelta(for: $0.name) } ?? 0 }
+    @State private var voteError: String?
     @State private var saveToast: String?
 
     /// Only the images of this album; "Save All" saves images, and a
@@ -93,6 +99,10 @@ public struct MediaPagerScreen: View {
     @State private var viewerPlayers: [AVPlayer] = []
     @State private var silencedInline: [AVPlayer] = []
     @State private var playbackSpeed: Float = 1
+    /// Reborn's "Swipe Up for Comments" pane over the still-live media.
+    @State private var commentsPost: RedditPost?
+    @Environment(\.apolloTheme) private var apolloTheme
+
     public init(items: [MediaPagerItem], startIndex: Int = 0, votePost: RedditPost? = nil, repository: RedditRepository? = nil, onJumpToComments: (() -> Void)? = nil) {
         self.items = items
         self.startIndex = startIndex
@@ -195,6 +205,20 @@ public struct MediaPagerScreen: View {
                     }
                     .accessibilityIdentifier("mediaPager.close")
                     Spacer()
+                    // Reborn's fullscreen "enter PiP" (#528): sends the
+                    // video to the floating card and closes the viewer.
+                    if showsPiPEntry, let currentPlayer, let url = currentURL {
+                        Button {
+                            enterFloatingPiP(player: currentPlayer, url: url)
+                        } label: {
+                            Image(systemName: "pip.enter")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Picture in Picture")
+                        .accessibilityIdentifier("mediaPager.pictureInPicture")
+                    }
                     if items.count > 1 {
                         albumCounter
                     }
@@ -214,9 +238,44 @@ public struct MediaPagerScreen: View {
                         .background(Capsule().fill(.black.opacity(0.6)))
                         .accessibilityIdentifier("mediaPager.saveToast")
                 }
+                if let voteError {
+                    Text(voteError)
+                        .font(.footnote)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(Capsule().fill(.black.opacity(0.6)))
+                }
+
                 // Upvote, score, downvote; comments and their count;
                 // share; more. Centred 54.5pt above the screen's bottom.
                 HStack(spacing: 0) {
+                    if votePost != nil {
+                        Button {
+                            Task { await vote(direction: voteState == true ? 0 : 1) }
+                        } label: {
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 21))
+                                .foregroundStyle(voteState == true ? .orange : .white)
+                                .frame(width: 32, height: 44)
+                            .accessibilityLabel("Upvote")
+                        }
+                        .accessibilityIdentifier("mediaPager.upvote")
+                        Text(displayScore.apolloAbbreviated)
+                            .font(.system(size: 17))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .accessibilityIdentifier("mediaPager.score")
+                        Button {
+                            Task { await vote(direction: voteState == false ? 0 : -1) }
+                        } label: {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 21))
+                                .foregroundStyle(voteState == false ? .blue : .white)
+                                .frame(width: 32, height: 44)
+                            .accessibilityLabel("Downvote")
+                        }
+                        .accessibilityIdentifier("mediaPager.downvote")
+                    }
                     Spacer(minLength: 0)
                     // Always shown, as Apollo's; it opens the thread when
                     // the viewer came from one.
@@ -325,6 +384,12 @@ public struct MediaPagerScreen: View {
             }
         }
         .statusBarHiddenIfAvailable()
+        .sheet(item: $commentsPost) { post in commentsSheet(for: post) }
+        // "Swipe Up for Comments": an upward drag anywhere on the
+        // pager dismisses and jumps to comments. Simultaneous, not
+        // exclusive, since a plain `.gesture` never fires over a
+        // video: the `TabView`'s own scroll view claims the drag first.
+        .simultaneousGesture(verticalDragGesture)
     }
 
     /// Apollo's album position, "1 / 2", at the top right: its right edge
@@ -337,6 +402,28 @@ public struct MediaPagerScreen: View {
             .padding(.bottom, 4.8)
             .accessibilityLabel("\(selection + 1) of \(items.count)")
             .accessibilityIdentifier("mediaPager.counter")
+    }
+
+    /// One vertical drag handler for both directions: up is "Swipe Up
+    /// for Comments", down dismisses the viewer. Shared rather than
+    /// two `DragGesture`s, which would compete for the same touch.
+    private var verticalDragGesture: some Gesture {
+        DragGesture(minimumDistance: 40)
+            .onEnded { value in
+                handleVerticalSwipe(verticalDistance: value.translation.height,
+                                    horizontalDistance: abs(value.translation.width))
+            }
+    }
+
+    @ViewBuilder
+    private func commentsSheet(for post: RedditPost) -> some View {
+        if let repository {
+            NavigationStack {
+                CommentTreeScreen(subreddit: post.subreddit, postID: post.id, repository: repository)
+            }
+            .presentationBackgroundIfThemed(apolloTheme.color(.background))
+            .presentationDetentsIfAvailable()
+        }
     }
 
     /// The swipe decision, shared by the SwiftUI gesture (images) and
@@ -355,12 +442,75 @@ public struct MediaPagerScreen: View {
         if verticalDistance > 0 {
             // Down: leave the viewer, the standard fullscreen dismissal.
             dismiss()
+        } else {
+            // Comments as a sheet over the viewer, which stays open (Reborn); without
+            // a post, the caller's own jump.
+            guard generalSettings.swipeUpForComments else { return }
+            if let votePost, repository != nil {
+                commentsPost = votePost
+            } else if let onJumpToComments {
+                dismiss()
+                onJumpToComments()
+            }
         }
     }
+
+    /// Only with in-app PiP on, on a video page, and only while that video
+    /// can't be autoplaying inline: autoplay off, a spoiler/NSFW post, or a
+    /// viewer opened from a link with no post behind it.
+    private var showsPiPEntry: Bool {
+        guard case .video = items[safe: selection] else { return false }
+        return PictureInPicturePolicy.showsFullscreenEntry(
+            inAppEnabled: pictureInPictureSettings.inAppEnabled,
+            autoplaysInline: VideoAutoplayPolicy.shouldAutoplay(mode: generalSettings.autoplayMode),
+            isSpoilerOrNSFW: votePost.map { $0.spoiler || $0.over18 } ?? false,
+            isURLOpened: votePost == nil)
+    }
+
+    /// Closes the viewer and plays its video on in the card, from the same
+    /// moment and with the same sound state.
+    ///
+    /// The card gets a player of its own on the same asset: handing over the
+    /// viewer's shared per-URL player leaves the card and the post's own video
+    /// black once the viewer closes.
+    private func enterFloatingPiP(player: AVPlayer, url: URL) {
+        guard let item = player.currentItem else { return }
+        let wasPlaying = player.timeControlStatus != .paused
+        let size = item.presentationSize
+        let aspect = size.width > 0 && size.height > 0 ? size.width / size.height : 16.0 / 9.0
+        let isSilent = FloatingPiPController.isKnownSilent(player)
+        let cardItem = AVPlayerItem(asset: item.asset)
+        cardItem.videoComposition = item.videoComposition
+        let cardPlayer = AVPlayer(playerItem: cardItem)
+        cardPlayer.isMuted = player.isMuted
+        cardPlayer.seek(to: player.currentTime(), toleranceBefore: .zero, toleranceAfter: .zero)
+        player.pause()
+        dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            FloatingPiPController.shared.show(player: cardPlayer, owner: url.absoluteString, aspectRatio: aspect,
+                                              isGIF: isSilent, fromFullscreen: true)
+            if wasPlaying { cardPlayer.play() }
+        }
+    }
+
     private var currentURL: URL? {
         switch items[safe: selection] {
         case .image(let url), .video(let url), .gif(let url): return url
         case nil: return nil
+        }
+    }
+
+    private func vote(direction: Int) async {
+        guard let votePost, let repository else { return }
+        if votePost.created.timeIntervalSinceNow < -60 * 60 * 24 * 182 {
+            voteError = "Posts older than 6 months are archived"
+            return
+        }
+        if !(await ContentActions.vote(votePost, direction: direction, repository: repository,
+                                       presentsSignIn: false)) {
+            voteError = direction == -1
+                ? "You need to be signed to downvote the post."
+                : "You need to be signed to upvote the post."
         }
     }
 }
@@ -429,6 +579,8 @@ private struct MediaPagerPageView: View {
             // `floatsControlPanel` overlays the panel rather than
             // stacking it in a `VStack` below the video.
             MutedVideoPlayerView(url: url, unmuteContext: .fullscreen, enablesHoldForSpeed: true, showsControlPanel: true, fillsContainer: true, floatsControlPanel: true, isCurrentPage: isCurrentPage, controlsVisible: controlsVisible, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe, onPlayerReady: onPlayerReady)
+                // Pinches like an image page.
+                .zoomable()
                 .ignoresSafeArea()
         case .gif(let url):
             FullscreenGIFPage(url: url, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe)

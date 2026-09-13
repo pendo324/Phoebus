@@ -384,6 +384,23 @@ public actor RedditRepository {
         ])
         return try await client.put(path: "/api/multi\(path)", parameters: ["model": model])
     }
+
+    /// Adds a single subreddit to a multireddit directly via Reddit's
+    /// dedicated per-subreddit endpoint (`PUT
+    /// /api/multi/<multipath>/r/<srname>`), rather than rewriting the
+    /// whole subreddit list via `updateMultireddit`.
+    @discardableResult
+    public func addSubredditToMultireddit(multiPath: String, subreddit: String) async throws -> Data {
+        try await client.put(path: "/api/multi\(multiPath)/r/\(subreddit)", parameters: [
+            "model": try Self.multiModel(["name": subreddit]),
+        ])
+    }
+
+    /// Endpoint counterpart to `addSubredditToMultireddit` above
+    /// (`DELETE /api/multi/<multipath>/r/<srname>`).
+    public func removeSubredditFromMultireddit(multiPath: String, subreddit: String) async throws {
+        try await client.delete(path: "/api/multi\(multiPath)/r/\(subreddit)")
+    }
     /// The signed-in user's Reddit friends list. `/prefs/friends` is
     /// the correct endpoint (`/api/v1/me/friends` returns HTML), but
     /// returns per-category `UserList` listings; this flattens them.
@@ -429,6 +446,17 @@ public actor RedditRepository {
             throw error
         }
     }
+
+    /// Creates a new native poll post. Requires the web/cookie-session
+    /// transport, same constraint as voting.
+    @discardableResult
+    public func submitPoll(subreddit: String, title: String, options: [String], durationDays: Int, flairID: String? = nil, flairText: String? = nil) async throws -> URL {
+        guard let session = await webFeatureSession() else {
+            throw PollComposeService.ComposeError.requiresWebSession
+        }
+        return try await PollComposeService.submit(subreddit: subreddit, title: title, options: options, durationDays: durationDays, flairID: flairID, flairText: flairText, session: session)
+    }
+
     /// Under a cookie-authed web session `/api/v1/me` is rewritten to
     /// `www.reddit.com` and answers `{}` (it is OAuth-only), while
     /// `/api/me.json` honors cookie auth and returns the full t2 blob
@@ -454,6 +482,12 @@ public actor RedditRepository {
         let data = try await client.get(path: "/r/\(name)/about")
         let thing = try JSONDecoder.reddit.decode(RedditThing<RedditSubreddit>.self, from: data)
         return thing.data
+    }
+
+    public func fetchSubredditRules(name: String) async throws -> [SubredditRule] {
+        let data = try await client.get(path: "/r/\(name)/about/rules")
+        let response = try JSONDecoder().decode(SubredditRulesResponse.self, from: data)
+        return response.rules
     }
 
     /// Submits a new post that crossposts an existing one into a
@@ -586,6 +620,31 @@ public actor RedditRepository {
     public func fetchUserDownvoted(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {
         try await client.getListing(path: "/user/\(username)/downvoted", after: after, limit: limit)
     }
+
+    /// Two distinct endpoints: `api/v1/me/trophies` for the signed-in
+    /// user's own trophies, `api/v1/user/<name>/trophies` for anyone
+    /// else. `/api/v1/me/*` doesn't work under the cookie/web-session
+    /// transport (same constraint `fetchIdentity()` above documents
+    /// and works around). Since `/api/v1/user/<name>/trophies` works
+    /// for any username including your own, the OAuth-only `/me/`
+    /// form is used only when actually running OAuth transport.
+    public func fetchTrophies(username: String, isOwnProfile: Bool = false) async throws -> [RedditTrophy] {
+        let usingWebSession = await client.isUsingWebSession
+        let useOwnProfileEndpoint = isOwnProfile && !usingWebSession
+        let path = useOwnProfileEndpoint ? "/api/v1/me/trophies" : "/api/v1/user/\(username)/trophies"
+        let data: Data
+        do {
+            data = try await client.get(path: path)
+        } catch {
+            // The web session is refused the v1 endpoint (403); Reddit's
+            // older `/user/<name>/trophies` answers the same shape.
+            guard usingWebSession else { throw error }
+            data = try await client.get(path: "/user/\(username)/trophies")
+        }
+        let response = try JSONDecoder().decode(TrophyListResponse.self, from: data)
+        return response.data.trophies.map(\.data)
+    }
+
     /// Many users' names and pictures in one request, keyed by `t2_` id
     /// (`/api/user_data_by_account_ids`, what Apollo itself asks for every
     /// comment author). Up to 100 ids.
@@ -609,6 +668,146 @@ public actor RedditRepository {
         let data = try await client.get(path: "/user/\(username)/about")
         let thing = try JSONDecoder.reddit.decode(RedditThing<RedditUser>.self, from: data)
         return thing.data
+    }
+
+    /// Fetches the list of available link flairs for a subreddit
+    /// before posting.
+    public func fetchFlairOptions(subreddit: String) async throws -> [RedditFlairOption] {
+        let data = try await client.post(path: "/r/\(subreddit)/api/flairselector", parameters: ["is_newlink": "true"])
+        let response = try JSONDecoder.reddit.decode(FlairSelectorResponse.self, from: data)
+        return response.choices
+    }
+
+    /// Flair options for an existing post (`is_newlink=false`) -
+    /// changing or removing a post's flair after submission, rather
+    /// than only at compose time.
+    public func fetchFlairOptions(forLink fullname: String, subreddit: String) async throws -> [RedditFlairOption] {
+        let data = try await client.post(path: "/r/\(subreddit)/api/flairselector", parameters: ["link": fullname])
+        let response = try JSONDecoder.reddit.decode(FlairSelectorResponse.self, from: data)
+        return response.choices
+    }
+
+    /// Flair options for a user in a subreddit - backs the "Set User
+    /// Flair" row.
+    public func fetchUserFlairOptions(subreddit: String, username: String) async throws -> [RedditFlairOption] {
+        let data = try await client.post(path: "/r/\(subreddit)/api/flairselector", parameters: ["name": username])
+        let response = try JSONDecoder.reddit.decode(FlairSelectorResponse.self, from: data)
+        return response.choices
+    }
+
+    /// Sprite regions for a subreddit's old-reddit CSS-class flairs, from
+    /// its stylesheet (Reborn #1215). Empty when the stylesheet uses a
+    /// layout Reborn doesn't parse either.
+    public func fetchFlairSprites(subreddit: String) async throws -> [String: FlairSprites.Region] {
+        let data = try await client.get(path: "/r/\(subreddit)/about/stylesheet", parameters: ["raw_json": "1"])
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let body = root["data"] as? [String: Any],
+              let css = body["stylesheet"] as? String else { return [:] }
+        let images = FlairSprites.imageMap(body["images"] as? [[String: Any]] ?? [])
+        return FlairSprites.parse(css: css, images: images)
+    }
+
+    /// Applies (or, with a nil template, clears) flair on a post or a
+    /// user via `/api/selectflair`.
+    @discardableResult
+    public func selectFlair(subreddit: String, templateID: String?, linkFullname: String? = nil, username: String? = nil, text: String? = nil) async throws -> Data {
+        var params: [String: String] = ["api_type": "json"]
+        if let templateID { params["flair_template_id"] = templateID }
+        if let linkFullname { params["link"] = linkFullname }
+        if let username { params["name"] = username }
+        if let text { params["text"] = text }
+        return try await postChecked("/r/\(subreddit)/api/selectflair", params)
+    }
+
+    @discardableResult
+    public func submitPost(subreddit: String, title: String, selftext: String?, url: String?, flairID: String?) async throws -> Data {
+        var params: [String: String] = [
+            "sr": subreddit,
+            "title": title,
+            "kind": url != nil ? "link" : "self",
+            "api_type": "json",
+        ]
+        if let selftext { params["text"] = selftext }
+        if let url { params["url"] = url }
+        if let flairID { params["flair_id"] = flairID }
+        return try await postChecked("/api/submit", params)
+    }
+
+    /// Uploads image/video data through Reddit's own media pipeline and
+    /// submits it as an image post (Reborn's "Native Reddit media upload
+    /// support"): a lease-then-upload flow rather than a third-party host.
+    @discardableResult
+    public func submitImagePost(subreddit: String, title: String, fileData: Data, filename: String, mimeType: String, kind: RedditMediaKind, flairID: String?) async throws -> Data {
+        let lease = try await RedditMediaUploadClient.requestUploadLease(kind: kind, filename: filename, mimeType: mimeType, client: client)
+        try await RedditMediaUploadClient.upload(fileData: fileData, filename: filename, mimeType: mimeType, lease: lease)
+        var params: [String: String] = [
+            "sr": subreddit,
+            "title": title,
+            "kind": "image",
+            "url": lease.assetURL,
+            "api_type": "json",
+        ]
+        if let flairID { params["flair_id"] = flairID }
+        return try await postChecked("/api/submit", params)
+    }
+
+    /// Uploads a native Reddit video, plus a required poster/thumbnail
+    /// image, and submits a `kind=video` post. A video submit needs
+    /// `kind=video`, `url=<video asset URL>`, AND
+    /// `video_poster_url=<poster asset URL>` all three set, unlike an
+    /// image post which needs no separate poster.
+    @discardableResult
+    public func submitVideoPost(subreddit: String, title: String, videoData: Data, videoFilename: String, videoMimeType: String, posterData: Data, flairID: String?) async throws -> Data {
+        let videoLease = try await RedditMediaUploadClient.requestUploadLease(kind: .video, filename: videoFilename, mimeType: videoMimeType, client: client)
+        try await RedditMediaUploadClient.upload(fileData: videoData, filename: videoFilename, mimeType: videoMimeType, lease: videoLease)
+        let posterLease = try await RedditMediaUploadClient.requestUploadLease(kind: .image, filename: "poster.jpg", mimeType: "image/jpeg", client: client)
+        try await RedditMediaUploadClient.upload(fileData: posterData, filename: "poster.jpg", mimeType: "image/jpeg", lease: posterLease)
+        var params: [String: String] = [
+            "sr": subreddit,
+            "title": title,
+            "kind": "video",
+            "url": videoLease.assetURL,
+            "video_poster_url": posterLease.assetURL,
+            "api_type": "json",
+            "validate_on_submit": "false",
+        ]
+        if let flairID { params["flair_id"] = flairID }
+        return try await postChecked("/api/submit", params)
+    }
+
+    /// Uploads 2-20 images and submits them as a Reddit gallery post: a JSON
+    /// (not form-encoded) POST to `/api/submit_gallery_post.json` with an
+    /// `items` array of `{"media_id": <asset_id>, "caption": "",
+    /// "outbound_url": ""}`, where `media_id` is the lease response's
+    /// `asset_id` (NOT the S3 key or asset URL).
+    @discardableResult
+    public func submitGalleryPost(subreddit: String, title: String, images: [(data: Data, filename: String, mimeType: String)], flairID: String?) async throws -> Data {
+        var mediaIDs: [String] = []
+        for image in images {
+            let lease = try await RedditMediaUploadClient.requestUploadLease(kind: .image, filename: image.filename, mimeType: image.mimeType, client: client)
+            try await RedditMediaUploadClient.upload(fileData: image.data, filename: image.filename, mimeType: image.mimeType, lease: lease)
+            // A missing id must not silently drop the image (a gallery with fewer
+            // images than picked).
+            guard let mediaID = lease.assetID else { throw RedditMediaUploadClient.ClientError.invalidLeaseResponse }
+            mediaIDs.append(mediaID)
+        }
+        let items: [[String: String]] = mediaIDs.map { ["media_id": $0, "caption": "", "outbound_url": ""] }
+        var payload: [String: Any] = [
+            "api_type": "json",
+            "items": items,
+            "nsfw": false,
+            "resubmit": true,
+            "sendreplies": true,
+            "show_error_list": true,
+            "spoiler": false,
+            "sr": subreddit,
+            "title": title,
+            "validate_on_submit": false,
+        ]
+        if let flairID { payload["flair_id"] = flairID }
+        let data = try await client.postJSON(path: "/api/submit_gallery_post.json", body: payload)
+        try PostedCommentResponse.throwIfRejected(data)
+        return data
     }
 
     /// A write that reports refusals in-band. With `api_type=json` Reddit
@@ -690,6 +889,11 @@ struct ModmailConversationsResponse: Decodable {
     let conversations: [String: ModmailConversation]
     let conversationIds: [String]
 }
+
+struct SubredditRulesResponse: Decodable {
+    let rules: [SubredditRule]
+}
+
 /// Reddit's wiki page response shape: `{"kind": "wikipage", "data": {"content_md": ...}}`.
 struct WikiPageResponse: Decodable {
     let data: WikiPageData

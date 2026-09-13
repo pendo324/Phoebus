@@ -28,10 +28,12 @@ public struct FeedScreen: View {
     @State var downloadMessage: String?
     @State var downloadTitle = "Download Video"
     @State var showingUserFlair = false
+    @State var flairTargetPost: RedditPost?
     @State var signedInUsername: String?
     @State var showingTimeframeSheet = false
     /// A size just picked for this subreddit under Post Size Per Subreddit.
     @State var localPostSize: PostDisplayStyle?
+    @State var showingCompose = false
     @State var isModerator = false
     /// Whether this screen's one-time setup fetches have already run.
     /// Separate from `posts.isEmpty`: an empty subreddit must still
@@ -79,6 +81,8 @@ public struct FeedScreen: View {
     @State var showingSidebarSheet = false
     @State var showingModeratorsSheet = false
     @State var showingSubredditNotifications = false
+    /// Which composer the post-type icon row asked for.
+    @State var composeKind: ComposePostScreen.PostType = .text
     /// Expandable description band, collapsed to
     /// `SubredditLayoutSettings.aboutCollapsedLines` (3) until tapped. See
     /// `subredditLayoutHeader`.
@@ -446,6 +450,14 @@ public struct FeedScreen: View {
                 }
             }
         }
+        .sheet(isPresented: $showingCompose) {
+            NavigationStack {
+                ComposePostScreen(subreddit: subreddit, repository: repository, initialType: composeKind) {
+                    showingCompose = false
+                    Task { await load() }
+                }
+            }
+        }
         .sheet(item: $reportTarget) { target in
             ReportSheet(fullname: target.name, repository: repository) {
                 reportTarget = nil
@@ -464,6 +476,21 @@ public struct FeedScreen: View {
         } message: {
             Text(downloadMessage ?? "")
         }
+        .apolloFlairActionSheet(
+            isPresented: $flairTargetPost.isPresent(),
+            subreddit: flairTargetPost?.subreddit ?? subreddit,
+            repository: repository,
+            linkFullname: flairTargetPost?.name,
+            isModerator: isModerator,
+            onChanged: { Task { await load() } }
+        )
+        .apolloFlairActionSheet(
+            isPresented: $showingUserFlair,
+            subreddit: subreddit,
+            repository: repository,
+            username: signedInUsername ?? "",
+            isModerator: isModerator
+        )
         .task {
             // SwiftUI re-runs `.task` on reappear, not only on first
             // creation, so without a guard a swipe back would refetch

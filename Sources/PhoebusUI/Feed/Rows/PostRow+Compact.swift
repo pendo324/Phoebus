@@ -276,12 +276,52 @@ extension PostRow {
     /// The stats, with Reborn's info-row magnifier over them.
     var infoRowStats: some View {
         HStack(spacing: 10) { infoRowStatItems }
+            .coordinateSpace(name: InfoRowMagnifierProbe.space)
+            .onPreferenceChange(InfoRowStatFrames.self) { infoRowStatFrames = $0 }
+            .background(InfoRowMagnifierProbe(targets: infoRowStatFrames,
+                                               enabled: infoRowSettings.magnifierOnHold,
+                                               onActivate: activateInfoRowStat)
+                // Its press lives on the cell; the view itself must not
+                // take the stats' taps.
+                .allowsHitTesting(false))
             .alert(ageDetail?.title ?? "", isPresented: $ageDetail.isPresent()) {
                 Button("OK", role: .cancel) {}
             } message: {
                 if let message = ageDetail?.message { Text(message) }
             }
     }
+
+    /// What releasing the magnifier on a stat does; a stat whose Info Row
+    /// action is off does nothing, as Reborn's.
+    func activateInfoRowStat(_ stat: InfoRowStat) {
+        switch stat {
+        case .score: infoRowScoreTapped()
+        case .comments:
+            if infoRowSettings.tapToComments { onCommentsTap?() }
+        case .age: showAgeDetail()
+        case .translation:
+            if infoRowSettings.tapToTranslation { onTranslateTap?() }
+        }
+    }
+
+    /// Info Row Popup: the post's age as Reborn's alert; Overlay: as its
+    /// small card over the age, which fades after 1.6 s.
+    func showAgeDetail() {
+        if infoRowSettings.overlayMode {
+            let lines = InfoRowAgeDetail.lines(created: post.created, condensed: true)
+            let card = AgeDetail(title: lines.title, message: lines.message)
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) { ageOverlay = card }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.6))
+                guard ageOverlay?.id == card.id else { return }
+                withAnimation(.easeIn(duration: 0.35)) { ageOverlay = nil }
+            }
+        } else if infoRowSettings.popupMode {
+            let lines = InfoRowAgeDetail.lines(created: post.created)
+            ageDetail = AgeDetail(title: lines.title, message: lines.message)
+        }
+    }
+
     @ViewBuilder
     var infoRowStatItems: some View {
             // Info Row tap-to-upvote/magnify/popup-detail
@@ -295,7 +335,13 @@ extension PostRow {
                 StockIcon("posts-points")
                 Text(displayScore.apolloAbbreviated)
             }
+                .infoRowStat(.score)
                 .contentShape(Rectangle())
+                .highPriorityGesture(TapGesture().onEnded {
+                    guard !InfoRowHoldRecognizer.tapFollowsHold else { return }
+                    infoRowScoreTapped()
+                })
+                .onLongPressGesture(minimumDuration: 0.35, perform: infoRowScoreLongPressed)
             // "% Upvoted" removed from feed rows: it's a
             // post-detail element, not shown in list rows.
             // Info Row tap-to-comments jumps to comments via
@@ -333,9 +379,54 @@ extension PostRow {
                 }
             }
                 .contentShape(Rectangle())
+                .highPriorityGesture(
+                    TapGesture().onEnded {
+                        guard !InfoRowHoldRecognizer.tapFollowsHold,
+                              infoRowSettings.tapToComments, let onCommentsTap else { return }
+                        onCommentsTap()
+                    },
+                    including: infoRowSettings.tapToComments && onCommentsTap != nil ? .all : .subviews
+                )
                 .accessibilityIdentifier("feed.postRow.commentsLabel")
+                .infoRowStat(.comments)
             TimestampLabel(post.created, showsIcon: true)
+                .infoRowStat(.age)
+                // Info Row Overlay: the card sits just above the age.
+                .overlay(alignment: .top) {
+                    // A zero-height line at the age's top, the card resting on it.
+                    Color.clear.frame(height: 0).overlay(alignment: .bottom) {
+                        if let card = ageOverlay {
+                            InfoRowOverlayCard(title: card.title, message: card.message)
+                                .padding(.bottom, 8)
+                                .transition(.opacity.combined(with: .offset(y: 6)))
+                                .id(card.id)
+                        }
+                    }
+                }
+                .zIndex(1)
                 .contentShape(Rectangle())
+                // Info Row Popup/Overlay: tapping the age shows when it was posted.
+                .highPriorityGesture(TapGesture().onEnded {
+                    guard !InfoRowHoldRecognizer.tapFollowsHold else { return }
+                    showAgeDetail()
+                },
+                                     including: infoRowSettings.popupMode || infoRowSettings.overlayMode ? .all : .subviews)
+            // Info Row "Translation" marker: the 🌐 marker
+            // beside a post's stats. Tapping it translates the
+            // title/body via the translator sheet. Appears
+            // only when Translation settings enable it.
+            if infoRowSettings.tapToTranslation, InfoRowSettings.translationAvailable {
+                Button {
+                    guard !InfoRowHoldRecognizer.tapFollowsHold else { return }
+                    onTranslateTap?()
+                } label: {
+                    Text("🌐")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("feed.postRow.translateMarker")
+                .accessibilityLabel("Translate post")
+                .infoRowStat(.translation)
+            }
             // "Show Awards" toggle (Settings > Appearance > Other).
             if generalSettings.showAwards, let awards = post.totalAwardsReceived, awards > 0 {
                 Label("\(awards)", systemImage: "medal.fill")

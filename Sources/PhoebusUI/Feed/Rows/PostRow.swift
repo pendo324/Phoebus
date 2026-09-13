@@ -48,6 +48,9 @@ struct PostRow: View {
 
     var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
     var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }
+    /// The info row's stat frames, for the magnifier
+    /// (`InfoRowMagnifierProbe`).
+    @State var infoRowStatFrames: [InfoRowStat: CGRect] = [:]
     @State var ageDetail: AgeDetail?
     @State var ageOverlay: AgeDetail?
 
@@ -59,6 +62,12 @@ struct PostRow: View {
     /// Drives the fullscreen pager for a VIDEO post in the large feed
     /// row.
     @State var showingFullscreenMedia = false
+    /// Reborn Info Row Popup/Overlay detail-reveal
+    /// (`UDKeyInfoRowPopupMode`/`UDKeyInfoRowOverlayMode`): long-press
+    /// the score to reveal the same `VoteBreakdownView` post-detail
+    /// already uses, when either mode is enabled.
+    @State var showingInfoRowDetail = false
+
     init(post: RedditPost, repository: RedditRepository, displayStyle: PostDisplayStyle, isAggregateFeed: Bool = true, onSubredditTap: @escaping () -> Void, onAuthorTap: @escaping () -> Void, onCommentsTap: (() -> Void)? = nil, onTranslateTap: (() -> Void)? = nil, moreMenu: (() -> AnyView)? = nil) {
         self.post = post
         self.repository = repository
@@ -88,9 +97,32 @@ struct PostRow: View {
             StockIcon("inline-more-options")
         }
     }
+
+    /// Apollo-Reborn Info Row settings, loaded once per row render
+    /// matching `generalSettings`'s own pattern below.
+    @Setting(InfoRowSettings.self) var infoRowSettings
     @Setting(LinkPreviewSettings.self) var linkPreviewSettings
     @Setting(TagFilterSettings.self) var tagFilters
     @Setting(MatureMediaPreference.storage) var matureMediaPrefs
+
+    /// Real Info Row tap action for the score
+    /// (`UDKeyInfoRowTapUpvote`): tapping the score itself upvotes,
+    /// rather than only the dedicated up-arrow button.
+    func infoRowScoreTapped() {
+        guard infoRowSettings.tapToUpvote else { return }
+        Task { await vote(direction: voteState == true ? 0 : 1) }
+    }
+
+    /// Info Row popup/overlay detail-reveal: either mode shows
+    /// the post's vote breakdown on long-press; with both off, holding
+    /// the score does nothing extra beyond the tap action above.
+    func infoRowScoreLongPressed() {
+        // With the magnifier on, holding the row raises it instead.
+        guard !infoRowSettings.magnifierOnHold,
+              infoRowSettings.popupMode || infoRowSettings.overlayMode else { return }
+        showingInfoRowDetail = true
+    }
+
     /// Loaded once per row render rather than per thumbnail-position
     /// check, matching the settings snapshot the rest of the feed
     /// already reads once per load.

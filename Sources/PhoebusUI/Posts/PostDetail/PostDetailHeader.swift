@@ -51,6 +51,7 @@ struct PostDetailHeader: View {
     @ObservedObject private var voteStore = VoteStateStore.shared
     @Setting(GeneralSettings.self) private var general
     private var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
+    @Setting(InfoRowSettings.self) private var infoRow
     @State private var selfTextCollapsed = false
     @State private var isEditing = false
     @State private var editedText: String
@@ -284,11 +285,17 @@ struct PostDetailHeader: View {
                         StockIcon("posts-liked")
                         Text("\(Int((ratio * 100).rounded()))%")
                     }
+                    .modifier(InfoRowDetailTap(popup: infoRow.popupMode, overlay: infoRow.overlayMode, edge: .leading) { condensed in
+                        InfoRowPercentDetail.lines(score: displayScore, ratio: ratio, condensed: condensed)
+                    })
                 }
                 HStack(spacing: 5) {
                     StockIcon("posts-clock")
                     Text(ShareCardFormatting.compactAge(since: post.created))
                 }
+                .modifier(InfoRowDetailTap(popup: infoRow.popupMode, overlay: infoRow.overlayMode, edge: .leading) { condensed in
+                    InfoRowAgeDetail.lines(created: post.created, condensed: condensed)
+                })
                 Spacer(minLength: 0)
             }
             .apolloFont(size: 13)

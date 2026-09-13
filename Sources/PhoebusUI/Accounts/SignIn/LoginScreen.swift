@@ -16,6 +16,7 @@ public struct LoginScreen: View {
     @State private var errorMessage: String?
     @State private var contextProvider = AuthPresentationAnchor()
     @State private var showingSignInMethodChooser = false
+    @State private var showingWebSessionLogin = false
     public init(auth: RedditAuthClient, accountManager: AccountManager? = nil, onSuccess: @escaping () -> Void) {
         self.auth = auth
         self.accountManager = accountManager
@@ -65,7 +66,13 @@ public struct LoginScreen: View {
                         Task { await startLogin() }
                     }
                     .accessibilityIdentifier("login.signInWithAPIKey")
+                    Button("Sign In Without API Key (Experimental)") {
+                        showingWebSessionLogin = true
+                    }
+                    .accessibilityIdentifier("login.signInWithoutAPIKey")
                     Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Use Phoebus's configured API key, or sign in with API-Key-Free Mode. This choice will not change on its own.")
                 }
 
                 Button("Create Account") {
@@ -80,6 +87,23 @@ public struct LoginScreen: View {
             Spacer()
         }
         .padding()
+        .sheet(isPresented: $showingWebSessionLogin) {
+            NavigationStack {
+                WebSessionLoginScreen(
+                    onSuccess: { credential in
+                        Task {
+                            await auth.setWebSession(credential)
+                            // Persist as a real account, otherwise the
+                            // session dies with this throwaway client.
+                            accountManager?.addWebSessionAccount(credential)
+                            showingWebSessionLogin = false
+                            onSuccess()
+                        }
+                    },
+                    onCancel: { showingWebSessionLogin = false }
+                )
+            }
+        }
     }
 
     private func startLogin() async {

@@ -22,6 +22,8 @@ struct PhoebusApp: App {
         // Applies user-configured Custom API settings before anything
         // else touches RedditOAuthConfig/RedditAPIClient.
         CustomAPISettingsStore.applyPersisted()
+        // Reddit Chat's token comes from a real browser load.
+        ChatTokenWebMinter.install()
     }
 
     var body: some Scene {

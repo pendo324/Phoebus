@@ -86,6 +86,7 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
         guard let navigationController, Self.active == nil,
               navigationController.transitionCoordinator == nil,
               NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled,
+              !SwipeGestureArbiter.rowSwipeActive,
               !InfoRowHoldRecognizer.isHolding else { return false }
         return back ? navigationController.viewControllers.count > 1 : ForwardNavigationStore.shared.canGoForward
     }

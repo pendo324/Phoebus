@@ -332,6 +332,50 @@ PureBlackSettingsStore.save(.default)
 check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
 
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+// MARK: - Row-swipe / navigation mutual exclusivity
+//
+// `navigationClaimsTouch` is the single arbiter between navigation and row
+// swipes, and it is directional: only touches navigation takes are withheld
+// from the row.
+
+let screen = 393.0
+
+check("navigation claims a rightward drag from the leading edge",
+      PushPopGesturePolicy.navigationClaimsTouch(startX: 20, velocityX: 400, velocityY: 30, viewWidth: screen))
+check("navigation claims a leftward drag from the trailing edge",
+      PushPopGesturePolicy.navigationClaimsTouch(startX: 380, velocityX: -400, velocityY: 30, viewWidth: screen))
+
+// A leftward drag inside the wide 70pt back inset is not a back swipe, so
+// the row keeps it.
+check("a LEFTWARD drag in the leading inset is left to the row",
+      !PushPopGesturePolicy.navigationClaimsTouch(startX: 20, velocityX: -400, velocityY: 30, viewWidth: screen))
+check("a RIGHTWARD drag in the trailing inset is left to the row",
+      !PushPopGesturePolicy.navigationClaimsTouch(startX: 380, velocityX: 400, velocityY: 30, viewWidth: screen))
+check("a mid-row drag is always left to the row",
+      !PushPopGesturePolicy.navigationClaimsTouch(startX: 200, velocityX: -400, velocityY: 30, viewWidth: screen))
+check("a vertical drag at the edge is left to the row (and the scroll view)",
+      !PushPopGesturePolicy.navigationClaimsTouch(startX: 20, velocityX: 40, velocityY: 800, viewWidth: screen))
+check("a lazy diagonal at the edge is not claimed by navigation",
+      !PushPopGesturePolicy.navigationClaimsTouch(startX: 20, velocityX: 120, velocityY: 100, viewWidth: screen))
+
+// Navigation and the row never both claim one touch, in either edge zone
+// or either direction.
+for startX in [5.0, 20.0, 69.0, 200.0, 353.0, 380.0, 392.0] {
+    for vx in [-600.0, -200.0, 200.0, 600.0] {
+        let claimed = PushPopGesturePolicy.navigationClaimsTouch(
+            startX: startX, velocityX: vx, velocityY: 20, viewWidth: screen)
+        let back = PushPopGesturePolicy.shouldBeginBack(velocityX: vx, velocityY: 20, locationX: startX)
+        let forward = PushPopGesturePolicy.shouldBeginForward(
+            velocityX: vx, velocityY: 20, locationX: startX, viewWidth: screen)
+        check("claim at x=\(Int(startX)) vx=\(Int(vx)) matches exactly one navigation gesture",
+              claimed == (back || forward))
+        check("back and forward never both claim x=\(Int(startX)) vx=\(Int(vx))",
+              !(back && forward))
+    }
+}
+
+check("the real insets stay asymmetric (back is the wider, common gesture)",
+      PushPopGesturePolicy.leftInset == 70 && PushPopGesturePolicy.rightInset == 40)
 // MARK: - Modmail conversation detail
 
 // Response envelope: `conversation`, `messages`, `modActions`. Messages

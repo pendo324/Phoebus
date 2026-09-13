@@ -543,6 +543,55 @@ check("a message missing from objIds is still shown, not silently dropped",
 // a web-session user is not told to retry something that cannot succeed.
 check("the OAuth-only modmail error explains the sign-in method, not a transient failure",
       RedditRepository.ModmailRequiresOAuthError().errorDescription?.contains("API-key sign-in") == true)
+
+/// Builds a JWT with a given expiry, for token-freshness checks.
+func makeChatJWT(expiringIn seconds: TimeInterval) -> String {
+    let payload = ["exp": Date().addingTimeInterval(seconds).timeIntervalSince1970]
+    let data = try! JSONSerialization.data(withJSONObject: payload)
+    let b64 = data.base64EncodedString()
+        .replacingOccurrences(of: "+", with: "-")
+        .replacingOccurrences(of: "/", with: "_")
+        .replacingOccurrences(of: "=", with: "")
+    return "header.\(b64).signature"
+}
+// MARK: - Message edits and deletions
+
+// An edit is a separate event relating to the original via m.replace and
+// carrying m.new_content; a redacted message keeps its event but loses its
+// content and gains unsigned.redacted_because.
+let chatEditFixture = """
+{"chunk":[
+ {"type":"m.room.message","event_id":"$orig","sender":"@a:reddit.com","origin_server_ts":1000,
+  "content":{"body":"original text","msgtype":"m.text"}},
+ {"type":"m.room.message","event_id":"$edit","sender":"@a:reddit.com","origin_server_ts":2000,
+  "content":{"body":"* corrected text","msgtype":"m.text",
+             "m.new_content":{"body":"corrected text","msgtype":"m.text"},
+             "m.relates_to":{"rel_type":"m.replace","event_id":"$orig"}}},
+ {"type":"m.room.message","event_id":"$gone","sender":"@a:reddit.com","origin_server_ts":3000,
+  "content":{},"unsigned":{"redacted_because":{"type":"m.room.redaction"}}},
+ {"type":"m.room.message","event_id":"$keep","sender":"@a:reddit.com","origin_server_ts":4000,
+  "content":{"body":"untouched","msgtype":"m.text"}}
+]}
+"""
+let chatEdited = RedditChatClient.parseMessages(Data(chatEditFixture.utf8))
+
+// The edit folds into the original rather than rendering the stale
+// original plus a stray "* corrected text" line.
+check("an edit replaces the original's body in place",
+      chatEdited.first { $0.id == "$orig" }?.body == "corrected text")
+check("...and is marked as edited",
+      chatEdited.first { $0.id == "$orig" }?.isEdited == true)
+check("the edit event does NOT render as its own message",
+      !chatEdited.contains { $0.id == "$edit" })
+check("an unedited message is not marked edited",
+      chatEdited.first { $0.id == "$keep" }?.isEdited == false)
+
+// A deleted message is dropped entirely; an empty bubble is worse than
+// nothing.
+check("a redacted message is dropped rather than shown empty",
+      !chatEdited.contains { $0.id == "$gone" })
+check("surviving messages are unaffected",
+      chatEdited.map(\.id) == ["$orig", "$keep"])
 // MARK: - Native modmail over a web session
 //
 // These decode captured Reddit responses in Tests/Fixtures/ rather than

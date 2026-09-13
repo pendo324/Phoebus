@@ -51,6 +51,17 @@ public struct MediaPagerScreen: View {
     }
 
     @State private var askingGIFFormat: URL?
+    #if canImport(CoreMotion) && canImport(UIKit)
+    @StateObject private var rotationOffer = RotationOffer()
+    #endif
+
+    private var rotationKind: String {
+        switch items[safe: selection] {
+        case .video: return "Video"
+        case .gif: return "GIF"
+        default: return "Image"
+        }
+    }
     /// Follows "Download GIFs as…"; Ask Each Time asks first.
     private func saveGIF(_ url: URL, format: GIFSaveFormat? = nil) async {
         let settings = generalSettings
@@ -126,6 +137,13 @@ public struct MediaPagerScreen: View {
     @ViewBuilder private var crashTrackedBody: some View {
         ZStack {
             Color.black.ignoresSafeArea()
+            #if canImport(CoreMotion) && canImport(UIKit)
+            RotationOfferButton(offer: rotationOffer, kind: rotationKind)
+                .zIndex(10)
+                .onAppear { rotationOffer.start() }
+                .onDisappear { rotationOffer.stop() }
+            #endif
+
             TabView(selection: $selection) {
                 // Keyed by index, not the item's URL-derived id: a
                 // gallery may legitimately contain the same image
@@ -150,6 +168,11 @@ public struct MediaPagerScreen: View {
             #if canImport(UIKit)
             // No page dots: the album position is the "N / M" counter.
             .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
+            #if canImport(CoreMotion) && canImport(UIKit)
+            // Portrait Lock Buddy: the media turned to the phone's hold.
+            .rotatedForHold(rotationOffer.applied)
+            .ignoresSafeArea(edges: rotationOffer.applied == .portrait ? [] : .all)
             #endif
             // A page left behind stops, unless another view (the post's
             // own video) still shows the same player.
@@ -383,6 +406,9 @@ public struct MediaPagerScreen: View {
             .transition(.opacity)
             }
         }
+        // "Smart Rotation Lock": this fullscreen media viewer suspends
+        // Portrait Lock while open.
+        .allowsRotationWhileViewingMedia()
         .statusBarHiddenIfAvailable()
         .sheet(item: $commentsPost) { post in commentsSheet(for: post) }
         // "Swipe Up for Comments": an upward drag anywhere on the

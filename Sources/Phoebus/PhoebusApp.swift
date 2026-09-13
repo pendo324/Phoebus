@@ -4,6 +4,11 @@ import PhoebusUI
 
 @main
 struct PhoebusApp: App {
+    // `AccountManager` owns the account list and rebuilds
+    // `authClient`/`repository` whenever the active account changes.
+    /// Enforces "Portrait Lock" / "Smart Rotation Lock": SwiftUI has
+    /// no orientation hook, so UIKit must be asked via the app delegate.
+    @UIApplicationDelegateAdaptor(ApolloAppDelegate.self) private var appDelegate
     @StateObject private var accountManager = AccountManager()
     @State private var isSignedIn = false
     /// Live copy of the selected theme so a change re-renders the app.
@@ -21,6 +26,10 @@ struct PhoebusApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // Security setting enforcement; see `AppLockGate`. Wraps
+            // everything so the lock covers feed, comments, settings
+            // and the account switcher alike.
+            AppLockGate {
             Group {
                 if !checkedPersistedLogin {
                     ProgressView()
@@ -89,6 +98,7 @@ struct PhoebusApp: App {
             // SwiftUI's `dynamicTypeSize`. When on (default), no
             // modifier is applied, so the OS's own setting governs.
             .apolloTextSizeOverride()
+            }
         }
     }
 }

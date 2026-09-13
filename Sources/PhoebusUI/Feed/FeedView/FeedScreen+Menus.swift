@@ -3,6 +3,108 @@ import PhoebusCore
 
 /// The feed's menus: the post hold/••• menu, sort and timeframe sheets, and the subreddit, multireddit and overflow rows.
 extension FeedScreen {
+    /// Extracted from the row's inline `.contextMenu` so the row's body
+    /// stays within the type-checker's budget.
+    /// A post's hold menu in the feed. Entries are listed in the app's
+    /// order and arranged by the user's Action Menus layout (Reborn
+    /// #1131, context `post`); moderator rows follow the `moderator-post`
+    /// layout.
+    @ViewBuilder
+    func postContextMenu(for post: RedditPost) -> some View {
+        ForEach(ActionMenuLayoutStore.arrange(feedPostMenuIDs(for: post), for: .post), id: \.self) { id in
+            feedPostMenuRow(id, post: post)
+        }
+        Divider()
+        feedPostMenuRow("report", post: post)
+    }
+
+    func feedPostMenuIDs(for post: RedditPost) -> [String] {
+        var ids = ["save", "hide", "share", "copy-link"]
+        ids += ["crosspost", "mute-notifications", "filter-subreddit"]
+        if isModerator || post.author == signedInUsername { ids.append("post-flair") }
+        ids += ["media-download", "subscribe-actions"]
+        return ids
+    }
+
+    @ViewBuilder
+    func feedPostMenuRow(_ id: String, post: RedditPost) -> some View {
+        switch id {
+        case "save":
+            Button { Task { await handleSwipeAction(.save, on: post) } } label: {
+                Label("Save", systemImage: "bookmark")
+            }
+        case "hide":
+            Button { Task { await handleSwipeAction(.hide, on: post) } } label: {
+                Label("Hide", systemImage: "eye.slash")
+            }
+        case "share":
+            ShareLink(item: post.shareText()) { Label("Share", systemImage: "square.and.arrow.up") }
+        case "copy-link":
+            // Apollo's copy-URL activity (Reborn #967): ShareLink cannot register
+            // custom activities, so it is its own row.
+            Button { PasteboardHelper.copy(url: post.shareURL()) } label: { Label("Copy Link", systemImage: "link") }
+        case "mute-notifications":
+            Button {
+                MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))
+            } label: {
+                Label(MutedThreadsStore.isMuted(post.name) ? "Unmute Notifications" : "Mute Notifications",
+                      systemImage: MutedThreadsStore.isMuted(post.name) ? "bell" : "bell.slash")
+            }
+        case "filter-subreddit":
+            Button {
+                var filters = ContentFilterStore.load()
+                filters.append(ContentFilter(kind: .subreddit, value: post.subreddit))
+                ContentFilterStore.save(filters)
+                posts.removeAll { $0.subreddit.caseInsensitiveCompare(post.subreddit) == .orderedSame }
+            } label: {
+                Label("Filter Subreddit", systemImage: "line.3.horizontal.decrease.circle")
+            }
+        case "post-flair":
+            // Apollo's flair action: change a post's flair after posting.
+            Button { flairTargetPost = post } label: { Label("Set Flair", systemImage: "tag") }
+        case "subscribe-actions":
+            Divider()
+            Button {
+                Task {
+                    try? await repository.subscribe(subredditName: post.subreddit, subscribe: true)
+                    // Keeps `SubscribedSubredditsCache` (`excludeSubscribedFromAllPopular`)
+                    // from filtering r/all and r/popular with a stale membership set.
+                    await SubscribedSubredditsCache.shared.invalidate()
+                }
+            } label: {
+                Label("Subscribe to r/\(post.subreddit)", systemImage: "plus.circle")
+            }
+            Button {
+                Task {
+                    try? await repository.subscribe(subredditName: post.subreddit, subscribe: false)
+                    await SubscribedSubredditsCache.shared.invalidate()
+                }
+            } label: {
+                Label("Unsubscribe from r/\(post.subreddit)", systemImage: "minus.circle")
+            }
+            Button {
+                Task { try? await repository.followUser(username: post.author) }
+            } label: {
+                Label("Follow u/\(post.author)", systemImage: "person.crop.circle.badge.plus")
+            }
+            Button {
+                Task { try? await repository.blockUser(username: post.author) }
+            } label: {
+                Label("Block u/\(post.author)", systemImage: "person.crop.circle.badge.xmark")
+            }
+            // Reborn addition: copy the author's username.
+            Button {
+                PasteboardHelper.copy(post.author)
+            } label: {
+                Label("Copy Username", systemImage: "doc.on.doc")
+            }
+        case "report":
+            Button(role: .destructive) { reportTarget = post } label: { Label("Report", systemImage: "flag") }
+        default:
+            EmptyView()
+        }
+    }
+
     var availableSorts: [String] {
         (subreddit.isEmpty && multiredditPath == nil) ? Self.sorts : Self.subredditSorts
     }
@@ -13,6 +115,7 @@ extension FeedScreen {
         availableSorts.map { s in
             ApolloActionSheetRow(
                 s.capitalized,
+                icon: Self.iconName(forSort: s),
                 trailing: s == sort ? .checkmark : (s == "top" || s == "controversial" ? .chevron : .none),
                 // The chevron's follow-up sheet, expressed as a nested menu for the
                 // compact path, as Reborn does.
@@ -109,6 +212,11 @@ extension FeedScreen {
                 filters.append(ContentFilter(kind: .subreddit, value: subreddit))
                 ContentFilterStore.save(filters)
             })
+            // The repository already has the endpoint
+            // (`addSubredditToMultireddit`, `PUT /api/multi/<path>/r/<name>`).
+            rows.append(ApolloActionSheetRow("Add to Multireddit", icon: "m.circle", accessibilityIdentifier: "feed.overflow.addToMultireddit") {
+                showingAddToMultireddit = true
+            })
         }
 
         rows.append(ApolloActionSheetRow(effectivePostDisplayStyle == .compact ? "Large Thumbnails" : "Compact Posts",
@@ -133,6 +241,12 @@ extension FeedScreen {
                 showingModeratorsSheet = true
             })
         }
+
+        // Share sits second-to-last, not first.
+        rows.append(ApolloActionSheetRow("Share", icon: "square.and.arrow.up", accessibilityIdentifier: "feed.overflow.share") {
+            sharingFeedURL = feedShareURL
+        })
+
         if !subreddit.isEmpty {
             // Apollo's per-subreddit post notifications (Reddit's
             // `/api/subreddit_notifications`).
@@ -151,6 +265,88 @@ extension FeedScreen {
         }
         return rows
     }
+
+    /// A multireddit feed's own "•••" rows, kept separate from
+    /// `subredditActionRows` because the two menus differ.
+    var multiredditActionRows: [ApolloActionSheetRow] {
+        var rows: [ApolloActionSheetRow] = []
+        rows.append(ApolloActionSheetRow("Gallery View", icon: "square.grid.2x2", accessibilityIdentifier: "feed.overflow.galleryView") {
+            showingGallerySheet = true
+        })
+        if let multiredditPath {
+            rows.append(ApolloActionSheetRow("Edit Multireddit", icon: "m.circle", startsSection: true, accessibilityIdentifier: "feed.overflow.editMultireddit") {
+                editingMultireddit = EditingMultireddit(path: multiredditPath)
+            })
+        }
+        rows.append(ApolloActionSheetRow(effectivePostDisplayStyle == .compact ? "Large Thumbnails" : "Compact Posts",
+                                         icon: "rectangle.grid.1x2",
+                                         accessibilityIdentifier: "feed.overflow.compactToggle") {
+            let newStyle: PostDisplayStyle = effectivePostDisplayStyle == .compact ? .large : .compact
+            // Post Size Per Subreddit: only this subreddit changes.
+            if PostSizeMemoryStore.recordSizeChange(subreddit: subreddit, style: newStyle) {
+                localPostSize = newStyle
+            } else {
+                $generalSettings.postDisplayStyle.wrappedValue = newStyle
+            }
+        })
+        rows.append(ApolloActionSheetRow("Share", icon: "square.and.arrow.up", accessibilityIdentifier: "feed.overflow.share") {
+            sharingFeedURL = feedShareURL
+        })
+        return rows
+    }
+
+    /// The leading post-type icon row: link+, text+, poll+. Only a
+    /// real subreddit gets one; a multireddit or Home has nowhere to
+    /// post.
+    var composerIconRow: [ApolloComposerAction] {
+        guard !subreddit.isEmpty else { return [] }
+        return [
+            ApolloComposerAction(systemImage: "link.badge.plus", label: "Link Post") {
+                composeKind = .link
+                showingCompose = true
+            },
+            ApolloComposerAction(systemImage: "doc.badge.plus", label: "Text Post") {
+                composeKind = .text
+                showingCompose = true
+            },
+            ApolloComposerAction(systemImage: "chart.bar.doc.horizontal", label: "Poll") {
+                composeKind = .poll
+                showingCompose = true
+            },
+        ]
+    }
+
+    /// Whichever menu this feed actually is.
+    var overflowRows: [ApolloActionSheetRow] {
+        let rows = multiredditPath != nil ? multiredditActionRows : subredditActionRows
+        return Self.arrangeFeedMenu(rows)
+    }
+
+    static func arrangeFeedMenu(_ rows: [ApolloActionSheetRow]) -> [ApolloActionSheetRow] {
+        guard ActionMenuLayoutStore.isCustomized(.feed) else { return rows }
+        let keyed = rows.enumerated().map { index, row in
+            (key: row.accessibilityIdentifier.flatMap { feedMenuItemIDs[$0] } ?? "row.\(index)", row: row)
+        }
+        let byKey = Dictionary(keyed.map { ($0.key, $0.row) }, uniquingKeysWith: { first, _ in first })
+        return ActionMenuLayoutStore.arrange(keyed.map(\.key), for: .feed).compactMap { byKey[$0] }
+    }
+
+    /// Per-sort icons: Apollo's own `option-sort-*` glyphs (bundled in
+    /// `StockIcons`), shown on the nav-bar sort button and its menu.
+    var sortIconName: String {
+        Self.iconName(forSort: sort)
+    }
+
+    static func iconName(forSort sort: String) -> String {
+        switch sort {
+        case "best", "hot", "new", "top", "rising", "controversial": return "option-sort-\(sort)"
+        // Anything not enumerated above falls through to the shared table of
+        // Apollo's sort icons, so a new sort gets its icon instead of the
+        // generic arrow.
+        default: return ApolloMenuIcon.symbol("option-sort-\(sort)", fallback: "arrow.up.arrow.down")
+        }
+    }
+
     /// Per-window icons for the Top/Controversial time period. Apollo ships
     /// a distinct asset for every window; these map to the closest SF
     /// Symbol. "six-months" is absent since Reddit's `t` parameter has no

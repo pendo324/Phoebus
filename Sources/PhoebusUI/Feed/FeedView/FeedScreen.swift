@@ -47,6 +47,7 @@ public struct FeedScreen: View {
         if let multiredditPath { return "m:\(multiredditPath)" }
         return "r:\(subreddit)"
     }
+    @Setting(SwipeActionStore.storage(for: .posts)) private var swipeSettings
     @Setting(ReadPostStore.settingsStorage) var markReadSettings
     @State var reportTarget: RedditPost?
     @Setting(GeneralSettingsStore.storage) var generalSettings
@@ -79,6 +80,10 @@ public struct FeedScreen: View {
     // so two `String?` destinations on one stack would collide.
     @State var jumpDestination: JumpDestination?
     @State var showingSidebarSheet = false
+    /// Feed-level "•••" rows.
+    @State var editingMultireddit: EditingMultireddit?
+    @State var sharingFeedURL: ShareableURL?
+    @State var showingAddToMultireddit = false
     @State var showingModeratorsSheet = false
     @State var showingSubredditNotifications = false
     /// Which composer the post-type icon row asked for.
@@ -140,6 +145,20 @@ public struct FeedScreen: View {
         _sort = State(initialValue: initialSort)
         _topTimeframe = State(initialValue: initialTimeframe)
     }
+
+    /// Shows a multireddit's combined feed instead of a single subreddit.
+    public init(multireddit: RedditMultireddit, repository: RedditRepository) {
+        self.subreddit = ""
+        self.multiredditPath = multireddit.path
+        self.multiredditDisplayName = multireddit.displayName
+        self.repository = repository
+        // Multireddits don't support the "best" sort (home-feed only),
+        // so this uses "hot" regardless of subreddit being empty.
+        let (initialSort, initialTimeframe) = Self.initialSortAndTimeframe(subreddit: "", isMultireddit: true)
+        _sort = State(initialValue: initialSort)
+        _topTimeframe = State(initialValue: initialTimeframe)
+    }
+
     /// `GeneralSettings.defaultPostsSort`/`defaultPostsTimeSort`
     /// drive the initial sort, layering `PostSortMemoryStore` ahead of
     /// the global default. Priority: remembered per-subreddit sort,
@@ -332,6 +351,10 @@ public struct FeedScreen: View {
             }
         }
         .listStyle(.plain)
+        // Reserve room for the floating Liquid Glass tab bar so the
+        // last row is reachable at the bottom of the scroll.
+        .apolloPostSwipePresenters(replyTarget: $replyTarget, shareTarget: $shareTarget,
+                                   repository: repository)
         // Tapping the status bar a second time returns to where you were
         // reading.
         .restoresPositionOnSecondScrollToTop()
@@ -449,6 +472,45 @@ public struct FeedScreen: View {
                         .apolloGlassBarTint()
                 }
             }
+            // The feed toolbar shows two trailing icons: sort and
+            // "•••". The sort icon changes with the active sort; tapping
+            // it opens "Sort by…" as a sheet or UIMenu depending on
+            // Liquid Glass.
+            ToolbarItem(placement: .primaryAction) {
+                ApolloOverflowMenu(title: "Sort by…",
+                                   systemImage: sortIconName,
+                                   rows: sortSheetRows)
+                .accessibilityIdentifier("feed.sortButton")
+                .apolloGlassBarTint()
+            }
+            // Per-subreddit "•••" overflow sheet. Search, Gallery, Compose,
+            // Sidebar and Mod Queue are reached through it rather than their own
+            // icons. "Set User Flair" is omitted: no endpoint is wired up.
+            ToolbarItem(placement: .primaryAction) {
+                // Two real shapes, one menu: a compact anchored menu on
+                // the Liquid Glass path, the full-width sheet
+                // everywhere else. See `ApolloOverflowMenu`.
+                ApolloOverflowMenu(systemImage: "option-more", composerRow: composerIconRow, rows: overflowRows)
+                .accessibilityIdentifier("feed.overflowButton")
+                .apolloGlassBarTint()
+            }
+        }
+        .sheet(isPresented: $showingAddToMultireddit) {
+            AddToMultiredditSheet(subredditName: subreddit, repository: repository) {
+                showingAddToMultireddit = false
+            }
+        }
+        .sheet(item: $editingMultireddit) { editing in
+            MultiredditEditSheet(path: editing.path, repository: repository) {
+                editingMultireddit = nil
+                // A rename changes what the Subreddits list shows, so
+                // the cached copy would otherwise keep the old name
+                // until the next cold start.
+                Task { await SubscribedSubredditsCache.shared.invalidate() }
+            }
+        }
+        .sheet(item: $sharingFeedURL) { shareable in
+            ActivityShareSheet(items: [shareable.url.absoluteString])
         }
         .sheet(isPresented: $showingCompose) {
             NavigationStack {
@@ -578,9 +640,12 @@ public struct FeedScreen: View {
                 jumpToCommentsOnOpen = true
                 selectedPost = post
             },
+            moreMenu: { AnyView(postContextMenu(for: post)) }
         )
         .contentShape(Rectangle())
         .onTapGesture {
+            // Releasing the info-row magnifier isn't a tap on the row.
+            guard !InfoRowHoldRecognizer.tapFollowsHold else { return }
             jumpToCommentsOnOpen = false
             selectedPost = post
         }
@@ -607,6 +672,17 @@ public struct FeedScreen: View {
                     .offset(y: -10.7)
             }
         }
+        .apolloSwipeActions(settings: swipeSettings, subject: SwipeSubject(post: post)) { action in
+            Task { await handleSwipeAction(action, on: post) }
+        }
+        .contextMenu {
+            postContextMenu(for: post)
+        } preview: {
+            // "3D Touch Marks Read" (`threeDTouchMarksRead`): the
+            // context-menu preview is the modern equivalent of
+            // Apollo's 3D Touch peek.
+            PostPeekPreview(post: post, markRead: generalSettings.threeDTouchMarksRead)
+        }
         // "Forget Forward Swipe After Scrolling" expiry - see
         // `forwardTarget` (row-count-based expiry, threshold ~3 posts).
         .onAppear {
@@ -630,6 +706,25 @@ public struct FeedScreen: View {
         default: return false
         }
     }
+
+    /// Reborn Action Menus (#1131, context `feed`): the nav-bar •••
+    /// rows keyed by their accessibility identifiers.
+    static let feedMenuItemIDs: [String: String] = [
+        "feed.overflow.galleryView": "spec.GalleryView",
+        "feed.overflow.subscribeToggle": "subscribe",
+        "feed.overflow.favoriteToggle": "favorite",
+        "feed.overflow.hideReadToggle": "hide-read",
+        "feed.overflow.sidebar": "sidebar",
+        "feed.overflow.rules": "rules",
+        "feed.overflow.filterSubreddit": "filter-subreddit",
+        "feed.overflow.addToMultireddit": "multireddit",
+        "feed.overflow.compactToggle": "post-size",
+        "feed.overflow.setUserFlair": "user-flair",
+        "feed.overflow.viewModerators": "moderators",
+        "feed.overflow.share": "share",
+        "feed.overflow.subredditNotifications": "notifications",
+    ]
+
     /// Reddit's `t=` timeframe values for Top/Controversial sorts,
     /// matching the second-level sheet Apollo opens when "Top" is tapped.
     static let timeframes: [(label: String, value: String)] = [
@@ -640,6 +735,23 @@ public struct FeedScreen: View {
         ("Year", "year"),
         ("All Time", "all"),
     ]
+
+    /// The feed's own URL, for the "•••" menu's Share row. Honors
+    /// `shareLinkHost` like every other share in the app.
+    var feedShareURL: ShareableURL {
+        let path: String
+        if let multiredditPath {
+            path = multiredditPath
+        } else if subreddit.isEmpty {
+            path = "/"
+        } else {
+            path = "/r/\(subreddit)"
+        }
+        return ShareableURL(ShareLinkBuilder.url(
+            forPermalinkPath: path,
+            host: generalSettings.effectiveShareLinkHost))
+    }
+
     var navigationTitleText: String {
         if let multiredditDisplayName {
             return multiredditDisplayName
@@ -665,6 +777,24 @@ public struct FeedScreen: View {
     var navigationTitleDisplayText: String {
         return navigationTitleText.hasPrefix("r/") ? String(navigationTitleText.dropFirst(2)) : navigationTitleText
     }
+
+    /// Backs the "Save GIFs as…" (ask each time) context-menu rows:
+    /// bypasses `GIFSaveService.save(format:)`'s automatic/always
+    /// branching and calls the concrete saver directly.
+    func saveGIF(_ gifURL: URL, asVideo: Bool) async {
+        downloadTitle = "Save GIF"
+        do {
+            if asVideo {
+                try await GIFSaveService.saveAsVideo(gifURL: gifURL, useApolloAlbum: generalSettings.saveToApolloAlbum)
+            } else {
+                try await GIFSaveService.saveAsGIF(gifURL: gifURL, useApolloAlbum: generalSettings.saveToApolloAlbum)
+            }
+            downloadMessage = "Saved to your photo library."
+        } catch {
+            downloadMessage = error.localizedDescription
+        }
+    }
+
     /// "Forget Forward Swipe After Scrolling" - see `forwardTarget`.
     /// Called from every row's `.onAppear` (a real user-scroll signal
     /// in a `List`); drops the remembered forward-swipe target once
@@ -677,6 +807,38 @@ public struct FeedScreen: View {
     /// end so the next page is usually already loaded by the time the
     /// user gets there.
     static let loadMoreThreshold = 5
+
+}
+
+/// The context-menu (Haptic Touch "peek") preview for a feed row.
+/// Its own view so "3D Touch Marks Read" fires exactly once when the
+/// peek appears, rather than on every row re-render.
+private struct PostPeekPreview: View {
+    let post: RedditPost
+    let markRead: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(post.title)
+                .font(.headline)
+                .multilineTextAlignment(.leading)
+            if let selftext = post.selftext, !selftext.isEmpty {
+                Text(selftext)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(12)
+            }
+            Text("r/\(post.subreddit) · u/\(post.author)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: 340, alignment: .leading)
+        .onAppear {
+            guard markRead else { return }
+            ReadPostStore.markRead(post.name)
+        }
+    }
 }
 
 /// A Flair/Sidebar button from the subreddit header's action cluster.

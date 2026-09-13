@@ -401,6 +401,15 @@ public actor RedditRepository {
     public func removeSubredditFromMultireddit(multiPath: String, subreddit: String) async throws {
         try await client.delete(path: "/api/multi\(multiPath)/r/\(subreddit)")
     }
+
+    /// Fetches another user's *public* multireddits (their own
+    /// private ones are only visible via `/api/multi/mine`).
+    public func fetchPublicMultireddits(username: String) async throws -> [RedditMultireddit] {
+        let data = try await client.get(path: "/api/multi/user/\(username)")
+        let things = try JSONDecoder.reddit.decode([RedditThing<RedditMultireddit>].self, from: data)
+        return things.map(\.data)
+    }
+
     /// The signed-in user's Reddit friends list. `/prefs/friends` is
     /// the correct endpoint (`/api/v1/me/friends` returns HTML), but
     /// returns per-category `UserList` listings; this flattens them.
@@ -664,10 +673,93 @@ public actor RedditRepository {
         }
         return result
     }
+    /// The bodies of the given comments (`t1_` fullnames), for the inbox's
+    /// “replied to your comment” quote. Missing ones are left out.
+    public func fetchCommentBodies(fullnames: [String]) async -> [String: String] {
+        var result: [String: String] = [:]
+        let ids = Array(Set(fullnames.filter { $0.hasPrefix("t1_") }))
+        for start in stride(from: 0, to: ids.count, by: 100) {
+            let batch = ids[start..<min(start + 100, ids.count)]
+            guard let data = try? await client.get(path: "/api/info", parameters: ["id": batch.joined(separator: ",")]),
+                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let listing = root["data"] as? [String: Any],
+                  let children = listing["children"] as? [[String: Any]] else { continue }
+            for child in children {
+                guard let item = child["data"] as? [String: Any], let name = item["name"] as? String,
+                      let body = item["body"] as? String else { continue }
+                result[name] = body
+            }
+        }
+        return result
+    }
+
     public func fetchUserProfile(username: String) async throws -> RedditUser {
         let data = try await client.get(path: "/user/\(username)/about")
         let thing = try JSONDecoder.reddit.decode(RedditThing<RedditUser>.self, from: data)
         return thing.data
+    }
+
+    /// Unread + all messages. `category` supports Apollo's "Boxes"
+    /// menu (inbox, unreadMessages, commentReplies, postReplies,
+    /// usernameMentions, messages, moderatorMail), each mapping to its
+    /// own `/message/<where>` endpoint - see `InboxCategory.apiPath`.
+    public func fetchInbox(category: InboxCategory = .inbox, after: String? = nil) async throws -> [RedditMessage] {
+        let data = try await client.getListing(path: "/message/\(category.apiPath)", after: after)
+        return data.data.children.compactMap { child -> RedditMessage? in
+            let plain = JSONValue.object(child.data.raw).plain
+            guard let payload = try? JSONSerialization.data(withJSONObject: plain) else { return nil }
+            return try? JSONDecoder.reddit.decode(RedditMessage.self, from: payload)
+        }
+    }
+
+    /// Whether the inbox comes over the cookie transport, which, unlike
+    /// OAuth, carries no copies of Reddit Chat messages.
+    public var inboxLacksChatMirrors: Bool {
+        get async { await client.isUsingWebSession }
+    }
+
+    /// Unread inbox items for the tab badge: `/message/unread` with Reddit's
+    /// maximum page, so the count is exact up to 100.
+    public func fetchUnreadInboxCount() async throws -> Int {
+        // Reddit's own counter first; the unread listing as a fallback.
+        // A web session's `/api/v1/me` is `{}`, so it asks `/api/me.json`,
+        // which carries the same count.
+        let mePath = await client.isUsingWebSession ? "/api/me.json" : "/api/v1/me"
+        if let data = try? await client.get(path: mePath),
+           let count = InboxUnreadCount.fromIdentity(data) {
+            return count
+        }
+        let listing = try await client.getListing(path: "/message/unread", limit: 100)
+        return listing.data.children.count
+    }
+
+    public func markMessageRead(fullname: String) async throws {
+        try await client.post(path: "/api/read_message", parameters: ["id": fullname])
+    }
+
+    /// Reddit's read_message endpoint doubles as unread via
+    /// `/api/unread_message` with the same `id` parameter shape, used by the
+    /// Inbox "Mark Read" swipe toggling a message back to unread.
+    public func markMessageUnread(fullname: String) async throws {
+        try await client.post(path: "/api/unread_message", parameters: ["id": fullname])
+    }
+
+    /// The inbox "mark all read" toolbar action.
+    public func markAllMessagesRead() async throws {
+        try await client.post(path: "/api/read_all_messages", parameters: [:])
+    }
+
+    /// Sends a brand-new private message to a user (as opposed to
+    /// replying to an existing thread, which uses the same
+    /// `submitComment`/`/api/comment` endpoint as any other reply
+    /// since Reddit treats PM replies as comments on the message
+    /// "post").
+    public func sendPrivateMessage(to username: String, subject: String, body: String) async throws {
+        try await postChecked("/api/compose", [
+            "to": username,
+            "subject": subject,
+            "text": body,
+        ])
     }
 
     /// Fetches the list of available link flairs for a subreddit
@@ -902,5 +994,32 @@ struct WikiPageResponse: Decodable {
         enum CodingKeys: String, CodingKey {
             case contentMd = "content_md"
         }
+    }
+}
+
+/// The unread counts behind the Inbox tab badge.
+public enum InboxUnreadCount {
+    /// `inbox_count` from `/api/v1/me` (or `data.inbox_count` from the
+    /// web session's `/api/me.json`).
+    public static func fromIdentity(_ data: Data) -> Int? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        let body = (root["data"] as? [String: Any]) ?? root
+        return (body["inbox_count"] as? NSNumber)?.intValue
+    }
+
+    /// Reborn's Chat share of the badge: unread messages, or the pending
+    /// chat requests when no message is unread. The two are never summed,
+    /// since Reddit's own counter may already fold requests in.
+    public static func chat(unread: Int, requests: Int) -> Int {
+        unread > 0 ? unread : max(0, requests)
+    }
+
+    /// Reborn's combined badge. Over OAuth the inbox already carries a copy
+    /// of every chat message, so the larger of the two is shown rather than
+    /// counting chats twice; a web session's inbox has no copies, so the
+    /// two add up.
+    public static func combined(inbox: Int, chat: Int, inboxListsChat: Bool = false) -> Int {
+        let inbox = max(0, inbox), chat = max(0, chat)
+        return inboxListsChat ? max(inbox, chat) : inbox + chat
     }
 }

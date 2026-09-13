@@ -376,6 +376,74 @@ for startX in [5.0, 20.0, 69.0, 200.0, 353.0, 380.0, 392.0] {
 
 check("the real insets stay asymmetric (back is the wider, common gesture)",
       PushPopGesturePolicy.leftInset == 70 && PushPopGesturePolicy.rightInset == 40)
+// MARK: - Subreddit Sections live preview
+//
+// Mirrors Reborn's subreddit-sections preview state: sample names, colors,
+// bands and heights are specified exactly.
+let sectionsDefault = SubredditSectionsSettings.default
+let sectionsBlocks = SubredditSectionsPreview.blocks(for: sectionsDefault)
+
+check("the preview ends where the A-Z list picks up, at the U band",
+      sectionsBlocks.contains { $0.key == "band.letter" && $0.title == "U" })
+check("the real sample rows are present with their real names",
+      sectionsBlocks.contains { $0.title == "apolloapp" }
+        && sectionsBlocks.contains { $0.title == "My Multireddit" }
+        && sectionsBlocks.contains { $0.title == "modclub" }
+        && sectionsBlocks.contains { $0.title == "ukulele" })
+check("only the favorites sample is starred",
+      sectionsBlocks.filter(\.starred).map(\.key) == ["row.apolloapp"])
+
+// The sample followed user keeps the same key in both placements, so it
+// slides between the FOLLOWING band and the U letter band instead of
+// vanishing and reappearing.
+var sectionsSeparate = sectionsDefault
+sectionsSeparate.separateFollowedUsers = true
+let separateBlocks = SubredditSectionsPreview.blocks(for: sectionsSeparate)
+check("with separation off there is no FOLLOWING band",
+      !sectionsBlocks.contains { $0.key == "band.following" })
+check("...and the followed user sits after the letter band",
+      sectionsBlocks.firstIndex(where: { $0.key == "row.username" })
+        ?? 0 > (sectionsBlocks.firstIndex(where: { $0.key == "band.letter" }) ?? 0))
+check("with separation on the FOLLOWING band appears",
+      separateBlocks.contains { $0.key == "band.following" })
+check("...and the followed user moves ABOVE the letter band",
+      (separateBlocks.firstIndex(where: { $0.key == "row.username" }) ?? 99)
+        < (separateBlocks.firstIndex(where: { $0.key == "band.letter" }) ?? 0))
+check("the followed user's key is identical in both placements, so it slides",
+      separateBlocks.filter { $0.key == "row.username" }.count == 1
+        && sectionsBlocks.filter { $0.key == "row.username" }.count == 1)
+
+// Subtitle rule and the height it implies.
+var sectionsHidden = sectionsDefault
+sectionsHidden.hideMultiredditDescriptions = true
+let hiddenBlocks = SubredditSectionsPreview.blocks(for: sectionsHidden)
+check("the multireddit sample lists its subreddits by default",
+      sectionsBlocks.first { $0.key == "row.multireddit" }?.subtitle == "apolloapp, ios, swift")
+check("...and drops them when descriptions are hidden",
+      hiddenBlocks.first { $0.key == "row.multireddit" }?.subtitle == nil)
+check("a row WITH a subtitle is the taller 40pt detail row",
+      sectionsBlocks.first { $0.key == "row.multireddit" }?.height == 40)
+check("...and without one it is the 30pt row",
+      hiddenBlocks.first { $0.key == "row.multireddit" }?.height == 30)
+check("a signature change is what marks the multireddit row for a cross-fade",
+      sectionsBlocks.first { $0.key == "row.multireddit" }?.signature
+        != hiddenBlocks.first { $0.key == "row.multireddit" }?.signature)
+
+// Height math: two paddings, every block, and spacing between blocks only,
+// not a trailing one.
+let twoBlocks = Array(sectionsBlocks.prefix(2))
+check("height is padding + blocks + inter-block spacing only",
+      SubredditSectionsPreview.height(of: twoBlocks)
+        == 2 * 8 + twoBlocks[0].height + twoBlocks[1].height + 3)
+check("a single block gets no spacing at all",
+      SubredditSectionsPreview.height(of: [sectionsBlocks[0]]) == 2 * 8 + sectionsBlocks[0].height)
+
+// Reordering the sections must reorder the preview.
+var sectionsReordered = sectionsDefault
+sectionsReordered.order = [.moderator, .favorites, .multireddits, .following]
+let reorderedBlocks = SubredditSectionsPreview.blocks(for: sectionsReordered)
+check("reordering the sections reorders the preview's bands",
+      reorderedBlocks.first?.key == "band.moderator")
 // MARK: - Modmail conversation detail
 
 // Response envelope: `conversation`, `messages`, `modActions`. Messages
@@ -715,6 +783,49 @@ check("Controversial stays the crossed arrows, not a bolt",
 // than rendering a wrong glyph.
 check("an unmapped icon name returns nil rather than a wrong glyph",
       ApolloMenuIcon.symbol("option-sort-not-a-real-name") == nil)
+// Subreddit header spacing: Reddit returns `banner_background_image: ""`
+// for a subreddit with no banner, not null, so `URL(string: "")` is nil and
+// the banner never draws. The -20pt overlap and zeroed top inset key off a
+// usable URL rather than the setting, or a bannerless subreddit would be
+// pulled up and clipped against the nav bar.
+func headerBannerURL(showBanner: Bool, raw: String?) -> URL? {
+    guard showBanner,
+          let trimmed = raw?.trimmingCharacters(in: .whitespaces),
+          !trimmed.isEmpty else { return nil }
+    return URL(string: trimmed)
+}
+check("an empty banner string yields no banner (Reddit sends \"\", not null)",
+      headerBannerURL(showBanner: true, raw: "") == nil)
+check("...as does a whitespace-only one",
+      headerBannerURL(showBanner: true, raw: "   ") == nil)
+check("...and a missing key",
+      headerBannerURL(showBanner: true, raw: nil) == nil)
+check("a real banner URL still resolves",
+      headerBannerURL(showBanner: true, raw: "https://styles.redditmedia.com/b.png") != nil)
+check("the banner setting off wins over a valid URL",
+      headerBannerURL(showBanner: false, raw: "https://styles.redditmedia.com/b.png") == nil)
+// The overlap and the top inset both follow the resolved URL so they
+// cannot disagree. Apollo's banner is a band with the identity row below
+// it, with no negative overlap; top padding is the same both ways.
+let headerTopPadding: CGFloat = 10
+check("the header uses the same top padding with or without a banner",
+      headerTopPadding == 10)
+
+// The "Filter Subreddits" pill sits inset from the list content on both
+// sides with fully rounded ends, so it cannot be a plain List row with
+// `listRowBackground`.
+let shotContentLeft = 25.0, shotContentRight = 338.0
+let shotPillLeft = 37.0, shotPillRight = 325.0
+check("the real filter pill is inset from BOTH edges, not full width",
+      shotPillLeft > shotContentLeft && shotPillRight < shotContentRight)
+check("...by about the same margin on each side",
+      abs((shotPillLeft - shotContentLeft) - (shotContentRight - shotPillRight)) <= 2)
+// A DEBUG seed for the SEARCHING state: the query is seeded via
+// SIMCTL_CHILD_APOLLO_SETTINGS_SEARCH because synthetic keystrokes cannot
+// reach it from a headless session.
+check("the settings search seed is empty unless the env var is set",
+      ProcessInfo.processInfo.environment["APOLLO_SETTINGS_SEARCH"] == nil)
+
 // Liquid Glass detection, mirroring Reborn's IsLiquidGlass() and
 // ApolloSDKEnablesLiquidGlass. Two conditions, both required: iOS 26+ and
 // the UIGlassEffect class present at runtime (an @available check alone

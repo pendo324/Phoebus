@@ -358,6 +358,13 @@ public struct FeedScreen: View {
         // Tapping the status bar a second time returns to where you were
         // reading.
         .restoresPositionOnSecondScrollToTop()
+        .overlay(alignment: .bottomTrailing) {
+            if markReadSettings.showHideReadButton, !posts.isEmpty {
+                HideReadPostsButton { hideReadPosts() }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 24)
+            }
+        }
         .apolloScrollReturnButton()
         // iOS 26's `List` (even with `.listStyle(.plain)`) wraps its
         // scrollable content in a rounded "Liquid Glass" card by

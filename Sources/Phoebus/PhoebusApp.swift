@@ -108,12 +108,16 @@ struct PhoebusApp: App {
 /// Root tab bar. Apollo's tab bar is exactly five tabs: "Posts", "Inbox",
 /// the signed-in user's own username, "Search" and "Settings".
 struct MainTabView: View {
+    @ObservedObject private var inboxBadge = InboxBadge.shared
     @State private var showingAccountsForReSignIn = false
     let repository: RedditRepository
     let authClient: RedditAuthClient
     let accountManager: AccountManager
     let onSignOut: () -> Void
     @State private var subredditsDestination: SubredditsRootDestination?
+    /// The Inbox tab's stack, path-driven like Settings so Apollo's page
+    /// swipes work in it.
+    @StateObject private var inboxNavigation = SettingsNavigationModel(tab: 1)
     /// The other tabs' stacks get a path too, so every `SettingsLink`
     /// push is tracked: a back snapshot for the page swipes, and refused
     /// while a back swipe is in progress (a tap as the finger lifts).
@@ -129,6 +133,9 @@ struct MainTabView: View {
     /// auto-push in `postsTab`'s `.task` so it only fires once per
     /// cold launch.
     @State private var appliedInitialFeedDestination = false
+
+    @Environment(\.scenePhase) private var chatPollPhase
+
     var body: some View {
         // One tab bar, and it is the system's: a real `TabView`, not a
         // hand-drawn floating pill. See `LiquidGlassTabBar`.
@@ -158,6 +165,17 @@ struct MainTabView: View {
         // Lets `PollView` run the one-time cookie harvest an OAuth
         // account needs before Reddit will accept a poll vote.
         .environment(\.accountManager, accountManager)
+        // Inbox tab badge (and Bark chat notifications, from the same
+        // sync): polled while in the foreground, per account.
+        .task(id: BadgePollKey(isActive: chatPollPhase == .active, repository: ObjectIdentifier(repository))) {
+            if chatPollPhase == .active {
+                let accounts = accountManager.accounts
+                let username = accountManager.activeIndex.flatMap { accounts.indices.contains($0) ? accounts[$0].username : nil }
+                InboxBadge.shared.start(repository: repository, username: username)
+            } else {
+                InboxBadge.shared.stop()
+            }
+        }
     }
 
     /// The five tabs, through the system tab bar. `LiquidGlassTabBar`
@@ -167,6 +185,8 @@ struct MainTabView: View {
         LiquidGlassTabBar(
             tabs: [
                 .init(id: 0, title: "Posts", systemImage: "doc.text", stockIcon: "tab-bar-posts") { postsTab },
+                .init(id: 1, title: "Inbox", systemImage: "envelope", stockIcon: "tab-bar-inbox",
+                      badge: InboxBadge.badgeText(inboxBadge.unreadCount)) { inboxTab },
             ],
             selection: $liquidGlassSelection,
             hideBarsOnScroll: generalSettings.hideBarsOnScroll,
@@ -265,6 +285,15 @@ struct MainTabView: View {
         default: return .subreddit(name)
         }
     }
+
+    private var inboxTab: some View {
+        NavigationStack(path: $inboxNavigation.path) {
+            InboxScreen(repository: repository)
+                .apolloSettingsNavigation(inboxNavigation)
+                .apolloInteractiveSwipeNavigation()
+                .apolloPopsToRootOnTabReselection(tab: 1)
+        }
+    }
     /// Resolves a `SubredditsRootScreen` selection into the right
     /// pushed feed. "Popular"/"All"/"Moderator Posts" map to Reddit's
     /// well-known pseudo-subreddits (`r/popular`, `r/all`) or the
@@ -304,4 +333,8 @@ struct MainTabView: View {
         case .multireddit(let path, let name): LastViewedSubredditStore.recordMultireddit(path: path, name: name)
         }
     }
+}
+private struct BadgePollKey: Equatable {
+    let isActive: Bool
+    let repository: ObjectIdentifier
 }

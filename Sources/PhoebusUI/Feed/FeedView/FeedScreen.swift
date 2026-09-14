@@ -389,6 +389,7 @@ public struct FeedScreen: View {
         .apolloPopsOnTabReselection(item: $replyTarget)
         .apolloPopsOnTabReselection(item: $scrapedDestination)
         .apolloPopsOnTabReselection(item: $jumpDestination)
+        .apolloPopsOnTabReselection(isPresented: $showingGallerySheet)
         // A scraped highlight has only a permalink, so it is resolved
         // into a real post the same way a deep link is: fetch first,
         // then present. `/r/<sub>/comments/<id>/<slug>` is the shape
@@ -501,6 +502,26 @@ public struct FeedScreen: View {
                 .accessibilityIdentifier("feed.overflowButton")
                 .apolloGlassBarTint()
             }
+        }
+        .apolloTracksForwardNavigation($showingGallerySheet)
+        .navigationDestination(isPresented: $showingGallerySheet) {
+            // Hand over everything that identifies THIS feed.
+            //
+            // A multireddit's `subreddit` is "", so passing only
+            // `subreddit` falls through to the signed-in user's home
+            // listing instead of the multireddit; the sort must be
+            // passed too or a subreddit gallery silently resets to Hot.
+            GalleryViewScreen(
+                subreddit: subreddit,
+                multiredditPath: multiredditPath,
+                feedTitle: navigationTitleText,
+                sort: sort,
+                timeframe: topTimeframe,
+                // The feed already holds these, so the gallery opens
+                // populated rather than refetching what is on screen.
+                posts: posts,
+                repository: repository
+            )
         }
         .sheet(isPresented: $showingAddToMultireddit) {
             AddToMultiredditSheet(subredditName: subreddit, repository: repository) {

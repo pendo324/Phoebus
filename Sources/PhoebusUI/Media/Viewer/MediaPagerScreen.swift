@@ -62,6 +62,8 @@ public struct MediaPagerScreen: View {
         default: return "Image"
         }
     }
+    @State private var askingSaveAllGIFFormat = false
+
     /// Follows "Download GIFs as…"; Ask Each Time asks first.
     private func saveGIF(_ url: URL, format: GIFSaveFormat? = nil) async {
         let settings = generalSettings
@@ -130,6 +132,11 @@ public struct MediaPagerScreen: View {
                                 presenting: askingGIFFormat) { url in
                 Button("Save as GIF") { Task { await saveGIF(url, format: .alwaysGIF) } }
                 Button("Save as Video") { Task { await saveGIF(url, format: .alwaysVideo) } }
+                Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog("Save GIFs", isPresented: $askingSaveAllGIFFormat, titleVisibility: .visible) {
+                Button("Save as GIF") { SaveAllMediaJob.shared.start(items, gifFormat: .alwaysGIF) }
+                Button("Save as Video") { SaveAllMediaJob.shared.start(items, gifFormat: .alwaysVideo) }
                 Button("Cancel", role: .cancel) {}
             }
     }
@@ -353,6 +360,23 @@ public struct MediaPagerScreen: View {
                                 Label("Save GIF", systemImage: "square.and.arrow.down")
                             }
                         }
+                        // "Save All Media" (#1048) also saves an
+                        // album's videos, in order, through the
+                        // shared batch.
+                        if items.count > 1 {
+                            Button {
+                                // Ask Each Time asks once for the album's GIFs.
+                                let hasGIF = items.contains { if case .gif = $0 { return true } else { return false } }
+                                if hasGIF, generalSettings.gifSaveFormat == .askEachTime {
+                                    askingSaveAllGIFFormat = true
+                                } else {
+                                    SaveAllMediaJob.shared.start(items)
+                                }
+                            } label: {
+                                Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
+                            }
+                            .accessibilityIdentifier("mediaPager.saveAllMedia")
+                        }
                         // `CopyMediaLinkActivity` sets the
                         // pasteboard's URL, not a plain string.
                         Button {
@@ -416,6 +440,9 @@ public struct MediaPagerScreen: View {
         // exclusive, since a plain `.gesture` never fires over a
         // video: the `TabView`'s own scroll view claims the drag first.
         .simultaneousGesture(verticalDragGesture)
+        // The batch's panel and result banner draw inside the cover,
+        // since the cover sits above anything the root could draw.
+        .saveAllMediaOverlay()
     }
 
     /// Apollo's album position, "1 / 2", at the top right: its right edge
@@ -588,6 +615,9 @@ private struct MediaPagerPageView: View {
             // momentum; SwiftUI's scaleEffect zoom is not smooth.
             ZoomableImageView(url: url, liveText: liveTextEnabled,
                               onSingleTap: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe)
+                // Copy / Save / Save All Media / Share, at the press.
+                .background(PressAnchoredImageMenu(urls: albumImageURLs,
+                                                   index: albumImageURLs.firstIndex(of: url) ?? 0))
             #else
             imageContent(url: url)
                 .scaleEffect(scale)
@@ -800,6 +830,7 @@ private struct FullscreenGIFPage: View {
         ZoomableGIFView(url: url, isPlaying: isPlaying,
                         onSingleTap: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe,
                         onRatio: { newRatio in DispatchQueue.main.async { ratio = newRatio } })
+            .background(PressAnchoredImageMenu(urls: [url], index: 0, isGIF: true))
             // On the GIF's own bottom-right corner at its fitted size.
             .overlay {
                 GeometryReader { geo in

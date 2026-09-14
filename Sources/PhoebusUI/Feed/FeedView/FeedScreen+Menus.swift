@@ -14,12 +14,20 @@ extension FeedScreen {
         ForEach(ActionMenuLayoutStore.arrange(feedPostMenuIDs(for: post), for: .post), id: \.self) { id in
             feedPostMenuRow(id, post: post)
         }
+        if isModerator {
+            Divider()
+            ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam", "mod-distinguish",
+                                                   "mod-sticky", "mod-lock"], for: .moderatorPost), id: \.self) { id in
+                feedPostMenuRow(id, post: post)
+            }
+        }
         Divider()
         feedPostMenuRow("report", post: post)
     }
 
     func feedPostMenuIDs(for post: RedditPost) -> [String] {
         var ids = ["save", "hide", "share", "copy-link"]
+        if post.galleryImageURLs.count > 1 { ids.append("save-all-media") }
         ids += ["crosspost", "mute-notifications", "filter-subreddit"]
         if isModerator || post.author == signedInUsername { ids.append("post-flair") }
         ids += ["media-download", "subscribe-actions"]
@@ -43,6 +51,13 @@ extension FeedScreen {
             // Apollo's copy-URL activity (Reborn #967): ShareLink cannot register
             // custom activities, so it is its own row.
             Button { PasteboardHelper.copy(url: post.shareURL()) } label: { Label("Copy Link", systemImage: "link") }
+        case "save-all-media":
+            // Reborn #1048: an album post's hold menu gains Save All Media.
+            Button {
+                SaveAllMediaJob.shared.start(post.galleryImageURLs.map { .image($0) })
+            } label: {
+                Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
+            }
         case "mute-notifications":
             Button {
                 MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))
@@ -62,6 +77,63 @@ extension FeedScreen {
         case "post-flair":
             // Apollo's flair action: change a post's flair after posting.
             Button { flairTargetPost = post } label: { Label("Set Flair", systemImage: "tag") }
+        case "media-download":
+            // Download Video… / Save GIF…, right after Filter Subreddit
+            // as in Apollo's post menu.
+            switch PostMediaKind.classify(post: post) {
+            case .video(let videoURL):
+                Button {
+                    Task {
+                        downloadTitle = "Download Video"
+                        do {
+                            // The downloadable rendition, not
+                            // the playable one: the muxer needs
+                            // the progressive `DASH_*.mp4` to
+                            // pair with `DASH_audio.mp4`.
+                            try await VideoDownloadService.downloadAndSave(
+                                videoURL: PostMediaKind.downloadableVideoURL(for: post) ?? videoURL)
+                            downloadMessage = "Saved to your photo library."
+                        } catch {
+                            downloadMessage = error.localizedDescription
+                        }
+                    }
+                } label: {
+                    Label("Download Video…", systemImage: "arrow.down.circle")
+                }
+            case .gif(let gifURL):
+                // "Save GIFs as…" setting
+                // (`GeneralSettings.gifSaveFormat`). `.askEachTime`
+                // presents its own two-option chooser rather than
+                // silently picking one.
+                if generalSettings.gifSaveFormat == .askEachTime {
+                    Button {
+                        Task { await saveGIF(gifURL, asVideo: false) }
+                    } label: {
+                        Label("Save as GIF", systemImage: "photo")
+                    }
+                    Button {
+                        Task { await saveGIF(gifURL, asVideo: true) }
+                    } label: {
+                        Label("Save as Video", systemImage: "video")
+                    }
+                } else {
+                    Button {
+                        Task {
+                            do {
+                                downloadTitle = "Save GIF"
+                                try await GIFSaveService.save(gifURL: gifURL, format: generalSettings.gifSaveFormat, useApolloAlbum: generalSettings.saveToApolloAlbum)
+                                downloadMessage = "Saved to your photo library."
+                            } catch {
+                                downloadMessage = error.localizedDescription
+                            }
+                        }
+                    } label: {
+                        Label("Save GIF…", systemImage: "arrow.down.circle")
+                    }
+                }
+            default:
+                EmptyView()
+            }
         case "subscribe-actions":
             Divider()
             Button {
@@ -100,6 +172,59 @@ extension FeedScreen {
             }
         case "report":
             Button(role: .destructive) { reportTarget = post } label: { Label("Report", systemImage: "flag") }
+        case "mod-approve":
+            Button {
+                Task { try? await repository.approve(fullname: post.name) }
+            } label: {
+                Label("Approve", systemImage: "checkmark.shield")
+            }
+        case "mod-remove":
+            Button(role: .destructive) {
+                Task {
+                    _ = try? await repository.remove(fullname: post.name, isSpam: false)
+                    posts.removeAll { $0.id == post.id }
+                }
+            } label: {
+                Label("Remove", systemImage: "xmark.shield")
+            }
+        case "mod-spam":
+            Button(role: .destructive) {
+                Task {
+                    _ = try? await repository.remove(fullname: post.name, isSpam: true)
+                    posts.removeAll { $0.id == post.id }
+                }
+            } label: {
+                Label("Mark as Spam", systemImage: "exclamationmark.shield")
+            }
+        case "mod-distinguish":
+            let isDistinguished = post.distinguished == "moderator"
+            Button {
+                Task {
+                    _ = try? await repository.distinguish(fullname: post.name, asMod: !isDistinguished)
+                    updatePost(post.id) { $0.distinguished = isDistinguished ? nil : "moderator" }
+                }
+            } label: {
+                Label(isDistinguished ? "Undistinguish" : "Distinguish", systemImage: "shield.lefthalf.filled")
+            }
+        case "mod-sticky":
+            Button {
+                Task {
+                    _ = try? await repository.setSticky(fullname: post.name, sticky: !post.stickied)
+                    updatePost(post.id) { $0.stickied = !post.stickied }
+                }
+            } label: {
+                Label(post.stickied ? "Unsticky" : "Sticky", systemImage: "pin")
+            }
+        case "mod-lock":
+            Button {
+                Task {
+                    let newLocked = !(post.locked ?? false)
+                    _ = try? await repository.setLocked(fullname: post.name, locked: newLocked)
+                    updatePost(post.id) { $0.locked = newLocked }
+                }
+            } label: {
+                Label((post.locked ?? false) ? "Unlock Comments" : "Lock Comments", systemImage: (post.locked ?? false) ? "lock.open" : "lock")
+            }
         default:
             EmptyView()
         }

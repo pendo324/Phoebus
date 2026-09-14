@@ -53,6 +53,8 @@ struct PhoebusApp: App {
                     // the active account changes, matching Apollo's
                     // "switching accounts returns to the feed" behavior.
                     .id(accountManager.activeIndex)
+                    // "Save All Media" progress and result (#1048).
+                    .saveAllMediaOverlay()
                 } else {
                     NavigationStack {
                         LoginScreen(auth: accountManager.authClient, accountManager: accountManager) {

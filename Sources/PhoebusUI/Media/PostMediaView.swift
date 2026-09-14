@@ -169,6 +169,11 @@ public struct PostMediaView: View {
     /// flags (NSFW takes precedence when both are set). NSFW media is
     /// covered per "Blur NSFW Media" and the Tag Filters; spoilers always.
     public static func contentWarning(for post: RedditPost) -> ContentWarning? {
+        let blursNSFW = post.over18 && TagFilterStore.load().shouldBlurMedia(
+            subreddit: post.subreddit, isNSFW: true, isSpoiler: false,
+            nsfwBlurOverride: GeneralSettingsStore.load().nsfwBlurOverride,
+            accountPref: MatureMediaPreference.activeAccountValue(in: MatureMediaPreference.storage.load()))
+        if blursNSFW { return .nsfw }
         if post.spoiler { return .spoiler }
         return nil
     }
@@ -462,6 +467,7 @@ struct GalleryMediaView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .contextMenu { FeedAlbumMenu(urls: urls, index: index) }
             .accessibilityIdentifier("gallery.thumbnail.\(index)")
         }
     }
@@ -515,6 +521,45 @@ struct FeedGalleryCarouselView: View {
         }
     }
 }
+
+/// The album image long-press menu (#1048): holding an album image
+/// offers Copy Image, Save Image, Save All Media and Share for that
+/// page, a snapshot taken when the menu opens so paging can't change
+/// what a later action acts on. In the feed, the row's own post menu
+/// claims the hold instead and carries Save All Media.
+struct FeedAlbumMenu: View {
+    let urls: [URL]
+    let index: Int
+
+    var body: some View {
+        let url = urls[min(index, urls.count - 1)]
+        Button {
+            Task {
+                if let data = await MediaBytes.data(for: url) {
+                    PasteboardHelper.copyImage(data)
+                }
+            }
+        } label: {
+            Label("Copy Image", systemImage: "doc.on.doc")
+        }
+        Button {
+            SaveAllMediaJob.shared.start([.image(url)])
+        } label: {
+            Label("Save Image", systemImage: "square.and.arrow.down")
+        }
+        if urls.count > 1 {
+            Button {
+                SaveAllMediaJob.shared.start(urls.map { .image($0) })
+            } label: {
+                Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
+            }
+        }
+        ShareLink(item: url) {
+            Label("Share", systemImage: "square.and.arrow.up")
+        }
+    }
+}
+
 /// Sizes a resolved video: `apolloMediaFrame`'s capped inline box
 /// normally, or the whole container inside a fullscreen viewer.
 private struct ResolvedVideoFrame: ViewModifier {

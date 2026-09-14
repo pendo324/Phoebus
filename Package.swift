@@ -45,6 +45,7 @@ let package = Package(
         .target(
             name: "PhoebusCore",
             resources: [
+                .copy("Resources/RealAchievements.json"),
                 // Apollo's own lowercase -> display-case subreddit table; see
                 // `SubredditCapitalization` for why it cannot be a rule.
                 .copy("Resources/SubredditCapitalization.json"),
@@ -62,6 +63,7 @@ let package = Package(
             // `Shared/Chrome/StockIcon.swift`.
             resources: [
                 .copy("Resources/StockIcons"),
+                .copy("Resources/BadgeBook"),
             ],
             linkerSettings: weakSwiftUICore
         ),

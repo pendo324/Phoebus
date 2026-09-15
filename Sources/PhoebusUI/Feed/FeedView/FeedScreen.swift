@@ -469,6 +469,15 @@ public struct FeedScreen: View {
                 .apolloGlassBarTint()
             }
         }
+        .navigationDestination(item: $jumpDestination) { destination in
+            switch destination {
+            case .subreddit(let name):
+                FeedScreen(subreddit: name, repository: repository)
+            case .user(let username):
+                UserProfileScreen(username: username, repository: repository)
+            }
+        }
+        .apolloTracksForwardNavigation($jumpDestination)
         // The back button is icon only: a bare circular chevron. Liquid Glass
         // collapses it to its glyph (44pt circle); older iOS shows the
         // "< Subreddits" text form.

@@ -182,6 +182,14 @@ public struct PostDetailScreen: View {
                 showingSelectText = false
             }
         }
+        .navigationDestination(item: $jumpDestination) { destination in
+                switch destination {
+                case .user(let username):
+                    UserProfileScreen(username: username, repository: repository)
+                case .subreddit(let name):
+                    FeedScreen(subreddit: name, repository: repository)
+                }
+            }
             .listStyle(.plain)
             // Comment rows size to their content: Apollo's "N more
             // replies" row is 39pt and a collapsed comment 48pt, both
@@ -323,6 +331,8 @@ public struct PostDetailScreen: View {
         PostDetailHeader(
             post: post,
             repository: repository,
+            onSubredditTap: { jumpDestination = .subreddit(post.subreddit) },
+            onAuthorTap: { jumpDestination = .user(post.author) },
             onJumpToComments: {
                 // "Jump to comments" reuses the same scroll target the
                 // jump-to-next-comment button uses.
@@ -350,6 +360,7 @@ public struct PostDetailScreen: View {
             subreddit: post.subreddit, postID: post.id, repository: repository,
             post: post, sort: commentSort,
             isModerator: isModerator,
+            onAuthorTapped: { jumpDestination = .user($0) },
         )
     }
     /// Recomputes matches over the currently-loaded comment tree. Only searches what
@@ -544,11 +555,21 @@ extension PostDetailScreen {
         case "author":
             // Labelled with the name itself, opening a submenu.
             Menu {
+                Button { jumpDestination = .user(post.author) } label: {
+                    Label("View Profile", systemImage: "person.crop.circle")
+                }
                 Button { PasteboardHelper.copy(post.author) } label: {
                     Label("Copy Username", systemImage: "doc.on.doc")
                 }
             } label: { Label(post.author, systemImage: "person.circle") }
             .accessibilityIdentifier("postDetail.menu.author")
+        case "subreddit":
+            Menu {
+                Button { jumpDestination = .subreddit(post.subreddit) } label: {
+                    Label("View Subreddit", systemImage: "list.bullet.below.rectangle")
+                }
+            } label: { Label(post.subreddit, systemImage: "house") }
+            .accessibilityIdentifier("postDetail.menu.subreddit")
         case "collapse-children":
             let anyCollapsed = commentStore.roots.contains { $0.hasCollapsedDescendant }
             Button {

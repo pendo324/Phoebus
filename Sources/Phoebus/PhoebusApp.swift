@@ -15,6 +15,7 @@ struct PhoebusApp: App {
     @State private var theme = ThemeStore.load()
     @State private var themeRevision = 0
     @State private var checkedPersistedLogin = false
+    @State private var pendingDeepLink: RedditURLTarget?
     init() {
         // Local crash recording first, so it covers everything after.
         CrashRecorder.start()
@@ -48,6 +49,7 @@ struct PhoebusApp: App {
                         authClient: accountManager.authClient,
                         accountManager: accountManager,
                         onSignOut: { isSignedIn = false },
+                        deepLink: $pendingDeepLink
                     )
                     // Rebuilds MainTabView's whole subtree whenever
                     // the active account changes, matching Apollo's
@@ -61,6 +63,14 @@ struct PhoebusApp: App {
                             isSignedIn = true
                         }
                     }
+                }
+            }
+            .onOpenURL { incoming in
+                // Backend notification taps arrive as apollo://...
+                let url = PushNotificationClient.appURL(fromApolloURL: incoming) ?? incoming
+                // phoebus://open?url=... links from the Share Sheet action extension.
+                if let target = RedditURLTarget.parseAppScheme(url) {
+                    pendingDeepLink = target
                 }
             }
             .tint(Color(hex: theme.accentColorHex))
@@ -116,6 +126,7 @@ struct MainTabView: View {
     let authClient: RedditAuthClient
     let accountManager: AccountManager
     let onSignOut: () -> Void
+    @Binding var deepLink: RedditURLTarget?
     @State private var subredditsDestination: SubredditsRootDestination?
     /// The Inbox tab's stack, path-driven like Settings so Apollo's page
     /// swipes work in it.
@@ -124,6 +135,18 @@ struct MainTabView: View {
     /// push is tracked: a back snapshot for the page swipes, and refused
     /// while a back swipe is in progress (a tap as the finger lifts).
     @StateObject private var postsNavigation = SettingsNavigationModel(tab: 0)
+    @StateObject private var profileNavigation = SettingsNavigationModel(tab: 2)
+    @State private var inAppBrowserURL: URL?
+    /// A tapped link that is a plain image, shown in the app's own
+    /// viewer instead of a web view. See `openedLink(_:)`.
+    @State private var viewerImageURL: URL?
+    /// Seeded from the signed-in account, then confirmed by
+    /// `CurrentUserProfileLoader`'s `/api/v1/me` fetch, so the Profile
+    /// tab doesn't show the literal word "Profile" while waiting.
+    /// See `ProfileTabAvatar`.
+    @StateObject private var profileTabAvatar = ProfileTabAvatar()
+    @State private var currentUsername: String? =
+        FavoriteSubredditsAccountContext.currentUsernameProvider()
     /// "Liquid Glass Tab Bar"; see `LiquidGlassTabBar`. Gated on the
     /// user's setting; `false` keeps stock `TabView` behavior.
     @Setting(GeneralSettingsStore.storage) private var generalSettings
@@ -189,6 +212,7 @@ struct MainTabView: View {
                 .init(id: 0, title: "Posts", systemImage: "doc.text", stockIcon: "tab-bar-posts") { postsTab },
                 .init(id: 1, title: "Inbox", systemImage: "envelope", stockIcon: "tab-bar-inbox",
                       badge: InboxBadge.badgeText(inboxBadge.unreadCount)) { inboxTab },
+                .init(id: 2, title: profileTabTitle, systemImage: "person.circle", stockIcon: "tab-bar-profile", customIcon: profileTabIcon) { profileTab },
             ],
             selection: $liquidGlassSelection,
             hideBarsOnScroll: generalSettings.hideBarsOnScroll,
@@ -197,6 +221,17 @@ struct MainTabView: View {
             iconOnly: generalSettings.iconOnlyTabBar,
             hideStyle: generalSettings.tabBarHideStyle
         )
+        .environment(\.openURL, OpenURLAction { url in
+            openLink(url)
+            return .handled
+        })
+        .apolloInAppBrowser(url: $inAppBrowserURL)
+        .apolloImageViewer(url: $viewerImageURL)
+        // Loads (and reloads on an account switch) the Profile tab's
+        // avatar icon.
+        .task(id: currentUsername) {
+            await profileTabAvatar.load(username: currentUsername, repository: repository)
+        }
         .onChange(of: liquidGlassSelection) { _, tab in
             // Each tab keeps its own forward history.
             ForwardNavigationStore.shared.currentTab = tab
@@ -207,6 +242,25 @@ struct MainTabView: View {
                 TabBarSwipeNavigationProbe().frame(width: 0, height: 0)
             }
         }
+    }
+
+    /// "Profile Picture Tab Icon": the Liquid Glass tab bar's
+    /// custom-icon slot for the Profile tab. `nil` unless both the
+    /// setting is on and a username has resolved.
+    /// "Hide Username on Tab Bar": falls back to the generic label
+    /// "Profile", also shown for an account with no resolved username.
+    ///
+    /// `iconOnlyTabBar` is a separate, stronger setting that blanks
+    /// every tab's title; this one only replaces the username.
+    private var profileTabTitle: String {
+        if generalSettings.iconOnlyTabBar { return "" }
+        if generalSettings.hideUsernameOnTabBar { return "Profile" }
+        return currentUsername ?? "Profile"
+    }
+
+    private var profileTabIcon: UIImage? {
+        guard generalSettings.useProfileAvatarTabIcon, currentUsername != nil else { return nil }
+        return profileTabAvatar.image
     }
 
     private var postsTab: some View {
@@ -227,6 +281,27 @@ struct MainTabView: View {
             .navigationDestination(item: $subredditsDestination) { destination in
                 feedScreen(for: destination)
             }
+            .navigationDestination(item: $deepLink) { target in
+                // A second link while one is open replaces the item in place; a new
+                // identity is needed or the old screen keeps its posts under the new title.
+                DeepLinkDestination(target: target, repository: repository)
+                    .id(target)
+            }
+            // Tracked like the Search tab's Google results: the back swipe needs a
+            // snapshot of the covered screen.
+            .apolloTracksForwardNavigation($deepLink)
+            // A deep link must also select this tab: the destination
+            // lives on the Posts tab only.
+            .onChange(of: deepLink) { _, newValue in
+                if newValue != nil { liquidGlassSelection = 0 }
+            }
+            // "Open Reddit Links in Apollo": a tapped reddit.com link
+            // that maps onto a screen navigates natively here instead
+            // of opening reddit.com in a web view. See `RedditLinkNavigator`.
+            .onReceive(NotificationCenter.default.publisher(for: .apolloOpenRedditTarget)) { note in
+                guard let target = note.userInfo?["target"] as? RedditURLTarget else { return }
+                openNatively(target)
+            }
             // Re-tapping Posts (#1153): first re-tap scrolls to top; a
             // re-tap already at the top goes back one page.
             .apolloScrollsThenPopsOnTabReselection(tab: 0)
@@ -236,6 +311,7 @@ struct MainTabView: View {
             .task {
                 guard !appliedInitialFeedDestination else { return }
                 appliedInitialFeedDestination = true
+                guard deepLink == nil, subredditsDestination == nil else { return }
                 if let destination = initialFeedDestination() {
                     subredditsDestination = destination
                 }
@@ -244,6 +320,70 @@ struct MainTabView: View {
             // root tab `NavigationStack`, where
             // `interactivePopGestureRecognizer` actually lives.
             .apolloInteractiveSwipeNavigation()
+        }
+    }
+
+    /// Routes a tapped link. One choke point: every link in the app
+    /// funnels through this `OpenURLAction`. Images open in the app's own
+    /// viewer; the rest go where `LinkRouter` says, so a reddit.com link
+    /// opens its post, subreddit or profile in the app ("Open Reddit
+    /// Links in Apollo") instead of a browser.
+    private func openLink(_ url: URL) {
+        if InlineMediaDetector.isViewableImageURL(url) {
+            viewerImageURL = url
+            return
+        }
+        let route = LinkRouter.route(url)
+        if case .native(let target) = route {
+            openNatively(target)
+            return
+        }
+        // "Open in App" (Bluesky, GitHub, Steam, YouTube) gets every
+        // non-Reddit link first, wherever it was tapped.
+        if DedicatedAppOpener.open(url, fallback: { openRoutedLink(route) }) { return }
+        openRoutedLink(route)
+    }
+
+    private func openRoutedLink(_ route: LinkDestination) {
+        switch route {
+        case .native(let target):
+            openNatively(target)
+        case .twitterApp(let tweetURL, let client):
+            openExternally(LinkRouter.twitterAppURL(for: tweetURL, client: client), fallback: tweetURL)
+        case .externalBrowser(let webURL):
+            let browser = ExternalBrowserSettingsStore.load().preferredBrowser
+            openExternally(browser == .safari ? webURL : browser.translate(webURL), fallback: webURL)
+        case .inApp(let webURL):
+            inAppBrowserURL = webURL
+        }
+    }
+
+    /// Hands `url` to the system, falling back to the in-app browser
+    /// when there is nothing to open it with (the app isn't installed).
+    private func openExternally(_ url: URL?, fallback: URL) {
+        #if canImport(UIKit)
+        guard let url else { inAppBrowserURL = fallback; return }
+        UIApplication.shared.open(url) { opened in
+            if !opened { inAppBrowserURL = fallback }
+        }
+        #else
+        inAppBrowserURL = fallback
+        #endif
+    }
+
+    /// Opens a Reddit link's screen on the tab it was tapped in, as
+    /// Apollo pushes it onto the current stack.
+    private func openNatively(_ target: RedditURLTarget) {
+        // On top of the screen the user is on, keeping its back/forward
+        // history; the tab's path only from a root screen.
+        let repository = repository
+        InPlaceRedditNavigation.shared.destination = { AnyView(DeepLinkDestination(target: $0, repository: repository)) }
+        if InPlaceRedditNavigation.shared.open(target, inTab: liquidGlassSelection) { return }
+        let route = SettingsRoute(view: AnyView(DeepLinkDestination(target: target, repository: repository)))
+        switch liquidGlassSelection {
+        case 1: inboxNavigation.path.append(route)
+        case 2: profileNavigation.path.append(route)
+        default: postsNavigation.path.append(route)
         }
     }
 
@@ -296,6 +436,17 @@ struct MainTabView: View {
                 .apolloPopsToRootOnTabReselection(tab: 1)
         }
     }
+
+    private var profileTab: some View {
+        NavigationStack(path: $profileNavigation.path) {
+            CurrentUserProfileLoader(repository: repository, accountManager: accountManager,
+                                     resolvedUsername: $currentUsername)
+                .apolloSettingsNavigation(profileNavigation)
+                .apolloInteractiveSwipeNavigation()
+                .apolloPopsToRootOnTabReselection(tab: 2)
+        }
+    }
+
     /// Resolves a `SubredditsRootScreen` selection into the right
     /// pushed feed. "Popular"/"All"/"Moderator Posts" map to Reddit's
     /// well-known pseudo-subreddits (`r/popular`, `r/all`) or the
@@ -336,6 +487,137 @@ struct MainTabView: View {
         }
     }
 }
+
+/// Resolves a share-extension deep link into the right screen. Post
+/// links need the full `RedditPost` fetched (the link only carries
+/// subreddit+id, matching how Reddit share URLs work); subreddit/user
+/// links can navigate directly.
+struct DeepLinkDestination: View {
+    let target: RedditURLTarget
+    let repository: RedditRepository
+
+    var body: some View {
+        switch target {
+        case .subreddit(let name):
+            FeedScreen(subreddit: name, repository: repository)
+        case .user(let name):
+            UserProfileScreen(username: name, repository: repository)
+        case .post(let subreddit, let id):
+            PostLinkLoader(subreddit: subreddit, postID: id, repository: repository)
+        case .comment(let subreddit, let postID, let commentID):
+            CommentTreeScreen(subreddit: subreddit, postID: postID, repository: repository, focusedCommentID: commentID)
+        case .multireddit(let name):
+            MultiredditLinkLoader(multiredditName: name, repository: repository)
+        case .unknown:
+            Text("Couldn't open this link").foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Resolves the `OpenMultireddit` SiriKit intent's navigation target.
+/// Reddit has no "fetch one multireddit by name" endpoint, so this
+/// fetches the user's full multireddit list and finds the matching one.
+struct MultiredditLinkLoader: View {
+    let multiredditName: String
+    let repository: RedditRepository
+
+    @State private var multireddit: RedditMultireddit?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Group {
+            if let multireddit {
+                FeedScreen(multireddit: multireddit, repository: repository)
+            } else if let errorMessage {
+                Text(errorMessage).foregroundStyle(.secondary)
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            do {
+                let all = try await repository.fetchMultireddits()
+                multireddit = all.first { $0.name.caseInsensitiveCompare(multiredditName) == .orderedSame }
+                if multireddit == nil {
+                    errorMessage = "Couldn't find multireddit \"\(multiredditName)\"."
+                }
+            } catch {
+                errorMessage = "Couldn't load multireddits."
+            }
+        }
+    }
+}
+
+struct PostLinkLoader: View {
+    let subreddit: String
+    let postID: String
+    let repository: RedditRepository
+    @State private var post: RedditPost?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Group {
+            if let post {
+                PostDetailScreen(post: post, repository: repository)
+            } else if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red)
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            do {
+                let data = try await repository.fetchComments(subreddit: subreddit, postID: postID)
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
+                      let postListingRaw = json.first as? [String: Any],
+                      let postData = postListingRaw["data"] as? [String: Any],
+                      let children = postData["children"] as? [Any],
+                      let firstChild = children.first as? [String: Any],
+                      let childData = firstChild["data"] as? [String: Any] else {
+                    errorMessage = "Couldn't load post"
+                    return
+                }
+                let payload = try JSONSerialization.data(withJSONObject: childData)
+                post = try JSONDecoder.reddit.decode(RedditPost.self, from: payload)
+            } catch {
+                errorMessage = UserFacingError.message(for: error)
+            }
+        }
+    }
+}
+
+/// Resolves the signed-in user's own username via /api/v1/me before
+/// showing their profile, for the account tab.
+struct CurrentUserProfileLoader: View {
+    let repository: RedditRepository
+    let accountManager: AccountManager
+    @Binding var resolvedUsername: String?
+    @State private var username: String?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Group {
+            if let username {
+                UserProfileScreen(username: username, repository: repository,
+                                  isOwnProfile: true, accountManager: accountManager)
+            } else if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red)
+            } else {
+                ProgressView()
+            }
+        }
+        .task {
+            do {
+                let name = try await repository.fetchIdentity().name
+                username = name
+                resolvedUsername = name
+            } catch {
+                errorMessage = UserFacingError.message(for: error)
+            }
+        }
+    }
+}
+
 private struct BadgePollKey: Equatable {
     let isActive: Bool
     let repository: ObjectIdentifier

@@ -119,6 +119,9 @@ public struct CommentTreeScreen: View {
             }
             // Unwinds with the rest of the Posts tab on a tab re-tap.
             .apolloPopsOnTabReselection(item: $jumpUser)
+            .navigationDestination(item: $jumpUser) { username in
+                UserProfileScreen(username: username, repository: repository)
+            }
             .apolloTracksForwardNavigation($jumpUser)
             .apolloOpensRedditTargetsHere()
             .apolloForwardSwipe()
@@ -166,10 +169,14 @@ struct CommentTreeContent: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var store: CommentTreeStore
     @State private var replyTargetID: String?
+    /// Target for the Share swipe action.
+    @State private var shareCommentTarget: RedditComment?
     @State private var quotedText: [String: String] = [:]
     /// Quote-reply preview: the quoted comment's author and snippet,
     /// for the card docked above the composer toolbar.
     @State private var quotedPreview: [String: (author: String, snippet: String, age: String?)] = [:]
+    @Setting(SwipeActionStore.storage(for: .comments)) private var swipeSettings
+
     let subreddit: String
     let postID: String
     let repository: RedditRepository
@@ -286,6 +293,9 @@ struct CommentTreeContent: View {
                             }
                         )
                     }
+                    .apolloSwipeActions(settings: swipeSettings, subject: SwipeSubject(comment: node.comment)) { action in
+                        Task { await handleSwipeAction(action, on: node) }
+                    }
                     // Apollo's hairline sits on top of each row, starting at that row's own
                     // indent (the depth bar's x), and runs to the screen edge.
                     .listRowSeparator(.hidden)
@@ -312,6 +322,10 @@ struct CommentTreeContent: View {
                     .id(stub.id)
                 }
             }
+        }
+        // Share swipe action for comments; see `handleSwipeAction`.
+        .sheet(item: $shareCommentTarget) { comment in
+            ActivityShareSheet(items: [comment.shareURL()])
         }
     }
 
@@ -359,6 +373,30 @@ struct CommentTreeContent: View {
 
     private func toggleCollapse(_ node: CommentTreeNode) {
         store.toggleCollapse(node)
+    }
+
+    private func handleSwipeAction(_ action: SwipeAction, on node: CommentTreeNode) async {
+        await ContentActions.perform(action, on: node.comment, repository: repository, hooks: SwipeActionHooks(
+            onReply: { replyTargetID = (replyTargetID == node.id) ? nil : node.id },
+            onShare: { shareCommentTarget = node.comment },
+            // Reddit cannot hide comments, so Hide collapses the comment.
+            onHide: { toggleCollapse(node) },
+            // Apollo's default collapses the whole top-level thread.
+            onCollapseTop: {
+                if let topLevelRoot = store.roots.first(where: { $0.contains(id: node.id) }) {
+                    toggleCollapse(topLevelRoot)
+                }
+            },
+            onCollapse: { toggleCollapse(node) },
+            onParentComment: {
+                // The host's list scrolls to it (`scrollRequest`).
+                let parentID = node.comment.parentID
+                guard parentID.hasPrefix("t1_") else { return }
+                store.scrollRequest = store.rowID(String(parentID.dropFirst(3)))
+            },
+            author: node.comment.author, subreddit: subreddit,
+            selectableText: (title: node.comment.author, body: node.comment.body)
+        ))
     }
 }
 

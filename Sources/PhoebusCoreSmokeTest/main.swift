@@ -376,6 +376,7 @@ for startX in [5.0, 20.0, 69.0, 200.0, 353.0, 380.0, 392.0] {
 
 check("the real insets stay asymmetric (back is the wider, common gesture)",
       PushPopGesturePolicy.leftInset == 70 && PushPopGesturePolicy.rightInset == 40)
+checkLinkPreviews()
 // MARK: - Subreddit Sections live preview
 //
 // Mirrors Reborn's subreddit-sections preview state: sample names, colors,

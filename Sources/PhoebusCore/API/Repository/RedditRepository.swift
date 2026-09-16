@@ -67,6 +67,17 @@ public actor RedditRepository {
         return subreddit
     }
 
+    /// Fetch today's trending subreddit picks by parsing
+    /// r/trendingsubreddits' latest announcement post title ("Your
+    /// daily trending subreddits | <r/a, r/b, ...>").
+    public func fetchTrendingSubredditNames() async throws -> [String] {
+        let listing = try await fetchListing(subreddit: "trendingsubreddits", sort: "new", limit: 1)
+        guard let child = listing.data.children.first else { return [] }
+        let plain = JSONValue.object(child.data.raw).plain
+        guard let dict = plain as? [String: Any], let title = dict["title"] as? String else { return [] }
+        return TrendingSubredditTitleParser.parseSubredditNames(fromTitle: title)
+    }
+
     /// Fetch a post's comment tree. Reddit returns a 2-element array:
     /// [0] = the post listing (single item), [1] = comment listing.
     public func fetchComments(subreddit: String, postID: String, sort: String = "confidence") async throws -> Data {
@@ -673,6 +684,15 @@ public actor RedditRepository {
         }
         return result
     }
+
+    /// A Google result's post (and comment) for Read More, on the
+    /// account's usual path.
+    public func fetchGoogleResultInfo(postID: String?, commentID: String?) async -> GoogleSearchRedditInfo? {
+        let ids = [postID.map { "t3_\($0)" }, commentID.map { "t1_\($0)" }].compactMap { $0 }
+        guard !ids.isEmpty, let data = try? await client.get(path: "/api/info", parameters: ["id": ids.joined(separator: ",")]) else { return nil }
+        return GoogleSearchRedditInfo.parse(data, postID: postID, commentID: commentID)
+    }
+
     /// The bodies of the given comments (`t1_` fullnames), for the inbox's
     /// “replied to your comment” quote. Missing ones are left out.
     public func fetchCommentBodies(fullnames: [String]) async -> [String: String] {

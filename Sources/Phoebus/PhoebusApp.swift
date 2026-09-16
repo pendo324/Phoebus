@@ -136,6 +136,7 @@ struct MainTabView: View {
     /// while a back swipe is in progress (a tap as the finger lifts).
     @StateObject private var postsNavigation = SettingsNavigationModel(tab: 0)
     @StateObject private var profileNavigation = SettingsNavigationModel(tab: 2)
+    @StateObject private var searchNavigation = SettingsNavigationModel(tab: 3)
     @State private var inAppBrowserURL: URL?
     /// A tapped link that is a plain image, shown in the app's own
     /// viewer instead of a web view. See `openedLink(_:)`.
@@ -213,6 +214,7 @@ struct MainTabView: View {
                 .init(id: 1, title: "Inbox", systemImage: "envelope", stockIcon: "tab-bar-inbox",
                       badge: InboxBadge.badgeText(inboxBadge.unreadCount)) { inboxTab },
                 .init(id: 2, title: profileTabTitle, systemImage: "person.circle", stockIcon: "tab-bar-profile", customIcon: profileTabIcon) { profileTab },
+                .init(id: 3, title: "Search", systemImage: "magnifyingglass", stockIcon: "tab-bar-search") { searchTab },
             ],
             selection: $liquidGlassSelection,
             hideBarsOnScroll: generalSettings.hideBarsOnScroll,
@@ -383,6 +385,7 @@ struct MainTabView: View {
         switch liquidGlassSelection {
         case 1: inboxNavigation.path.append(route)
         case 2: profileNavigation.path.append(route)
+        case 3: searchNavigation.path.append(route)
         default: postsNavigation.path.append(route)
         }
     }
@@ -445,6 +448,45 @@ struct MainTabView: View {
                 .apolloInteractiveSwipeNavigation()
                 .apolloPopsToRootOnTabReselection(tab: 2)
         }
+    }
+
+    /// The Search tab's own pushed feed, kept separate from
+    /// `subredditsDestination` so a tapped search result pushes onto
+    /// the Search tab's own stack instead of a different tab's.
+    @State private var searchDestination: SubredditsRootDestination?
+    /// A Google search result opened from the Search tab.
+    @State private var searchDeepLink: RedditURLTarget?
+
+    private var searchTab: some View {
+        NavigationStack(path: $searchNavigation.path) {
+            SubredditSearchScreen(repository: repository, onSelect: { subreddit in
+                searchDestination = .subreddit(subreddit.displayName)
+            }, onOpenTarget: { target in
+                // A Google result opens natively on this tab (#1260).
+                searchDeepLink = target
+            })
+            .apolloSettingsNavigation(searchNavigation)
+            .navigationDestination(item: $searchDeepLink) { target in
+                DeepLinkDestination(target: target, repository: repository)
+            }
+            // Tracked like the other pushes: without a back snapshot the back swipe
+            // refuses to begin.
+            .apolloTracksForwardNavigation($searchDeepLink)
+            // Same as the Posts tab root: needs a back snapshot so a
+            // feed opened from a search result can be swiped back.
+            .apolloTracksForwardNavigation($searchDestination)
+            .apolloForwardSwipe()
+            .navigationDestination(item: $searchDestination) { destination in
+                feedScreen(for: destination)
+            }
+            .apolloInteractiveSwipeNavigation()
+        }
+        // Both halves: the path pops anything pushed with a value, and
+        // clearing `searchDestination` pops the item-driven feed.
+        .apolloPopsToRootOnTabReselection(tab: 3)
+        .apolloPopsOnTabReselection(tab: 3, item: $searchDestination)
+        // Stock Search re-tap at the root: scroll to top, then focus the field.
+        .apolloScrollsThenPopsOnTabReselection(tab: 3, focusesSearchAtRoot: true)
     }
 
     /// Resolves a `SubredditsRootScreen` selection into the right

@@ -70,11 +70,16 @@ public struct FeedScreen: View {
     /// row index at that time, for row-count-based expiry.
     @State var forwardTarget: RedditPost?
     @State var forwardAnchorRowIndex: Int?
+
+    @State var searchQuery = ""
+    @State var searchSubmitted = false
+    @State var jumpBarActive = false
     /// Reborn "Center Title Between Buttons" offset. Screen-owned
     /// `@State` rather than read from a shared store: a `.toolbar` item
     /// does not observe an external `ObservableObject`, so the title
     /// would not re-render on a store-driven value.
     @State var titleCenteringOffset: CGFloat = 0
+    @State var jumpBarText = ""
     // See `JumpDestination`'s doc comment: SwiftUI dispatches
     // `.navigationDestination(item:)` by VALUE TYPE not binding identity,
     // so two `String?` destinations on one stack would collide.
@@ -197,6 +202,15 @@ public struct FeedScreen: View {
         // content-size timing cases, silently dropping its content.
         ZStack(alignment: .top) {
         feedBody
+        if jumpBarActive {
+            // No top padding here: the ZStack's content area is already
+            // positioned below the nav bar/toolbar by NavigationStack
+            // itself, so extra padding would add a redundant gap.
+            JumpBarResultsList(repository: repository, query: jumpBarText) { name in
+                jumpDestination = .subreddit(name)
+                jumpBarActive = false
+            }
+        }
         }
     }
 
@@ -206,6 +220,16 @@ public struct FeedScreen: View {
         // hairline separators, not SwiftUI's default
         // `.insetGrouped`-style List which draws each row in a card.
         List {
+            // The feed's inline search field, the table's first row: it
+            // scrolls away with the posts and opens the post search.
+            Section {
+                FindInCommentsFieldRow(placeholder: "Search", identifier: "feed.searchField") {
+                    searchSubmitted = true
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowSeparator(.hidden)
+                .modifier(FeedSearchBand())
+            }
             // Reborn "Subreddit Layout" header: only renders for a real subreddit
             // feed with the setting on, not Home/Popular/All/Moderator or a
             // multireddit.
@@ -373,6 +397,10 @@ public struct FeedScreen: View {
         .scrollContentBackground(.hidden)
         // Stock dark surface + Pure Black tiers (see `ApolloStockSurface`).
         .apolloStockSurface()
+        .apolloTracksForwardNavigation($searchSubmitted)
+        .navigationDestination(isPresented: $searchSubmitted) {
+            PostSearchScreen(subreddit: subreddit, repository: repository, initialQuery: searchQuery)
+        }
         // Browser-style forward navigation: swiping back from a post
         // can be undone by a right-edge forward swipe.
         .apolloTracksForwardNavigation($selectedPost)
@@ -389,6 +417,7 @@ public struct FeedScreen: View {
         .apolloPopsOnTabReselection(item: $replyTarget)
         .apolloPopsOnTabReselection(item: $scrapedDestination)
         .apolloPopsOnTabReselection(item: $jumpDestination)
+        .apolloPopsOnTabReselection(isPresented: $searchSubmitted)
         .apolloPopsOnTabReselection(isPresented: $showingGallerySheet)
         // A scraped highlight has only a permalink, so it is resolved
         // into a real post the same way a deep link is: fetch first,
@@ -447,7 +476,13 @@ public struct FeedScreen: View {
         .apolloMeasuresTitleCentering(key: "feed", offset: $titleCenteringOffset)
         .toolbar {
             ToolbarItem(placement: .principal) {
+                if jumpBarActive {
+                    JumpBarField(repository: repository, isActive: $jumpBarActive, text: $jumpBarText) { name in
+                        jumpDestination = .subreddit(name)
+                    }
+                } else {
                     Button {
+                        jumpBarActive = true
                     } label: {
                         HStack(spacing: 4) {
                             // Width budget: see `navigationTitleMaxWidth`.
@@ -467,6 +502,7 @@ public struct FeedScreen: View {
                     .offset(x: titleCenteringOffset)
                     .accessibilityIdentifier("feed.titleJumpBarButton")
                 .apolloGlassBarTint()
+                }
             }
         }
         .navigationDestination(item: $jumpDestination) { destination in
@@ -478,17 +514,35 @@ public struct FeedScreen: View {
             }
         }
         .apolloTracksForwardNavigation($jumpDestination)
+        .onChange(of: jumpBarActive) { _, active in
+            if !active { jumpBarText = "" }
+        }
         // The back button is icon only: a bare circular chevron. Liquid Glass
         // collapses it to its glyph (44pt circle); older iOS shows the
         // "< Subreddits" text form.
         .navigationBarBackButtonHidden(multiredditDisplayName == nil)
         .toolbar {
+            // While the Jump Bar is active the back circle stays and a glass X
+            // circle replaces the trailing sort/••• pair.
+            if jumpBarActive {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        jumpBarActive = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .apolloFont(size: 17, weight: .semibold)
+                    }
+                    .accessibilityIdentifier("jumpBar.cancel")
+                    .accessibilityLabel("Cancel")
+                }
+            }
             if multiredditDisplayName == nil {
                 ToolbarItem(placement: .navigation) {
                     FeedBackButton()
                         .apolloGlassBarTint()
                 }
             }
+            if !jumpBarActive {
             // The feed toolbar shows two trailing icons: sort and
             // "•••". The sort icon changes with the active sort; tapping
             // it opens "Sort by…" as a sheet or UIMenu depending on
@@ -511,6 +565,7 @@ public struct FeedScreen: View {
                 .accessibilityIdentifier("feed.overflowButton")
                 .apolloGlassBarTint()
             }
+            } // !jumpBarActive
         }
         .apolloTracksForwardNavigation($showingGallerySheet)
         .navigationDestination(isPresented: $showingGallerySheet) {

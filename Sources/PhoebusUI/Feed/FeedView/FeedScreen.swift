@@ -418,6 +418,8 @@ public struct FeedScreen: View {
         .apolloPopsOnTabReselection(item: $scrapedDestination)
         .apolloPopsOnTabReselection(item: $jumpDestination)
         .apolloPopsOnTabReselection(isPresented: $searchSubmitted)
+        .apolloPopsOnTabReselection(isPresented: $showingSidebarSheet)
+        .apolloPopsOnTabReselection(isPresented: $showingRulesSheet)
         .apolloPopsOnTabReselection(isPresented: $showingGallerySheet)
         // A scraped highlight has only a permalink, so it is resolved
         // into a real post the same way a deep link is: fetch first,
@@ -567,6 +569,18 @@ public struct FeedScreen: View {
             }
             } // !jumpBarActive
         }
+        // Apollo's per-subreddit "•••" overflow sheet, also the home
+        // for Search/Gallery View/Submit Post since they have no own
+        // toolbar icons. Subreddit-specific actions only apply to a
+        // real subreddit, not the pseudo-feeds or multireddits.
+        .apolloTracksForwardNavigation($showingSidebarSheet)
+        .navigationDestination(isPresented: $showingSidebarSheet) {
+            SubredditSidebarScreen(subredditName: subreddit, repository: repository)
+        }
+        .apolloTracksForwardNavigation($showingRulesSheet)
+        .navigationDestination(isPresented: $showingRulesSheet) {
+            SubredditRulesScreen(subredditName: subreddit, repository: repository)
+        }
         .apolloTracksForwardNavigation($showingGallerySheet)
         .navigationDestination(isPresented: $showingGallerySheet) {
             // Hand over everything that identifies THIS feed.
@@ -587,10 +601,23 @@ public struct FeedScreen: View {
                 repository: repository
             )
         }
+        .apolloTracksForwardNavigation($showingModeratorsSheet)
+        .navigationDestination(isPresented: $showingModeratorsSheet) {
+            SubredditModeratorsScreen(subredditName: subreddit, repository: repository)
+        }
         .sheet(isPresented: $showingAddToMultireddit) {
             AddToMultiredditSheet(subredditName: subreddit, repository: repository) {
                 showingAddToMultireddit = false
             }
+        }
+        .sheet(isPresented: $showingSubredditNotifications) {
+            SubredditNotificationsSheet(subredditName: subreddit) {
+                showingSubredditNotifications = false
+            }
+        }
+        .apolloTracksForwardNavigation($showingModQueueSheet)
+        .navigationDestination(isPresented: $showingModQueueSheet) {
+            ModQueueScreen(subreddit: subreddit, repository: repository)
         }
         .sheet(item: $editingMultireddit) { editing in
             MultiredditEditSheet(path: editing.path, repository: repository) {

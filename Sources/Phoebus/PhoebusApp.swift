@@ -121,6 +121,7 @@ struct PhoebusApp: App {
 /// the signed-in user's own username, "Search" and "Settings".
 struct MainTabView: View {
     @ObservedObject private var inboxBadge = InboxBadge.shared
+    @State private var showingSessionExpired = false
     @State private var showingAccountsForReSignIn = false
     let repository: RedditRepository
     let authClient: RedditAuthClient
@@ -185,6 +186,18 @@ struct MainTabView: View {
         // at the tab-view root since the voting helpers have no view
         // of their own. See `SignInRequiredPresenter`.
         .apolloSignInRequiredAlert()
+        // Reborn #1200: a refused refresh token (password change) asks
+        // the user to sign in to the account again.
+        .onReceive(NotificationCenter.default.publisher(for: .apolloSessionExpired)
+            .receive(on: RunLoop.main)) { _ in
+            showingSessionExpired = true
+        }
+        .alert("Session Expired", isPresented: $showingSessionExpired) {
+            Button("Sign In") { showingAccountsForReSignIn = true }
+            Button("Later", role: .cancel) {}
+        } message: {
+            Text("Your Reddit session expired. Sign in again to load this account.")
+        }
         .sheet(isPresented: $showingAccountsForReSignIn) {
             NavigationStack { AccountManagerScreen(accountManager: accountManager) }
         }
@@ -244,6 +257,8 @@ struct MainTabView: View {
                 TabBarSwipeNavigationProbe().frame(width: 0, height: 0)
             }
         }
+        // Reddit rate-limiting an API-Key-Free account (#1220).
+        .apolloRateLimitNotice()
     }
 
     /// "Profile Picture Tab Icon": the Liquid Glass tab bar's

@@ -22,9 +22,14 @@ public struct PostDetailScreen: View {
     @State var modStickied: Bool?
     @State var modLocked: Bool?
     @State var modMessage: String?
+    /// Reborn "Floating Post Tabs". Optional so previews/tests work without one;
+    /// `MainTabView` installs the app-wide instance via
+    /// `.environment(\.floatingPostTabsManager:)`.
+    @Environment(\.floatingPostTabsManager) private var floatingPostTabsManager
     /// Height reserved by the floating Liquid Glass tab bar, so the
     /// jump button can sit clear of it.
     @Environment(\.colorScheme) private var colorScheme
+    @Setting(FloatingPostTabsSettingsStore.storage) private var floatingTabsSettings
     // `.navigationDestination(item:)` dispatches by value type, not
     // binding identity, so two separate `String?` destinations would
     // collide; `JumpDestination` combines both into one enum.
@@ -451,6 +456,7 @@ extension PostDetailScreen {
         ids += ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children",
                    "select-text", "share", "share-image", "crosspost", "find", "award", "copy-link", "remind-me"]
         if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
+        if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
         ids += ["mute-notifications", "report", "live-activity", "spec.DeletedComments"]
         return ids
     }
@@ -600,6 +606,13 @@ extension PostDetailScreen {
             Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")
             }
+        case "spec.FloatingTabs":
+            Button { floatingPostTabsManager?.add(post: post) } label: {
+                Label(floatingPostTabsManager?.isKept(post) == true ? "Already Kept in Floating Tab" : "Keep in Floating Tab",
+                      systemImage: "circle.grid.2x2")
+            }
+            .disabled(floatingPostTabsManager?.isKept(post) == true)
+            .accessibilityIdentifier("postDetail.keepInFloatingTab")
         case "mute-notifications":
             Button {
                 isMuted.toggle()

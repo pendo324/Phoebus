@@ -154,6 +154,11 @@ struct MainTabView: View {
     @Setting(GeneralSettingsStore.storage) private var generalSettings
     @State private var liquidGlassSelection = 0
     private static let tabBarSwipeNavigationAtLaunch = GeneralSettingsStore.load().tabBarSwipeNavigation
+    /// "Floating Post Tabs"; see `FloatingPostTabsSettings`. One
+    /// app-wide manager, installed into the environment and overlaid
+    /// above the tab bar so bubbles float above every tab.
+    @StateObject private var floatingPostTabsManager = FloatingPostTabsManager()
+    @Setting(FloatingPostTabsSettingsStore.storage) private var floatingTabsSettings
     @ObservedObject private var selectText = SelectTextPresenter.shared
     /// "Remember Subreddit"/"Default Reddit to Load" push the launch
     /// destination onto the Posts tab's stack. Guards the one-time
@@ -178,10 +183,16 @@ struct MainTabView: View {
             .sheet(item: $selectText.request) { request in
                 SelectTextSheet(title: request.title, body: request.body) { selectText.request = nil }
             }
+            .overlay(alignment: .bottom) {
+                if floatingTabsSettings.enabled {
+                    FloatingPostTabsOverlay(manager: floatingPostTabsManager, repository: repository)
+                }
+            }
         // Live-apply General settings changes (e.g. the Liquid Glass toggle).
         .onReceive(NotificationCenter.default.publisher(
             for: GeneralSettingsStore.didChangeNotification)) { _ in
         }
+        .environment(\.floatingPostTabsManager, floatingPostTabsManager)
         // "Sign In to Upvote"/"Downvote"/"Reply" alerts, hosted once
         // at the tab-view root since the voting helpers have no view
         // of their own. See `SignInRequiredPresenter`.

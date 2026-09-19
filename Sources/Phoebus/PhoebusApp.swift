@@ -16,6 +16,15 @@ struct PhoebusApp: App {
     @State private var themeRevision = 0
     @State private var checkedPersistedLogin = false
     @State private var pendingDeepLink: RedditURLTarget?
+
+    /// Applies the "Automatic Switch Threshold" section: system
+    /// following, the three switch modes, brightness threshold and
+    /// schedule times. Preserves the user's theme family (light/dark
+    /// pairs sharing a name) rather than dropping onto a stock default.
+    private func applyAutomaticThemeSwitchIfNeeded() {
+        ThemeAutoSwitch.applyIfNeeded()
+    }
+
     init() {
         // Local crash recording first, so it covers everything after.
         CrashRecorder.start()
@@ -96,6 +105,36 @@ struct PhoebusApp: App {
                 ThemeAppearance.apply(theme)
                 // iPad "Move Tab Bar to Bottom" (dormant on iPhone).
                 IPadTabBarBottom.install()
+                applyAutomaticThemeSwitchIfNeeded()
+            }
+            // Re-evaluated on foreground and on a timer, so a
+            // scheduled switch happens while the app is open.
+            .onReceive(
+                Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+            ) { _ in
+                applyAutomaticThemeSwitchIfNeeded()
+            }
+            #if canImport(UIKit)
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification)) { _ in
+                applyAutomaticThemeSwitchIfNeeded()
+            }
+            // Live, as Apollo's: the brightness threshold and the
+            // system's own light/dark change.
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIScreen.brightnessDidChangeNotification)) { _ in
+                applyAutomaticThemeSwitchIfNeeded()
+            }
+            .onAppear {
+                SystemStyleObserver.start { applyAutomaticThemeSwitchIfNeeded() }
+            }
+            #endif
+            // Turning Use System Light/Dark Mode (or another rule) on takes
+            // effect at once.
+            .onReceive(NotificationCenter.default.publisher(for: .apolloSettingsChanged)) { note in
+                guard note.object as? String == ThemeAutoSwitchSettingsStore.defaultsKey else { return }
+                ThemeAutoSwitch.clearOverride()
+                applyAutomaticThemeSwitchIfNeeded()
             }
             .onReceive(NotificationCenter.default.publisher(for: ThemeStore.didChangeNotification)) { _ in
                 theme = ThemeStore.load()
@@ -107,6 +146,8 @@ struct PhoebusApp: App {
             }
             // Pure Black Dark Mode as a genuine app-wide background override.
             .apolloPureBlackBackground(PureBlackSettingsStore.load())
+            // "Enable Quick Switch": a nav-bar long-press that toggles themes.
+            .apolloQuickSwitchGesture()
             // "Use System Text Size"/"Text Size": when off,
             // `textSizeScale` (0.8...1.4, default 1.0) maps onto
             // SwiftUI's `dynamicTypeSize`. When on (default), no
@@ -690,3 +731,24 @@ private struct BadgePollKey: Equatable {
     let isActive: Bool
     let repository: ObjectIdentifier
 }
+
+#if canImport(UIKit)
+/// Calls back when the system switches light/dark.
+@MainActor
+enum SystemStyleObserver {
+    private static var started = false
+
+    static func start(_ onChange: @escaping @MainActor () -> Void) {
+        guard !started,
+              let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        started = true
+        // The scene's traits are the system's; the app's forced style
+        // lives on its windows.
+        if #available(iOS 17.0, *) {
+            scene.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (_: UIWindowScene, _: UITraitCollection) in
+                onChange()
+            }
+        }
+    }
+}
+#endif

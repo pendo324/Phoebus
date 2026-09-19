@@ -135,6 +135,8 @@ public struct SettingsScreen: View {
     @ViewBuilder
     private func destination(for section: SettingsSection) -> some View {
         switch section {
+        case .appearance:
+            AppearanceSettingsScreen()
         case .theme:
             ThemeSettingsScreen()
         case .about:

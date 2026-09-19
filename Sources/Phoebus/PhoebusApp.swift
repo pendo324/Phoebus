@@ -80,6 +80,9 @@ struct PhoebusApp: App {
                 // phoebus://open?url=... links from the Share Sheet action extension.
                 if let target = RedditURLTarget.parseAppScheme(url) {
                     pendingDeepLink = target
+                } else if let action = QuickAction.parse(url) {
+                    // Reborn's `apollo://reborn/<action>` URLs.
+                    QuickActionRouter.shared.pending = action
                 }
             }
             .tint(Color(hex: theme.accentColorHex))
@@ -194,6 +197,9 @@ struct MainTabView: View {
     /// user's setting; `false` keeps stock `TabView` behavior.
     @Setting(GeneralSettingsStore.storage) private var generalSettings
     @State private var liquidGlassSelection = 0
+    /// Path for the Settings tab's stack; see `SettingsNavigationModel`,
+    /// which enables back/forward page swipes on Settings.
+    @StateObject private var settingsNavigation = SettingsNavigationModel(tab: 4)
     private static let tabBarSwipeNavigationAtLaunch = GeneralSettingsStore.load().tabBarSwipeNavigation
     /// "Floating Post Tabs"; see `FloatingPostTabsSettings`. One
     /// app-wide manager, installed into the environment and overlaid
@@ -280,6 +286,7 @@ struct MainTabView: View {
                       badge: InboxBadge.badgeText(inboxBadge.unreadCount)) { inboxTab },
                 .init(id: 2, title: profileTabTitle, systemImage: "person.circle", stockIcon: "tab-bar-profile", customIcon: profileTabIcon) { profileTab },
                 .init(id: 3, title: "Search", systemImage: "magnifyingglass", stockIcon: "tab-bar-search") { searchTab },
+                .init(id: 4, title: "Settings", systemImage: "gearshape", stockIcon: "tab-bar-settings") { settingsTab },
             ],
             selection: $liquidGlassSelection,
             hideBarsOnScroll: generalSettings.hideBarsOnScroll,
@@ -309,8 +316,29 @@ struct MainTabView: View {
                 TabBarSwipeNavigationProbe().frame(width: 0, height: 0)
             }
         }
+        // Home-screen quick actions.
+        .onAppear { performPendingQuickAction() }
+        .onReceive(NotificationCenter.default.publisher(for: .apolloQuickAction)) { _ in
+            performPendingQuickAction()
+        }
         // Reddit rate-limiting an API-Key-Free account (#1220).
         .apolloRateLimitNotice()
+    }
+
+    /// Search / Inbox / Profile / Settings select their tab; Home
+    /// opens the front-page feed on the Posts tab.
+    private func performPendingQuickAction() {
+        guard let action = QuickActionRouter.shared.pending else { return }
+        QuickActionRouter.shared.pending = nil
+        switch action {
+        case .home:
+            liquidGlassSelection = 0
+            subredditsDestination = .home
+        case .inbox: liquidGlassSelection = 1
+        case .profile: liquidGlassSelection = 2
+        case .search: liquidGlassSelection = 3
+        case .settings: liquidGlassSelection = 4
+        }
     }
 
     /// "Profile Picture Tab Icon": the Liquid Glass tab bar's
@@ -453,6 +481,7 @@ struct MainTabView: View {
         case 1: inboxNavigation.path.append(route)
         case 2: profileNavigation.path.append(route)
         case 3: searchNavigation.path.append(route)
+        case 4: settingsNavigation.path.append(route)
         default: postsNavigation.path.append(route)
         }
     }
@@ -554,6 +583,23 @@ struct MainTabView: View {
         .apolloPopsOnTabReselection(tab: 3, item: $searchDestination)
         // Stock Search re-tap at the root: scroll to top, then focus the field.
         .apolloScrollsThenPopsOnTabReselection(tab: 3, focusesSearchAtRoot: true)
+    }
+
+    private var settingsTab: some View {
+        NavigationStack(path: $settingsNavigation.path) {
+            SettingsScreen(repository: repository, accountManager: accountManager) {
+                Task {
+                    await authClient.signOut()
+                    onSignOut()
+                }
+            }
+            .apolloSettingsNavigation(settingsNavigation)
+            .apolloInteractiveSwipeNavigation()
+            // Inside the stack, not on it: attached outside, the
+            // probe's owning view controller has no
+            // `navigationController` to pop.
+            .apolloPopsToRootOnTabReselection(tab: 4)
+        }
     }
 
     /// Resolves a `SubredditsRootScreen` selection into the right

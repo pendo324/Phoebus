@@ -1,5 +1,76 @@
 import SwiftUI
 import PhoebusCore
+
+/// Settings search UI: the `.searchable` results list on the Settings root, and
+/// the destination for a chosen result.
+///
+/// Reborn's settings search. The matcher is a direct port (`SettingsSearch` in
+/// PhoebusCore). Upstream is a tweak and navigates by synthesising taps with
+/// delays and retries; here a result carries its destination directly and SwiftUI
+/// pushes it. The visible behaviour is kept: the result shows its breadcrumb, and
+/// the destination scrolls to the specific row and flashes it.
+struct SettingsSearchResultsList: View {
+    let entries: [SettingsSearchEntry]
+    let accountManager: AccountManager
+    let repository: RedditRepository
+
+    var body: some View {
+        if entries.isEmpty {
+            ContentUnavailableViewIfAvailable(
+                title: "No Results",
+                message: "No settings match your search.",
+                systemImage: "magnifyingglass"
+            )
+        } else {
+            List(entries) { entry in
+                SettingsLink {
+                    SettingsSearchDestination(
+                        entry: entry,
+                        accountManager: accountManager,
+                        repository: repository
+                    )
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.title)
+                        // Result rows carry the breadcrumb, the only way to tell two identically named
+                        // rows apart ("Provider" exists under both Translation and Apollo AI).
+                        Text(entry.breadcrumb)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier("settings.search.result.\(entry.title)")
+            }
+            .accessibilityIdentifier("settings.search.results")
+        }
+    }
+}
+
+/// The screen a chosen search result opens, with the target row
+/// highlighted.
+struct SettingsSearchDestination: View {
+    let entry: SettingsSearchEntry
+    let accountManager: AccountManager
+    let repository: RedditRepository
+
+    var body: some View {
+        screen
+            // After landing, the target row is scrolled to and briefly flashed. Upstream does
+            // this by index path against a UITableView; here the row publishes its own title
+            // and matching rows highlight themselves.
+            .environment(\.settingsSearchHighlightedRow, entry.rowTitle)
+    }
+
+    @ViewBuilder
+    private var screen: some View {
+        switch entry.screen {
+        case .settingsRoot, .accounts:
+            AccountManagerScreen(accountManager: accountManager)
+        case .about: AboutScreen()
+        }
+    }
+}
+
 // MARK: - Row highlighting
 
 private struct SettingsSearchHighlightedRowKey: EnvironmentKey {

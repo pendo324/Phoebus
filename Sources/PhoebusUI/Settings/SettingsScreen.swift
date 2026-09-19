@@ -89,6 +89,16 @@ public struct SettingsScreen: View {
             // Section 2: Wallpapers, About.
             Section {
                 SettingsNavigationRow {
+                    WallpapersSettingsScreen()
+                } label: {
+                    // Row 0's accessory is a download glyph, not a chevron.
+                    SettingsIconRow(title: "Wallpapers",
+                                    systemImage: "photo.on.rectangle.angled",
+                                    tint: .red,
+                                    accessory: .download)
+                }
+                .apolloSettingsRowInsets()
+                SettingsNavigationRow {
                     AboutScreen()
                 } label: {
                     SettingsRow(section: .about)
@@ -125,6 +135,8 @@ public struct SettingsScreen: View {
     @ViewBuilder
     private func destination(for section: SettingsSection) -> some View {
         switch section {
+        case .theme:
+            ThemeSettingsScreen()
         case .about:
             AboutScreen()
         case .security:

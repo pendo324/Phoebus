@@ -62,6 +62,7 @@ let package = Package(
             // Apollo-style vector glyphs (info row, vote arrows); see
             // `Shared/Chrome/StockIcon.swift`.
             resources: [
+                .copy("Resources/LiquidGlassIcons"),
                 .copy("Resources/StockIcons"),
                 .copy("Resources/BadgeBook"),
             ],

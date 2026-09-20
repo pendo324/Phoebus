@@ -25,6 +25,8 @@ public struct SettingsScreen: View {
         switch section {
         case .theme:
             return ThemeStore.load().isDark ? "Dark" : "Light"
+        case .appIcon:
+            return AppIconStore.load().displayName
         case .security:
             return appLockSettings.isEnabled ? "On" : "Off"
         case .accounts:
@@ -37,6 +39,17 @@ public struct SettingsScreen: View {
     @State private var searchText = SettingsSearchDebugSeed.initialQuery
     /// The search field's bottom edge on screen, where the results start.
     @State private var searchFieldBottom: CGFloat = 0
+
+    /// The row title for the device's biometry: "Face ID & Passcode" on a Face ID
+    /// phone, "Touch ID & Passcode" on a Touch ID one, plain "Passcode" with neither.
+    private var passcodeRowTitle: String {
+        switch AppLockStore.hardwareBiometry {
+        case .faceID: return "Face ID & Passcode"
+        case .touchID: return "Touch ID & Passcode"
+        case .none: return "Passcode"
+        }
+    }
+
     public var body: some View {
         crashTrackedBody.onAppear { CrashRecorder.record(.openedSettings) }
     }
@@ -84,6 +97,25 @@ public struct SettingsScreen: View {
                                     tint: .yellow)
                 }
                 .apolloSettingsRowInsets()
+            }
+
+            // Section 1: General, Appearance, Notifications, App Icon, Face ID & Passcode,
+            // Filters & Blocks, Gestures.
+            Section {
+                ForEach([SettingsSection.appearance, .notifications, .appIcon, .security, .filters, .gestures]) { section in
+                    SettingsNavigationRow {
+                        destination(for: section)
+                    } label: {
+                        SettingsRow(section: section,
+                                    title: section == .security ? passcodeRowTitle : nil,
+                                    detail: detailValue(for: section),
+                                    // App Icon shows the selected icon's artwork rather than an SF Symbol tile.
+                                    artwork: section == .appIcon
+                                        ? AppIconArtwork.current()
+                                        : nil)
+                    }
+                    .apolloSettingsRowInsets()
+                }
             }
 
             // Section 2: Wallpapers, About.
@@ -141,6 +173,8 @@ public struct SettingsScreen: View {
             FiltersSettingsScreen()
         case .markReadHiding:
             MarkReadSettingsScreen()
+        case .appIcon:
+            AppIconSettingsScreen()
         case .appearance:
             AppearanceSettingsScreen()
         case .theme:

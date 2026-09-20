@@ -15,6 +15,7 @@ cd "$(dirname "$0")/.."
 source scripts/xtool-env.sh
 [ -n "${SHIM_DIR:-}" ] && trap 'rm -rf "$SHIM_DIR"' EXIT
 
+scripts/generate-icons.sh
 # Links with the simulator's platform name (see Package.swift).
 export PHOEBUS_LINK_PLATFORM=ios-simulator
 "${SANDBOX[@]}" "$XTOOL" dev build --triple "$TRIPLE"

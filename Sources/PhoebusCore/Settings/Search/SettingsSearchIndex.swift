@@ -23,8 +23,20 @@ public struct SettingsSearchEntry: Sendable, Equatable, Identifiable {
 /// Every settings screen a search result can land on.
 public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case settingsRoot
+    case gestures
+    case filters
+    case markRead
+    case appIcon
+    case appearance
+    case theme
     case about
+    case notifications
+    case security
+    case portraitLock
     case accounts
+    case commentsTheme
+    case wallpapers
+    case themeGallery
 }
 
 /// Settings search: matching and ranking, ported from Apollo-Reborn's

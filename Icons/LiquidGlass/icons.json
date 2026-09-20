@@ -1,0 +1,847 @@
+{
+  "icons": [
+    {
+      "id": "apollo",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "AppIcon",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "halo",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "halo-glass",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "apollo-classic",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "aloppo-v2",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "igerman00",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "jryng",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "metalnakls",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "harunatsu",
+      "group": "original",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-morty",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-duck",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-antenna",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-spaceship",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-burnt-orange",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-green",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-dark",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-orange",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-purple",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-white",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-pink",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-gold",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-crimson",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-blueberry",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-calico",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-castro",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-teal",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-brown",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-sunset",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-gravel-juice",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-gray",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-chosen-one",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-enter-the-state",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-rule-of-two",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-galactic-zoomer",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-six-colors",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-stonewall",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-trans",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-pride",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-clearly-combustion",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-dino-spoon",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-apollos6",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-atp",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-canada",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-ernest",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-slothkun",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-dave2d",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-red-black-white",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-camera-pool",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-peachy",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-sandals",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-andru",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-rene",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-tld",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-snazzy",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "LG-eap",
+      "group": "classics",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "bajader-aperture-science",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "bajader-apollos",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "bajader-glitched",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "bajader-rtr",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "bajader-sunset",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "paulo1manso-modern",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "paulo1manso-modern-alt",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "synthwave",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "toon-bot",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "toon-bot-2",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "jryng-red",
+      "group": "concepts",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-halo",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-legacy",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-tribute",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-cryo",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-cryo-halo",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-parallax",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-parallax-halo",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-ultra",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-ultra-halo",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "helios-pixel",
+      "group": "helios",
+      "appearances": [
+        "default",
+        "dark",
+        "clear-light",
+        "clear-dark"
+      ]
+    },
+    {
+      "id": "in-the-jungle",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "space-paws",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "grumpy-space-paws",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "explorer-of-smiles-ii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "gorilla-gus-ii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "the-little-prince-ii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "under-the-tree-ii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "under-the-tree-iii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    },
+    {
+      "id": "wish-maker-ii",
+      "group": "ultra",
+      "appearances": [
+        "default"
+      ]
+    }
+  ]
+}

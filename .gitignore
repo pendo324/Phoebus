@@ -12,3 +12,10 @@ DerivedData/
 # Machine-specific build overrides (see docs/building-on-linux.md)
 /scripts/local.sh
 /.bsp/
+
+# Rendered by scripts/generate-icons.sh
+/Icons/LiquidGlass/*/*/*.png
+/Icons/LiquidGlass/*/*/.rendered
+/Sources/PhoebusUI/Resources/LiquidGlassIcons/*.png
+/Icons/Standard/*/
+/Icons/Standard/.extracted

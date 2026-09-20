@@ -66,7 +66,22 @@ struct SettingsSearchDestination: View {
         switch entry.screen {
         case .settingsRoot, .accounts:
             AccountManagerScreen(accountManager: accountManager)
+        case .gestures: GestureSettingsScreen()
+        case .filters: FiltersSettingsScreen()
+        case .markRead: MarkReadSettingsScreen()
+        case .appIcon: AppIconSettingsScreen()
+        case .appearance: AppearanceSettingsScreen()
+        case .theme: ThemeSettingsScreen()
         case .about: AboutScreen()
+        case .notifications: NotificationsSettingsScreen()
+        case .security: SecuritySettingsScreen()
+        case .portraitLock: PortraitLockSettingsScreen()
+        case .commentsTheme: CommentsThemeSettingsScreen()
+        case .wallpapers: WallpapersSettingsScreen()
+        case .themeGallery:
+            // The gallery needs a selection handler a search result cannot supply, so this
+            // lands on the Theme screen that owns it.
+            ThemeSettingsScreen()
         }
     }
 }

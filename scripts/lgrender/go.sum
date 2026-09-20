@@ -1,0 +1,4 @@
+github.com/jackmordaunt/icns/v4 v4.2.1-0.20260923175900-ffc7bb39bd31 h1:rDrLG6SHNUvKFqu4zj1V7esEdm69d4hf1rtX1FU6GY0=
+github.com/jackmordaunt/icns/v4 v4.2.1-0.20260923175900-ffc7bb39bd31/go.mod h1:Yffkabiq+b8uEF9gEb7O1D0piOmLlBjbrmrVAGsKa6E=
+golang.org/x/image v0.46.0 h1:b1+oYj0Jbp6K5MDT4i4/eZpYlk3V8SJhhDKh6LBHAyQ=
+golang.org/x/image v0.46.0/go.mod h1:3B3W05VGVQyuXucLINLjXKrqISASfi4Xj+iCVkLMwew=

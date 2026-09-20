@@ -137,6 +137,8 @@ public struct SettingsScreen: View {
         switch section {
         case .gestures:
             GestureSettingsScreen()
+        case .filters:
+            FiltersSettingsScreen()
         case .markReadHiding:
             MarkReadSettingsScreen()
         case .appearance:

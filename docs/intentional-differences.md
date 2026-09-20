@@ -4,6 +4,14 @@ Phoebus aims to match Apollo for Reddit's design and Apollo Reborn's
 features closely. This page lists the places where it deliberately does
 not, and why.
 
+## Feeds and subreddits
+
+- **Filtered subreddits are filtered locally.** Filtering applies to
+  All and Popular only, and the filters are not synced to Reddit's
+  server-side r/all filter. Apollo synced Filtered Subreddits to that
+  server-side filter; Reborn adds nothing here, so Phoebus keeps the
+  filters on the device for now.
+
 ## Media and link previews
 
 - **Link previews are one unified card pipeline.** Reborn's rich

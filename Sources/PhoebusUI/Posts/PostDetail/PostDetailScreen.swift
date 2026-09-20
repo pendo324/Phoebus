@@ -9,6 +9,7 @@ public struct PostDetailScreen: View {
     let repository: RedditRepository
     @State private var isSubmitting = false
     @State private var submitError: String?
+    @State private var showingRemindMe = false
     @State private var showingReport = false
     @State private var commentSort: String
     @State private var showingCommentSortSheet = false
@@ -319,6 +320,13 @@ public struct PostDetailScreen: View {
                 }
             )
         }
+        .sheet(isPresented: $showingRemindMe) {
+            NavigationStack {
+                RemindMeScreen(post: post) {
+                    showingRemindMe = false
+                }
+            }
+        }
         .sheet(isPresented: $showingReport) {
             ReportSheet(fullname: post.name, repository: repository) {
                 showingReport = false
@@ -602,6 +610,8 @@ extension PostDetailScreen {
             Button { PasteboardHelper.copy(url: post.shareURL()) } label: {
                 Label("Copy Link", systemImage: "link")
             }
+        case "remind-me":
+            Button { showingRemindMe = true } label: { Label("Remind Me", systemImage: "alarm") }
         case "copy-text":
             Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")

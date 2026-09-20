@@ -147,6 +147,8 @@ public struct SettingsScreen: View {
             ThemeSettingsScreen()
         case .about:
             AboutScreen()
+        case .notifications:
+            NotificationsSettingsScreen()
         case .security:
             SecuritySettingsScreen()
         case .portraitLock:

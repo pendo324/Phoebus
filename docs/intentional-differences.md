@@ -37,3 +37,6 @@ not, and why.
   backend.** Phoebus has no APNs push: a build signed without a paid
   developer account has no push entitlement, so the backend delivers
   through Bark.
+- **Remind Me uses local notifications.** Reminders are scheduled on the
+  device through the system notification center, with no server-side
+  reminder service, so they also work offline.

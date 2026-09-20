@@ -135,6 +135,10 @@ public struct SettingsScreen: View {
     @ViewBuilder
     private func destination(for section: SettingsSection) -> some View {
         switch section {
+        case .gestures:
+            GestureSettingsScreen()
+        case .markReadHiding:
+            MarkReadSettingsScreen()
         case .appearance:
             AppearanceSettingsScreen()
         case .theme:

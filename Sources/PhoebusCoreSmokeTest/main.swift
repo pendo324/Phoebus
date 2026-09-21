@@ -445,6 +445,13 @@ sectionsReordered.order = [.moderator, .favorites, .multireddits, .following]
 let reorderedBlocks = SubredditSectionsPreview.blocks(for: sectionsReordered)
 check("reordering the sections reorders the preview's bands",
       reorderedBlocks.first?.key == "band.moderator")
+
+try await checkSubredditSectionsEnhancementsModernDividers()
+
+try await checkOpenInAppDedicatedAppLink()
+
+try await checkThemeGalleryTokenCompilerApolloReborn()
+
 // MARK: - Modmail conversation detail
 
 // Response envelope: `conversation`, `messages`, `modActions`. Messages
@@ -555,6 +562,15 @@ func makeChatJWT(expiringIn seconds: TimeInterval) -> String {
         .replacingOccurrences(of: "=", with: "")
     return "header.\(b64).signature"
 }
+
+try await checkRedditChatOverMatrix()
+
+try await checkChatSendQueueDesignPortedFrom()
+
+try await checkChatMediaDateHeaders()
+
+try await checkEphemeralEventsTypingReadReceipts()
+
 // MARK: - Message edits and deletions
 
 // An edit is a separate event relating to the original via m.replace and
@@ -593,6 +609,8 @@ check("a redacted message is dropped rather than shown empty",
       !chatEdited.contains { $0.id == "$gone" })
 check("surviving messages are unaffected",
       chatEdited.map(\.id) == ["$orig", "$keep"])
+
+try await checkChatReactions()
 // MARK: - Native modmail over a web session
 //
 // These decode captured Reddit responses in Tests/Fixtures/ rather than

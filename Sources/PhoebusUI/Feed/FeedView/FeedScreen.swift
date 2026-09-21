@@ -56,6 +56,9 @@ public struct FeedScreen: View {
     /// comment for the divider this drives.
     @Setting(AppearanceSettingsStore.storage) var appearanceSettings
     @State var selectedPost: RedditPost?
+    /// Info Row "Translation" marker target - see the 🌐 marker
+    /// in `PostRow`'s stats row.
+    @State var translateTarget: RedditPost?
     /// Swipe-action targets for Reply and Share.
     @State var replyTarget: RedditPost?
     @State var shareTarget: RedditPost?
@@ -379,6 +382,9 @@ public struct FeedScreen: View {
         // last row is reachable at the bottom of the scroll.
         .apolloPostSwipePresenters(replyTarget: $replyTarget, shareTarget: $shareTarget,
                                    repository: repository)
+        .apolloTranslator(
+            isPresented: $translateTarget.isPresent(),
+            text: translateTarget.map { [$0.title, $0.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n") } ?? "")
         // Tapping the status bar a second time returns to where you were
         // reading.
         .restoresPositionOnSecondScrollToTop()
@@ -390,6 +396,7 @@ public struct FeedScreen: View {
             }
         }
         .apolloScrollReturnButton()
+        .apolloHidesHeaderOnScroll()
         // iOS 26's `List` (even with `.listStyle(.plain)`) wraps its
         // scrollable content in a rounded "Liquid Glass" card by
         // default. `.scrollContentBackground(.hidden)` disables that
@@ -759,6 +766,7 @@ public struct FeedScreen: View {
                 jumpToCommentsOnOpen = true
                 selectedPost = post
             },
+            onTranslateTap: { translateTarget = post },
             moreMenu: { AnyView(postContextMenu(for: post)) }
         )
         .contentShape(Rectangle())

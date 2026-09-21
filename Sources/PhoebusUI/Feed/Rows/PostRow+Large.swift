@@ -53,6 +53,7 @@ extension PostRow {
             }
                 .tagFilterCover(.title, isNSFW: post.over18, isActive: coversTitle) { revealTagPart(.title) }
                 .padding(.horizontal)
+                .apolloTranslatesTitle(post.title, into: $translatedTitle)
                 // VoiceOver: the large row can't be merged whole
                 // (video/gallery/link card is separately operable), so
                 // the title carries the full spoken summary and the
@@ -60,6 +61,10 @@ extension PostRow {
                 // duplicates.
                 .accessibilityLabel(accessibilitySummary)
                 .accessibilityAddTraits(.isButton)
+            if translatedTitle != nil, !shouldBlurTitle {
+                TitleTranslationMarker(original: post.title).padding(.horizontal)
+            }
+
             // "Swipe Through Feed Galleries" (`UDKeyFeedGalleryCarousel`): when on and
             // this post is a multi-image gallery, page through its images in the feed
             // row. "Swipe Past Gallery to Navigate" is not supported: `PostRow` has no

@@ -85,6 +85,11 @@ extension PostRow {
                     }
                 }
                 .tagFilterCover(.title, isNSFW: post.over18, isActive: coversTitle) { revealTagPart(.title) }
+                // Reborn "Translate Post Titles" (see `TitleTranslation`).
+                .apolloTranslatesTitle(post.title, into: $translatedTitle)
+                if translatedTitle != nil, !shouldBlurTitle {
+                    TitleTranslationMarker(original: post.title)
+                }
                 // `.lineLimit` has no effect on a `Layout` container (only on `Text`);
                 // titles are short enough that row-counting truncation isn't needed.
 

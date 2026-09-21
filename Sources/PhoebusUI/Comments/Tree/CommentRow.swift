@@ -48,6 +48,7 @@ struct CommentRow: View {
     private var displayScore: Int { node.comment.score + voteStore.scoreDelta(for: node.comment.name) }
     private var isSaved: Bool { voteStore.isSaved(node.comment.name, serverValue: node.comment.saved) }
     @State private var showingReport = false
+    @State private var showingTranslator = false
     @State private var isOwnComment = false
     @State private var isEditing = false
     @State private var editedText: String
@@ -165,6 +166,8 @@ struct CommentRow: View {
             Button { PasteboardHelper.copy(node.comment.author) } label: {
                 Label("Copy Username", systemImage: "doc.on.doc")
             }
+        case "translate":
+            Button { showingTranslator = true } label: { Label("Translate", systemImage: "character.bubble") }
         case "report":
             Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
         case "mute-notifications":
@@ -500,6 +503,7 @@ struct CommentRow: View {
                 showingReport = false
             }
         }
+        .apolloTranslator(isPresented: $showingTranslator, text: node.comment.body)
         .task { await checkOwnership() }
         // The row keeps its identity across refreshes, so its local copies
         // follow the comment when a newer version arrives (edit, live update,

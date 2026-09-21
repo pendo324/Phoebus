@@ -19,6 +19,7 @@ public struct ApolloRebornHubScreen: View {
 
     public var body: some View {
         List {
+            shortcutsSection
         }
         .apolloSettingsListAppearance()
         // Offsets the hub header's -21 top pull so the first header cap sits where
@@ -26,6 +27,94 @@ public struct ApolloRebornHubScreen: View {
         .safeAreaPadding(.top, 7)
         .navigationTitle("Apollo Reborn")
         .navigationBarTitleDisplayModeIfAvailable()
+    }
+
+    // MARK: - Shortcuts
+
+    /// Shortcuts, in order: Theme Manager, Open in App, Picture-in-Picture,
+    /// Translation, Saved Categories, Tag Filters, Color Flairs. These are
+    /// second entrances to screens that live elsewhere in settings, not new
+    /// features.
+    ///
+    /// "Color Flairs" is a switch alias, not a disclosure: Appearance → Flair stays
+    /// the canonical placement and the same preference changes from either.
+    private var shortcutsSection: some View {
+        Section {
+            SettingsNavigationRow {
+                TranslationSettingsScreen()
+            } label: {
+                HubRow(title: "Translation", systemImage: "character.bubble.fill", tint: .teal)
+            }
+            .apolloSettingsRowInsets()
+        } header: {
+            Text("Shortcuts")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Quick links to settings that also live in their own sections and in Phoebus's settings.")
+                    .apolloHubSectionFooter()
+        }
+    }
+}
+
+// MARK: - Row components
+
+/// The hub's disclosure row: a colored rounded tile with a white SF Symbol,
+/// the title, and an optional wrapping gray subtitle underneath.
+struct HubRow: View {
+    let title: String
+    var subtitle: String?
+    let systemImage: String
+    let tint: Color
+    /// Action rows get the accent action colour, no underline, no
+    /// chevron.
+    var isAction: Bool = false
+    /// Backup Settings is an action row that still pushes a screen, and
+    /// keeps its chevron.
+    var showsChevron: Bool? = nil
+    /// A trailing value before the chevron, e.g. Crash Reports' count.
+    var detail: String? = nil
+
+    var body: some View {
+        // Tile 29x29pt, title 17pt regular white, subtitle 15pt regular #8D8D92, 4pt
+        // under the title. Reborn's image frame is wider than the root's, so the
+        // title lands further right.
+        //
+        // Row height is vertical padding around the content, not a fixed box: a
+        // 3-line subtitle needs a third tier a fixed height can't express.
+        HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
+            SettingsTile(systemImage: systemImage, tint: tint)
+            VStack(alignment: .leading, spacing: ApolloSettingsRowMetrics.subtitleTopGap) {
+                Text(title)
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                    .foregroundStyle(isAction ? AnyShapeStyle(Color.apolloAccent) : AnyShapeStyle(.foreground))
+                    .lineLimit(1)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .apolloFont(size: ApolloSettingsRowMetrics.subtitlePointSize)
+                        .foregroundStyle(Color.apolloSettingsSecondary)
+                        // Long subtitles wrap.
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            // Subtitles run close to the chevron. A Spacer sibling would offer the
+            // wrappable subtitle only part of the leftover width and wrap early; a greedy
+            // frame gives the text column everything up to the chevron.
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let detail {
+                Text(detail)
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                    .foregroundStyle(Color.apolloSettingsSecondary)
+            }
+            // The 7x12 #464648 disclosure, same as the root's rows
+            // (`SettingsNavigationRow` hides the system one).
+            if showsChevron ?? !isAction {
+                ApolloSettingsChevron()
+                    .padding(.leading, 15 - ApolloSettingsRowMetrics.hubTileToTitleGap)
+            }
+        }
+        .padding(.vertical, (subtitle?.isEmpty == false)
+                 ? ApolloSettingsRowMetrics.hubRowVerticalPadWithSubtitle
+                 : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
     }
 }
 /// Shared colored-tile glyph used by every hub row: a 29x29 rounded rect at

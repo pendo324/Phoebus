@@ -142,6 +142,10 @@ struct PostDetailHeader: View {
                 selfTextCollapsed.toggle()
             }
             .accessibilityIdentifier("postDetail.titleCollapseToggle")
+            .apolloTranslatesTitle(post.title, into: $translatedTitle)
+            if translatedTitle != nil {
+                TitleTranslationMarker(original: post.title)
+            }
             if isDeleted {
                 Text("[deleted]").italic().foregroundStyle(.secondary)
             } else if post.pollData != nil {
@@ -207,6 +211,7 @@ struct PostDetailHeader: View {
             // Byline row: subreddit avatar + name, "by", author avatar
             // + name, no "in" prefix and no `r/`/`u/` markers.
             HStack(spacing: 4) {
+                Button(action: onSubredditTap) {
                     HStack(spacing: 8) {
                         SubredditIconView(subreddit: post.subreddit,
                                           repository: repository,
@@ -221,9 +226,12 @@ struct PostDetailHeader: View {
                             .lineLimit(1)
                             .minimumScaleFactor(bylineScale)
                     }
+                }
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("postDetail.subredditLink")
                 Text("by")
                     .apolloFont(size: 15)
+                Button(action: onAuthorTap) {
                     HStack(spacing: 4) {
                         AvatarView(username: post.author,
                                    repository: repository,
@@ -233,6 +241,8 @@ struct PostDetailHeader: View {
                             .lineLimit(1)
                             .minimumScaleFactor(bylineScale)
                     }
+                }
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("postDetail.authorLink")
                 .contextMenu {
                     Button {

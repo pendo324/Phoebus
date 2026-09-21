@@ -11,6 +11,7 @@ public struct PostDetailScreen: View {
     @State private var submitError: String?
     @State private var showingRemindMe = false
     @State private var showingReport = false
+    @State private var showingTranslator = false
     @State private var commentSort: String
     @State private var showingCommentSortSheet = false
     @State private var showingReplyComposer = false
@@ -77,6 +78,8 @@ public struct PostDetailScreen: View {
     /// This thread's translate/original choice (Reborn's per-thread
     /// globe); the app-wide setting is left alone.
     @State private var threadTranslated = TranslationSettings.threadStartsTranslated(TranslationSettingsStore.load())
+    @Setting(TranslationSettings.self) private var translationSettings
+
     public var body: some View {
         crashTrackedBody.onAppear { CrashRecorder.record(.openedPost) }
     }
@@ -327,6 +330,8 @@ public struct PostDetailScreen: View {
                 }
             }
         }
+        .apolloTranslator(isPresented: $showingTranslator,
+                          text: [post.title, post.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n"))
         .sheet(isPresented: $showingReport) {
             ReportSheet(fullname: post.name, repository: repository) {
                 showingReport = false
@@ -423,6 +428,12 @@ public struct PostDetailScreen: View {
                 showingFindInComments = true
             },
         ]
+        if translationSettings.enableBulkTranslation {
+            actions.append(.init(id: "translateThread", systemImage: "globe",
+                                 label: threadTranslated ? "Show Original" : "Translate Thread") {
+                threadTranslated.toggle()
+            })
+        }
         return actions
     }
 
@@ -612,6 +623,10 @@ extension PostDetailScreen {
             }
         case "remind-me":
             Button { showingRemindMe = true } label: { Label("Remind Me", systemImage: "alarm") }
+        case "translate":
+            Button { showingTranslator = true } label: {
+                Label("Translate", systemImage: "character.bubble")
+            }
         case "copy-text":
             Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")

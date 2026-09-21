@@ -48,6 +48,9 @@ struct PostDetailHeader: View {
     /// Opens the composer from the header's own action bar
     /// (upvote/downvote/save/reply/share).
     var onReply: (() -> Void)?
+    /// Drives the inline AI summary cards. Optional so the header
+    /// still renders standalone in previews.
+    var aiSummary: AISummaryController?
     @ObservedObject private var voteStore = VoteStateStore.shared
     @Setting(GeneralSettings.self) private var general
     private var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
@@ -66,8 +69,9 @@ struct PostDetailHeader: View {
     /// With this device's own vote, as the feed row shows it.
     private var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }
 
-    init(post: RedditPost, repository: RedditRepository, onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil) {
+    init(post: RedditPost, repository: RedditRepository, onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil, aiSummary: AISummaryController? = nil) {
         self.onReply = onReply
+        self.aiSummary = aiSummary
         self.post = post
         self.onJumpToComments = onJumpToComments
         self.repository = repository
@@ -172,6 +176,10 @@ struct PostDetailHeader: View {
                         Button("Save") { Task { await saveEdit() } }
                     }
                 } else if let selftext = savedEdit ?? post.selftext, !selftext.isEmpty {
+                    // Anchor 2: immediately above the body markdown,
+                    // so on a plain text post the card sits between
+                    // the title and the body.
+                    postSummaryCard
                     // Collapsing the body hides it entirely, not a truncated line budget.
                     if !selfTextCollapsed {
                         InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
@@ -191,6 +199,8 @@ struct PostDetailHeader: View {
                         Task { await vote(direction: voteState == true ? 0 : 1) }
                     })
                 }
+                // Anchor 1: directly below the link-preview card.
+                if post.crosspostParent == nil { postSummaryCard }
                 if let selftext = post.selftext, !selftext.isEmpty {
                     // A spoiler-marked post must hide its body too, not
                     // just its media, since `PostMediaView.contentWarning`
@@ -408,8 +418,50 @@ struct PostDetailHeader: View {
             // `.symbolRenderingMode(.monochrome)` equalizes them.
             .apolloFont(size: 17)
             .imageScale(.medium)
+
+            // Last child of the header stack, appended after the
+            // action bar rather than inserted, immediately before the
+            // first comment.
+            discussionSummaryCard
         }
     }
+
+    /// The post/link summary card. Placement follows
+    /// `ApolloAIInsertPostSummary`: below the inline link-preview
+    /// card, or failing that above the body markdown.
+    @ViewBuilder
+    private var postSummaryCard: some View {
+        if let aiSummary, aiSummary.showsPostCard {
+            AISummaryCardView(
+                kind: aiSummary.postKind,
+                state: aiSummary.postState,
+                provider: aiSummary.provider,
+                expanded: Binding(
+                    get: { aiSummary.postExpanded },
+                    set: { _ in aiSummary.toggleExpansion(isPost: true) }),
+                onTap: { aiSummary.tapToGeneratePost() }
+            )
+        }
+    }
+
+    /// The "Discussion so far" card, appended after the action bar,
+    /// immediately before the first comment.
+    @ViewBuilder
+    private var discussionSummaryCard: some View {
+        if let aiSummary, aiSummary.commentState != .none {
+            AISummaryCardView(
+                kind: .discussion,
+                state: aiSummary.commentState,
+                provider: aiSummary.provider,
+                sourceCount: aiSummary.commentSourceCount,
+                expanded: Binding(
+                    get: { aiSummary.commentExpanded },
+                    set: { _ in aiSummary.toggleExpansion(isPost: false) }),
+                onTap: { aiSummary.tapToGenerateComments() }
+            )
+        }
+    }
+
     /// Mirrors Apollo's "Edit"/"Delete" own-content menu items, gated
     /// on whether the signed-in user authored this post.
     private func checkOwnership() async {

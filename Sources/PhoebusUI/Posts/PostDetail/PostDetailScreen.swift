@@ -24,6 +24,18 @@ public struct PostDetailScreen: View {
     @State var modStickied: Bool?
     @State var modLocked: Bool?
     @State var modMessage: String?
+
+    /// Reborn "Apollo AI". Gated on `ApolloAISettings.summariesEnabled` so the menu
+    /// action only appears once the user has opted in from `ApolloAISettingsScreen`.
+    @Setting(ApolloAISettingsStore.storage) private var aiSettings
+    /// Drives the two inline summary cards. The menu action + sheet
+    /// below is a manual, on-demand path; these cards generate
+    /// automatically once the screen opens.
+    @StateObject private var aiSummary: AISummaryController
+    @State private var showingAISummary = false
+    @State private var isSummarizing = false
+    @State private var aiSummaryText: String?
+    @State private var aiSummaryError: String?
     /// Reborn "Floating Post Tabs". Optional so previews/tests work without one;
     /// `MainTabView` installs the app-wide instance via
     /// `.environment(\.floatingPostTabsManager:)`.
@@ -63,6 +75,11 @@ public struct PostDetailScreen: View {
         self.repository = repository
         self.startScrolledToComments = startScrolledToComments
         self.startComposingReply = startComposingReply
+        // Remembered sort (per-post or per-subreddit) beats suggested
+        // sort, which beats the Default Sort setting.
+        let aiSettings = ApolloAISettingsStore.load()
+        _aiSummary = StateObject(wrappedValue:
+            AISummaryController(post: post, settings: aiSettings))
         let settings = GeneralSettingsStore.load()
         _commentSort = State(initialValue:
             CommentSortMemoryStore.rememberedSort(subreddit: post.subreddit, postID: post.id)
@@ -131,13 +148,24 @@ public struct PostDetailScreen: View {
             .alert(modMessage ?? "", isPresented: $modMessage.isPresent()) {
                 Button("OK", role: .cancel) {}
             }
+            // Generates the post summary card on open and the discussion
+            // card once comments are in, as two separate requests.
+            .onAppear {
+                // Re-read on every appearance: display-time gating must
+                // hide a generated card whose sub-toggle was just turned off.
+                aiSummary.settingsChanged(to: aiSettings)
+                aiSummary.onAppear()
+            }
             .onChange(of: commentStore.roots) { _, newRoots in
+                aiSummary.commentsDidLoad(candidates: Self.summaryCandidates(
+                    roots: newRoots, linkAuthor: post.author))
                 guard startScrolledToComments, !hasAutoScrolledToComments, let firstRootID = newRoots.first?.id else { return }
                 hasAutoScrolledToComments = true
                 withAnimation { scrollProxy.scrollTo(commentStore.rowID(firstRootID), anchor: .top) }
             }
             .onDisappear {
                 commentStore.stopLivePolling()
+                aiSummary.pause()
             }
             // Same FOLLOW/READ approximation as `CommentTreeScreen`;
             // SwiftUI's `List` has no CADisplayLink-based edge detector.
@@ -337,6 +365,7 @@ public struct PostDetailScreen: View {
                 showingReport = false
             }
         }
+        .sheet(isPresented: $showingAISummary) { aiSummarySheet }
         }
         // Closing this screen is the back-pop a floating PiP card answers.
         .floatingPiPScreenScope()
@@ -359,6 +388,7 @@ public struct PostDetailScreen: View {
                 }
             },
             onReply: { showingReplyComposer = true },
+            aiSummary: aiSummary
         )
         // Links opened from this post get the browser's comments button.
         .onAppear {
@@ -381,6 +411,68 @@ public struct PostDetailScreen: View {
             onAuthorTapped: { jumpDestination = .user($0) },
         )
     }
+
+    /// Flattens the loaded tree into ranking candidates. Uses
+    /// `flattenedAll()`, not `visibleFlattened()`: a collapsed comment
+    /// is still part of the discussion being summarized.
+    static func summaryCandidates(roots: [CommentTreeNode], linkAuthor: String) -> [AICommentSelector.Candidate] {
+        roots.flatMap { $0.flattenedAll() }.map { node in
+            AICommentSelector.Candidate(
+                id: node.comment.id,
+                author: node.comment.author,
+                body: node.comment.body,
+                score: node.comment.score,
+                controversiality: node.comment.controversiality ?? 0,
+                depth: node.comment.depth ?? node.depth,
+                linkAuthor: linkAuthor
+            )
+        }
+    }
+
+    /// Extracted from `body` for the same reason as `commentList`:
+    /// inline, it tipped this view past the type-checker's budget.
+    @ViewBuilder
+    private var aiSummarySheet: some View {
+        AISummarySheet(
+            isSummarizing: isSummarizing,
+            summaryText: aiSummaryText,
+            errorMessage: aiSummaryError,
+            onRetry: { Task { await summarizeWithAI() } }
+        )
+    }
+
+    /// Builds a plain-text excerpt of the post's selftext plus top-level comments and
+    /// sends it to `ApolloAIClient.summarize`, capped so a huge thread does not exceed
+    /// a provider's context window.
+    private func summarizeWithAI() async {
+        isSummarizing = true
+        aiSummaryText = nil
+        aiSummaryError = nil
+        defer { isSummarizing = false }
+        var pieces: [String] = []
+        pieces.append("Title: \(post.title)")
+        // A live interactive (Devvit) post renders as its widget, not its body, so its
+        // selftext is not summarized. See `DevvitPostDetector.aiShouldTreatAsBodyless`.
+        let bodyless = DevvitPostDetector.aiShouldTreatAsBodyless(
+            post: post,
+            devvitInteractivePosts: generalSettings.devvitInteractivePosts
+        )
+        if !bodyless, let selftext = post.selftext, !selftext.isEmpty {
+            pieces.append("Post body: \(selftext)")
+        }
+        let topComments = commentStore.roots.prefix(20).map { "u/\($0.comment.author): \($0.comment.body)" }
+        if !topComments.isEmpty {
+            pieces.append("Top comments:\n" + topComments.joined(separator: "\n"))
+        }
+        let combined = pieces.joined(separator: "\n\n")
+        let bounded = String(combined.prefix(8000))
+        do {
+            aiSummaryText = try await ApolloAIClient.summarize(text: bounded, settings: aiSettings)
+        } catch {
+            aiSummaryError = (error as? LocalizedError)?.errorDescription ?? "Couldn't generate a summary: \(UserFacingError.text(for: error))"
+        }
+    }
+
     /// Recomputes matches over the currently-loaded comment tree. Only searches what
     /// is already fetched/expanded, no paging in more.
     private func recomputeFindMatches(query: String) {
@@ -475,6 +567,7 @@ extension PostDetailScreen {
         ids += ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children",
                    "select-text", "share", "share-image", "crosspost", "find", "award", "copy-link", "remind-me"]
         if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
+        if aiSettings.summariesEnabled { ids.append("summarize") }
         if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
         ids += ["mute-notifications", "report", "live-activity", "spec.DeletedComments"]
         return ids
@@ -631,6 +724,12 @@ extension PostDetailScreen {
             Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")
             }
+        case "summarize":
+            Button {
+                showingAISummary = true
+                Task { await summarizeWithAI() }
+            } label: { Label("Summarize with AI", systemImage: "sparkles") }
+            .accessibilityIdentifier("postDetail.summarizeWithAI")
         case "spec.FloatingTabs":
             Button { floatingPostTabsManager?.add(post: post) } label: {
                 Label(floatingPostTabsManager?.isKept(post) == true ? "Already Kept in Floating Tab" : "Keep in Floating Tab",
@@ -663,6 +762,63 @@ extension PostDetailScreen {
     }
 
 }
+
+/// Presentation surface for "Summarize with AI": shows the generated
+/// summary or an error from `ApolloAIClient` as a sheet.
+struct AISummarySheet: View {
+    let isSummarizing: Bool
+    let summaryText: String?
+    let errorMessage: String?
+    let onRetry: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isSummarizing {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("Summarizing…")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let errorMessage {
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text(errorMessage)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                        Button("Try Again", action: onRetry)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityIdentifier("aiSummary.error")
+                } else if let summaryText {
+                    ScrollView {
+                        Text(summaryText)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("aiSummary.text")
+                } else {
+                    Text("No summary yet.")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .navigationTitle("AI Summary")
+            .navigationBarTitleDisplayModeIfAvailable()
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
 private extension Image {
 }
 private extension JumpButtonPosition {

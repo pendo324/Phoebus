@@ -12,6 +12,7 @@ import UIKit
 /// discloses to. Section titles, footers, row order, titles, SF Symbol names and
 /// tile colors follow Reborn.
 public struct ApolloRebornHubScreen: View {
+    @Setting(ApolloAISettings.self) private var apolloAISettings
     let accountManager: AccountManager
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
@@ -19,6 +20,7 @@ public struct ApolloRebornHubScreen: View {
 
     public var body: some View {
         List {
+            featuresSection
             shortcutsSection
         }
         .apolloSettingsListAppearance()
@@ -27,6 +29,32 @@ public struct ApolloRebornHubScreen: View {
         .safeAreaPadding(.top, 7)
         .navigationTitle("Apollo Reborn")
         .navigationBarTitleDisplayModeIfAvailable()
+    }
+
+    // MARK: - Features
+
+    /// Features, in order: Posts & Feeds, Comments, Media, Subreddits, Profile
+    /// Layout, Interface, Rich Link Previews, Polls, Apollo AI.
+    private var featuresSection: some View {
+        Section {
+            SettingsNavigationRow {
+                ApolloAISettingsScreen()
+            } label: {
+                HubRow(
+                    title: "Phoebus AI",
+                    subtitle: apolloAISettings.summaryText,
+                    systemImage: "sparkles",
+                    tint: .indigo
+                )
+            }
+            .apolloSettingsRowInsets()
+        } header: {
+            Text("Features")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Fine-tune posts, comments, media, subreddits, profile layout and the interface.")
+                    .apolloHubSectionFooter()
+        }
     }
 
     // MARK: - Shortcuts

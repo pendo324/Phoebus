@@ -989,3 +989,26 @@ check("the marker row is recognized",
       RedditMarkdown.isTableMarkerRow("|---|:---:|"))
 check("...and a data row is not mistaken for one",
       !RedditMarkdown.isTableMarkerRow("| a | b |"))
+try await checkInlineImgurAlbumsV290()
+
+try await checkPhoebusDeepLinkForms()
+
+try await checkShareMediaLinkNormalisation()
+
+try await checkColourizeVoteArrowsV340()
+
+try await checkInlineAISummaryCards()
+
+try await checkStoredAISettingsSurviveTheProvider()
+
+try await checkFeedRowSubredditHeaderCapitalizationMetrics()
+
+try await checkTheFeedHeaderKeepsItsCollapsed()
+
+try await checkRowSwipesMustBeStartable()
+
+try await checkRowSwipeMustNotBeRe()
+
+try await checkRowSwipesMustNotFightThe()
+
+try await checkHorizontalGesturesAndVerticalScrollingAre()

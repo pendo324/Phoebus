@@ -1,0 +1,10 @@
+{
+  "comment": "URLs the extension actually hands to iOS, captured from toAppURL(). Both sides of the handoff are checked against this file: SafariExtension/Tests/fixtures.test.js asserts the extension still produces exactly these, and PhoebusCoreSmokeTest asserts RedditURLTarget.parseAppScheme resolves each one. Neither side can see the other, so a fixture is the only thing that can catch a divergence.",
+  "cases": [
+    { "page": "https://www.reddit.com/r/apolloapp/comments/abc123/some_title/", "appURL": "phoebus://www.reddit.com/r/apolloapp/comments/abc123/some_title/", "target": "post(subreddit: \"apolloapp\", id: \"abc123\")" },
+    { "page": "https://old.reddit.com/r/swift/", "appURL": "phoebus://old.reddit.com/r/swift/", "target": "subreddit(\"swift\")" },
+    { "page": "https://reddit.com/u/iamthatis", "appURL": "phoebus://reddit.com/u/iamthatis", "target": "user(\"iamthatis\")" },
+    { "page": "https://www.reddit.com/r/pics/comments/xy/t/?context=3", "appURL": "phoebus://www.reddit.com/r/pics/comments/xy/t/?context=3", "target": "post(subreddit: \"pics\", id: \"xy\")" },
+    { "page": "https://www.reddit.com/r/all/top/?t=week", "appURL": "phoebus://www.reddit.com/r/all/top/?t=week", "target": "subreddit(\"all\")" }
+  ]
+}

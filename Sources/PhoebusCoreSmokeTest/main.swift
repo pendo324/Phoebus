@@ -297,6 +297,28 @@ let textPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: textPostJSO
 check("GalleryPostMedia.thumbnailURL returns nil for a text post", GalleryPostMedia.thumbnailURL(for: textPost) == nil)
 let filteredGalleryPosts = GalleryPostMedia.filterMediaPosts([imagePost, textPost])
 check("GalleryPostMedia.filterMediaPosts keeps only posts with media", filteredGalleryPosts.count == 1 && filteredGalleryPosts.first?.id == imagePost.id)
+// --- Devvit post detection (Reborn "Live Interactive Posts") ---
+// A self-text post whose selftext contains Reddit's old-Reddit fallback
+// body, with "not supported on old Reddit" and a "sh.reddit.com/r/"
+// link within 300 characters of each other, counts as devvit; a link
+// post with a self-referential URL does not.
+let realDevvitFallbackText = "This post contains content not supported on old Reddit.\n\n[Click here to view the full post](https://sh.reddit.com/r/test/comments/dev1)"
+let devvitPostJSON = """
+{
+    "id": "dev1", "name": "t3_dev1", "title": "Interactive Post",
+    "author": "u1", "subreddit": "test", "selftext": "\(realDevvitFallbackText.replacingOccurrences(of: "\n", with: "\\n"))",
+    "url": null,
+    "permalink": "/r/test/comments/dev1/interactive_post/",
+    "score": 1, "upvote_ratio": 1.0, "num_comments": 0,
+    "created_utc": 0, "is_self": true, "over_18": false,
+    "spoiler": false, "stickied": false, "saved": false, "likes": null
+}
+""".data(using: .utf8)!
+let devvitPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: devvitPostJSON)
+check("DevvitPostDetector identifies a real self-text post with the old-Reddit fallback body", DevvitPostDetector.isDevvitPost(post: devvitPost))
+check("DevvitPostDetector does not misclassify a normal external-link post", !DevvitPostDetector.isDevvitPost(post: imagePost))
+check("DevvitPostDetector does not misclassify an ordinary self/text post", !DevvitPostDetector.isDevvitPost(post: textPost))
+check("DevvitPostDetector rejects a post that merely quotes the fallback phrase far from the link", !DevvitPostDetector.selfTextIsInteractive("This is a very long post about how some posts say '\(String(repeating: "x", count: 350))not supported on old Reddit\(String(repeating: "x", count: 350))' but never actually link sh.reddit.com/r/ nearby, so it should not match. Padding to exceed the 300-char window on both sides so proximity genuinely fails."))
 // --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
 // sign-in flow) ---
 let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")

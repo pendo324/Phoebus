@@ -354,6 +354,28 @@ PureBlackSettingsStore.save(.default)
 check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
 
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+try await checkLinkPreviewSettings()
+
+try await checkDeletedCommentsClassifierArchivedComment()
+
+try await checkApolloRebornHubSettings()
+
+try await checkDeadToggleFixesGeneralSettingsScreenScope()
+
+try await checkLinkRouterOpenRedditLinksInApollo()
+
+try await checkFeedPaginationPolicyG42InfiniteScrollingWasEntirely()
+
+try await checkFinalDeadToggleLeftovers()
+
+try await checkStockApolloCoverageGapsClosed()
+
+try await checkCommentsThemeRealThemeManagerOptions()
+
+try await checkPushPopGesturePolicy()
+
+try await checkInteractiveTransition()
+
 // MARK: - Row-swipe / navigation mutual exclusivity
 //
 // `navigationClaimsTouch` is the single arbiter between navigation and row
@@ -398,6 +420,18 @@ for startX in [5.0, 20.0, 69.0, 200.0, 353.0, 380.0, 392.0] {
 
 check("the real insets stay asymmetric (back is the wider, common gesture)",
       PushPopGesturePolicy.leftInset == 70 && PushPopGesturePolicy.rightInset == 40)
+
+try await checkSettingsCache()
+
+try await checkRecentEntryPolicy()
+
+try await checkVoteStateStore()
+
+try await checkSwipeCommitPolicy()
+
+try await checkApolloReborn370Parity()
+
+try await checkApolloReborn370Parity2()
 checkLinkPreviews()
 // MARK: - Subreddit Sections live preview
 //

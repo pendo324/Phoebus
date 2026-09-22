@@ -1046,3 +1046,14 @@ try await checkRowSwipeMustNotBeRe()
 try await checkRowSwipesMustNotFightThe()
 
 try await checkHorizontalGesturesAndVerticalScrollingAre()
+try await checkTheFullscreenVideoViewerLayoutAnd()
+
+try await checkGalleryViewSOwnFullscreenViewer()
+
+try await checkGalleryViewerRealMediaRealChrome()
+
+try await checkGalleryMuteIsStickyAndThe()
+
+try await checkTheAudioSessionSurvivesAPage()
+
+try await checkCompactFeedRowMeasuredAgainstThe()

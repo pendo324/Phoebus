@@ -347,6 +347,11 @@ extension PostRow {
                     infoRowScoreTapped()
                 })
                 .onLongPressGesture(minimumDuration: 0.35, perform: infoRowScoreLongPressed)
+                .popover(isPresented: $showingInfoRowDetail) {
+                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                }
             // "% Upvoted" removed from feed rows: it's a
             // post-detail element, not shown in list rows.
             // Info Row tap-to-comments jumps to comments via

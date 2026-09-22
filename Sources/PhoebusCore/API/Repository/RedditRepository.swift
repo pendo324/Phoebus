@@ -200,6 +200,21 @@ public actor RedditRepository {
         ])
     }
 
+    /// Spends the signed-in user's already-owned Reddit Coins to give
+    /// an award. Never purchases coins; this app has no payment
+    /// processing. `message` is an optional note sent with the award.
+    public func giveAward(fullname: String, awardID: String, isAnonymous: Bool, message: String? = nil) async throws {
+        var parameters = [
+            "thing_id": fullname,
+            "gild_type": awardID,
+            "is_anonymous": isAnonymous ? "true" : "false",
+        ]
+        if let message, !message.isEmpty {
+            parameters["message"] = message
+        }
+        try await client.post(path: "/api/v2/gold/gild", parameters: parameters)
+    }
+
     /// Edits your own post selftext or comment body. Submit and edit
     /// share the same endpoint, distinguished by whether `thing_id`
     /// already exists.
@@ -443,6 +458,23 @@ public actor RedditRepository {
         // transport) account still votes even before its entry has
         // been migrated into the registry.
         return await client.webSessionCredential
+    }
+
+    /// Author-only comment vote insights. Uses the same web-feature
+    /// session as Polls/Chat, since /commentstats is not reachable
+    /// over OAuth. Returns nil with no web session so the caller can
+    /// explain how to sign in.
+    public func fetchCommentVoteInsights(commentID: String) async -> CommentVoteInsightsClient.Outcome {
+        guard let session = await webFeatureSession() else { return .blocked }
+        return await CommentVoteInsightsClient.fetch(
+            commentID: commentID,
+            cookieHeader: session.cookieHeader
+        )
+    }
+
+    /// Whether a web session exists for the Insights/Polls features.
+    public func hasWebFeatureSession() async -> Bool {
+        await webFeatureSession() != nil
     }
 
     public func votePoll(postFullname: String, optionID: String) async throws {

@@ -54,6 +54,7 @@ struct PostDetailHeader: View {
     @ObservedObject private var voteStore = VoteStateStore.shared
     @Setting(GeneralSettings.self) private var general
     private var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
+    @State private var showingVoteBreakdown = false
     @Setting(InfoRowSettings.self) private var infoRow
     @State private var selfTextCollapsed = false
     @State private var isEditing = false
@@ -349,6 +350,13 @@ struct PostDetailHeader: View {
                 .accessibilityAddTraits(voteState == true ? .isSelected : [])
                 .accessibilityIdentifier("postDetail.upvote")
                 Spacer(minLength: 0)
+                // Long-press the score for an approximate vote breakdown.
+                .onLongPressGesture { showingVoteBreakdown = true }
+                .popover(isPresented: $showingVoteBreakdown) {
+                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                }
                 Button {
                     Task { await vote(direction: voteState == false ? 0 : -1) }
                 } label: {

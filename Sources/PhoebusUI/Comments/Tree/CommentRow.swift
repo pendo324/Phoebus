@@ -56,6 +56,8 @@ struct CommentRow: View {
     @State private var showingReport = false
     @State private var showingTranslator = false
     @State private var isOwnComment = false
+    /// Author-only "Comment Insights" (see the context menu item).
+    @State private var showingInsights = false
     @State private var isEditing = false
     @State private var editedText: String
     @State private var isDeleted = false
@@ -155,6 +157,9 @@ struct CommentRow: View {
             Button(role: .destructive) { Task { await deleteComment() } } label: {
                 Label("Delete", systemImage: "trash")
             }
+        case "vote-insights":
+            // Reborn "Comment Insights" (author-only /commentstats).
+            Button { showingInsights = true } label: { Label("Vote Insights", systemImage: "chart.bar") }
         case "share":
             ShareLink(item: node.comment.shareURL()) { Label("Share", systemImage: "square.and.arrow.up") }
         case "copy-link":
@@ -535,6 +540,9 @@ struct CommentRow: View {
             }
         }
         .apolloTranslator(isPresented: $showingTranslator, text: node.comment.body)
+        .sheet(isPresented: $showingInsights) {
+            CommentVoteInsightsSheet(comment: node.comment, repository: repository)
+        }
         .task { await checkOwnership() }
         // The row keeps its identity across refreshes, so its local copies
         // follow the comment when a newer version arrives (edit, live update,

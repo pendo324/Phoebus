@@ -19,8 +19,14 @@ struct CommentRow: View {
     /// copy. Renders the recovered body (or a tappable reason chip under
     /// Tap-to-Reveal) instead of "[deleted]".
     var archivedComment: ArchivedComment? = nil
+    /// See `DeletedCommentsSettings.tapToReveal`'s doc comment.
+    var tapToReveal: Bool = false
     /// Present when Share as Image is available for this comment.
     var onShareAsImage: (() -> Void)? = nil
+    /// Whether the user has already tapped through this comment's chip.
+    var isRevealed: Bool = false
+    /// Marks this comment's chip as revealed.
+    var onReveal: () -> Void = {}
     let onToggleCollapse: () -> Void
     let onReplyTapped: () -> Void
     let onQuoteTapped: () -> Void
@@ -71,7 +77,7 @@ struct CommentRow: View {
         if general.tapToCollapseType.collapsesOnBodyTap { onToggleCollapse() }
     }
 
-    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, archivedComment: ArchivedComment? = nil, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
+    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, archivedComment: ArchivedComment? = nil, tapToReveal: Bool = false, isRevealed: Bool = false, onReveal: @escaping () -> Void = {}, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
         self.node = node
         self.depthColors = depthColors
         self.repository = repository
@@ -79,7 +85,10 @@ struct CommentRow: View {
         self.isLinkedToComment = isLinkedToComment
         self.isModerator = isModerator
         self.archivedComment = archivedComment
+        self.tapToReveal = tapToReveal
         self.onShareAsImage = onShareAsImage
+        self.isRevealed = isRevealed
+        self.onReveal = onReveal
         self.onToggleCollapse = onToggleCollapse
         self.onReplyTapped = onReplyTapped
         self.onQuoteTapped = onQuoteTapped
@@ -450,6 +459,28 @@ struct CommentRow: View {
                         .font(.caption)
                     } else if isDeleted {
                         Text("[deleted]").italic().foregroundStyle(.secondary)
+                    } else if let archivedComment {
+                        // Reborn "Deleted Comments" archive recovery. Tap-to-Reveal hides the
+                        // recovered body behind the reason chip until tapped.
+                        if tapToReveal && !isRevealed {
+                            Button(action: onReveal) {
+                                DeletedReasonChip(label: archivedComment.reason.displayLabel)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("comment.deletedCommentReveal.\(node.id)")
+                        } else {
+                            // The recovered body in the normal comment style, then the reason chip.
+                            VStack(alignment: .leading, spacing: 5.7) {
+                                InlineMediaBodyView(archivedComment.body)
+                                    .apolloFont(size: 15)
+                                    .foregroundStyle(Color.apolloPrimaryText(
+                                        colorScheme: colorScheme, themeColors: themeColors))
+                                DeletedReasonChip(label: archivedComment.reason.displayLabel)
+                            }
+                        }
+                    } else if DeletedCommentsClassifier.bodyLooksDeletedOrRemoved(displayBody) {
+                        // No archive coverage: plain placeholder text.
+                        Text(displayBody).italic().foregroundStyle(.secondary)
                     } else {
                         // 15pt, Apollo's comment body size.
                         InlineMediaBodyView(displayBody, mediaMetadata: node.comment.mediaMetadata)
@@ -749,6 +780,35 @@ struct CommentFlairPill: View {
             .frame(height: 16)
             .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(fill ?? Self.defaultFill))
             .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Reborn's deleted-comment reason pill: bold text at 0.82× the body
+/// size in #6B0F0F on #FFA8A3, 9pt side and 2.5pt vertical padding,
+/// fully rounded.
+struct DeletedReasonChip: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            // Reborn asks for the body font's bold trait, which renders with
+            // semibold-width strokes.
+            .apolloFont(size: 15 * 0.82, weight: .semibold)
+            .foregroundStyle(Color(red: 0.42, green: 0.06, blue: 0.06))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 2.5)
+            .background(Capsule().fill(Color(red: 1.0, green: 0.66, blue: 0.64)))
+    }
+}
+
+/// Reborn's full-row tint behind a recovered comment.
+enum DeletedCommentHighlight {
+    static func color(for reason: DeletedCommentReason) -> Color {
+        switch reason {
+        // (37, 3, 5) over the black page.
+        case .userDeleted: return Color(red: 0.82, green: 0.02, blue: 0.08).opacity(0.16)
+        case .moderatorRemoved: return Color.red.opacity(0.24)
         }
     }
 }

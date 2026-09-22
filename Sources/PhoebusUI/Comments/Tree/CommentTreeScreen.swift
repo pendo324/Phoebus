@@ -86,6 +86,11 @@ public struct CommentTreeScreen: View {
             }
             .environment(\.threadTranslation, threadTranslated)
             .task { isModerator = (try? await repository.fetchSubredditInfo(name: subreddit).userIsModerator) == true }
+            // Reborn's "Deleted Comments" archive recovery; see
+            // `CommentTreeStore.fetchArchivedCommentsIfNeeded`. Fetches only in Always
+            // mode (Passive mode's fetch is triggered by the "..." menu shortcut below,
+            // once the user opts a thread in).
+            .task { await store.fetchArchivedCommentsIfNeeded(postID: postID) }
             .onDisappear { store.stopLivePolling() }
             // "At the live edge" is approximated from `visibleTopLevelRootID` (updated by
             // each top-level row's `.onAppear`), since SwiftUI's `List` doesn't expose
@@ -158,6 +163,25 @@ public struct CommentTreeScreen: View {
                     .tint(threadTranslated ? .green : nil)
                     .accessibilityIdentifier("commentTree.bulkTranslateToggle")
                 }
+                // Comments "..." menu shortcut; see
+                // `CommentTreeStore.toggleDeletedCommentsShortcut`.
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button {
+                            Task { await store.toggleDeletedCommentsShortcut(postID: postID) }
+                        } label: {
+                            Label(
+                                store.deletedCommentsRecoveryActive ? "Hide Deleted Comments" : "Show Deleted Comments",
+                                systemImage: store.deletedCommentsRecoveryActive ? "eye.slash" : "eye"
+                            )
+                        }
+                        .accessibilityIdentifier("commentTree.deletedCommentsShortcut")
+                    } label: {
+                        Image(systemName: "ellipsis")
+                        .accessibilityLabel("More")
+                    }
+                    .accessibilityIdentifier("commentTree.overflowMenu")
+                }
             }
         }
     }
@@ -166,6 +190,7 @@ public struct CommentTreeScreen: View {
 /// Reusable comment-tree content for any List (its own screen, or a section
 /// within `PostDetailScreen`).
 struct CommentTreeContent: View {
+    @Setting(DeletedCommentsSettings.self) private var deletedCommentsSettings
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var store: CommentTreeStore
     @State private var replyTargetID: String?
@@ -241,6 +266,17 @@ struct CommentTreeContent: View {
                             // The comment an Inbox reply pointed at, drawn highlighted.
                             isLinkedToComment: highlightedCommentID == node.id,
                             isModerator: isModerator,
+                            // Reborn "Deleted Comments" archive recovery; see
+                            // `CommentRow.archivedComment`. Only for a comment Reddit shows as
+                            // deleted/removed: Arctic Shift archives every comment in a thread, so
+                            // matching by fullname alone would replace live comments too.
+                            archivedComment: CommentTreeStore.archivedCopy(
+                                for: node.comment,
+                                recoveryActive: store.deletedCommentsRecoveryActive,
+                                archive: store.archivedComments),
+                            tapToReveal: deletedCommentsSettings.tapToReveal,
+                            isRevealed: store.revealedFullnames.contains(node.comment.name),
+                            onReveal: { store.revealComment(node.comment.name) },
                             onToggleCollapse: { toggleCollapse(node) },
                             onReplyTapped: { replyTargetID = (replyTargetID == node.id) ? nil : node.id },
                             onQuoteTapped: {
@@ -299,6 +335,8 @@ struct CommentTreeContent: View {
                     // Apollo's hairline sits on top of each row, starting at that row's own
                     // indent (the depth bar's x), and runs to the screen edge.
                     .listRowSeparator(.hidden)
+                    // Reborn tints a recovered comment's whole cell.
+                    .listRowBackground(recoveredHighlight(for: node))
                     .listRowInsets(EdgeInsets(top: node.isCollapsed ? 10.5 : 10, leading: CommentRowMetrics.leadingInset(depth: node.depth), bottom: node.isCollapsed ? 10.5 : 11, trailing: 16))
                     // A collapsed row is 48pt between rules.
                     .overlay(alignment: .top) {
@@ -321,6 +359,11 @@ struct CommentTreeContent: View {
                     }
                     .id(stub.id)
                 }
+            }
+        }
+        .sheet(item: $store.deletedMoreStubExplanation) { stub in
+            DeletedMoreCommentsExplanationScreen(stub: stub) {
+                store.deletedMoreStubExplanation = nil
             }
         }
         // Share swipe action for comments; see `handleSwipeAction`.
@@ -353,6 +396,15 @@ struct CommentTreeContent: View {
         }
         return chain.reversed()
     }
+
+    private func recoveredHighlight(for node: CommentTreeNode) -> Color? {
+        guard let archived = CommentTreeStore.archivedCopy(
+            for: node.comment,
+            recoveryActive: store.deletedCommentsRecoveryActive,
+            archive: store.archivedComments) else { return nil }
+        return DeletedCommentHighlight.color(for: archived.reason)
+    }
+
     /// The hairline above a comment-list row, from its indent to the
     /// screen's trailing edge.
     private func rowRule(depth: Int, topInset: CGFloat) -> some View {

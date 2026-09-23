@@ -11,6 +11,7 @@ public struct PostDetailScreen: View {
     @State private var submitError: String?
     @State private var showingRemindMe = false
     @State private var showingReport = false
+    @State private var showingShareAsImage = false
     @State private var showingTranslator = false
     @State private var commentSort: String
     @State private var showingCommentSortSheet = false
@@ -53,6 +54,7 @@ public struct PostDetailScreen: View {
     private var menuVoteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
     private var menuIsSaved: Bool { voteStore.isSaved(post.name, serverValue: post.saved) }
     @State private var showingSelectText = false
+    @State private var commentShareAsImage: CommentShareTarget?
     @StateObject private var commentStore = CommentTreeStore()
 
     public var startScrolledToComments: Bool = false
@@ -148,6 +150,10 @@ public struct PostDetailScreen: View {
             .alert(modMessage ?? "", isPresented: $modMessage.isPresent()) {
                 Button("OK", role: .cancel) {}
             }
+            // Deleted Comments archive recovery; see `CommentTreeStore
+            // .fetchArchivedCommentsIfNeeded`. This screen embeds its own
+            // `commentStore` rather than sharing one, so it needs its own trigger.
+            .task { await commentStore.fetchArchivedCommentsIfNeeded(postID: post.id) }
             // Generates the post summary card on open and the discussion
             // card once comments are in, as two separate requests.
             .onAppear {
@@ -358,6 +364,13 @@ public struct PostDetailScreen: View {
                 }
             }
         }
+        .sheet(isPresented: $showingShareAsImage) {
+            ShareAsImageScreen(post: post, repository: repository)
+        }
+        .sheet(item: $commentShareAsImage) { target in
+            ShareAsImageScreen(post: post, comment: target.comment,
+                               availableParents: target.parents, repository: repository)
+        }
         .apolloTranslator(isPresented: $showingTranslator,
                           text: [post.title, post.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n"))
         .sheet(isPresented: $showingReport) {
@@ -409,6 +422,9 @@ public struct PostDetailScreen: View {
             post: post, sort: commentSort,
             isModerator: isModerator,
             onAuthorTapped: { jumpDestination = .user($0) },
+            onShareAsImage: { comment, parents in
+                commentShareAsImage = CommentShareTarget(comment: comment, parents: parents)
+            }
         )
     }
 
@@ -705,6 +721,10 @@ extension PostDetailScreen {
         case "share":
             ShareLink(item: post.shareText()) { Label("Share", systemImage: "square.and.arrow.up") }
                 .accessibilityIdentifier("postDetail.menu.share")
+        case "share-image":
+            Button { showingShareAsImage = true } label: {
+                Label("Share as Image…", systemImage: "photo.badge.plus")
+            }
         case "find":
             Button { showingFindInComments = true } label: {
                 Label("Find in Comments", systemImage: "magnifyingglass")
@@ -747,6 +767,15 @@ extension PostDetailScreen {
             }
         case "report":
             Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
+        case "spec.DeletedComments":
+            // See `CommentTreeStore.toggleDeletedCommentsShortcut`.
+            Button {
+                Task { await commentStore.toggleDeletedCommentsShortcut(postID: post.id) }
+            } label: {
+                Label(commentStore.deletedCommentsRecoveryActive ? "Hide Deleted Comments" : "Show Deleted Comments",
+                      systemImage: commentStore.deletedCommentsRecoveryActive ? "eye.slash" : "eye")
+            }
+            .accessibilityIdentifier("postDetail.deletedCommentsShortcut")
         default:
             EmptyView()
         }
@@ -821,6 +850,14 @@ struct AISummarySheet: View {
 
 private extension Image {
 }
+
+/// A comment to share as an image, with the ancestors the card can include.
+struct CommentShareTarget: Identifiable {
+    let comment: RedditComment
+    let parents: [RedditComment]
+    var id: String { comment.id }
+}
+
 private extension JumpButtonPosition {
     var alignment: Alignment {
         switch self {

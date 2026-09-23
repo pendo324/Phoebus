@@ -14,6 +14,7 @@ public struct CommentTreeScreen: View {
     @State private var jumpUser: String?
     /// The post, fetched so comments can be shared as images.
     @State private var post: RedditPost?
+    @State private var commentShareAsImage: CommentShareTarget?
     @StateObject private var store = CommentTreeStore()
     /// Gives moderators Approve/Remove/Mark Spam actions on individual
     /// comments, gated on subreddit mod status.
@@ -55,6 +56,9 @@ public struct CommentTreeScreen: View {
         ScrollViewReader { scrollProxy in
             List {
                 CommentTreeContent(store: store, subreddit: subreddit, postID: postID, repository: repository, post: post, sort: sort, isModerator: isModerator, onAuthorTapped: { jumpUser = $0 },
+                                   onShareAsImage: { comment, parents in
+                                       commentShareAsImage = CommentShareTarget(comment: comment, parents: parents)
+                                   },
                                    highlightedCommentID: focusedCommentID)
                     .id(sort)
             }
@@ -86,6 +90,13 @@ public struct CommentTreeScreen: View {
             }
             .environment(\.threadTranslation, threadTranslated)
             .task { isModerator = (try? await repository.fetchSubredditInfo(name: subreddit).userIsModerator) == true }
+            .task { post = try? await repository.fetchPost(subreddit: subreddit, postID: postID) }
+            .sheet(item: $commentShareAsImage) { target in
+                if let post {
+                    ShareAsImageScreen(post: post, comment: target.comment,
+                                       availableParents: target.parents, repository: repository)
+                }
+            }
             // Reborn's "Deleted Comments" archive recovery; see
             // `CommentTreeStore.fetchArchivedCommentsIfNeeded`. Fetches only in Always
             // mode (Passive mode's fetch is triggered by the "..." menu shortcut below,

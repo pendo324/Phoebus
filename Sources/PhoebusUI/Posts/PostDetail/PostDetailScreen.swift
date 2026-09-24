@@ -13,6 +13,7 @@ public struct PostDetailScreen: View {
     @State private var showingReport = false
     @State private var showingShareAsImage = false
     @State private var showingTranslator = false
+    @State private var showingAward = false
     @State private var commentSort: String
     @State private var showingCommentSortSheet = false
     @State private var showingReplyComposer = false
@@ -373,6 +374,11 @@ public struct PostDetailScreen: View {
         }
         .apolloTranslator(isPresented: $showingTranslator,
                           text: [post.title, post.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n"))
+        .sheet(isPresented: $showingAward) {
+            AwardGiftingScreen(fullname: post.name, repository: repository) {
+                showingAward = false
+            }
+        }
         .sheet(isPresented: $showingReport) {
             ReportSheet(fullname: post.name, repository: repository) {
                 showingReport = false
@@ -730,6 +736,9 @@ extension PostDetailScreen {
                 Label("Find in Comments", systemImage: "magnifyingglass")
             }
             .accessibilityIdentifier("postDetail.menu.findInComments")
+        case "award":
+            Button { showingAward = true } label: { Label("Give Award", systemImage: "medal") }
+                .accessibilityIdentifier("postDetail.menu.giveAward")
         case "copy-link":
             Button { PasteboardHelper.copy(url: post.shareURL()) } label: {
                 Label("Copy Link", systemImage: "link")

@@ -55,6 +55,7 @@ struct CommentRow: View {
     private var isSaved: Bool { voteStore.isSaved(node.comment.name, serverValue: node.comment.saved) }
     @State private var showingReport = false
     @State private var showingTranslator = false
+    @State private var showingAward = false
     @State private var isOwnComment = false
     /// Author-only "Comment Insights" (see the context menu item).
     @State private var showingInsights = false
@@ -182,6 +183,8 @@ struct CommentRow: View {
             }
         case "translate":
             Button { showingTranslator = true } label: { Label("Translate", systemImage: "character.bubble") }
+        case "award":
+            Button { showingAward = true } label: { Label("Give Award", systemImage: "medal") }
         case "report":
             Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
         case "mute-notifications":
@@ -543,6 +546,11 @@ struct CommentRow: View {
         .sheet(isPresented: $showingInsights) {
             CommentVoteInsightsSheet(comment: node.comment, repository: repository)
         }
+        .sheet(isPresented: $showingAward) {
+            AwardGiftingScreen(fullname: node.comment.name, repository: repository) {
+                showingAward = false
+            }
+        }
         .task { await checkOwnership() }
         // The row keeps its identity across refreshes, so its local copies
         // follow the comment when a newer version arrives (edit, live update,
@@ -699,6 +707,7 @@ struct CommentAccessibility: ViewModifier {
     }
 }
 
+
 /// Comment-row geometry.
 enum CommentRowMetrics {
     /// Horizontal step per reply depth.
@@ -710,6 +719,7 @@ enum CommentRowMetrics {
         depth == 0 ? 15 : CGFloat(depth) * indentStep
     }
 }
+
 
 /// A post's flair label, inside the caller's capsule: custom emoji as
 /// images at the text's height, as Apollo draws `:n_great_goal: Great
@@ -791,6 +801,7 @@ struct CommentFlairPill: View {
         }
     }
 }
+
 
 /// Reborn's deleted-comment reason pill: bold text at 0.82× the body
 /// size in #6B0F0F on #FFA8A3, 9pt side and 2.5pt vertical padding,

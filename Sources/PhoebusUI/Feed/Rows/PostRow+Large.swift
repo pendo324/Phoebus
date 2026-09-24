@@ -179,6 +179,12 @@ extension PostRow {
                 .font(.caption)
                 .padding(.horizontal)
             }
+
+            if let parent = post.crosspostParent {
+                CrosspostCardView(parent: parent, repository: repository)
+                    .padding(.horizontal)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 // A nested `Button` here never receives taps since the whole row uses a
                 // plain `.onTapGesture`. Only on an aggregate feed whose header isn't

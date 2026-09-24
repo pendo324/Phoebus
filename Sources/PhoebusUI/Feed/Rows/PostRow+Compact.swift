@@ -174,6 +174,12 @@ extension PostRow {
                 .foregroundStyle(Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: themeColors))
                 // 11pt from the title block to the info row's glyph tops.
                 .padding(.top, 4)
+
+                // Apollo's crosspost chip, under the info row.
+                if let parent = post.crosspostParent {
+                    CrosspostCardView(parent: parent, style: .chip, repository: repository)
+                        .padding(.top, 8)
+                }
             }
 
             Spacer(minLength: 0)

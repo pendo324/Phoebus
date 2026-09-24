@@ -50,6 +50,10 @@ public struct FeedScreen: View {
     @Setting(SwipeActionStore.storage(for: .posts)) private var swipeSettings
     @Setting(ReadPostStore.settingsStorage) var markReadSettings
     @State var reportTarget: RedditPost?
+    /// Apollo's row context menu "Crosspost" action, separate from the
+    /// one on `PostDetailScreen`'s toolbar, so a post can be
+    /// crossposted directly from a feed row.
+    @State var crosspostTarget: RedditPost?
     @Setting(GeneralSettingsStore.storage) var generalSettings
     /// Bumped by each `load()`; a response for an older one is dropped.
     /// Reborn "Show Page Endings" - see `pageBoundaryPostIDs`'s doc
@@ -649,6 +653,13 @@ public struct FeedScreen: View {
         .sheet(item: $reportTarget) { target in
             ReportSheet(fullname: target.name, repository: repository) {
                 reportTarget = nil
+            }
+        }
+        .sheet(item: $crosspostTarget) { target in
+            NavigationStack {
+                CrosspostScreen(post: target, repository: repository) {
+                    crosspostTarget = nil
+                }
             }
         }
         // Apollo's sort control is a full-width bottom action sheet titled

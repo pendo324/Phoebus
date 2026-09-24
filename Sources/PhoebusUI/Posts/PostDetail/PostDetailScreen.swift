@@ -9,6 +9,7 @@ public struct PostDetailScreen: View {
     let repository: RedditRepository
     @State private var isSubmitting = false
     @State private var submitError: String?
+    @State private var showingCrosspost = false
     @State private var showingRemindMe = false
     @State private var showingReport = false
     @State private var showingShareAsImage = false
@@ -357,6 +358,13 @@ public struct PostDetailScreen: View {
                     commentStore.insertPosted(posted, parentFullname: post.name)
                 }
             )
+        }
+        .sheet(isPresented: $showingCrosspost) {
+            NavigationStack {
+                CrosspostScreen(post: post, repository: repository) {
+                    showingCrosspost = false
+                }
+            }
         }
         .sheet(isPresented: $showingRemindMe) {
             NavigationStack {
@@ -730,6 +738,10 @@ extension PostDetailScreen {
         case "share-image":
             Button { showingShareAsImage = true } label: {
                 Label("Share as Image…", systemImage: "photo.badge.plus")
+            }
+        case "crosspost":
+            Button { showingCrosspost = true } label: {
+                Label("Crosspost", systemImage: "arrowshape.turn.up.right")
             }
         case "find":
             Button { showingFindInComments = true } label: {

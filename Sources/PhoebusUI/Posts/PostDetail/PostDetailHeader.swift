@@ -151,6 +151,13 @@ struct PostDetailHeader: View {
             if translatedTitle != nil {
                 TitleTranslationMarker(original: post.title)
             }
+
+
+            // The crosspost card from the feed row also appears here.
+            if let parent = post.crosspostParent {
+                CrosspostCardView(parent: parent, repository: repository)
+            }
+
             if isDeleted {
                 Text("[deleted]").italic().foregroundStyle(.secondary)
             } else if post.pollData != nil {
@@ -433,6 +440,7 @@ struct PostDetailHeader: View {
             discussionSummaryCard
         }
     }
+
 
     /// The post/link summary card. Placement follows
     /// `ApolloAIInsertPostSummary`: below the inline link-preview

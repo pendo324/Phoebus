@@ -58,6 +58,8 @@ extension FeedScreen {
             } label: {
                 Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
             }
+        case "crosspost":
+            Button { crosspostTarget = post } label: { Label("Crosspost", systemImage: "arrowshape.turn.up.right") }
         case "mute-notifications":
             Button {
                 MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))

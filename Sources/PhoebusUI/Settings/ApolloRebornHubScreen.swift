@@ -14,6 +14,8 @@ import UIKit
 public struct ApolloRebornHubScreen: View {
     @Setting(ApolloAISettings.self) private var apolloAISettings
     let accountManager: AccountManager
+
+    @Setting(GeneralSettingsStore.storage) private var generalSettings
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
     }
@@ -37,6 +39,17 @@ public struct ApolloRebornHubScreen: View {
     /// Layout, Interface, Rich Link Previews, Polls, Apollo AI.
     private var featuresSection: some View {
         Section {
+            SettingsNavigationRow {
+                PollsSettingsScreen(accountManager: accountManager)
+            } label: {
+                // "On" / "Off" from `UDKeyPollsEnabled`.
+                HubRow(
+                    title: "Polls",
+                    subtitle: generalSettings.pollsEnabled ? "On" : "Off",
+                    systemImage: "chart.bar.fill",
+                    tint: .yellow)
+            }
+            .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 ApolloAISettingsScreen()
             } label: {

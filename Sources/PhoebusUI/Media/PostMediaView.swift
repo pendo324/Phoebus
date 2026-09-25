@@ -31,9 +31,16 @@ public enum PostMediaKind {
         return RedditVideoStream.downloadURL(
             hlsURL: redditVideo.hlsURL, fallbackURL: redditVideo.fallbackURL)
     }
+    case poll(RedditPollData)
     case none
 
     public static func classify(post: RedditPost) -> PostMediaKind {
+        // Native Reddit polls are self-posts carrying a `poll_data`
+        // payload, checked before `isSelf` for the same reason.
+        if let pollData = post.pollData {
+            return .poll(pollData)
+        }
+
         guard !post.isSelf else { return .none }
 
         // Multi-image gallery posts, checked before the single-media
@@ -119,6 +126,7 @@ public enum PostMediaKind {
 
 public struct PostMediaView: View {
     @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
+    @Setting(GeneralSettings.self) private var generalSettings
     let kind: PostMediaKind
     /// When set, renders behind an interactive NSFW/spoiler blur
     /// overlay until tapped, mirroring Apollo's content warning overlay.
@@ -331,6 +339,13 @@ public struct PostMediaView: View {
                                 onOpen: { openLink(url) })
             }
             .buttonStyle(.plain)
+        case .poll(let pollData):
+            // "Polls" off: Apollo's own read-only poll, voting on the
+            // mobile site, as Reborn falls back to.
+            if let post = votePost, let repository = voteRepository {
+                PollView(post: post, poll: pollData, repository: repository,
+                         readOnly: !generalSettings.pollsEnabled)
+            }
         case .none:
             EmptyView()
         }

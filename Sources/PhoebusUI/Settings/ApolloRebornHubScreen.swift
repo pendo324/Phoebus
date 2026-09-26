@@ -82,6 +82,12 @@ public struct ApolloRebornHubScreen: View {
     private var shortcutsSection: some View {
         Section {
             SettingsNavigationRow {
+                PictureInPictureSettingsScreen()
+            } label: {
+                HubRow(title: "Picture-in-Picture", systemImage: "pip.fill", tint: .purple)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 TranslationSettingsScreen()
             } label: {
                 HubRow(title: "Translation", systemImage: "character.bubble.fill", tint: .teal)

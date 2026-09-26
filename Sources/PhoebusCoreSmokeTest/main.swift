@@ -269,6 +269,18 @@ let modmailNoOwnerJSON = """
 """.data(using: .utf8)!
 let modmailNoOwner = try! JSONDecoder().decode(ModmailConversation.self, from: modmailNoOwnerJSON)
 check("modmail conversation without owner decodes nil subredditName", modmailNoOwner.subredditName == nil)
+try await checkRealBundledCommentColorDepthPalettes()
+
+try await checkThemeAIGenerationRealGapFix()
+
+try await checkThemeQRCodeSharingImportReal()
+
+try await checkBadgeBookRealGapFixBundled()
+
+try await checkRealAchievementsCatalogRealGapFix()
+
+try await checkAppIconPickerCommunityIconPack()
+
 // --- Gallery View post filtering (Reborn feature) ---
 let imagePostJSON = """
 {
@@ -297,6 +309,23 @@ let textPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: textPostJSO
 check("GalleryPostMedia.thumbnailURL returns nil for a text post", GalleryPostMedia.thumbnailURL(for: textPost) == nil)
 let filteredGalleryPosts = GalleryPostMedia.filterMediaPosts([imagePost, textPost])
 check("GalleryPostMedia.filterMediaPosts keeps only posts with media", filteredGalleryPosts.count == 1 && filteredGalleryPosts.first?.id == imagePost.id)
+
+try await checkSubredditsRootLoadsFromDiskInstantly()
+
+try await checkFeedImagesUseRedditSPreview()
+
+try await checkTheTextSizeSliderTakesEffect()
+
+try await checkYouTubeLinksShowAThumbnailNot()
+
+try await checkOnDeviceAIActuallyRunsA()
+
+try await checkApolloSRealVideoControlPanel()
+
+try await checkSettingsRootRowsAreInThe()
+
+try await checkGlassNeedsTheAppSOwn()
+
 // --- Devvit post detection (Reborn "Live Interactive Posts") ---
 // A self-text post whose selftext contains Reddit's old-Reddit fallback
 // body, with "not supported on old Reddit" and a "sh.reddit.com/r/"
@@ -319,6 +348,25 @@ check("DevvitPostDetector identifies a real self-text post with the old-Reddit f
 check("DevvitPostDetector does not misclassify a normal external-link post", !DevvitPostDetector.isDevvitPost(post: imagePost))
 check("DevvitPostDetector does not misclassify an ordinary self/text post", !DevvitPostDetector.isDevvitPost(post: textPost))
 check("DevvitPostDetector rejects a post that merely quotes the fallback phrase far from the link", !DevvitPostDetector.selfTextIsInteractive("This is a very long post about how some posts say '\(String(repeating: "x", count: 350))not supported on old Reddit\(String(repeating: "x", count: 350))' but never actually link sh.reddit.com/r/ nearby, so it should not match. Padding to exceed the 300-char window on both sides so proximity genuinely fails."))
+
+try await checkWallpapersUnlockedFeature()
+
+try await checkBulkTranslationApolloRebornFeature()
+
+try await checkRecentlyReadNSFWFilterThumbnailSettings()
+
+try await checkGalleryViewWaterfallAspectRatioReal()
+
+try await checkS3XMLErrorParsingRedditMediaUploadClientMust()
+
+try await checkTrendingSubredditsLimitSettingRealGapFix()
+
+try await checkTextFacesRealGapFixRecovered()
+
+try await checkExternalBrowserRealGapFixApollo()
+
+try await checkOpenMultiredditIntentRedditURLTargetMultiredditThe4thReal()
+
 // --- WebSessionCredential / Web JSON transport (Reborn's OAuth-free
 // sign-in flow) ---
 let webSession = WebSessionCredential(username: "TestUser", cookieHeader: "reddit_session=abc; token_v2=xyz", modhash: "modhash123")
@@ -354,6 +402,13 @@ PureBlackSettingsStore.save(.default)
 check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
 
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+
+try await checkJumpDestinationRealBugFixTwoSeparate()
+
+try await checkRedditSubredditRealSubredditsMineSubscriberKey()
+
+try await checkRedditPostRealCrosspostDecodeBugFixed()
+
 try await checkWebSessionResolutionPrimaryTransportVs()
 
 try await checkCopyLinkApolloSCopyURLActivity()

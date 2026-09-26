@@ -73,6 +73,13 @@ extension PostRow {
                 // Apollo shows a crosspost as its card alone (below), not the original's
                 // media or link.
                 EmptyView()
+            } else if let devvitURL = devvitFeedWidgetURL {
+                // A Devvit post's large-card media area hosts the
+                // live interactive widget instead of its selftext
+                // preview, when both the master switch and "Show in
+                // Feed" are on.
+                DevvitWebView(url: devvitURL, repository: repository)
+                    .padding(.horizontal)
             } else if generalSettings.feedGalleryCarousel, post.galleryImageURLs.count > 1 {
                 FeedGalleryCarouselView(urls: post.galleryImageURLs, shouldBlur: nativeMediaBlur, isNSFW: post.over18)
                     .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,

@@ -137,6 +137,17 @@ struct PostRow: View {
     /// Reborn "Bold Post Titles" (Appearance > Posts). Same once-per-row-render
     /// pattern as the two above.
     @Setting(AppearanceSettings.self) var appearanceSettings
+
+    /// Reborn "Show in Feed" sub-toggle (`GeneralSettings.devvitFeedWidgets`):
+    /// active only when both the master switch (`devvitInteractivePosts`)
+    /// and this sub-toggle are on, and only in `largeThumbnailBody`
+    /// (compact mode never renders media). Otherwise falls back to
+    /// normal selftext-derived thumbnail/link rendering.
+    var devvitFeedWidgetURL: URL? {
+        guard DevvitPostDetector.feedShouldShowWidget(post: post, devvitInteractivePosts: generalSettings.devvitInteractivePosts, devvitFeedWidgets: generalSettings.devvitFeedWidgets) else { return nil }
+        return post.redditURL
+    }
+
     /// Real "Voting Buttons Position"
     /// (`AppearanceSettings.votingButtonsPosition`), only meaningful
     /// while `showsVotingButtons` is on.

@@ -19,6 +19,7 @@ public enum PostMediaKind {
     case vimeo(id: String)
     case steam(kind: SteamURLParser.ItemKind, id: String)
     case imgurAlbum(id: String)
+    case devvit(url: URL)
     case gallery([URL])
     case link(URL)
 
@@ -35,6 +36,16 @@ public enum PostMediaKind {
     case none
 
     public static func classify(post: RedditPost) -> PostMediaKind {
+        // "Live Interactive Posts" (Devvit) detection: self-text posts
+        // whose selftext contains Reddit's old-Reddit fallback body,
+        // checked before the `isSelf` short-circuit since being a
+        // self-post is the detection signal, not an exclusion.
+        if GeneralSettingsStore.load().devvitInteractivePosts,
+           DevvitPostDetector.isDevvitPost(post: post),
+           let permalinkURL = post.redditURL {
+            return .devvit(url: permalinkURL)
+        }
+
         // Native Reddit polls are self-posts carrying a `poll_data`
         // payload, checked before `isSelf` for the same reason.
         if let pollData = post.pollData {
@@ -325,6 +336,9 @@ public struct PostMediaView: View {
             SteamLinkView(kind: kind, id: id)
         case .imgurAlbum(let id):
             ImgurAlbumView(albumID: id)
+        case .devvit(let url):
+            DevvitWebView(url: url, repository: voteRepository)
+                .frame(height: 400)
         case .gallery(let urls):
             GalleryMediaView(urls: urls, onJumpToComments: onJumpToComments, votePost: votePost, voteRepository: voteRepository)
         case .link(let url):
@@ -612,6 +626,7 @@ struct RedGifsVideoView: View {
     /// See `MutedVideoPlayerView.isCurrentPage`.
     var isCurrentPage: Bool?
 
+
     /// Opens the fullscreen viewer, and the state backing it. Every
     /// resolver-backed host (RedGifs, Gfycat, Streamable, sports clip)
     /// plays through `MutedVideoPlayerView` and needs this destination
@@ -682,6 +697,7 @@ struct StreamableVideoView: View {
     /// See `MutedVideoPlayerView.isCurrentPage`.
     var isCurrentPage: Bool?
 
+
     /// Opens the fullscreen viewer, and the state backing it. Every
     /// resolver-backed host (RedGifs, Gfycat, Streamable, sports clip)
     /// plays through `MutedVideoPlayerView` and needs this destination
@@ -748,6 +764,7 @@ struct SportsClipView: View {
     /// See `MutedVideoPlayerView.isCurrentPage`.
     var isCurrentPage: Bool?
 
+
     /// Opens the fullscreen viewer, and the state backing it. Every
     /// resolver-backed host (RedGifs, Gfycat, Streamable, sports clip)
     /// plays through `MutedVideoPlayerView` and needs this destination
@@ -797,6 +814,7 @@ struct SportsClipView: View {
         }
     }
 }
+
 
 // MARK: - Media frame
 

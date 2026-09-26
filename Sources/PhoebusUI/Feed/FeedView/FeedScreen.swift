@@ -746,8 +746,14 @@ public struct FeedScreen: View {
     /// budget.
     private var isLargeLayout: Bool { effectivePostDisplayStyle == .large }
 
-    /// The carousel's cards.
-    private var carouselPosts: [RedditPost] { highlightPosts }
+    /// The carousel's cards: pinned interactive widgets stay in the feed.
+    private var carouselPosts: [RedditPost] {
+        let general = generalSettings
+        return CommunityHighlights.carouselPosts(from: highlightPosts) {
+            DevvitPostDetector.feedShouldShowWidget(post: $0, devvitInteractivePosts: general.devvitInteractivePosts,
+                                                    devvitFeedWidgets: general.devvitFeedWidgets)
+        }
+    }
 
     private var carouselScrape: [ScrapedHighlight] {
         scrapedHighlights.count > carouselPosts.count ? scrapedHighlights : []

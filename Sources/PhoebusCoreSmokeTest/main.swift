@@ -354,6 +354,46 @@ PureBlackSettingsStore.save(.default)
 check("PureBlackSettingsStore round-trips back to default", PureBlackSettingsStore.load() == PureBlackSettings.default)
 
 check("FavoriteSubredditsStore starts empty", FavoriteSubredditsStore.load().isEmpty)
+try await checkWebSessionResolutionPrimaryTransportVs()
+
+try await checkCopyLinkApolloSCopyURLActivity()
+
+try await checkWebSessionHarvestCompletenessGate()
+
+try await checkJumpBarAutocompleteMinimumLengthDebounce()
+
+try await checkPollVoteResponseParsingTheNSNull()
+
+try await checkPollResultRenderingAfterAVote()
+
+try await checkAccountPersistenceFallback()
+
+try await checkEmptyListingDecode()
+
+try await checkRedditMarkdownBlockSyntax()
+
+try await checkSchemeRelativeRedditLinksTheCrosspost()
+
+try await checkSelfPostEmbeddedImageThumbnailDerivation()
+
+try await checkSportsClipHostRecognition()
+
+try await checkRealGapFixBuyUsA()
+
+try await checkRealGapFixCustomSubredditSourceSettingsDecodeMigration()
+
+try await checkRealGapFixLiquidGlassApp()
+
+try await checkRealGapFixLiquidGlassTab()
+
+try await checkMediaSubScreen6Additions()
+
+try await checkApolloAISettingsFloatingPostTabsSettings()
+
+try await checkDeletedCommentsSettings()
+
+try await checkInfoRowSettings()
+
 try await checkLinkPreviewSettings()
 
 try await checkDeletedCommentsClassifierArchivedComment()

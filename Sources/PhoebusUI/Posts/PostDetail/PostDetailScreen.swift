@@ -93,6 +93,11 @@ public struct PostDetailScreen: View {
     }
 
     @State private var showingFindInComments = false
+    @State private var liveActivityRunning = false
+    /// Why a Live Activity could not start, shown as an alert. Several
+    /// genuinely different reasons exist (off in Settings, unsupported
+    /// device, request failure), so the row does not fail silently.
+    @State private var liveActivityMessage: String?
     @State private var findQuery = ""
     @State private var findMatches: [CommentSearchMatch] = []
     @State private var findCurrentIndex = 0
@@ -149,8 +154,16 @@ public struct PostDetailScreen: View {
             // tall header would leave its `.task` never running.
             .task(id: commentSort) { await commentStore.fetch(subreddit: post.subreddit, postID: post.id, sort: commentSort, repository: repository) }
             .task { isModerator = (try? await repository.fetchSubredditInfo(name: post.subreddit).userIsModerator) == true }
+            // Restores the row's verb if an activity from a previous visit is still running.
+            .task { liveActivityRunning = FollowThreadActivityStore.isActive(postID: post.id) }
             .alert(modMessage ?? "", isPresented: $modMessage.isPresent()) {
                 Button("OK", role: .cancel) {}
+            }
+            .alert("Live Activity",
+                   isPresented: $liveActivityMessage.isPresent()) {
+                Button("OK", role: .cancel) { liveActivityMessage = nil }
+            } message: {
+                Text(liveActivityMessage ?? "")
             }
             // Deleted Comments archive recovery; see `CommentTreeStore
             // .fetchArchivedCommentsIfNeeded`. This screen embeds its own
@@ -788,6 +801,25 @@ extension PostDetailScreen {
             }
         case "report":
             Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
+        case "live-activity":
+            // The local activity runs; its push half cannot (see
+            // `FollowThreadActivity`).
+            Button {
+                if liveActivityRunning {
+                    Task { await LiveActivityHelper.end(postID: post.id) }
+                    liveActivityRunning = false
+                } else {
+                    let result = LiveActivityHelper.start(
+                        postID: post.id, title: post.title, subreddit: post.subreddit,
+                        commentCount: post.numComments, score: post.score)
+                    liveActivityRunning = result == .started
+                    liveActivityMessage = result.message
+                }
+            } label: {
+                Label(liveActivityRunning ? "End Live Activity" : "Start Live Activity",
+                      systemImage: liveActivityRunning ? "stop.circle" : "clock.badge")
+            }
+            .accessibilityIdentifier("postDetail.menu.liveActivity")
         case "spec.DeletedComments":
             // See `CommentTreeStore.toggleDeletedCommentsShortcut`.
             Button {

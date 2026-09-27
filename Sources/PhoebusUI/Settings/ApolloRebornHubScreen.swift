@@ -118,6 +118,13 @@ public struct ApolloRebornHubScreen: View {
                 HubRow(title: "Translation", systemImage: "character.bubble.fill", tint: .teal)
             }
             .apolloSettingsRowInsets()
+            SettingsNavigationRow {
+                SavedCategoriesSettingsScreen()
+            } label: {
+                HubRow(title: "Saved Categories", systemImage: "book.closed.fill", tint: .green)
+            }
+            // Needed so the tile aligns with every other row's.
+            .apolloSettingsRowInsets()
         } header: {
             Text("Shortcuts")
                 .apolloHubSectionHeader()

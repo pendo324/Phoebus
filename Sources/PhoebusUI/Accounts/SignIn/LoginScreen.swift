@@ -15,6 +15,7 @@ public struct LoginScreen: View {
     @State private var isAuthenticating = false
     @State private var errorMessage: String?
     @State private var contextProvider = AuthPresentationAnchor()
+    @State private var showingCustomAPISettings = false
     @State private var showingSignInMethodChooser = false
     @State private var showingWebSessionLogin = false
     public init(auth: RedditAuthClient, accountManager: AccountManager? = nil, onSuccess: @escaping () -> Void) {
@@ -85,8 +86,32 @@ public struct LoginScreen: View {
             }
 
             Spacer()
+
+            // Reborn's Custom API entry point, reachable before sign-in since OAuth needs a
+            // working client ID. A new install can also start from a backup.
+            HStack(spacing: 20) {
+                Button("Custom API Settings") {
+                    showingCustomAPISettings = true
+                }
+            }
+            .font(.footnote)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
         }
         .padding()
+        .sheet(isPresented: $showingCustomAPISettings) {
+            NavigationStack {
+                // Reborn's Accounts & API Keys.
+                Group {
+                        CustomAPISettingsScreen()
+                }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showingCustomAPISettings = false }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $showingWebSessionLogin) {
             NavigationStack {
                 WebSessionLoginScreen(

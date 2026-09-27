@@ -33,6 +33,10 @@ not, and why.
 
 ## Accounts, notifications and extensions
 
+- **You bring your own Reddit API key.** Phoebus never uses Apollo's
+  Reddit client ID; the build default is a placeholder. The key is
+  entered under Custom API Settings and applies app-wide, so there is no
+  per-account key editor.
 - **Push notifications go through Bark or a self-hosted notification
   backend.** Phoebus has no APNs push: a build signed without a paid
   developer account has no push entitlement, so the backend delivers

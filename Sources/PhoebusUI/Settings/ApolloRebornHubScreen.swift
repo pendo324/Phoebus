@@ -98,6 +98,15 @@ public struct ApolloRebornHubScreen: View {
     private var shortcutsSection: some View {
         Section {
             SettingsNavigationRow {
+                // Apollo's "Open in App" screen is a three-section hub (per-service app
+                // toggles, the browser picker, and Link Companion); the picker is one row of
+                // it.
+                OpenInAppSettingsScreen()
+            } label: {
+                HubRow(title: "Open in App", systemImage: "arrow.up.forward.app.fill", tint: .blue)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 PictureInPictureSettingsScreen()
             } label: {
                 HubRow(title: "Picture-in-Picture", systemImage: "pip.fill", tint: .purple)

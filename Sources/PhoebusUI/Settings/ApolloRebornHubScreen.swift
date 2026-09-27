@@ -12,6 +12,7 @@ import UIKit
 /// discloses to. Section titles, footers, row order, titles, SF Symbol names and
 /// tile colors follow Reborn.
 public struct ApolloRebornHubScreen: View {
+    @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     @Setting(ApolloAISettings.self) private var apolloAISettings
     let accountManager: AccountManager
 
@@ -39,6 +40,21 @@ public struct ApolloRebornHubScreen: View {
     /// Layout, Interface, Rich Link Previews, Polls, Apollo AI.
     private var featuresSection: some View {
         Section {
+            SettingsNavigationRow {
+                LinkPreviewSettingsScreen()
+            } label: {
+                // Status subtitle: "Body %@ · Comments %@ · %@" with the colour as
+                // "#RRGGBB" or "Default color".
+                HubRow(
+                    title: "Rich Link Previews",
+                    subtitle: {
+                        let s = linkPreviewSettings
+                        return "Body \(s.bodyDisplayMode.title) · Comments \(s.commentsDisplayMode.title) · \(s.displayColorText)"
+                    }(),
+                    systemImage: "link",
+                    tint: .blue)
+            }
+            .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 PollsSettingsScreen(accountManager: accountManager)
             } label: {

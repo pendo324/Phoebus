@@ -11,6 +11,10 @@ not, and why.
   server-side r/all filter. Apollo synced Filtered Subreddits to that
   server-side filter; Reborn adds nothing here, so Phoebus keeps the
   filters on the device for now.
+- **There is no "Block Announcements" row, and Reddit admin posts are
+  never hidden.** Reborn's switch blocks Apollo's own announcement
+  server, which Phoebus does not have. The Apollo setting is not
+  imported from backups.
 
 ## Media and link previews
 

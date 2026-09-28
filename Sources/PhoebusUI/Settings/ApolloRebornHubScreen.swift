@@ -41,6 +41,12 @@ public struct ApolloRebornHubScreen: View {
     private var featuresSection: some View {
         Section {
             SettingsNavigationRow {
+                PostsFeedsSettingsScreen()
+            } label: {
+                HubRow(title: "Posts & Feeds", systemImage: "newspaper.fill", tint: .orange)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 MediaSettingsScreen()
             } label: {
                 HubRow(title: "Media", systemImage: "play.rectangle.fill", tint: .pink)

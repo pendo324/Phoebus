@@ -34,7 +34,21 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case security
     case portraitLock
     case accounts
+    case apolloReborn
+    case savedCategories
+    case translation
+    case tagFilters
     case commentsTheme
+    case deletedComments
+    case externalBrowser
+    case openInApp
+    case infoRow
+    case inlineMedia
+    case linkPreview
+    case media
+    case pictureInPicture
+    case polls
+    case apolloAI
     case wallpapers
     case themeGallery
 }

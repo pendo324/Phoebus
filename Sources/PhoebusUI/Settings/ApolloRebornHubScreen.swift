@@ -41,6 +41,12 @@ public struct ApolloRebornHubScreen: View {
     private var featuresSection: some View {
         Section {
             SettingsNavigationRow {
+                MediaSettingsScreen()
+            } label: {
+                HubRow(title: "Media", systemImage: "play.rectangle.fill", tint: .pink)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 LinkPreviewSettingsScreen()
             } label: {
                 // Status subtitle: "Body %@ · Comments %@ · %@" with the colour as

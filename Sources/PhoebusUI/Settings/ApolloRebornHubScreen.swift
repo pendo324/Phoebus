@@ -15,6 +15,7 @@ public struct ApolloRebornHubScreen: View {
     @Setting(ProfileLayoutSettings.self) private var profileLayoutSettings
     @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     @Setting(ApolloAISettings.self) private var apolloAISettings
+    @Setting(NotificationBackendSettings.self) private var notificationBackendSettings
     let accountManager: AccountManager
 
     @Setting(GeneralSettingsStore.storage) private var generalSettings
@@ -26,6 +27,7 @@ public struct ApolloRebornHubScreen: View {
         List {
             featuresSection
             shortcutsSection
+            advancedSection
         }
         .apolloSettingsListAppearance()
         // Offsets the hub header's -21 top pull so the first header cap sits where
@@ -168,6 +170,36 @@ public struct ApolloRebornHubScreen: View {
             Text("Quick links to settings that also live in their own sections and in Phoebus's settings.")
                     .apolloHubSectionFooter()
         }
+    }
+    // MARK: - Advanced
+
+    /// Advanced. Notification Backend subtitle: the configured URL, else
+    /// "Self-hosted apollo-backend · off". FLEX/debug rows are omitted.
+    private var advancedSection: some View {
+        Section {
+            SettingsNavigationRow {
+                NotificationBackendSettingsScreen()
+            } label: {
+                HubRow(
+                    title: "Notification Backend",
+                    subtitle: notificationBackendSubtitle,
+                    systemImage: "bell.badge.fill",
+                    tint: .red
+                )
+            }
+            .apolloSettingsRowInsets()
+        } header: {
+            Text("Advanced")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Notification backend, developer tools and diagnostics.")
+                    .apolloHubSectionFooter()
+        }
+    }
+    /// Mirrors Reborn's subtitle block.
+    private var notificationBackendSubtitle: String {
+        let url = notificationBackendSettings.backendURL ?? ""
+        return url.isEmpty ? "Self-hosted apollo-backend · off" : url
     }
 }
 

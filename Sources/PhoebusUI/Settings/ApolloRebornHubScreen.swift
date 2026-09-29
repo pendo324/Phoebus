@@ -47,6 +47,12 @@ public struct ApolloRebornHubScreen: View {
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
+                CommentsSettingsScreen()
+            } label: {
+                HubRow(title: "Comments", systemImage: "text.bubble.fill", tint: .green)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 MediaSettingsScreen()
             } label: {
                 HubRow(title: "Media", systemImage: "play.rectangle.fill", tint: .pink)

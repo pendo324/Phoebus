@@ -15,6 +15,9 @@ not, and why.
   never hidden.** Reborn's switch blocks Apollo's own announcement
   server, which Phoebus does not have. The Apollo setting is not
   imported from backups.
+- **"Use Community Icons" exists and defaults on.** It uses Reddit's
+  current community icons. Apollo only had the older icon style, which
+  is what turning the setting off gives you.
 
 ## Media and link previews
 

@@ -59,6 +59,12 @@ public struct ApolloRebornHubScreen: View {
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
+                SubredditsSettingsScreen()
+            } label: {
+                HubRow(title: "Subreddits", systemImage: "person.3.fill", tint: .red)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 LinkPreviewSettingsScreen()
             } label: {
                 // Status subtitle: "Body %@ · Comments %@ · %@" with the colour as

@@ -3471,11 +3471,44 @@
 		<string>dolphin</string>
 		<string>ddgQuickLink</string>
 	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Used to save images, GIFs, and videos you choose to your Photos library.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 	</array>
+	<!-- UIDesignRequiresCompatibility is deliberately absent. It is Apple's
+	     global opt-out of the iOS 26 design system and would also force
+	     every UIMenu into the legacy look (trailing icons, inline
+	     submenus). List cards are suppressed per list with
+	     `.scrollContentBackground(.hidden)` and per-row backgrounds/insets. -->
+	<!-- Apollo Reborn writes backups as Apollo_Backup_*.apollobackup, a ZIP
+	     declared as its own type. Imported (not exported): Reborn owns the
+	     type; this lets the restore picker recognise the file. -->
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>app.apolloreborn.backup</string>
+			<key>UTTypeDescription</key>
+			<string>Apollo Reborn Backup</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>apollobackup</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

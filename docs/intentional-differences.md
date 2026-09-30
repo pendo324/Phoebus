@@ -51,3 +51,11 @@ not, and why.
 - **Remind Me uses local notifications.** Reminders are scheduled on the
   device through the system notification center, with no server-side
   reminder service, so they also work offline.
+
+## Backups
+
+- **Some Reborn data is not imported from backups.** Custom themes are
+  skipped because Reborn's theme format differs from Phoebus's,
+  per-account API credentials are skipped (the global keys are
+  imported), and the analytics identity (Bugsnag and Statsig IDs) and
+  StoreKit state have nothing to attach to.

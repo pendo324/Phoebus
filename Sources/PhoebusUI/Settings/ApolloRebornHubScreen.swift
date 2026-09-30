@@ -19,15 +19,20 @@ public struct ApolloRebornHubScreen: View {
     let accountManager: AccountManager
 
     @Setting(GeneralSettingsStore.storage) private var generalSettings
+    @State private var showingClearCaches = false
+    @State private var showingClearBanners = false
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
     }
 
     public var body: some View {
         List {
+            setupSection
             featuresSection
             shortcutsSection
+            dataSection
             advancedSection
+            aboutSection
         }
         .apolloSettingsListAppearance()
         // Offsets the hub header's -21 top pull so the first header cap sits where
@@ -35,6 +40,34 @@ public struct ApolloRebornHubScreen: View {
         .safeAreaPadding(.top, 7)
         .navigationTitle("Apollo Reborn")
         .navigationBarTitleDisplayModeIfAvailable()
+    }
+
+    // MARK: - Setup
+
+    /// Setup: one row, subtitle "Reddit · Imgur · Giphy · Image Chest", `key.fill`
+    /// on a systemGray tile.
+    private var setupSection: some View {
+        Section {
+            SettingsNavigationRow {
+                AccountsAPIKeysScreen(accountManager: accountManager)
+            } label: {
+                HubRow(
+                    title: "Accounts & API Keys",
+                    subtitle: "Reddit · Imgur · Giphy · Image Chest",
+                    systemImage: "key.fill",
+                    tint: .gray
+                )
+            }
+            // No rule under the section's last row when a footer
+            // follows.
+            .apolloSettingsRowInsets(rule: false)
+        } header: {
+            Text("Setup")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Your Reddit sign-in credentials, plus optional Imgur, Giphy and Image Chest keys for uploads and GIFs.")
+                    .apolloHubSectionFooter()
+        }
     }
 
     // MARK: - Features
@@ -171,6 +204,61 @@ public struct ApolloRebornHubScreen: View {
                     .apolloHubSectionFooter()
         }
     }
+
+    // MARK: - Data
+
+    /// Data, row for row: Backup Settings (a push, to the Automatic Backups
+    /// screen), Restore Settings (an inline action that asks Local or Cloud), Clear
+    /// Tweak Caches and Clear Custom Banners & Icons (inline confirmation alerts).
+    private var dataSection: some View {
+        Section {
+            Button { showingClearCaches = true } label: {
+                HubRow(title: "Clear Tweak Caches", systemImage: "trash.fill", tint: .red, isAction: true)
+            }
+            .apolloSettingsRowInsets()
+            .buttonStyle(.plain)
+            Button { showingClearBanners = true } label: {
+                HubRow(title: "Clear Custom Banners & Icons", systemImage: "photo.fill", tint: .orange, isAction: true)
+            }
+            .apolloSettingsRowInsets()
+            .buttonStyle(.plain)
+        } header: {
+            Text("Data")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Back up or restore your Reborn settings and API keys, or clear cached data.")
+                    .apolloHubSectionFooter()
+        }
+        // Reborn's clear-all-caches copy.
+        .alert("Clear Tweak Caches?", isPresented: $showingClearCaches) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) {
+                Task {
+                    await AvatarCache.shared.clear()
+                    await LinkPreviewCache.shared.clear()
+                    // The in-memory copies too, so nothing stale redraws.
+                    await ImageCache.shared.removeAll()
+                    await DownsampleCache.shared.removeAll()
+                    await SubredditIconCache.shared.removeAll()
+                    await AccountAgeCache.shared.removeAll()
+                    URLCache.shared.removeAllCachedResponses()
+                }
+            }
+        } message: {
+            Text("This removes cached profile pictures, banners, link previews, badge books, and remembered banned-profile dismissals.")
+        }
+        // Reborn's clear-custom-banners copy.
+        .alert("Clear Custom Banners & Icons?", isPresented: $showingClearBanners) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) {
+                // Custom art store (Reborn #266).
+                SubredditCustomArtStore.shared.clearAll()
+            }
+        } message: {
+            Text("Locally saved custom subreddit banner and icon images will be removed. Official Reddit art will show again where available.")
+        }
+    }
+
     // MARK: - Advanced
 
     /// Advanced. Notification Backend subtitle: the configured URL, else
@@ -200,6 +288,36 @@ public struct ApolloRebornHubScreen: View {
     private var notificationBackendSubtitle: String {
         let url = notificationBackendSettings.backendURL ?? ""
         return url.isEmpty ? "Self-hosted apollo-backend · off" : url
+    }
+
+    // MARK: - About
+
+    /// About, in order: Feature Requests, Bug Reports, Open Source on GitHub,
+    /// Apollo Reborn Subreddit, Thanks To, Privacy Policy, Version. Feature
+    /// requests, bug reports and the GitHub row go to Phoebus's own repo.
+    private var aboutSection: some View {
+        Section {
+            // A push to the in-app report form, not a link.
+            SettingsNavigationRow {
+                BugReportScreen()
+            } label: {
+                HStack {
+                    HubEmojiRow(
+                        title: "Bug Reports",
+                        subtitle: "Report a problem on GitHub",
+                        emoji: "🐛",
+                        tint: .red)
+                    Spacer()
+                }
+            }
+            .apolloSettingsRowInsets()
+        } header: {
+            Text("About")
+                .apolloHubSectionHeader()
+        } footer: {
+            Text("Request features, report bugs, or browse the source. Apollo Reborn is free and open source.")
+                    .apolloHubSectionFooter()
+        }
     }
 }
 
@@ -264,6 +382,100 @@ struct HubRow: View {
                  : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
     }
 }
+
+/// About rows use emoji tiles rather than SF Symbols.
+struct HubEmojiRow: View {
+    let title: String
+    var subtitle: String?
+    let emoji: String
+    let tint: Color
+    var artwork: HubRowArtwork? = nil
+
+    var body: some View {
+        // Same measured geometry as `SettingsTile`; only the glyph is
+        // an emoji rather than an SF Symbol.
+        HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
+            ZStack {
+                RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius,
+                                 style: .continuous)
+                    .fill(tint)
+                Text(emoji)
+                    .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize))
+                switch artwork {
+                case .bundled(let name):
+                    #if canImport(UIKit)
+                    if let url = Bundle.module.url(forResource: name, withExtension: "png", subdirectory: "StockIcons"),
+                       let image = UIImage(contentsOfFile: url.path) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .clipShape(RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius, style: .continuous))
+                    }
+                    #endif
+                case .subreddit(let name, let repository):
+                    HubSubredditIcon(subreddit: name, repository: repository)
+                case nil:
+                    EmptyView()
+                }
+            }
+            .frame(width: ApolloSettingsRowMetrics.tileSize,
+                   height: ApolloSettingsRowMetrics.tileSize)
+            VStack(alignment: .leading, spacing: ApolloSettingsRowMetrics.subtitleTopGap) {
+                Text(title)
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .apolloFont(size: ApolloSettingsRowMetrics.subtitlePointSize)
+                        .foregroundStyle(Color.apolloSettingsSecondary)
+                        // Long subtitles wrap, as in `HubRow`.
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        // Explicit vertical padding rather than the `List`'s row inset, which is too
+        // tight for a title alone and cramped once a subtitle wraps. Same
+        // padding-around-content approach as `HubRow`.
+        .padding(.vertical, (subtitle?.isEmpty == false)
+                 ? ApolloSettingsRowMetrics.hubRowVerticalPadWithSubtitle
+                 : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
+    }
+}
+
+/// The subreddit row's tile: the subreddit's community icon filling the
+/// rounded tile, as Apollo shows r/ApolloReborn's, over the emoji placeholder
+/// until it loads. Feeds keep the classic `icon_img` only.
+struct HubSubredditIcon: View {
+    let subreddit: String
+    let repository: RedditRepository
+    @State private var url: URL?
+
+    var body: some View {
+        Group {
+            if let url {
+                CachedAsyncImage(url: url, contentMode: .fill)
+                    .clipShape(RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius, style: .continuous))
+            } else {
+                Color.clear
+            }
+        }
+        .task(id: subreddit) {
+            guard let info = try? await repository.fetchSubredditInfo(name: subreddit) else { return }
+            let raw = [info.communityIcon, info.iconImage].compactMap { $0 }.first { !$0.isEmpty }
+            url = raw.flatMap { URL(string: $0.replacingOccurrences(of: "&amp;", with: "&")) }
+        }
+    }
+}
+
+/// An About row that opens an external URL.
+/// Artwork for a hub row that is not an emoji tile.
+enum HubRowArtwork {
+    /// A PNG in `Resources/StockIcons`.
+    case bundled(String)
+    /// A subreddit's live icon, with the emoji tile as placeholder.
+    case subreddit(String, RedditRepository)
+}
+
 /// Shared colored-tile glyph used by every hub row: a 29x29 rounded rect at
 /// cornerRadius 6 holding a white 16pt medium symbol.
 struct SettingsTile: View {

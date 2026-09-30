@@ -80,7 +80,9 @@ struct SettingsSearchDestination: View {
         case .savedCategories: SavedCategoriesSettingsScreen()
         case .translation: TranslationSettingsScreen()
         case .tagFilters: TagFiltersSettingsScreen()
+        case .comments: CommentsSettingsScreen()
         case .commentsTheme: CommentsThemeSettingsScreen()
+        case .customAPI: AccountsAPIKeysScreen(accountManager: accountManager)
         case .deletedComments: DeletedCommentsSettingsScreen()
         case .externalBrowser: ExternalBrowserSettingsScreen()
         case .openInApp: OpenInAppSettingsScreen()
@@ -88,10 +90,18 @@ struct SettingsSearchDestination: View {
         case .inlineMedia: InlineMediaSettingsScreen()
         case .linkPreview: LinkPreviewSettingsScreen()
         case .media: MediaSettingsScreen()
+        case .notificationBackend: NotificationBackendSettingsScreen()
         case .pictureInPicture: PictureInPictureSettingsScreen()
         case .polls: PollsSettingsScreen(accountManager: accountManager)
+        case .postsFeeds: PostsFeedsSettingsScreen()
+        case .profileLayout: ProfileLayoutSettingsScreen()
+        case .subredditLayout: SubredditLayoutSettingsScreen()
+        case .subredditSections: SubredditSectionsSettingsScreen()
+        case .subreddits: SubredditsSettingsScreen()
         case .apolloAI: ApolloAISettingsScreen()
         case .wallpapers: WallpapersSettingsScreen()
+        case .accountsAPIKeys: AccountsAPIKeysScreen(accountManager: accountManager)
+        case .clearTweakCaches: ClearTweakCachesScreen()
         case .themeGallery:
             // The gallery needs a selection handler a search result cannot supply, so this
             // lands on the Theme screen that owns it.

@@ -103,7 +103,11 @@ public struct LoginScreen: View {
             NavigationStack {
                 // Reborn's Accounts & API Keys.
                 Group {
+                    if let accountManager {
+                        AccountsAPIKeysScreen(accountManager: accountManager)
+                    } else {
                         CustomAPISettingsScreen()
+                    }
                 }
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {

@@ -38,7 +38,9 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case savedCategories
     case translation
     case tagFilters
+    case comments
     case commentsTheme
+    case customAPI
     case deletedComments
     case externalBrowser
     case openInApp
@@ -46,11 +48,21 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case inlineMedia
     case linkPreview
     case media
+    case notificationBackend
     case pictureInPicture
     case polls
+    case postsFeeds
+    case profileLayout
+    case subredditLayout
+    case subredditSections
+    case subreddits
     case apolloAI
     case wallpapers
     case themeGallery
+    /// `Settings → Apollo Reborn → Accounts & API Keys`.
+    case accountsAPIKeys
+    /// `Settings → Apollo Reborn → Clear Tweak Caches`.
+    case clearTweakCaches
 }
 
 /// Settings search: matching and ranking, ported from Apollo-Reborn's

@@ -168,6 +168,11 @@ public final class AccountManager: ObservableObject {
     private func refreshFromStore() {
         accounts = store.accounts
         activeIndex = store.activeIndex
+        // Every account change funnels through here, so the caches are dropped
+        // here. `SubredditListCache` is keyed by username, but a stale file for a
+        // removed account would be served if it signed back in.
+        SubredditListCache.clear()
+        Task { await SubscribedSubredditsCache.shared.invalidate() }
         let client = Self.buildAuthClient(store: store, account: store.activeAccount)
         authClient = client
         repository = RedditRepository(client: RedditAPIClient(auth: client))

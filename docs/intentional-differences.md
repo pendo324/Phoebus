@@ -59,3 +59,7 @@ not, and why.
   per-account API credentials are skipped (the global keys are
   imported), and the analytics identity (Bugsnag and Statsig IDs) and
   StoreKit state have nothing to attach to.
+- **Backups leave out read-post and new-comment tracking.** The read-post
+  set and the "N new comments" tracker are high-churn view state, not
+  preferences; restoring stale copies would mark posts read that you have
+  not seen on this device.

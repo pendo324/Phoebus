@@ -19,6 +19,10 @@ public struct ApolloRebornHubScreen: View {
     let accountManager: AccountManager
 
     @Setting(GeneralSettingsStore.storage) private var generalSettings
+    @State private var showingRestoreSource = false
+    @State private var showingLocalBackups = false
+    @State private var showingRestoreImporter = false
+    @State private var pendingRestoreURL: URL?
     @State private var showingClearCaches = false
     @State private var showingClearBanners = false
     public init(accountManager: AccountManager) {
@@ -212,6 +216,18 @@ public struct ApolloRebornHubScreen: View {
     /// Tweak Caches and Clear Custom Banners & Icons (inline confirmation alerts).
     private var dataSection: some View {
         Section {
+            SettingsNavigationRow {
+                AutomaticBackupSettingsScreen()
+            } label: {
+                HubRow(title: "Backup Settings", systemImage: "square.and.arrow.up.fill", tint: .blue, isAction: true,
+                       showsChevron: true)
+            }
+            .apolloSettingsRowInsets()
+            Button { showingRestoreSource = true } label: {
+                HubRow(title: "Restore Settings", systemImage: "square.and.arrow.down.fill", tint: .green, isAction: true)
+            }
+            .apolloSettingsRowInsets()
+            .buttonStyle(.plain)
             Button { showingClearCaches = true } label: {
                 HubRow(title: "Clear Tweak Caches", systemImage: "trash.fill", tint: .red, isAction: true)
             }
@@ -228,6 +244,23 @@ public struct ApolloRebornHubScreen: View {
         } footer: {
             Text("Back up or restore your Reborn settings and API keys, or clear cached data.")
                     .apolloHubSectionFooter()
+        }
+        // Restore Settings: asks Local or Cloud.
+        .confirmationDialog("Restore Settings", isPresented: $showingRestoreSource, titleVisibility: .visible) {
+            Button("Local Backup") { showingLocalBackups = true }
+            Button("Cloud Backup") { showingRestoreImporter = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose where the backup is stored.")
+        }
+        .settingsDestination(isPresented: $showingLocalBackups) {
+            LocalBackupsScreen()
+        }
+        .apolloDocumentImporter(isPresented: $showingRestoreImporter, allowedContentTypes: BackupFileTypes.restorable) { result in
+            if case .success(let url) = result { pendingRestoreURL = url }
+        }
+        .settingsDestination(isPresented: $pendingRestoreURL.isPresent()) {
+            BackupRestoreSettingsScreen(importURL: pendingRestoreURL)
         }
         // Reborn's clear-all-caches copy.
         .alert("Clear Tweak Caches?", isPresented: $showingClearCaches) {

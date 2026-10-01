@@ -18,6 +18,8 @@ public struct LoginScreen: View {
     @State private var showingCustomAPISettings = false
     @State private var showingSignInMethodChooser = false
     @State private var showingWebSessionLogin = false
+    @State private var showingRestore = false
+
     public init(auth: RedditAuthClient, accountManager: AccountManager? = nil, onSuccess: @escaping () -> Void) {
         self.auth = auth
         self.accountManager = accountManager
@@ -90,6 +92,10 @@ public struct LoginScreen: View {
             // Reborn's Custom API entry point, reachable before sign-in since OAuth needs a
             // working client ID. A new install can also start from a backup.
             HStack(spacing: 20) {
+                Button("Restore from Backup") {
+                    showingRestore = true
+                }
+                .accessibilityIdentifier("login.restoreBackup")
                 Button("Custom API Settings") {
                     showingCustomAPISettings = true
                 }
@@ -99,6 +105,20 @@ public struct LoginScreen: View {
             .foregroundStyle(.secondary)
         }
         .padding()
+        .sheet(isPresented: $showingRestore, onDismiss: {
+            Task {
+                if let accountManager, await accountManager.isSignedIn { onSuccess() }
+            }
+        }) {
+            NavigationStack {
+                BackupRestoreSettingsScreen(importOnly: true)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showingRestore = false }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $showingCustomAPISettings) {
             NavigationStack {
                 // Reborn's Accounts & API Keys.
@@ -172,3 +192,4 @@ public struct LoginScreen: View {
         }
     }
 }
+

@@ -32,6 +32,12 @@ struct PhoebusApp: App {
         // Applies user-configured Custom API settings before anything
         // else touches RedditOAuthConfig/RedditAPIClient.
         CustomAPISettingsStore.applyPersisted()
+
+        // Automatic Backups: checked while the app is active (launch,
+        // every return, a clock change, and hourly), as Reborn's.
+        AutomaticBackupRunner.runIfDue()
+        AutomaticBackupRunner.startActiveChecks()
+
         // Reddit Chat's token comes from a real browser load.
         ChatTokenWebMinter.install()
     }

@@ -66,6 +66,7 @@ struct SettingsSearchDestination: View {
         switch entry.screen {
         case .settingsRoot, .accounts:
             AccountManagerScreen(accountManager: accountManager)
+        case .general: GeneralSettingsScreen()
         case .gestures: GestureSettingsScreen()
         case .filters: FiltersSettingsScreen()
         case .markRead: MarkReadSettingsScreen()
@@ -80,6 +81,7 @@ struct SettingsSearchDestination: View {
         case .savedCategories: SavedCategoriesSettingsScreen()
         case .translation: TranslationSettingsScreen()
         case .tagFilters: TagFiltersSettingsScreen()
+        case .backupRestore: BackupRestoreSettingsScreen()
         case .comments: CommentsSettingsScreen()
         case .commentsTheme: CommentsThemeSettingsScreen()
         case .customAPI: AccountsAPIKeysScreen(accountManager: accountManager)
@@ -88,6 +90,8 @@ struct SettingsSearchDestination: View {
         case .openInApp: OpenInAppSettingsScreen()
         case .infoRow: InfoRowSettingsScreen()
         case .inlineMedia: InlineMediaSettingsScreen()
+        case .interfaceSettings: InterfaceSettingsScreen()
+        case .actionMenus: ActionMenusSettingsScreen()
         case .linkPreview: LinkPreviewSettingsScreen()
         case .media: MediaSettingsScreen()
         case .notificationBackend: NotificationBackendSettingsScreen()
@@ -100,6 +104,7 @@ struct SettingsSearchDestination: View {
         case .subreddits: SubredditsSettingsScreen()
         case .apolloAI: ApolloAISettingsScreen()
         case .wallpapers: WallpapersSettingsScreen()
+        case .automaticBackup: AutomaticBackupSettingsScreen()
         case .accountsAPIKeys: AccountsAPIKeysScreen(accountManager: accountManager)
         case .clearTweakCaches: ClearTweakCachesScreen()
         case .themeGallery:

@@ -20,11 +20,21 @@ public struct ApolloRebornHubScreen: View {
 
     @Setting(GeneralSettingsStore.storage) private var generalSettings
     @State private var showingRestoreSource = false
+    /// Re-read on appear and on any delete, as Reborn's row re-reads.
+    @State private var crashReportCount = 0
     @State private var showingLocalBackups = false
     @State private var showingRestoreImporter = false
     @State private var pendingRestoreURL: URL?
     @State private var showingClearCaches = false
     @State private var showingClearBanners = false
+    /// Stored as a disable flag, so the switch shows the inverse.
+    @AppStorage("ApolloUsageHeartbeatDisabled") private var heartbeatDisabled = false
+    private var anonymousInstallCount: Binding<Bool> {
+        Binding(get: { !heartbeatDisabled }, set: { heartbeatDisabled = !$0 })
+    }
+    @State private var debugLogExport: URL?
+    @State private var exportingLogs = false
+
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
     }
@@ -36,6 +46,7 @@ public struct ApolloRebornHubScreen: View {
             shortcutsSection
             dataSection
             advancedSection
+            privacySection
             aboutSection
         }
         .apolloSettingsListAppearance()
@@ -43,6 +54,17 @@ public struct ApolloRebornHubScreen: View {
         // Apollo's does.
         .safeAreaPadding(.top, 7)
         .navigationTitle("Apollo Reborn")
+        .onAppear { crashReportCount = CrashManager.shared.pendingReportIDs.count }
+        .onReceive(NotificationCenter.default.publisher(for: .phoebusCrashReportsChanged)) { _ in
+            crashReportCount = CrashManager.shared.pendingReportIDs.count
+        }
+        // On the screen, not the Advanced section: a sheet attached to a List
+        // section never presents.
+        .sheet(isPresented: $debugLogExport.isPresent()) {
+            if let debugLogExport {
+                ActivityShareSheet(items: [debugLogExport])
+            }
+        }
         .navigationBarTitleDisplayModeIfAvailable()
     }
 
@@ -116,6 +138,12 @@ public struct ApolloRebornHubScreen: View {
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
+                InterfaceSettingsScreen()
+            } label: {
+                HubRow(title: "Interface", systemImage: "slider.horizontal.3", tint: .purple)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
                 LinkPreviewSettingsScreen()
             } label: {
                 // Status subtitle: "Body %@ · Comments %@ · %@" with the colour as
@@ -173,9 +201,14 @@ public struct ApolloRebornHubScreen: View {
     private var shortcutsSection: some View {
         Section {
             SettingsNavigationRow {
-                // Apollo's "Open in App" screen is a three-section hub (per-service app
-                // toggles, the browser picker, and Link Companion); the picker is one row of
-                // it.
+                ThemeSettingsScreen()
+            } label: {
+                HubRow(title: "Theme Manager", systemImage: "paintbrush.fill", tint: .indigo)
+            }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
+                // Apollo's "Open in App" screen: per-service app toggles and the
+                // browser picker.
                 OpenInAppSettingsScreen()
             } label: {
                 HubRow(title: "Open in App", systemImage: "arrow.up.forward.app.fill", tint: .blue)
@@ -198,6 +231,19 @@ public struct ApolloRebornHubScreen: View {
             } label: {
                 HubRow(title: "Saved Categories", systemImage: "book.closed.fill", tint: .green)
             }
+            .apolloSettingsRowInsets()
+            SettingsNavigationRow {
+                TagFiltersSettingsScreen()
+            } label: {
+                HubRow(title: "Tag Filters", systemImage: "tag.fill", tint: .orange)
+            }
+            .apolloSettingsRowInsets()
+            HubToggleRow(
+                title: "Color Flairs",
+                systemImage: "paintpalette.fill",
+                tint: .pink,
+                isOn: $generalSettings.enableFlairColors
+            )
             // Needed so the tile aligns with every other row's.
             .apolloSettingsRowInsets()
         } header: {
@@ -309,6 +355,14 @@ public struct ApolloRebornHubScreen: View {
                 )
             }
             .apolloSettingsRowInsets()
+            // `about.exportLogs`. Reborn's FLEX Debugging and its two 🔧 rows are left
+            // out.
+            Button { Task { await exportDebugLogs() } } label: {
+                HubRow(title: exportingLogs ? "Preparing Logs…" : "Export Debug Logs",
+                       systemImage: "square.and.arrow.up.on.square.fill", tint: .gray, isAction: true)
+            }
+            .apolloSettingsRowInsets()
+            .buttonStyle(.plain)
         } header: {
             Text("Advanced")
                 .apolloHubSectionHeader()
@@ -317,10 +371,49 @@ public struct ApolloRebornHubScreen: View {
                     .apolloHubSectionFooter()
         }
     }
+
+    /// Writes a plain-text log and hands it to the share sheet.
+    private func exportDebugLogs() async {
+        guard !exportingLogs else { return }
+        exportingLogs = true
+        defer { exportingLogs = false }
+        debugLogExport = await DebugLogExport.write(accountCount: accountManager.accounts.count)
+    }
+
     /// Mirrors Reborn's subtitle block.
     private var notificationBackendSubtitle: String {
         let url = notificationBackendSettings.backendURL ?? ""
         return url.isEmpty ? "Self-hosted apollo-backend · off" : url
+    }
+
+    // MARK: - Privacy
+
+    /// Privacy: "Anonymous Install Count" (a switch, `waveform.path.ecg` on pink)
+    /// and "Crash Reports" (a push, `bandage` on orange, with the pending count as
+    /// its detail). The footer is an attributed string whose "privacy policy" is a
+    /// link.
+
+    private var privacySection: some View {
+        Section {
+            HubToggleRow(title: "Anonymous Install Count", systemImage: "waveform.path.ecg", tint: .pink,
+                         isOn: anonymousInstallCount)
+                .apolloSettingsRowInsets()
+            SettingsNavigationRow {
+                CrashReportsScreen()
+            } label: {
+                HubRow(title: "Crash Reports", systemImage: "bandage", tint: .orange,
+                       detail: crashReportCount > 0 ? "\(crashReportCount)" : nil)
+            }
+            .apolloSettingsRowInsets()
+        } header: {
+            Text("Privacy")
+                .apolloHubSectionHeader()
+        } footer: {
+            // Reborn's row, but honest about this build: it has no
+            // heartbeat to send, so the switch changes nothing.
+            Text("Phoebus does not send an install heartbeat; this switch is kept to match Apollo Reborn and has no effect. No Reddit activity, account details, or feature usage is collected.")
+                .apolloHubSectionFooter()
+        }
     }
 
     // MARK: - About
@@ -330,6 +423,13 @@ public struct ApolloRebornHubScreen: View {
     /// requests, bug reports and the GitHub row go to Phoebus's own repo.
     private var aboutSection: some View {
         Section {
+            HubLinkRow(
+                title: "Feature Requests",
+                subtitle: "Suggest ideas for Phoebus",
+                emoji: "💡",
+                tint: .yellow,
+                url: "https://github.com/pendo324/Phoebus/issues"
+            )
             // A push to the in-app report form, not a link.
             SettingsNavigationRow {
                 BugReportScreen()
@@ -344,6 +444,52 @@ public struct ApolloRebornHubScreen: View {
                 }
             }
             .apolloSettingsRowInsets()
+            // The GitHub row carries the bundled GitHub mark, not an emoji tile; the
+            // subreddit row shows r/ApolloReborn's own icon with 👽 as the placeholder.
+            HubLinkRow(
+                title: "Open Source on GitHub",
+                subtitle: "@pendo324",
+                emoji: "🐙",
+                tint: .black,
+                url: "https://github.com/pendo324/Phoebus",
+                artwork: .bundled("reborn-github")
+            )
+            HubLinkRow(
+                title: "Apollo Reborn Subreddit",
+                subtitle: "r/ApolloReborn",
+                emoji: "👽",
+                tint: .orange,
+                url: "https://reddit.com/r/ApolloReborn/",
+                artwork: .subreddit("ApolloReborn", accountManager.repository)
+            )
+            SettingsNavigationRow {
+                ThanksToScreen()
+            } label: {
+                // Leading-aligned like its neighbours.
+                HStack {
+                    HubEmojiRow(title: "Thanks To", emoji: "🙏", tint: .indigo)
+                    Spacer()
+                    ApolloSettingsChevron()
+                }
+            }
+            .apolloSettingsRowInsets()
+            HubLinkRow(
+                title: "Privacy Policy",
+                emoji: "🔒",
+                tint: .green,
+                url: "https://apolloreborn.app/privacy"
+            )
+            // A plain value row: no tile, title at the row's leading edge, "v3.7.1"-style
+            // detail trailing.
+            HStack {
+                Text("Version")
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                Spacer()
+                Text("v" + (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"))
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                    .foregroundStyle(Color.apolloSettingsSecondary)
+            }
+            .apolloPlainSettingsRowInsets(rule: false)
         } header: {
             Text("About")
                 .apolloHubSectionHeader()
@@ -413,6 +559,30 @@ struct HubRow: View {
         .padding(.vertical, (subtitle?.isEmpty == false)
                  ? ApolloSettingsRowMetrics.hubRowVerticalPadWithSubtitle
                  : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
+    }
+}
+
+/// Switch-alias row, used only by "Color Flairs" (see the Shortcuts doc).
+struct HubToggleRow: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    @Binding var isOn: Bool
+
+    /// Same tile-to-title geometry as `HubRow` (`hubTileToTitleGap`, with the title
+    /// at the pinned title size).
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
+                SettingsTile(systemImage: systemImage, tint: tint)
+                Text(title)
+                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
+                    .lineLimit(1)
+            }
+        }
+        // Geometry lives on the call sites (each applies `.apolloSettingsRowInsets()`
+        // as the Section's direct child); this row owns only its tile + title layout.
+        .frame(minHeight: ApolloSettingsRowMetrics.rowHeight)
     }
 }
 
@@ -507,6 +677,33 @@ enum HubRowArtwork {
     case bundled(String)
     /// A subreddit's live icon, with the emoji tile as placeholder.
     case subreddit(String, RedditRepository)
+}
+
+struct HubLinkRow: View {
+    let title: String
+    var subtitle: String?
+    let emoji: String
+    let tint: Color
+    let url: String
+    var artwork: HubRowArtwork? = nil
+
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            if let destination = URL(string: url) {
+                openURL(destination)
+            }
+        } label: {
+            HStack {
+                HubEmojiRow(title: title, subtitle: subtitle, emoji: emoji, tint: tint, artwork: artwork)
+                Spacer()
+                ApolloSettingsChevron()
+            }
+        }
+        .apolloSettingsRowInsets()
+        .foregroundStyle(.primary)
+    }
 }
 
 /// Shared colored-tile glyph used by every hub row: a 29x29 rounded rect at

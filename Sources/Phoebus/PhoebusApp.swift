@@ -206,6 +206,7 @@ struct MainTabView: View {
     /// Path for the Settings tab's stack; see `SettingsNavigationModel`,
     /// which enables back/forward page swipes on Settings.
     @StateObject private var settingsNavigation = SettingsNavigationModel(tab: 4)
+    @State private var showingSettingsShortcuts = false
     private static let tabBarSwipeNavigationAtLaunch = GeneralSettingsStore.load().tabBarSwipeNavigation
     /// "Floating Post Tabs"; see `FloatingPostTabsSettings`. One
     /// app-wide manager, installed into the environment and overlaid
@@ -322,6 +323,24 @@ struct MainTabView: View {
                 TabBarSwipeNavigationProbe().frame(width: 0, height: 0)
             }
         }
+        // Settings Shortcuts (#1150): hold the Settings tab.
+        .background(TabItemLongPressProbe(index: 4, count: 5) {
+            showingSettingsShortcuts = true
+        }.frame(width: 0, height: 0))
+        .apolloActionSheet(
+            isPresented: $showingSettingsShortcuts,
+            title: "Settings Shortcuts",
+            rows: SettingsShortcutsStore.load().map { id in
+                ApolloActionSheetRow(SettingsShortcutsStore.title(id),
+                                     icon: SettingsShortcutsStore.systemImage(id),
+                                     accessibilityIdentifier: "settingsShortcut.\(id)") {
+                    openSettingsShortcut(id)
+                }
+            } + [ApolloActionSheetRow("Edit Shortcuts…", icon: "slider.horizontal.3",
+                                      startsSection: true,
+                                      accessibilityIdentifier: "settingsShortcut.edit") {
+                    openSettingsShortcut("__edit")
+                }])
         // Home-screen quick actions.
         .onAppear { performPendingQuickAction() }
         .onReceive(NotificationCenter.default.publisher(for: .apolloQuickAction)) { _ in
@@ -329,6 +348,25 @@ struct MainTabView: View {
         }
         // Reddit rate-limiting an API-Key-Free account (#1220).
         .apolloRateLimitNotice()
+        // A settings page asked for by route id (the PiP card's gear).
+        .onReceive(NotificationCenter.default.publisher(for: .apolloOpenSettingsRoute)) { note in
+            if let id = note.object as? String { openSettingsShortcut(id) }
+        }
+    }
+
+    /// Opens a shortcut on the Settings tab's own stack, from its
+    /// root, so back returns to Settings.
+    private func openSettingsShortcut(_ id: String) {
+        liquidGlassSelection = 4
+        let view: AnyView = id == "__edit"
+            ? AnyView(SettingsShortcutsScreen())
+            : AnyView(SettingsShortcutDestination(id: id, accountManager: accountManager))
+        // Pushed on the next turn: in the same turn as the tab switch and sheet
+        // dismissal the stack isn't frontmost yet and the nav title comes out empty.
+        settingsNavigation.path = []
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            settingsNavigation.path = [SettingsRoute(view: view)]
+        }
     }
 
     /// Search / Inbox / Profile / Settings select their tab; Home

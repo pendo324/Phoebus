@@ -32,6 +32,11 @@ not, and why.
 
 ## Settings and interface
 
+- **Header Style has an "Automatic" option** that follows the system.
+  This is a Phoebus addition.
+- **There is no What's New screen, no FLEX debugging and no debug rows
+  in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
+  setting is not imported from backups.
 - **There is no Memechine Learning setting.** Apollo's General > Other
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.

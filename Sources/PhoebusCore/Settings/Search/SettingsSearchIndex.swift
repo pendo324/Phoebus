@@ -23,6 +23,7 @@ public struct SettingsSearchEntry: Sendable, Equatable, Identifiable {
 /// Every settings screen a search result can land on.
 public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case settingsRoot
+    case general
     case gestures
     case filters
     case markRead
@@ -38,6 +39,7 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case savedCategories
     case translation
     case tagFilters
+    case backupRestore
     case comments
     case commentsTheme
     case customAPI
@@ -46,6 +48,8 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case openInApp
     case infoRow
     case inlineMedia
+    case interfaceSettings
+    case actionMenus
     case linkPreview
     case media
     case notificationBackend
@@ -59,6 +63,8 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case apolloAI
     case wallpapers
     case themeGallery
+    /// `Settings → Apollo Reborn → Backup Settings`.
+    case automaticBackup
     /// `Settings → Apollo Reborn → Accounts & API Keys`.
     case accountsAPIKeys
     /// `Settings → Apollo Reborn → Clear Tweak Caches`.

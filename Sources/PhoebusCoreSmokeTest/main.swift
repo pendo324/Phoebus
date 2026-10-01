@@ -1141,6 +1141,28 @@ try await checkRowSwipeMustNotBeRe()
 try await checkRowSwipesMustNotFightThe()
 
 try await checkHorizontalGesturesAndVerticalScrollingAre()
+
+try await checkImportingAREALApolloSettingsBackup()
+
+try await checkTheSubredditHeaderIsCENTREDLike()
+
+try await checkShareAsImageIncludesInlineImages()
+
+try await checkImportingARealApolloBackupS()
+
+try await checkAISummarySettingsComeAcrossFrom()
+
+try await checkEveryKeyInARealApollo()
+try await checkDeletedCommentRecoveryMustNotReplace()
+
+try await checkSettingsTheAppShowsMustActually()
+
+try await checkTheVideoPlayerTheRightStream()
+
+try await checkVideosActuallyPlayAndHaveControls()
+
+try await checkTapToFullscreenAndTheVideo()
+
 try await checkTheFullscreenVideoViewerLayoutAnd()
 
 try await checkGalleryViewSOwnFullscreenViewer()

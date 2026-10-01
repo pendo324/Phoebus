@@ -623,7 +623,40 @@ try await checkSwipeCommitPolicy()
 try await checkApolloReborn370Parity()
 
 try await checkApolloReborn370Parity2()
+
+try await checkCommentVoteInsights()
 checkLinkPreviews()
+
+try await checkHideModeratedSubreddits()
+
+try await checkExtraPlaybackSpeedsReborn445()
+
+try await checkPostFiltersPerSubredditKeywordsFlairs()
+
+try await checkSavedItemsDeDuplication()
+
+try await checkRedditSShareLinks()
+
+try await checkInboxReplyIsolatedCommentThread()
+
+try await checkApolloReborn370Parity3()
+
+try await checkExpandedMultiredditsStockApollo()
+
+try await checkApolloReborn370Parity4()
+
+try await checkApolloReborn370Parity5()
+
+try await checkApolloReborn370Parity6()
+
+try await checkApolloReborn370Parity7()
+
+try await checkApolloReborn370Parity8()
+
+try await checkSignInToXAlerts()
+
+try await checkContinueThreadRedditSDepthLimit()
+
 // MARK: - GeneralSettings defaults
 //
 // Apollo's shipped registration dictionary is the ground truth for what each
@@ -668,6 +701,17 @@ check("an older saved settings blob picks up the real defaults",
       sparse.showCommentsButton && sparse.loopVideosWithAudio &&
       sparse.threeDTouchMarksRead && sparse.showMediaViewerControlsWhenOpened &&
       !sparse.sharePostIncludesTitle)
+
+try await checkLoadNextPageCellNodeManualPagination()
+
+try await checkReachedEndCopy()
+
+try await checkSavedIndicator()
+
+try await checkSettingsSearchApolloRebornSApolloSettingsSearch()
+
+try await checkPinnedSettingsPreviewCardsApolloSettingsPinnedPreview()
+
 // MARK: - Subreddit Sections live preview
 //
 // Mirrors Reborn's subreddit-sections preview state: sample names, colors,

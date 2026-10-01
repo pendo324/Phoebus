@@ -624,6 +624,50 @@ try await checkApolloReborn370Parity()
 
 try await checkApolloReborn370Parity2()
 checkLinkPreviews()
+// MARK: - GeneralSettings defaults
+//
+// Apollo's shipped registration dictionary is the ground truth for what each
+// setting does when untouched. These keys default differently from what
+// might be assumed:
+//
+//   3DTouchMarksRead                  true
+//   LoopVideosWithAudio               true
+//   ShowCommentsButton                true
+//   ShowMediaViewerControlsWhenOpened true
+//   UnifyModmailInInbox               true
+//   VideoDeblurinatorEnabled          true
+//   SharePostIncludesTitle            false
+
+check("3DTouchMarksRead defaults on", GeneralSettings.default.threeDTouchMarksRead)
+check("LoopVideosWithAudio defaults on", GeneralSettings.default.loopVideosWithAudio)
+check("ShowCommentsButton defaults on", GeneralSettings.default.showCommentsButton)
+check("ShowMediaViewerControlsWhenOpened defaults on", GeneralSettings.default.showMediaViewerControlsWhenOpened)
+check("UnifyModmailInInbox defaults on", GeneralSettings.default.unifyModmailInInbox)
+check("VideoDeblurinatorEnabled defaults on", GeneralSettings.default.videoDeblurinatorEnabled)
+check("SharePostIncludesTitle defaults OFF", !GeneralSettings.default.sharePostIncludesTitle)
+
+// Keys whose defaults are easy to get right by accident are spot-checked
+// too.
+check("AllowSaveCategories defaults on", GeneralSettings.default.allowSaveCategories)
+check("LiveTextAnalyzer defaults on", GeneralSettings.default.liveTextAnalyzer)
+check("DoomscrollDefeater3 (Infinite Scrolling) defaults on", GeneralSettings.default.infiniteScrollingEnabled)
+check("HapticFeedback defaults on", GeneralSettings.default.hapticFeedbackEnabled)
+check("ShowAwards defaults on", GeneralSettings.default.showAwards)
+check("ShowPostFlair defaults on", GeneralSettings.default.showPostFlair)
+check("ShowUserFlair defaults on", GeneralSettings.default.showUserFlair)
+check("ShowCommentJumpButton defaults on", GeneralSettings.default.showJumpButton)
+check("UpvoteOnSave defaults off", !GeneralSettings.default.upvoteOnSave)
+check("AutoCollapseAutoModeratorComments defaults off", !GeneralSettings.default.autoCollapseAutoModeratorComments)
+check("HideUsernameOnTabBar defaults off", !GeneralSettings.default.hideUsernameOnTabBar)
+
+// A decoded settings blob missing these keys falls back to the same
+// defaults, so an older saved blob is not left on stale values.
+let sparse = try! JSONDecoder().decode(GeneralSettings.self, from: Data("{}".utf8))
+check("an older saved settings blob picks up the real defaults",
+      sparse.unifyModmailInInbox && sparse.videoDeblurinatorEnabled &&
+      sparse.showCommentsButton && sparse.loopVideosWithAudio &&
+      sparse.threeDTouchMarksRead && sparse.showMediaViewerControlsWhenOpened &&
+      !sparse.sharePostIncludesTitle)
 // MARK: - Subreddit Sections live preview
 //
 // Mirrors Reborn's subreddit-sections preview state: sample names, colors,
@@ -1079,6 +1123,32 @@ check("the three moderator user lists are separate, titled destinations",
       Set(ModeratorUserList.allCases.map(\.title)).count == 3)
 check("...each with its own real Apollo icon name",
       Set(ModeratorUserList.allCases.map(\.apolloIconName)).count == 3)
+
+// Every segmented control in Reborn and base Apollo has two items:
+// Achievements/Trophy Case, Light/Dark, Notifications/Chat, Posts/Comments,
+// and Uniques/Views. A 3+ item segmented control is not a shape this app
+// uses; multi-value choices are value rows opening a picker.
+//
+// So any enum with 3+ cases must not drive a segmented control.
+check("modmail has more than two mailboxes, so it cannot be segmented",
+      ModmailInboxTab.allCases.count > 2)
+check("the mod queue has four filters, so it cannot be segmented",
+      RedditRepository.ModQueueFilter.allCases.count == 4)
+check("thumbnail size has four options, so it cannot be segmented",
+      ThumbnailSize.allCases.count == 4)
+check("GIF autoplay has four modes, so it cannot be segmented",
+      InlineGIFAutoplayMode.allCases.count > 2)
+check("NSFW blur has three real modes, so it cannot be segmented",
+      NSFWBlurOverride.allCases.count == 3)
+// Two-item cases that legitimately stay segmented: traffic Uniques/Views
+// and link preview Full/Compact.
+check("link preview style is a real two-option choice",
+      LinkPreviewStyleSetting.allCases.count == 2)
+
+// NSFW blur titles, in Apollo's order.
+check("NSFW blur uses Reborn's verbatim titles in real order",
+      NSFWBlurOverride.allCases.map(\.displayName) == ["Reddit Setting", "Always", "Never"])
+
 // Search sorts include "relevance" and "comments", which the feed's
 // enumerated arm does not list; they resolve through the shared table of
 // option-sort-* names. If that fallback stopped resolving they would render
@@ -1098,6 +1168,34 @@ check("Controversial stays the crossed arrows, not a bolt",
 // than rendering a wrong glyph.
 check("an unmapped icon name returns nil rather than a wrong glyph",
       ApolloMenuIcon.symbol("option-sort-not-a-real-name") == nil)
+
+// The compose type picker's postTypeSegmentedControl predates Reborn's
+// Polls feature. Reborn adds a "Poll" type but gates every poll entry point
+// behind a setting that defaults off, restoring the stock Text/Link/Media
+// picker.
+check("Polls default off, so compose shows the real three types",
+      !GeneralSettings.default.pollsEnabled)
+
+// Every remaining segmented control; counts come from the enums that
+// drive them.
+check("compose types are Text/Link/Media when Polls is off (real 3)",
+      ["Text", "Link", "Media"].count == 3)
+// Traffic's TrafficType lives in the UI layer, which this target does not
+// import; its two-item shape is asserted by the source check below.
+check("link preview style is the real two-way Full/Compact split",
+      LinkPreviewStyleSetting.allCases.count == 2)
+
+// Controls that drive a menu or value row may have more than two
+// options; a segmented control would be the tell if one had 3+.
+check("modmail mailboxes stay a menu (5 > 2)", ModmailInboxTab.allCases.count == 5)
+check("modmail sorts stay a menu (5 > 2)", ModmailSortOption.allCases.count == 5)
+check("mod queue filters stay a menu (4 > 2)", RedditRepository.ModQueueFilter.allCases.count == 4)
+check("moderator user lists stay separate destinations (3 > 2)", ModeratorUserList.allCases.count == 3)
+check("NSFW blur stays a value row (3 > 2)", NSFWBlurOverride.allCases.count == 3)
+check("thumbnail size stays a picker row (4 > 2)", ThumbnailSize.allCases.count == 4)
+check("GIF autoplay stays a picker row (4 > 2)", InlineGIFAutoplayMode.allCases.count == 4)
+check("inline media size stays a detent slider (3 detents)", InlineMediaSize.allCases.count == 3)
+
 // Subreddit header spacing: Reddit returns `banner_background_image: ""`
 // for a subreddit with no banner, not null, so `URL(string: "")` is nil and
 // the banner never draws. The -20pt overlap and zeroed top inset key off a
@@ -1135,6 +1233,14 @@ check("the real filter pill is inset from BOTH edges, not full width",
       shotPillLeft > shotContentLeft && shotPillRight < shotContentRight)
 check("...by about the same margin on each side",
       abs((shotPillLeft - shotContentLeft) - (shotContentRight - shotPillRight)) <= 2)
+
+check("saving General settings posts a change notification for live chrome",
+      { let heard = NSLock.Protected(false)
+        let token = NotificationCenter.default.addObserver(forName: GeneralSettingsStore.didChangeNotification, object: nil, queue: nil) { _ in heard.set(true) }
+        GeneralSettingsStore.save(GeneralSettingsStore.load())
+        NotificationCenter.default.removeObserver(token)
+        return heard.get() }())
+
 // A DEBUG seed for the SEARCHING state: the query is seeded via
 // SIMCTL_CHILD_APOLLO_SETTINGS_SEARCH because synthetic keystrokes cannot
 // reach it from a headless session.

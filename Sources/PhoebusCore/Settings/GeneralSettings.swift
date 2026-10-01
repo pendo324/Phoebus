@@ -590,6 +590,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Time range qualifier for Top/Controversial post sorts, per the
     /// real "Sort by Controversial for…" / "Sort by Top for…" copy.
     public var defaultPostsTimeSort: String
+    /// Real key: `SmartRotationLockEnabled` — suspends the iOS Portrait
+    /// Orientation Lock while viewing rotatable media, then restores it.
+    public var smartRotationLockEnabled: Bool
     /// "Open Reddit Links in Apollo": persisted intent only; Associated
     /// Domains are not registered.
     public var openRedditLinksInApollo: Bool
@@ -824,6 +827,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         rememberPostsSortPerSubreddit: false,
         defaultPostsSort: .best,
         defaultPostsTimeSort: "day",
+        smartRotationLockEnabled: false,
         openRedditLinksInApollo: true,
         rememberSubredditToLoad: false,
         hapticFeedbackEnabled: true,
@@ -919,6 +923,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         rememberPostsSortPerSubreddit: Bool = false,
         defaultPostsSort: DefaultPostSort = .best,
         defaultPostsTimeSort: String = "day",
+        smartRotationLockEnabled: Bool = false,
         openRedditLinksInApollo: Bool = true,
         rememberSubredditToLoad: Bool = false,
         hapticFeedbackEnabled: Bool = true,
@@ -1011,6 +1016,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.rememberPostsSortPerSubreddit = rememberPostsSortPerSubreddit
         self.defaultPostsSort = defaultPostsSort
         self.defaultPostsTimeSort = defaultPostsTimeSort
+        self.smartRotationLockEnabled = smartRotationLockEnabled
         self.openRedditLinksInApollo = openRedditLinksInApollo
         self.rememberSubredditToLoad = rememberSubredditToLoad
         self.hapticFeedbackEnabled = hapticFeedbackEnabled
@@ -1110,6 +1116,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         rememberPostsSortPerSubreddit = try container.decode(.rememberPostsSortPerSubreddit, default: d, \.rememberPostsSortPerSubreddit)
         defaultPostsSort = try container.decode(.defaultPostsSort, default: d, \.defaultPostsSort)
         defaultPostsTimeSort = try container.decode(.defaultPostsTimeSort, default: d, \.defaultPostsTimeSort)
+        smartRotationLockEnabled = try container.decode(.smartRotationLockEnabled, default: d, \.smartRotationLockEnabled)
         openRedditLinksInApollo = try container.decode(.openRedditLinksInApollo, default: d, \.openRedditLinksInApollo)
         rememberSubredditToLoad = try container.decode(.rememberSubredditToLoad, default: d, \.rememberSubredditToLoad)
         hapticFeedbackEnabled = try container.decode(.hapticFeedbackEnabled, default: d, \.hapticFeedbackEnabled)

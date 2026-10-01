@@ -30,6 +30,12 @@ not, and why.
   unreliable, and Bluesky and Twitter cards have a Compact mode to match
   the other previews.
 
+## Settings and interface
+
+- **There is no Memechine Learning setting.** Apollo's General > Other
+  switch gated a classifier that Phoebus does not reimplement, so General
+  settings offers no row for it.
+
 ## Crash reports
 
 - **Crash reports are reviewed and exported by you.** The review screen

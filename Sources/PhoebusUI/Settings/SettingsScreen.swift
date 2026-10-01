@@ -102,6 +102,12 @@ public struct SettingsScreen: View {
             // Section 1: General, Appearance, Notifications, App Icon, Face ID & Passcode,
             // Filters & Blocks, Gestures.
             Section {
+                SettingsNavigationRow {
+                    destination(for: .general)
+                } label: {
+                    SettingsRow(section: .general, detail: detailValue(for: .general))
+                }
+                .apolloSettingsRowInsets()
                 ForEach([SettingsSection.appearance, .notifications, .appIcon, .security, .filters, .gestures]) { section in
                     SettingsNavigationRow {
                         destination(for: section)
@@ -169,6 +175,8 @@ public struct SettingsScreen: View {
         switch section {
         case .gestures:
             GestureSettingsScreen()
+        case .general:
+            GeneralSettingsScreen()
         case .filters:
             FiltersSettingsScreen()
         case .markReadHiding:

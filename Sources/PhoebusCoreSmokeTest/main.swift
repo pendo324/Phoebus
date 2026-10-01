@@ -144,6 +144,11 @@ check("tree[0].children[0].id == c2", tree[0].children[0].comment.id == "c2")
 check("tree[0].children[0].depth == 1", tree[0].children[0].depth == 1)
 check("tree[1].id == c3", tree[1].comment.id == "c3")
 check("tree[1] has no children", tree[1].children.isEmpty)
+
+try await checkHideBlockedUserCommentsDeadToggle()
+
+try await checkCollapseFlattenLogic()
+
 // --- "more" comment continuation stubs: threads show "N more replies" rows,
 // so CommentTreeBuilder must not drop kind=="more" objects ---
 let moreJSON = """
@@ -198,6 +203,13 @@ check("buildResolved's root is the actual shallowest comment (r1), not just arra
 check("buildResolved starts depth at the stub's own depth, not always 0", resolvedBuild.roots.first?.depth == 2)
 check("buildResolved nests r2 one level below the stub's depth", resolvedBuild.roots.first?.children.first?.comment.id == "r2" && resolvedBuild.roots.first?.children.first?.depth == 3)
 check("buildResolved nests r3 two levels below the stub's depth (real multi-level reconstruction, not flat siblings)", resolvedBuild.roots.first?.children.first?.children.first?.comment.id == "r3" && resolvedBuild.roots.first?.children.first?.children.first?.depth == 4)
+
+try await checkCommentTreeStoreResolveMoreStubRealGenuinelyDeletedMore()
+
+try await checkRedditPostRoundTripCodableNeededFor()
+
+try await checkRedditURLTargetParsingShareExtensionDeepLink()
+
 // --- RedGifs ID extraction (media pipeline) ---
 let redgifsWatchURL = URL(string: "https://www.redgifs.com/watch/abcxyz")!
 check("extracts redgifs ID from watch URL", RedGifsClient.extractID(from: redgifsWatchURL) == "abcxyz")
@@ -226,6 +238,11 @@ check("ImgurClient.matchesImgurHost recognizes a t/<tag>/ prefixed link", ImgurC
 /// The two third-party round-trips below run only with SMOKE_LIVE=1, so an
 /// offline run does not count their failure.
 let runsLiveChecks = ProcessInfo.processInfo.environment["SMOKE_LIVE"] == "1"
+
+try await checkRedGifsLiveNetworkRoundTripThe()
+
+try await checkStreamableIDExtractionLiveNetworkRound()
+
 // --- v.redd.it native video media decoding ---
 let redditVideoJSON = """
 {"reddit_video": {"fallback_url": "https://v.redd.it/abc123/DASH_720.mp4", "hls_url": "https://v.redd.it/abc123/HLSPlaylist.m3u8", "is_gif": false}}
@@ -233,6 +250,23 @@ let redditVideoJSON = """
 let media = try! JSONDecoder().decode(RedditMedia.self, from: redditVideoJSON)
 check("decodes reddit_video fallback_url", media.redditVideo?.fallbackURL == "https://v.redd.it/abc123/DASH_720.mp4")
 check("decodes reddit_video hls_url", media.redditVideo?.hlsURL == "https://v.redd.it/abc123/HLSPlaylist.m3u8")
+
+try await checkSwipeActionSettingsApolloSSettingsGesturesViewController()
+
+try await checkContentFiltersApolloSSettingsFiltersViewController()
+
+try await checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController()
+
+try await checkGalleryPostsApolloSMediaPageViewController()
+
+try await checkRedditMarkdownRenderingBodyMarkdownMarkdownNode()
+
+try await checkSavedCategoriesApolloSSavedItemsCategoriesDatabase()
+
+try await checkSavedCategoryRenameDeleteApolloReborn()
+
+try await checkGeneralSettingsApolloSSettingsGeneralViewController()
+
 // --- Auto-collapse child comments (CommentTreeBuilder) ---
 let nestedCommentJSON = """
 [{"kind": "t1", "data": {"id": "c1", "name": "t1_c1", "author": "a", "body": "top", "score": 1,
@@ -250,6 +284,19 @@ check("autoCollapse keeps top-level comments open and folds their replies",
       collapsedTree.first?.isCollapsed == false && collapsedTree.first?.children.first?.isCollapsed == true)
 let uncollapsedTree = CommentTreeBuilder.build(from: nestedValues, autoCollapse: false)
 check("autoCollapse: false leaves top-level comments expanded", uncollapsedTree.first?.isCollapsed == false)
+
+try await checkAutoCollapsePinnedCommentsApolloReborn()
+
+try await checkAutoCollapseAutoModeratorCommentsApolloReborn()
+
+try await checkNewAccountHighlightDecisionFunctionApollo()
+
+try await checkRecentlyReadPostsApolloRebornFeature()
+
+try await checkAuthorFlairAwardCountApolloS()
+
+try await checkSubredditTrafficDecodingApolloSSubredditTrafficViewController()
+
 // --- Modmail conversation subreddit name ---
 let modmailJSON = """
 {
@@ -269,6 +316,55 @@ let modmailNoOwnerJSON = """
 """.data(using: .utf8)!
 let modmailNoOwner = try! JSONDecoder().decode(ModmailConversation.self, from: modmailNoOwnerJSON)
 check("modmail conversation without owner decodes nil subredditName", modmailNoOwner.subredditName == nil)
+
+try await checkUnifyModmailInInboxDeadToggle()
+
+try await checkTranslatorURLConstructionApolloSTranslatorViewController()
+
+try await checkNewCommentsTrackerApolloSNewCommentsTracker()
+
+try await checkCommentTreeAllIDsUsedByNewCommentsTracker()
+
+try await checkYouTubeURLParsingApolloSYouTubePlayerController()
+
+try await checkModQueueReportReasonParsingApollo()
+
+try await checkQuoteAsBlockquoteTransformApolloS()
+
+try await checkCustomSubredditSourcesApolloRebornFeature()
+
+try await checkTrendingSubredditTitleParsingApolloReborn()
+
+try await checkTagFiltersApolloRebornFeature()
+
+try await checkAvatarCacheApolloRebornShowUser()
+
+try await checkSteamDeepLinkingApolloRebornFeature()
+
+try await checkBackupRestoreApolloRebornFeature()
+
+try await checkRichLinkPreviewsOpenGraphParsingApollo()
+
+try await checkInlineMediaPreviewsApolloRebornFeature()
+
+try await checkCustomAPISettingsApolloRebornFeature()
+
+try await checkNativeRedditMediaUploadApolloReborn()
+
+try await checkImgurIntegrationApolloRebornFeature()
+
+try await checkRESFilteRedditImportRealBaseApollo()
+
+try await checkShareOldRedditLinksRealBase()
+
+try await checkShareIncludesTitleDeadToggleFix()
+
+try await checkVoteBreakdownCalculatorApolloRebornFeature()
+
+try await checkRandomNSFWSubredditHideFeedDescriptions()
+
+try await checkThemeUnlockedFeature()
+
 try await checkRealBundledCommentColorDepthPalettes()
 
 try await checkThemeAIGenerationRealGapFix()
@@ -1153,6 +1249,23 @@ try await checkImportingARealApolloBackupS()
 try await checkAISummarySettingsComeAcrossFrom()
 
 try await checkEveryKeyInARealApollo()
+try await checkCrashReportSanitizer()
+try await checkOpenInAppTargets()
+try await checkDefaultRedditToLoadChoice()
+try await checkAICustomHeaders()
+try await checkAIArticleExtraction()
+try await checkShareHostIndependence()
+try await checkTranslationFallback()
+try await checkFloatingTabPiles()
+try await checkInboxRowText()
+try await checkLongSwipeTriggerValues()
+try await checkOpenGraphNumericEntities()
+try await checkCustomThemes()
+try await checkRebornBackupArchive()
+try await checkScrollPastTracker()
+try await checkMarkdownFormatting()
+try await checkStandardIconPacks()
+
 try await checkDeletedCommentRecoveryMustNotReplace()
 
 try await checkSettingsTheAppShowsMustActually()

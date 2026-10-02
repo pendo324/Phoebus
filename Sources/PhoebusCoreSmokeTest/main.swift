@@ -946,6 +946,25 @@ check("surviving messages are unaffected",
       chatEdited.map(\.id) == ["$orig", "$keep"])
 
 try await checkChatReactions()
+
+try await checkAlbumSaveAllCapacityGuard()
+
+try await checkShareAsImageCard()
+
+try await checkSpongeText()
+
+try await checkXTwitterClientDeepLinks()
+
+try await checkNotificationSounds()
+
+try await checkCacheExplainer()
+
+try await checkAutomaticThemeSwitching()
+
+try await checkInlineMediaInMessages()
+
+try await checkPrivateMessageThreads()
+
 // MARK: - Native modmail over a web session
 //
 // These decode captured Reddit responses in Tests/Fixtures/ rather than
@@ -1314,6 +1333,11 @@ check("...and a body with no blank lines stays one paragraph",
 // Never return an empty list: that would drop the body entirely.
 check("...and an empty body never yields zero paragraphs",
       BodyParagraphs.split("").count == 1)
+
+try await checkInlineMediaABareLinkIs()
+
+try await checkMarkdownBlockquotes()
+
 // --- Reddit-only inline syntax the Markdown parser does not know ---
 //
 // `render()` parses Markdown only under `#if canImport(Darwin)`. The parser
@@ -1364,6 +1388,16 @@ check("the marker row is recognized",
       RedditMarkdown.isTableMarkerRow("|---|:---:|"))
 check("...and a data row is not mistaken for one",
       !RedditMarkdown.isTableMarkerRow("| a | b |"))
+
+try await checkApolloReborn371Collapse()
+
+try await checkHeaderStyleHiddenReborn1074Documented()
+
+try await checkFollowingSectionManualOrderReborn3()
+
+try await checkChatShowInMessagesFilterReborn()
+
+try await checkCenterTitleBetweenButtonsReborn3()
 try await checkInlineImgurAlbumsV290()
 
 try await checkPhoebusDeepLinkForms()

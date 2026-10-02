@@ -371,6 +371,7 @@ try await checkThemeAIGenerationRealGapFix()
 
 try await checkThemeQRCodeSharingImportReal()
 
+
 try await checkBadgeBookRealGapFixBundled()
 
 try await checkRealAchievementsCatalogRealGapFix()
@@ -446,6 +447,7 @@ check("DevvitPostDetector does not misclassify an ordinary self/text post", !Dev
 check("DevvitPostDetector rejects a post that merely quotes the fallback phrase far from the link", !DevvitPostDetector.selfTextIsInteractive("This is a very long post about how some posts say '\(String(repeating: "x", count: 350))not supported on old Reddit\(String(repeating: "x", count: 350))' but never actually link sh.reddit.com/r/ nearby, so it should not match. Padding to exceed the 300-char window on both sides so proximity genuinely fails."))
 
 try await checkWallpapersUnlockedFeature()
+
 
 try await checkBulkTranslationApolloRebornFeature()
 
@@ -1398,6 +1400,38 @@ try await checkFollowingSectionManualOrderReborn3()
 try await checkChatShowInMessagesFilterReborn()
 
 try await checkCenterTitleBetweenButtonsReborn3()
+
+try await checkReturnButtonReborn371()
+
+try await checkAutomaticBackupsReborn371()
+
+try await checkWidgetFeedSourcesReborn37()
+
+try await checkAzureTargetLanguageCodesReborn3()
+
+try await checkCommunityHighlightsReborn370()
+
+try await checkWholeDomainSettingsBackup()
+
+try await checkEndToEndRestoreOfThe()
+try await checkRestoreAppliesTheApiKey()
+
+try await checkCommunityHighlightsFullModePermalinkParsing()
+
+try await checkOpeningAHighlightWithoutRefetchingIt()
+
+try await checkWidgetSuiteSharedBehaviourReborn3()
+
+try await checkCalendarWidgetPhotoOfTheDay()
+
+try await checkWidgetCredentialsAppIntentsMetadata()
+
+try await checkSubredditHeaderActionClusterTabRe()
+
+try await checkRealArtwork()
+
+try await checkIconSwitchingTheFeedSRestorable()
+
 try await checkInlineImgurAlbumsV290()
 
 try await checkPhoebusDeepLinkForms()

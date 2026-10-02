@@ -1,0 +1,239 @@
+{
+  "accounts" : {
+    "accounts" : [
+      {
+        "username" : "example_user",
+        "webSession" : {
+          "cookieHeader" : "reddit_session=EXAMPLE_SESSION; csrf_token=EXAMPLE_CSRF",
+          "harvestedAt" : 810602688.283992,
+          "modhash" : "examplemodhash0000000000000000000000000000000000",
+          "username" : "example_user"
+        }
+      }
+    ],
+    "activeIndex" : 0
+  },
+  "contentFilters" : [],
+  "customSubredditSourceSettings" : {
+    "showRandNSFWInSearch" : false
+  },
+  "generalSettings" : {
+    "allowSaveCategories" : true,
+    "alwaysUseReaderMode" : false,
+    "autoCollapseAutoModeratorComments" : false,
+    "autoCollapseChildComments" : false,
+    "autoCollapsePinnedComments" : false,
+    "autoplayMode" : "always",
+    "blockAnnouncements" : false,
+    "centerTitleGapCentering" : false,
+    "classicTabBarScrollBehavior" : true,
+    "collapseNavigationActions" : false,
+    "commentLinkHost" : 0,
+    "commentLinkPreferNative" : false,
+    "defaultCommentSort" : "top",
+    "defaultPostsSort" : "best",
+    "defaultPostsTimeSort" : "day",
+    "defaultRedditToLoad" : "",
+    "devvitFeedWidgets" : true,
+    "devvitInteractivePosts" : true,
+    "enableFlairColors" : true,
+    "enableLiquidGlass" : true,
+    "enableLiquidGlassTabBar" : true,
+    "excludeSubscribedFromAllPopular" : false,
+    "feedGalleryCarousel" : true,
+    "feedGalleryEdgeSwipeNav" : false,
+    "forwardSwipeForgetAfterScrolling" : false,
+    "gifSaveFormat" : "automatic",
+    "hapticFeedbackEnabled" : true,
+    "hideAllInSubredditList" : false,
+    "hideBarsOnScroll" : true,
+    "hideBlockedUserComments" : false,
+    "hideFeedDescriptions" : false,
+    "hideModeratorInSubredditList" : false,
+    "hidePopularInSubredditList" : false,
+    "hideTopBarOnScroll" : true,
+    "hideUsernameOnTabBar" : false,
+    "highlightAccountAge" : false,
+    "iconOnlyTabBar" : false,
+    "ignoreSuggestedSort" : false,
+    "imgurAlbumFallbackProxies" : true,
+    "infiniteScrollingEnabled" : false,
+    "ipadTabBarBottom" : false,
+    "jumpButtonPosition" : "bottomTrailing",
+    "linkPreviewStyle" : "full",
+    "liveCommentsFollow" : false,
+    "liveTextAnalyzer" : true,
+    "loopVideosWithAudio" : true,
+    "mediaUploadHost" : 0,
+    "newCommentsHighlightifier" : false,
+    "nsfwBlurOverride" : 0,
+    "openRedditLinksInApollo" : true,
+    "openTwitterLinksIn" : "inApp",
+    "openVideosInYouTubeApp" : false,
+    "pipEnabled" : true,
+    "pollsEnabled" : true,
+    "postDisplayStyle" : "compact",
+    "preferredGIFFallbackFormat" : 1,
+    "proxyImgurViaDuckDuckGo" : false,
+    "rememberCommentsSortPerSubreddit" : false,
+    "rememberPostsSortPerSubreddit" : false,
+    "rememberSubredditToLoad" : false,
+    "saveToApolloAlbum" : false,
+    "scrollReturnButton" : true,
+    "shareLinkHost" : 0,
+    "shareOldRedditLinks" : false,
+    "sharePostIncludesTitle" : false,
+    "showAwards" : true,
+    "showCommentsButton" : true,
+    "showJumpButton" : true,
+    "showMediaViewerControlsWhenOpened" : true,
+    "showPostFlair" : true,
+    "showRichLinkPreviews" : false,
+    "showUserFlair" : true,
+    "showUserProfilePictures" : false,
+    "smartRotationLockEnabled" : false,
+    "subredditFeedIconStyle" : "classic",
+    "subredditFeedLayout" : "rows",
+    "swipeUpForComments" : true,
+    "tapToCollapseType" : "allComments",
+    "textPostThumbnailsEnabled" : true,
+    "threeDTouchMarksRead" : true,
+    "thumbnailSize" : "small",
+    "thumbnailsOnLeft" : true,
+    "trendingSubredditsLimit" : 5,
+    "unifyModmailInInbox" : true,
+    "unmuteCommentsVideosMode" : 0,
+    "unmuteFeedVideosMode" : 0,
+    "unmuteVideosWhenOpened" : "remember",
+    "upvoteOnSave" : false,
+    "useProfileAvatarTabIcon" : false,
+    "videoDeblurinatorEnabled" : true
+  },
+  "markReadSettings" : {
+    "autoHideReadPosts" : false,
+    "disableAutoHideInSubreddits" : false,
+    "hideReadPosts" : false,
+    "markReadOnOpen" : true,
+    "markReadOnScroll" : false,
+    "showHideReadButton" : false
+  },
+  "savedCategories" : [],
+  "savedCategoryAssignments" : {},
+  "settingsDomain" : {
+    "AutomaticBackupIntervalDays" : 3,
+    "AutomaticBackupsEnabled" : true,
+    "FollowedUsersOrder" : [
+      "u_example_one",
+      "u_example_two"
+    ],
+    "Phoebus.InlineMediaPreviewPinned" : true,
+    "Phoebus.appearanceSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJzaG93U3VicmVkZGl0SWNvbnNJblN1YnJlZGRpdExpc3QiOiB0cnVlfQ=="
+    },
+    "PhoebusLiquidGlassEnabled" : true,
+    "com.pendo324.Phoebus.chatSendQueue" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "W10="
+    },
+    "com.pendo324.Phoebus.expandedMultireddits" : [],
+    "com.pendo324.Phoebus.favoriteSubreddits" : [
+      "apple",
+      "swift"
+    ],
+    "com.pendo324.Phoebus.favoriteSubreddits.sortAlphabetically" : false,
+    "com.pendo324.Phoebus.generalSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJzaG93QXdhcmRzIjogdHJ1ZSwgImxpdmVUZXh0QW5hbHl6ZXIiOiB0cnVlLCAiaW5maW5pdGVTY3JvbGxpbmdFbmFibGVkIjogZmFsc2UsICJpY29uT25seVRhYkJhciI6IGZhbHNlLCAiaWdub3JlU3VnZ2VzdGVkU29ydCI6IGZhbHNlLCAibWVkaWFVcGxvYWRIb3N0IjogMCwgImF1dG9wbGF5TW9kZSI6ICJhbHdheXMiLCAiZmVlZEdhbGxlcnlDYXJvdXNlbCI6IHRydWUsICJjb21tZW50TGlua0hvc3QiOiAwLCAiaGlkZUZlZWREZXNjcmlwdGlvbnMiOiBmYWxzZSwgImRlZmF1bHRSZWRkaXRUb0xvYWQiOiAiIiwgInVubXV0ZUNvbW1lbnRzVmlkZW9zTW9kZSI6IDAsICJwb3N0RGlzcGxheVN0eWxlIjogImNvbXBhY3QiLCAiZXhjbHVkZVN1YnNjcmliZWRGcm9tQWxsUG9wdWxhciI6IGZhbHNlLCAic3VicmVkZGl0RmVlZEljb25TdHlsZSI6ICJjbGFzc2ljIiwgInNob3dNZWRpYVZpZXdlckNvbnRyb2xzV2hlbk9wZW5lZCI6IHRydWUsICJzbWFydFJvdGF0aW9uTG9ja0VuYWJsZWQiOiBmYWxzZSwgInByb3h5SW1ndXJWaWFEdWNrRHVja0dvIjogZmFsc2UsICJkZXZ2aXRGZWVkV2lkZ2V0cyI6IHRydWUsICJuc2Z3Qmx1ck92ZXJyaWRlIjogMCwgImF1dG9Db2xsYXBzZVBpbm5lZENvbW1lbnRzIjogZmFsc2UsICJoaWdobGlnaHRBY2NvdW50QWdlIjogZmFsc2UsICJzaGFyZVBvc3RJbmNsdWRlc1RpdGxlIjogZmFsc2UsICJzaG93UmljaExpbmtQcmV2aWV3cyI6IGZhbHNlLCAiYWx3YXlzVXNlUmVhZGVyTW9kZSI6IGZhbHNlLCAiZ2lmU2F2ZUZvcm1hdCI6ICJhdXRvbWF0aWMiLCAib3BlblR3aXR0ZXJMaW5rc0luIjogImluQXBwIiwgImhpZGVBbGxJblN1YnJlZGRpdExpc3QiOiBmYWxzZSwgImhpZGVVc2VybmFtZU9uVGFiQmFyIjogZmFsc2UsICJ1bm11dGVWaWRlb3NXaGVuT3BlbmVkIjogInJlbWVtYmVyIiwgImFsbG93U2F2ZUNhdGVnb3JpZXMiOiB0cnVlLCAidXB2b3RlT25TYXZlIjogZmFsc2UsICJoaWRlUG9wdWxhckluU3VicmVkZGl0TGlzdCI6IGZhbHNlLCAiZGVmYXVsdENvbW1lbnRTb3J0IjogInRvcCIsICJzaGFyZU9sZFJlZGRpdExpbmtzIjogZmFsc2UsICJyZW1lbWJlckNvbW1lbnRzU29ydFBlclN1YnJlZGRpdCI6IGZhbHNlLCAiaGFwdGljRmVlZGJhY2tFbmFibGVkIjogdHJ1ZSwgImVuYWJsZUxpcXVpZEdsYXNzIjogdHJ1ZSwgImZlZWRHYWxsZXJ5RWRnZVN3aXBlTmF2IjogZmFsc2UsICJkZWZhdWx0UG9zdHNUaW1lU29ydCI6ICJkYXkiLCAidW5tdXRlRmVlZFZpZGVvc01vZGUiOiAwLCAidGV4dFBvc3RUaHVtYm5haWxzRW5hYmxlZCI6IHRydWUsICJqdW1wQnV0dG9uUG9zaXRpb24iOiAiYm90dG9tVHJhaWxpbmciLCAidGh1bWJuYWlsU2l6ZSI6ICJzbWFsbCIsICJoaWRlQmFyc09uU2Nyb2xsIjogdHJ1ZSwgImxpbmtQcmV2aWV3U3R5bGUiOiAiZnVsbCIsICJmb3J3YXJkU3dpcGVGb3JnZXRBZnRlclNjcm9sbGluZyI6IGZhbHNlLCAidmlkZW9EZWJsdXJpbmF0b3JFbmFibGVkIjogdHJ1ZSwgInRodW1ibmFpbHNPbkxlZnQiOiB0cnVlLCAiaGlkZU1vZGVyYXRvckluU3VicmVkZGl0TGlzdCI6IGZhbHNlLCAiYXV0b0NvbGxhcHNlQXV0b01vZGVyYXRvckNvbW1lbnRzIjogZmFsc2UsICJhdXRvQ29sbGFwc2VDaGlsZENvbW1lbnRzIjogZmFsc2UsICJpbWd1ckFsYnVtRmFsbGJhY2tQcm94aWVzIjogdHJ1ZSwgInJlbWVtYmVyUG9zdHNTb3J0UGVyU3VicmVkZGl0IjogZmFsc2UsICJzaG93VXNlclByb2ZpbGVQaWN0dXJlcyI6IGZhbHNlLCAic3VicmVkZGl0RmVlZExheW91dCI6ICJyb3dzIiwgInJlbWVtYmVyU3VicmVkZGl0VG9Mb2FkIjogZmFsc2UsICJ0aHJlZURUb3VjaE1hcmtzUmVhZCI6IHRydWUsICJzaG93UG9zdEZsYWlyIjogdHJ1ZSwgImhpZGVUb3BCYXJPblNjcm9sbCI6IHRydWUsICJlbmFibGVGbGFpckNvbG9ycyI6IHRydWUsICJzaGFyZUxpbmtIb3N0IjogMCwgImNsYXNzaWNUYWJCYXJTY3JvbGxCZWhhdmlvciI6IHRydWUsICJwcmVmZXJyZWRHSUZGYWxsYmFja0Zvcm1hdCI6IDEsICJzaG93SnVtcEJ1dHRvbiI6IHRydWUsICJzd2lwZVVwRm9yQ29tbWVudHMiOiB0cnVlLCAic2hvd0NvbW1lbnRzQnV0dG9uIjogdHJ1ZSwgImVuYWJsZUxpcXVpZEdsYXNzVGFiQmFyIjogdHJ1ZSwgInVuaWZ5TW9kbWFpbEluSW5ib3giOiB0cnVlLCAic2hvd1VzZXJGbGFpciI6IHRydWUsICJzYXZlVG9BcG9sbG9BbGJ1bSI6IGZhbHNlLCAibGl2ZUNvbW1lbnRzRm9sbG93IjogZmFsc2UsICJibG9ja0Fubm91bmNlbWVudHMiOiBmYWxzZSwgImlwYWRUYWJCYXJCb3R0b20iOiBmYWxzZSwgImNvbW1lbnRMaW5rUHJlZmVyTmF0aXZlIjogZmFsc2UsICJuZXdDb21tZW50c0hpZ2hsaWdodGlmaWVyIjogZmFsc2UsICJkZXZ2aXRJbnRlcmFjdGl2ZVBvc3RzIjogdHJ1ZSwgImRlZmF1bHRQb3N0c1NvcnQiOiAiYmVzdCIsICJ0cmVuZGluZ1N1YnJlZGRpdHNMaW1pdCI6IDUsICJvcGVuVmlkZW9zSW5Zb3VUdWJlQXBwIjogZmFsc2UsICJsb29wVmlkZW9zV2l0aEF1ZGlvIjogdHJ1ZSwgIm9wZW5SZWRkaXRMaW5rc0luQXBvbGxvIjogdHJ1ZSwgInVzZVByb2ZpbGVBdmF0YXJUYWJJY29uIjogZmFsc2UsICJjZW50ZXJUaXRsZUdhcENlbnRlcmluZyI6IGZhbHNlLCAiaGlkZUJsb2NrZWRVc2VyQ29tbWVudHMiOiBmYWxzZSwgInRhcFRvQ29sbGFwc2VUeXBlIjogImFsbENvbW1lbnRzIiwgInBvbGxzRW5hYmxlZCI6IHRydWUsICJwaXBFbmFibGVkIjogdHJ1ZSwgImNvbGxhcHNlTmF2aWdhdGlvbkFjdGlvbnMiOiBmYWxzZSwgInNjcm9sbFJldHVybkJ1dHRvbiI6IHRydWV9"
+    },
+    "com.pendo324.Phoebus.generatedThemes" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "W3siaXNEYXJrIjpmYWxzZSwiaXNHZW5lcmF0ZWQiOnRydWUsIm5hbWUiOiJDYXRwcHVjY2luIE1vY2hhIiwiY29tbWVudERlcHRoQ29sb3JIZXhlcyI6WyI4ODM5RUYiLCJFRjM5QTAiLCJFRjg4MzkiLCJBMEVGMzkiLCIzOUVGODgiLCIzOUEwRUYiXSwiYWNjZW50Q29sb3JIZXgiOiI4ODM5RUYiLCJpZCI6ImdhbGxlcnlfY2F0cHB1Y2Npbi1tb2NoYV9saWdodCJ9LHsiaXNEYXJrIjp0cnVlLCJpc0dlbmVyYXRlZCI6dHJ1ZSwibmFtZSI6IkNhdHBwdWNjaW4gTW9jaGEiLCJjb21tZW50RGVwdGhDb2xvckhleGVzIjpbIkNCQTZGNyIsIkY3QTZEMiIsIkY3Q0JBNiIsIkQyRjdBNiIsIkE2RjdDQiIsIkE2RDJGNyJdLCJhY2NlbnRDb2xvckhleCI6IkNCQTZGNyIsImlkIjoiZ2FsbGVyeV9jYXRwcHVjY2luLW1vY2hhX2RhcmsifV0="
+    },
+    "com.pendo324.Phoebus.headerStyle" : "blur",
+    "com.pendo324.Phoebus.hiddenModeratorSubreddits" : [
+      "examplesub"
+    ],
+    "com.pendo324.Phoebus.inlineMediaSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJlbmFibGVkIjp0cnVlLCJ0YXBUb1BsYXlHSUZzIjpmYWxzZSwic2l6ZSI6NTAsImFsaWdubWVudCI6ImxlZnQifQ=="
+    },
+    "com.pendo324.Phoebus.linkPreviewSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJib2R5RGlzcGxheU1vZGUiOiJvZmYiLCJjb21tZW50c0Rpc3BsYXlNb2RlIjoiY29tcGFjdCJ9"
+    },
+    "com.pendo324.Phoebus.migratedTapToCollapse" : true,
+    "com.pendo324.Phoebus.pixelPalState" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJhcHBPcGVuQ291bnQiOjQyLCJuYW1lIjoiUGFsIn0="
+    },
+    "com.pendo324.Phoebus.postFilterNameSubstrings" : [],
+    "com.pendo324.Phoebus.postFilterSubreddits" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJwaWNzIjp7ImtleXdvcmRzIjpbInNwb2lsZXIiXSwiZmxhaXJzIjpbXX19"
+    },
+    "com.pendo324.Phoebus.pureBlackSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJpc0VuYWJsZWQiOmZhbHNlLCJyZWR1Y2VTbWVhcmluZyI6ZmFsc2UsImlzUHVyZXJFbmFibGVkIjpmYWxzZX0="
+    },
+    "com.pendo324.Phoebus.selectedAppIcon" : "magma",
+    "com.pendo324.Phoebus.selectedThemeID" : "gallery_catppuccin-mocha_dark",
+    "com.pendo324.Phoebus.subredditLayoutSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJzaG93U3VicmVkZGl0SGVhZGVycyI6IHRydWUsICJzdWJyZWRkaXRTaG93U2lkZWJhckJ1dHRvbiI6IHRydWUsICJzdWJyZWRkaXRTaG93VXNlckZsYWlyQnV0dG9uIjogdHJ1ZSwgImNvbW11bml0eUhpZ2hsaWdodHMiOiAib2ZmIn0="
+    },
+    "com.pendo324.Phoebus.subredditSectionsSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJvcmRlciI6WyJmYXZvcml0ZXMiLCJtdWx0aXJlZGRpdHMiLCJtb2RlcmF0b3IiLCJmb2xsb3dpbmciXSwic2VwYXJhdGVGb2xsb3dlZFVzZXJzIjp0cnVlLCJoaWRlTXVsdGlyZWRkaXREZXNjcmlwdGlvbnMiOmZhbHNlfQ=="
+    },
+    "com.pendo324.Phoebus.themeAutoSwitchSettings" : {
+      "__apolloType" : "data",
+      "__apolloValue" : "eyJicmlnaHRuZXNzVGhyZXNob2xkIjogMC40LCAidXNlTG9jYXRpb25TdW5zZXRTdW5yaXNlIjogZmFsc2UsICJ1c2VTeXN0ZW1MaWdodERhcmtNb2RlIjogZmFsc2UsICJxdWlja1N3aXRjaEVuYWJsZWQiOiBmYWxzZSwgInN3aXRjaE1vZGUiOiAibWFudWFsIiwgImRhcmtNb2RlU3RhcnRNaW51dGVzIjogMTIwMCwgImxpZ2h0TW9kZVN0YXJ0TWludXRlcyI6IDQyMH0="
+    }
+  },
+  "swipeActionSettings" : {
+    "leftLong" : "downvote",
+    "leftShort" : "upvote",
+    "rightLong" : "save",
+    "rightShort" : "reply"
+  },
+  "swipeActionSettingsByScreen" : {
+    "comments" : {
+      "leftLong" : "downvote",
+      "leftShort" : "upvote",
+      "rightLong" : "reply",
+      "rightShort" : "collapseTop"
+    },
+    "inbox" : {
+      "leftLong" : "downvote",
+      "leftShort" : "upvote",
+      "rightLong" : "reply",
+      "rightShort" : "markRead"
+    },
+    "posts" : {
+      "leftLong" : "downvote",
+      "leftShort" : "upvote",
+      "rightLong" : "save",
+      "rightShort" : "reply"
+    },
+    "profileComments" : {
+      "leftLong" : "downvote",
+      "leftShort" : "upvote",
+      "rightLong" : "reply",
+      "rightShort" : "save"
+    },
+    "profilePosts" : {
+      "leftLong" : "downvote",
+      "leftShort" : "upvote",
+      "rightLong" : "save",
+      "rightShort" : "reply"
+    }
+  },
+  "tagFilterSettings" : {
+    "blurTitles" : false,
+    "nsfwMode" : "redditSetting",
+    "spoilerMode" : "redditSetting",
+    "subredditOverrides" : {}
+  },
+  "version" : 2
+}

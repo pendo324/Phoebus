@@ -836,3 +836,7 @@ resources:
   - Icons/Standard/sus/AppIcon-sus60x60@3x.png
   - Icons/Standard/jonybot/AppIcon-jonybot60x60@2x.png
   - Icons/Standard/jonybot/AppIcon-jonybot60x60@3x.png
+extensions:
+  - product: PhoebusWidget
+    infoPath: Config/PhoebusWidget/Info.plist
+    entitlementsPath: Config/PhoebusWidget/PhoebusWidget.entitlements

@@ -3,6 +3,12 @@
 import PackageDescription
 import Foundation
 
+// Absolute path to this package. `-const-gather-protocols-file` is
+// resolved relative to the compiler's working directory, not the
+// package root, and a relative path there fails with
+// "cannot open constant extraction protocol list input file".
+let packageRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
+
 // The app deploys to iOS 17, but iOS gives an app the iOS 26 design only
 // when its binary records the iOS 26 SDK. The Linux toolchain records the
 // deployment target as the SDK version, so the linker is told both:
@@ -31,6 +37,11 @@ let package = Package(
         .library(
             name: "Phoebus",
             targets: ["Phoebus"]
+        ),
+        // Widget extension, reimplementing ApolloRebornWidgets.appex.
+        .library(
+            name: "PhoebusWidget",
+            targets: ["PhoebusWidget"]
         ),
     ],
     dependencies: [
@@ -71,6 +82,29 @@ let package = Package(
         .target(
             name: "Phoebus",
             dependencies: ["PhoebusCore", "PhoebusUI"],
+            linkerSettings: weakSwiftUICore
+        ),
+        .target(
+            name: "PhoebusWidget",
+            dependencies: ["PhoebusCore"],
+            // Emit `*.swiftconstvalues` describing every AppIntent /
+            // AppEnum in this target. `appintentsmetadataprocessor`
+            // consumes them to build `Metadata.appintents`, without
+            // which WidgetKit cannot construct a default
+            // configuration and every `AppIntentConfiguration`
+            // widget fails with CHSErrorDomain 1103. Xcode passes
+            // these flags implicitly; xtool does not.
+            //
+            // Both flags are required: `-emit-const-values` alone
+            // silently produces nothing, since the compiler only
+            // gathers types conforming to the listed protocols.
+            swiftSettings: [
+                .unsafeFlags([
+                    "-emit-const-values",
+                    "-Xfrontend", "-const-gather-protocols-file",
+                    "-Xfrontend", "\(packageRoot)/Config/PhoebusWidget/AppIntentsProtocols.json",
+                ])
+            ],
             linkerSettings: weakSwiftUICore
         ),
         .executableTarget(

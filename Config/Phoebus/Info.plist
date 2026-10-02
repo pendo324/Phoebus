@@ -21,6 +21,8 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>CFBundleIcons</key>
 	<dict>
 		<key>CFBundleAlternateIcons</key>
@@ -3509,6 +3511,11 @@
 		</dict>
 	</array>
 	<key>UIFileSharingEnabled</key>
+	<true/>
+	<!-- ProMotion: iPhone apps run custom animations at 60 Hz or less
+	     unless this is set; the system then picks the adaptive rate (up
+	     to 120 Hz). Reborn patches the same key into its IPAs. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 </dict>
 </plist>

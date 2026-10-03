@@ -48,6 +48,12 @@ let package = Package(
             name: "PhoebusOpenIn",
             targets: ["PhoebusOpenIn"]
         ),
+        // Safari Web Extension: offers to open Reddit links in the app
+        // when they load in Safari.
+        .library(
+            name: "PhoebusSafari",
+            targets: ["PhoebusSafari"]
+        ),
     ],
     dependencies: [
         // Real GIF/APNG/WebP animation (Apollo uses FLAnimatedImage).
@@ -114,6 +120,10 @@ let package = Package(
         ),
         .target(
             name: "PhoebusOpenIn",
+            linkerSettings: sdkVersion
+        ),
+        .target(
+            name: "PhoebusSafari",
             linkerSettings: sdkVersion
         ),
         .executableTarget(

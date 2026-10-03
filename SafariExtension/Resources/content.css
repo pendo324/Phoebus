@@ -1,0 +1,35 @@
+/* Floating "Open in Phoebus" anchor.
+ *
+ * Deliberately a real anchor, positioned above page content but below
+ * system UI, and never an overlay that blocks interaction: if the user
+ * ignores it, the page must stay fully usable. */
+.phoebus-open-button {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+    transform: translateX(-50%);
+    z-index: 2147483646;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 12px 20px;
+    border-radius: 22px;
+
+    background: #1c1c1e;
+    color: #ffffff;
+    font: 600 15px/1.2 -apple-system, system-ui, sans-serif;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
+}
+
+.phoebus-open-button:active {
+    opacity: 0.8;
+}
+
+.phoebus-open-dismiss {
+    margin-left: 4px;
+    opacity: 0.55;
+    font-weight: 400;
+}

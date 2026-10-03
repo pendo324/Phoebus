@@ -1,0 +1,29 @@
+{
+    "manifest_version": 2,
+    "name": "Open in Phoebus",
+    "description": "Offers to open Reddit links in Phoebus, or opens them automatically.",
+    "version": "1.0",
+    "content_scripts": [
+        {
+            "js": [
+                "link-utils.js",
+                "content.js"
+            ],
+            "css": [
+                "content.css"
+            ],
+            "matches": [
+                "*://reddit.com/*",
+                "*://*.reddit.com/*",
+                "*://redd.it/*"
+            ],
+            "run_at": "document_end"
+        }
+    ],
+    "browser_action": {
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "nativeMessaging"
+    ]
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body {
+    margin: 0;
+    padding: 16px;
+    width: 260px;
+    font: 15px/1.35 -apple-system, system-ui, sans-serif;
+    color: #111;
+    background: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #f2f2f7; background: #1c1c1e; }
+    .note { color: #98989f; }
+    label { border-color: #3a3a3c; }
+  }
+  h1 { margin: 0 0 4px; font-size: 16px; }
+  .note { margin: 0 0 14px; font-size: 12px; color: #6b6b70; }
+  label {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 0;
+    border-top: 1px solid #e3e3e6;
+  }
+  label span { display: block; }
+  .title { font-weight: 600; }
+  .sub { font-size: 12px; opacity: 0.72; }
+</style>
+</head>
+<body>
+  <h1>Open in Phoebus</h1>
+  <p class="note">Applies to reddit.com and redd.it pages only.</p>
+
+  <label>
+    <input type="radio" name="mode" value="automatic">
+    <span>
+      <span class="title">Automatic</span>
+      <span class="sub">Open Reddit links straight away. Default.</span>
+    </span>
+  </label>
+
+  <label>
+    <input type="radio" name="mode" value="ask">
+    <span>
+      <span class="title">Ask</span>
+      <span class="sub">Show a button instead, and stay in Safari until you tap it.</span>
+    </span>
+  </label>
+
+  <label>
+    <input type="radio" name="mode" value="off">
+    <span>
+      <span class="title">Off</span>
+      <span class="sub">Stay in Safari.</span>
+    </span>
+  </label>
+
+  <script src="popup.js"></script>
+</body>
+</html>

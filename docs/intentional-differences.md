@@ -62,6 +62,8 @@ not, and why.
 - **Remind Me uses local notifications.** Reminders are scheduled on the
   device through the system notification center, with no server-side
   reminder service, so they also work offline.
+- **The Safari extension's mode is chosen in its popup.** Automatic, Ask
+  or Off is set from the extension's toolbar popup, not in Settings.
 
 ## Backups
 

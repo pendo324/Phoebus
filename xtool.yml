@@ -842,3 +842,12 @@ extensions:
     entitlementsPath: Config/PhoebusWidget/PhoebusWidget.entitlements
   - product: PhoebusOpenIn
     infoPath: Config/PhoebusOpenIn/Info.plist
+  - product: PhoebusSafari
+    infoPath: Config/PhoebusSafari/Info.plist
+    resources:
+      - SafariExtension/Resources/manifest.json
+      - SafariExtension/Resources/link-utils.js
+      - SafariExtension/Resources/content.js
+      - SafariExtension/Resources/content.css
+      - SafariExtension/Resources/popup.html
+      - SafariExtension/Resources/popup.js

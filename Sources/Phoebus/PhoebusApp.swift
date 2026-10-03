@@ -91,6 +91,13 @@ struct PhoebusApp: App {
                     QuickActionRouter.shared.pending = action
                 }
             }
+            // Siri/Shortcuts navigation: taken on sign-in (an intent can
+            // launch the app before an account loads) and whenever an
+            // intent sets a new target while the app is running.
+            .task(id: isSignedIn) { consumeAppIntentNavigation() }
+            .onReceive(NotificationCenter.default.publisher(for: AppIntentNavigation.didRequestNotification)) { _ in
+                consumeAppIntentNavigation()
+            }
             .tint(Color(hex: theme.accentColorHex))
             // A theme's `isDark` sets the color scheme too, since
             // Apollo's themes are genuine light/dark appearances, not
@@ -164,6 +171,12 @@ struct PhoebusApp: App {
             .apolloTextSizeOverride()
             }
         }
+    }
+
+    private func consumeAppIntentNavigation() {
+        guard isSignedIn, let target = AppIntentNavigation.shared.pendingTarget else { return }
+        pendingDeepLink = target
+        AppIntentNavigation.shared.pendingTarget = nil
     }
 }
 
@@ -403,6 +416,7 @@ struct MainTabView: View {
         guard generalSettings.useProfileAvatarTabIcon, currentUsername != nil else { return nil }
         return profileTabAvatar.image
     }
+
 
     private var postsTab: some View {
         NavigationStack(path: $postsNavigation.path) {

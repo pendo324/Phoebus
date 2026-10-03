@@ -43,6 +43,11 @@ let package = Package(
             name: "PhoebusWidget",
             targets: ["PhoebusWidget"]
         ),
+        // Share Sheet action extension, reimplementing OpenInUIExtension.appex.
+        .library(
+            name: "PhoebusOpenIn",
+            targets: ["PhoebusOpenIn"]
+        ),
     ],
     dependencies: [
         // Real GIF/APNG/WebP animation (Apollo uses FLAnimatedImage).
@@ -106,6 +111,10 @@ let package = Package(
                 ])
             ],
             linkerSettings: weakSwiftUICore
+        ),
+        .target(
+            name: "PhoebusOpenIn",
+            linkerSettings: sdkVersion
         ),
         .executableTarget(
             name: "PhoebusCoreSmokeTest",

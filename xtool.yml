@@ -840,3 +840,5 @@ extensions:
   - product: PhoebusWidget
     infoPath: Config/PhoebusWidget/Info.plist
     entitlementsPath: Config/PhoebusWidget/PhoebusWidget.entitlements
+  - product: PhoebusOpenIn
+    infoPath: Config/PhoebusOpenIn/Info.plist

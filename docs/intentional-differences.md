@@ -4,6 +4,10 @@ Phoebus aims to match Apollo for Reddit's design and Apollo Reborn's
 features closely. This page lists the places where it deliberately does
 not, and why.
 
+If you are about to "fix" one of these back to the upstream behaviour,
+check the reason first. If you add a change that knowingly differs from
+Apollo or Reborn, add an entry here.
+
 ## Feeds and subreddits
 
 - **Filtered subreddits are filtered locally.** Filtering applies to

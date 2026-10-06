@@ -9,6 +9,64 @@ native iOS Reddit client, built entirely on Linux with
 It is a personal, non-commercial project. It is not affiliated with or
 endorsed by Christian Selig, Apollo or Reddit. See [Disclaimer](#disclaimer).
 
+## Installing
+
+Phoebus is not on the App Store. Install it with AltStore or SideStore, or
+sideload an IPA yourself; it runs on iOS 17 and later. However you install
+it, you then need a Reddit API client ID of your own to sign in: see
+[Configuration](#configuration).
+
+### With AltStore or SideStore
+
+Add one of these sources (in AltStore, Sources › +; in SideStore, Sources
+› +), or open https://pendo324.github.io/AltStoreRepo/ on the device and
+tap a link:
+
+| Source | URL | Builds |
+|---|---|---|
+| pendo324 | `https://pendo324.github.io/AltStoreRepo/source.json` | Stable releases |
+| Phoebus Nightly | `https://pendo324.github.io/AltStoreRepo/nightly/source.json` | The last 20 builds of `main`. These can break. |
+
+Then install Phoebus from the source. AltStore or SideStore signs it with
+your Apple ID and offers an update whenever a new build is published. Both
+sources install the same app (`com.pendo324.Phoebus`), so a device has one
+or the other.
+
+With a free Apple ID, apps installed this way must be refreshed every 7
+days, which AltStore and SideStore do in the background. Each of Phoebus's
+app extensions (widgets, Open in Apollo, Safari) uses one of the App IDs a
+free account can register per week; if you run short, AltStore can
+install the app without them.
+
+### From an IPA
+
+- **Stable:** `Phoebus-v<version>.ipa` from
+  [Releases](https://github.com/pendo324/Phoebus/releases).
+- **Nightly:** the newest builds of `main` in the
+  [`nightly` pre-release](https://github.com/pendo324/Phoebus/releases/tag/nightly).
+
+The IPAs are unsigned. Open one in AltStore or SideStore, or sign it with
+Sideloadly or a certificate signer (Feather, ESign, Ksign). With a
+certificate signer, read [docs/widgets-and-signing.md](docs/widgets-and-signing.md)
+first: the configurable widgets need the bundle identifier to match the
+signing App ID.
+
+The configurable widgets (Post, Feed, Photo, Calendar, Headline,
+Shortcuts) need App Intents metadata that only a Mac can generate, so they
+don't work in these builds; the other widgets do.
+
+### In the iOS Simulator
+
+Each release also has a `-simulator.ipa`, one build for both Intel and
+Apple Silicon Macs:
+
+```bash
+xcrun simctl install booted Phoebus-v<version>-simulator.ipa
+```
+
+To build Phoebus yourself, see [Building](#building). How the builds and
+releases are made is in [docs/releases.md](docs/releases.md).
+
 ## Features
 
 - **Feeds and subreddits.** Subreddit, multireddit, home, Popular and
@@ -59,10 +117,6 @@ listed in [docs/intentional-differences.md](docs/intentional-differences.md).
 - Target platform: iOS 17 and later, with the iOS 26 design on iOS 26.
   Newer APIs are guarded (see [docs/conventions.md](docs/conventions.md),
   "Minimum iOS: 17").
-- To install on a device: an Apple ID, or a certificate signer. Read
-  [docs/widgets-and-signing.md](docs/widgets-and-signing.md) first if you
-  use a certificate signer: the configurable widgets need the bundle
-  identifier to match the signing App ID.
 
 ## Building
 
@@ -83,9 +137,16 @@ scripts/build-for-simulator.sh                    # x86_64 simulator triple
 scripts/build-for-simulator.sh arm64-apple-ios-simulator  # Apple Silicon simulator
 ```
 
-This is also the compile check for `PhoebusUI` and the app target, since
-the host-side tests only build `PhoebusCore`. Installing the result into
-a simulator needs `simctl`, which only exists on macOS.
+The simulator build is also the compile check for `PhoebusUI` and the app
+target, since the host-side tests only build `PhoebusCore`. Installing the
+result into a simulator needs `simctl`, which only exists on macOS.
+
+To build the same IPAs the releases have, device and simulator (see
+[docs/releases.md](docs/releases.md)):
+
+```bash
+scripts/build-ipa.sh --simulator dist
+```
 
 If xtool fails with `.../swift-sdks doesn't exist`, `xcode-select` is
 pointing at the Command Line Tools instead of a full Xcode:
@@ -119,13 +180,12 @@ API used without an availability guard.
 | `Sources/PhoebusOpenIn` | Share Sheet action extension. |
 | `Sources/PhoebusSafari`, `SafariExtension/` | Safari web extension handler and its JavaScript. |
 | `Sources/PhoebusCoreSmokeTest` | The test suite: `main.swift` plus `Checks/<Area>.swift`. |
-| `Vendor/` | AnimatedImage, vendored with a one-file patch. KSCrash comes from upstream through SwiftPM. |
 | `Tests/Fixtures` | JSON fixtures read by the tests. |
 | `Config/` | Per-target `Info.plist`, entitlements and the App Intents protocol list. |
 | `Icons/Standard/<id>/` | The standard alternate icons, one folder per icon, listed in `xtool.yml`. Apollo's artwork, extracted from its IPA at build time and not checked in. |
 | `Icons/LiquidGlass/<group>/<id>/` | The Liquid Glass icons as Icon Composer sources (`<id>.icon`), rendered to PNGs at build time by `scripts/generate-icons.sh`; `icons.json` lists them. |
 | `scripts/` | Build, smoke-test and check scripts; `scripts/generate/` holds the generators and audits. |
-| `docs/` | Architecture, conventions, components, gestures and protocol notes. |
+| `docs/` | Architecture, conventions, components, gestures, protocol notes, building on Linux and releases. |
 
 Start with [docs/architecture.md](docs/architecture.md) for how the
 targets fit together, and [docs/components.md](docs/components.md) to

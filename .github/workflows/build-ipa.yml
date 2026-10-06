@@ -4,6 +4,33 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+    # Pushes to main build only when they change something that ends up in
+    # the app or in how it is built; tags always build (path filters do
+    # not apply to tags). A commit that changes only docs, tests or other
+    # scripts produces no nightly.
+    paths:
+      - Sources/**
+      - Config/**
+      - Icons/**
+      - SafariExtension/Resources/**
+      - Package.swift
+      - Package.resolved
+      - xtool.yml
+      - scripts/add-appintents-metadata.sh
+      - scripts/appintents-metadata.py
+      - scripts/build-app.sh
+      - scripts/check-app.py
+      - scripts/generate-icons.sh
+      - scripts/ipa-name.sh
+      - scripts/lgrender/**
+      - scripts/merge-apps.py
+      - scripts/package-ipa.sh
+      - scripts/stamp-build-number.py
+      - scripts/xtool-env.sh
+      - scripts/ci/install-sdk.sh
+      - scripts/ci/publish-nightly.sh
+      - scripts/ci/restore-mtimes.sh
+      - .github/workflows/build-ipa.yml
   workflow_dispatch: {}
 
 concurrency:

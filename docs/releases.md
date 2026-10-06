@@ -56,7 +56,14 @@ not allow to be redistributed (see "Secrets" below).
 
 ## Build IPA
 
-Runs on pushes to `main`, tags `v*` and by hand.
+Runs on tags `v*`, by hand, and on pushes to `main` that change something
+that ends up in the app or in how it is built: `Sources/`, `Config/`,
+`Icons/`, the Safari extension's resources, the package manifest and
+lockfile, `xtool.yml`, the build scripts and the workflow itself (the
+`paths` list in `build-ipa.yml`). A push that changes only docs, tests or
+other scripts builds nothing and adds no nightly; run the workflow by hand
+if one is needed anyway. Keep the list in step when a new file starts to
+affect the build.
 
 1. **resolve-image** reads the digest `phoebus-builder:latest` points at,
    so every job uses the same image even if a new one is pushed mid-run.

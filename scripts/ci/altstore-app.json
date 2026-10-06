@@ -1,0 +1,10 @@
+{
+  "name": "Phoebus",
+  "developerName": "pendo324",
+  "subtitle": "Radiant Reddit browsing",
+  "localizedDescription": "A SwiftUI Reddit client following Apollo and Apollo Reborn. You need your own Reddit API client ID. The IPA is unsigned; AltStore or SideStore signs it on your device.",
+  "iconURL": "https://pendo324.github.io/AltStoreRepo/icons/phoebus.png",
+  "tintColor": "8B5CF6",
+  "category": "social",
+  "screenshots": []
+}

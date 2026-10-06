@@ -1,0 +1,83 @@
+# Adds each build that Build IPA published to the AltStore sources in
+# pendo324/AltStoreRepo (served with GitHub Pages): builds of main to
+# nightly/source.json, tagged releases to the stable source.json. The IPAs
+# themselves stay in this repository's releases.
+name: Publish to AltStore sources
+
+on:
+  workflow_run:
+    workflows: [Build IPA]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: altstore-sources
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.head_branch == 'main' ||
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-24.04
+    env:
+      REF: ${{ github.event.workflow_run.head_branch }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          pattern: Phoebus-*.ipa
+          path: dist
+          merge-multiple: true
+
+      - name: Token for AltStoreRepo
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.PHOEBUSBOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PHOEBUSBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: AltStoreRepo
+          permission-contents: write
+
+      - uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/AltStoreRepo
+          token: ${{ steps.token.outputs.token }}
+          path: altstore
+
+      - name: Update the source
+        run: |
+          ipa=$(ls dist/Phoebus-*.ipa | grep -v -- '-simulator\.ipa$')
+          if [ "$REF" = main ]; then
+            source=altstore/nightly/source.json tag=nightly keep=20
+            notes=$(git log -1 --format=%s "$SHA")
+          else
+            source=altstore/source.json tag=$REF keep=0
+            notes="Release notes: https://github.com/$GITHUB_REPOSITORY/releases/tag/$REF"
+          fi
+          scripts/ci/update-altstore-source.py "$source" "$ipa" --keep "$keep" --notes "$notes" \
+            --url "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/$(basename "$ipa")"
+
+      - name: Push
+        working-directory: altstore
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          BOT: ${{ steps.token.outputs.app-slug }}[bot]
+        run: |
+          git config user.name "$BOT"
+          git config user.email "$(gh api "users/$BOT" --jq .id)+$BOT@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Phoebus ${REF}: $(git -C .. log -1 --format=%h "$SHA")"
+          git push -q

@@ -1,0 +1,7 @@
+# The CI image (scripts/ci/Dockerfile) needs only a few scripts.
+*
+!scripts/ci/setup-linux.sh
+!scripts/ci/build-libimobiledevice.sh
+!scripts/install-xtool.sh
+!scripts/xtool-env.sh
+!scripts/lgrender/go.mod

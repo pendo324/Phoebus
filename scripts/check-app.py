@@ -5,9 +5,9 @@ broken without the build itself failing.
 Usage: scripts/check-app.py <Phoebus.app | Phoebus.ipa>
 
 Checked:
-- every executable (app and extensions) is a thin 64-bit Mach-O whose
-  LC_BUILD_VERSION platform matches the others and whose minimum OS
-  matches its Info.plist;
+- every executable (app and extensions) is a 64-bit Mach-O, or a
+  universal one with a slice per architecture, whose LC_BUILD_VERSION
+  platform matches the others and whose minimum OS matches its Info.plist;
 - extension executables have real code, not the few-kilobyte stubs a
   broken xtool links;
 - extensions have an NSExtension point, an identifier under the app's,
@@ -44,8 +44,21 @@ def version(v):
 
 
 def macho(path):
-    """(platform, minos, sdk, __text size) or None if not a thin 64-bit Mach-O."""
+    """[(platform, minos, sdk, __text size)] per slice, or None if a slice is
+    not a 64-bit Mach-O with LC_BUILD_VERSION. Universal files have a slice
+    per architecture (the simulator build)."""
     data = path.read_bytes()
+    if len(data) >= 8 and struct.unpack_from(">I", data)[0] == 0xCAFEBABE:
+        slices = []
+        for i in range(struct.unpack_from(">I", data, 4)[0]):
+            offset, size = struct.unpack_from(">II", data, 8 + i * 20 + 8)
+            slices.append(thin(data[offset:offset + size]))
+        return None if None in slices or not slices else slices
+    one = thin(data)
+    return None if one is None else [one]
+
+
+def thin(data):
     if len(data) < 32 or struct.unpack_from("<I", data)[0] != 0xFEEDFACF:
         return None
     ncmds = struct.unpack_from("<I", data, 16)[0]
@@ -71,16 +84,16 @@ def check_bundle(bundle, info, binaries):
     if not exe.is_file():
         fail(f"{bundle.name}: executable {exe.name!r} is missing")
         return None
-    m = macho(exe)
-    if m is None:
-        fail(f"{bundle.name}: {exe.name} is not a thin 64-bit Mach-O with LC_BUILD_VERSION")
+    slices = macho(exe)
+    if slices is None:
+        fail(f"{bundle.name}: {exe.name} is not a 64-bit Mach-O with LC_BUILD_VERSION")
         return None
-    platform, minos, sdk, text = m
-    binaries.append((bundle.name, platform, sdk))
     plist_min = (info.get("MinimumOSVersion", "") + ".0.0").split(".")[:3]
-    if version(minos) != ".".join(plist_min):
-        fail(f"{bundle.name}: Mach-O minimum OS {version(minos)} != MinimumOSVersion {info.get('MinimumOSVersion')}")
-    return text
+    for platform, minos, sdk, _ in slices:
+        binaries.append((bundle.name, platform, sdk))
+        if version(minos) != ".".join(plist_min):
+            fail(f"{bundle.name}: Mach-O minimum OS {version(minos)} != MinimumOSVersion {info.get('MinimumOSVersion')}")
+    return min(text for *_, text in slices)
 
 
 def main():
@@ -136,7 +149,7 @@ def main():
 
     if binaries:
         _, p, s = binaries[0]
-        print(f"{app.name}: {len(binaries)} executables, {PLATFORMS.get(p, p)}, "
+        print(f"{app.name}: {len({n for n, _, _ in binaries})} executables, {PLATFORMS.get(p, p)}, "
               f"sdk {version(s)}, minimum {info.get('MinimumOSVersion')}"
               + (f", {len(failures)} failures" if failures else ", ok"))
     sys.exit(1 if failures else 0)

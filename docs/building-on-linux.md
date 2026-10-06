@@ -38,6 +38,13 @@ root. Run them as `scripts/<name>`.
 |---|---|
 | `install-xtool.sh [Xcode.xip]` | Builds the pinned xtool fork into `~/.local/lib/phoebus/` (once per commit, a few minutes), and with a `.xip` installs the Darwin SDK with it. |
 | `build-for-simulator.sh [triple]` | Renders the icons (`generate-icons.sh`), then runs `xtool dev build` for an iOS Simulator triple (`x86_64-apple-ios-simulator` by default, `arm64-apple-ios-simulator` for Apple Silicon) and produces `xtool/Phoebus.app` with the three app extensions, then checks it with `check-app.py`. This is also the only compile check for `PhoebusUI` and the app target. |
+| `build-ipa.sh [--simulator] [dir]` | Builds unsigned, compressed IPAs into `dir` (default `xtool`): `<name>.ipa` for devices (release; symbols kept, for reading crash reports, since stripping saves only about 5 MB) and, with `--simulator`, `<name>-simulator.ipa`, one universal debug build for x86_64 and arm64 simulators (`xcrun simctl install <device> <file>`). With `PHOEBUS_BUILD_NUMBER` set, the apps get that build number. They have no `Metadata.appintents` (see below). |
+| `build-app.sh <variant> <out.app>` | Builds one variant: `device` (release), `simulator-x86_64` or `simulator-arm64` (debug, which compiles incrementally). `build-ipa.sh` and CI use it. |
+| `ipa-name.sh` | The IPAs' base name: `Phoebus-v<version>` at a tag `v<version>` (which must match the app's version), else `Phoebus-v<latest tag>-<short commit>` (`Phoebus-v0.0.0-…` before the first tag). |
+| `stamp-build-number.py <app> <number>` | Sets a built app's and its extensions' `CFBundleVersion`. The repository's version only changes for a release, so distributed builds are numbered here. |
+| `merge-apps.py <out.app> <in.app>...` | Merges builds of the app for different architectures into one universal app (`lipo -create` for every Mach-O file; the Linux toolchain has no `lipo`). |
+| `package-ipa.sh <app> <ipa>` | Zips a built `.app` into an unsigned `.ipa` and checks it with `check-app.py`. |
+| `ci/*` | The CI image setup, the SDK install, file times, the nightly release and the AltStore sources; see "CI". |
 | `check-app.py <app or ipa>` | Checks a built app for what can go wrong without failing the build: extensions linked as stubs, executables that disagree on platform or minimum OS, extensions with their own `Frameworks/`, declared icons missing from the bundle, malformed version strings. Warns when the widget has no `Metadata.appintents`. |
 | `smoke.sh` | Builds and runs `PhoebusCoreSmokeTest` on the host and checks the exit status and the `ALL CHECKS PASSED` line (a crash must not look like a pass). Then runs `build-for-simulator.sh`, unless `SMOKE_SKIP_IOS=1`. Exit codes: 1 failed assertions, 2 build failed, 3 crashed mid-run, 4 no terminator line, 5 iOS build failed. |
 | `code-unchanged.py [rev] [paths]` | Compares Swift files with all comments stripped between a git revision and the working tree; proves that an edit changed only comments. |
@@ -161,29 +168,96 @@ taken by measured size (120 and 180 px), reducing a larger file where
 there is no exact one. Reborn's additions that Apollo never shipped are
 rendered from their Liquid Glass sources in `Icons/LiquidGlass/ultra`.
 
-## CI on GitHub runners (planned, not set up)
+## CI
 
-There is no CI workflow yet. An outline of what it would need:
+Two workflows, after the pattern of building inside a prepared image:
 
-1. An `ubuntu-latest` runner (x86_64).
-2. Install the official Swift 6.4 tarball for Ubuntu from swift.org and
-   put its `usr/bin` on `PATH`.
-3. Build xtool with `scripts/install-xtool.sh` and cache
-   `~/.local/lib/phoebus` keyed on the pinned commit. Install Go
-   (`actions/setup-go`) and `librsvg2-bin` for the icon renderer.
-4. Provide the Darwin SDK. The Xcode `.xip` cannot be redistributed, so
-   the project owner has to supply it: install the SDK once with
-   `scripts/install-xtool.sh <Xcode.xip>` and cache the resulting
-   `~/.swiftpm/swift-sdks/darwin.artifactbundle` with `actions/cache`
-   (or restore it from private storage). Pull requests from forks have no
-   access to secrets or private caches, so jobs that need the SDK should
-   only run for trusted branches.
-5. Cache `.build` and SwiftPM's package cache keyed on `Package.resolved`.
-   The rendered icons can be cached too, keyed on `Icons/LiquidGlass` and
-   `scripts/lgrender`. Cache `~/.cache/phoebus` as well, so Apollo's IPA is
-   downloaded once.
-6. Run `SMOKE_SKIP_IOS=1 scripts/smoke.sh`, which needs only the
-   toolchain, then `scripts/build-for-simulator.sh` once the SDK is
-   available.
+- `.github/workflows/build-image.yml` builds `docker/build.Dockerfile` and
+  pushes it to `ghcr.io/<owner>/phoebus-builder` (`:latest` and the commit
+  SHA), when the Dockerfile or a script it copies changes on `main`, or by
+  hand. The image is Ubuntu 24.04 with the swift.org Swift toolchain, Go,
+  the packages the build needs (`scripts/ci/setup-linux.sh`) and the pinned
+  xtool (`scripts/install-xtool.sh`, built against a libimobiledevice from
+  `scripts/ci/build-libimobiledevice.sh`, since Ubuntu's is older than
+  xtool needs). Layers are cached in the GitHub Actions cache.
+- `.github/workflows/build-ipa.yml` runs on pushes to `main`, tags `v*`
+  and by hand. It resolves the digest `:latest` points at and runs three
+  build jobs in that exact image, in parallel: `scripts/build-app.sh` for
+  `device`, `simulator-x86_64` and `simulator-arm64`. A `package` job
+  numbers the builds with the workflow's run number
+  (`scripts/stamp-build-number.py`; it only goes up, so AltStore sees each
+  build as an update), merges the simulator builds and uploads the device
+  and simulator IPAs as the run's artifacts, each the file itself, named
+  like it. A build of `main` is then added to the rolling `nightly`
+  pre-release (`scripts/ci/publish-nightly.sh`), which keeps the device
+  IPAs of the last 20 builds and the newest simulator IPA; a tag gets its
+  own release.
+- `.github/workflows/publish-altstore.yml` runs after a successful Build
+  IPA and adds the device IPA to the AltStore sources in
+  [pendo324/AltStoreRepo](https://github.com/pendo324/AltStoreRepo),
+  served with GitHub Pages: builds of `main` to `nightly/source.json`
+  ("Phoebus Nightly", the last 20), releases to the stable `source.json`
+  (for every app published there). `scripts/ci/update-altstore-source.py`
+  writes the entries, with the app's details from
+  `scripts/ci/altstore-app.json`; the downloads point at this repository's
+  releases, so they work once it is public.
 
-With the official toolchain the runner needs no `scripts/local.sh`.
+Caching: each build job restores the newest `.build` for the same variant,
+xtool commit, image definition and `Package.resolved`, and the rendered
+icons for the same icon sources. SwiftBuild decides what to rebuild from
+file times, which a fresh checkout resets, so `scripts/ci/restore-mtimes.sh`
+first sets every file's time to its last commit's. The workspace path is the
+same in every run, which the restored build also depends on. The SDK and
+Apollo's IPA are cached by their hashes. The image is built without
+provenance attestations, so an unchanged image keeps its digest.
+
+The image can also be built locally and pushed by hand:
+
+```bash
+docker build -f docker/build.Dockerfile -t ghcr.io/<owner>/phoebus-builder:latest .
+docker push ghcr.io/<owner>/phoebus-builder:latest
+```
+
+The Darwin SDK is not in the image (see "The Darwin SDK" below). The job
+downloads it from private storage, using these repository secrets:
+
+| Secret | Meaning |
+|---|---|
+| `DARWIN_SDK_URL` | URL of the packed SDK. Preferred. |
+| `XCODE_XIP_URL` | URL of the Xcode `.xip` instead, installed by the forked xtool on the runner (slower). |
+| `PHOEBUSBOT_APP_CLIENT_ID`, `PHOEBUSBOT_APP_PRIVATE_KEY` | An app installed where the SDK is stored and on AltStoreRepo, with Contents: read and write. The build makes a read-only token for its installation (`actions/create-github-app-token`) and sends it as a bearer token with the SDK download; the publishing workflow makes one that can write to AltStoreRepo. |
+
+`scripts/ci/install-sdk.sh` checks the download against the SHA-256 pinned
+in it, and the SDK cache is keyed on that hash, so replacing the SDK means
+updating the pin. Outside the workflow the script takes the authorization
+header as `DOWNLOAD_AUTH_HEADER`. Workflows for pull requests from forks
+get no secrets, which is why neither runs for pull requests. The IPA is
+unsigned, like the local builds; AltStore or SideStore sign it on the
+device.
+
+### The Darwin SDK
+
+Apple does not allow Xcode, or the SDK taken out of it, to be
+redistributed, so neither is published with this project. The pinned files
+are made like this, and anyone with an Apple ID can make the same SDK:
+
+1. Download Xcode 27.0 (build 27A266a) as `Xcode_27.xip` from
+   https://developer.apple.com/download/all/. SHA-256
+   `6a270c53a5a0c5e0ac78125342d44c3cfff2716ec390373cd5e30834d80a67c3`
+   (2,014,229,334 bytes).
+2. Install a slim SDK with the pinned xtool:
+   `scripts/install-xtool.sh --slim Xcode_27.xip`. It becomes
+   `~/.swiftpm/swift-sdks/darwin.artifactbundle` (about 3.2 GB: the
+   iPhoneOS, iPhoneSimulator and macOS 27.0 SDKs, the toolchain's Swift
+   libraries, OpenAppleMacros and the fork's toolset changes). A full
+   install keeps all of Xcode's platforms and is about 7 GB, which does not
+   leave a GitHub runner enough disk for the build.
+3. Pack it: `scripts/ci/install-sdk.sh --pack darwin-sdk.tar.zst` (a tar of
+   `darwin.artifactbundle`, compressed with `zstd -19`). The pinned file has
+   SHA-256 `88f9f6c481c00dd41b9125fdd7e3a9b040c523fb339b0097077ab6d51e51b01b`
+   (456,506,807 bytes).
+
+Packing is not reproducible byte for byte (file times, compression
+threads), so a newly packed SDK has a different hash even from the same
+`.xip`: store it, and update `DARWIN_SDK_SHA256` in
+`scripts/ci/install-sdk.sh` and `DARWIN_SDK_URL` together.

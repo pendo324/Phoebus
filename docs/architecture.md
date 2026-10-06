@@ -5,7 +5,7 @@
 | Target | Depends on | Builds on a Linux host? | Contents |
 |---|---|---|---|
 | `PhoebusCore` | Foundation only | Yes | Models, networking (`RedditAPIClient`, `RedditAuthClient`, `RedditRepository` and the per-service clients), settings stores, theming, pure policy enums. **All testable logic goes here.** |
-| `PhoebusUI` | PhoebusCore, AnimatedImage (vendored) and KSCrash's `Recording` product (SwiftPM, pinned by revision) | No (needs SwiftUI/UIKit) | Every screen, component, media view and gesture recognizer. |
+| `PhoebusUI` | PhoebusCore, AnimatedImage and KSCrash's `Recording` product (SwiftPM, pinned by revision) | No (needs SwiftUI/UIKit) | Every screen, component, media view and gesture recognizer. |
 | `Phoebus` | PhoebusCore, PhoebusUI | No | `PhoebusApp.swift` (`@main`, `MainTabView`, the five root `NavigationStack`s, deep links) and `AppIntents.swift`. |
 | `PhoebusWidget` | PhoebusCore | No | WidgetKit extension: App Intents, a Live Activity, and the calendar, photo, headline, post, feed and shortcuts widgets. Configurable widgets need `Metadata.appintents`, which only a macOS toolchain can generate (see [widgets-and-signing.md](widgets-and-signing.md)). |
 | `PhoebusOpenIn` | none | No | Share sheet "Open in Apollo" action extension. |

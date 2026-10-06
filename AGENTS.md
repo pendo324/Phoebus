@@ -10,7 +10,8 @@ the smoke run prints the current assertion count.
 
 | Doc | Read when |
 |---|---|
-| [docs/building-on-linux.md](docs/building-on-linux.md) | Toolchain setup, what each script does, build workarounds, AppIntents metadata, planned CI. |
+| [docs/building-on-linux.md](docs/building-on-linux.md) | Toolchain setup, what each script does, build workarounds, AppIntents metadata, the Darwin SDK. |
+| [docs/releases.md](docs/releases.md) | GitHub Actions builds, the nightly and stable releases, the AltStore sources, cutting a release. |
 | [docs/architecture.md](docs/architecture.md) | Touching code: targets, directory map, where things live, key singletons. |
 | [docs/components.md](docs/components.md) | Finding the code for a feature: every notable sub-component, its files, the Apollo/Reborn feature it reproduces, key flows, settings and persistence maps, recipes. |
 | [docs/conventions.md](docs/conventions.md) | Writing code or comments: house style, comment policy, minimum iOS, smoke-assertion style, commits. |

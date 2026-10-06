@@ -6,6 +6,9 @@ set added by the Apollo Reborn tweak. It is a
 native iOS Reddit client, built entirely on Linux with
 [xtool](https://xtool.sh).
 
+The name comes from Phoebus ("bright", "radiant"), the Greek epithet of
+the god Apollo, often joined as Phoebus Apollo.
+
 It is a personal, non-commercial project. It is not affiliated with or
 endorsed by Christian Selig, Apollo or Reddit. See [Disclaimer](#disclaimer).
 

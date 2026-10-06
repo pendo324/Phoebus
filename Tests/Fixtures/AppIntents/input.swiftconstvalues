@@ -1,0 +1,4455 @@
+[
+ {
+  "typeName": "PhoebusWidget.FeedSourceIntent",
+  "mangledTypeName": "13PhoebusWidget16FeedSourceIntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+  "line": 23,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget010FeedSourceC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.FeedSourceIntent.Source>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 41,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.FeedSourceIntent.Source>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.FeedSourceIntent.Source>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "home"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.FeedSourceIntent.Source>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 45,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 24,
+    "valueKind": "RawLiteral",
+    "value": "Feed"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 25,
+    "valueKind": "RawLiteral",
+    "value": "Choose which feed this widget shows."
+   },
+   {
+    "label": "source",
+    "type": "PhoebusWidget.FeedSourceIntent.Source",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 41,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.FeedSourceIntent.Source>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.FeedSourceIntent.Source>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "home"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.FeedSourceIntent.Source>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+      "line": 40,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Source"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.FeedSourceIntent.Source>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "home"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.FeedSourceIntent.Source>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 41,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 45,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+      "line": 44,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 45,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.FeedSourceIntent.Source",
+  "mangledTypeName": "13PhoebusWidget16FeedSourceIntentV0D0O",
+  "kind": "enum",
+  "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+  "line": 28,
+  "conformances": [
+   "Swift.Equatable",
+   "Swift.Hashable",
+   "Swift.RawRepresentable",
+   "AppIntents.AppEnum",
+   "AppIntents.AppValue",
+   "AppIntents.StaticDisplayRepresentable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.CaseDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "Swift.CaseIterable",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "Swift.Equatable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Hashable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.RawRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppEnum",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.StaticDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.CaseDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.CaseIterable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "RawValue",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "PhoebusWidget.FeedSourceIntent.Source",
+    "substitutedMangledTypeName": "13PhoebusWidget16FeedSourceIntentV0D0O"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "PhoebusWidget.FeedSourceIntent.Source",
+    "substitutedMangledTypeName": "13PhoebusWidget16FeedSourceIntentV0D0O"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "some AppIntents.ResolverSpecification",
+    "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy13PhoebusWidget16FeedSourceIntentV0J0O_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ResolverSpecification"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "AllCases",
+    "substitutedTypeName": "Swift.Array<PhoebusWidget.FeedSourceIntent.Source>",
+    "substitutedMangledTypeName": "Say13PhoebusWidget16FeedSourceIntentV0D0OG"
+   }
+  ],
+  "properties": [
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 31,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "caseDisplayRepresentations",
+    "type": "Swift.Dictionary<PhoebusWidget.FeedSourceIntent.Source, AppIntents.DisplayRepresentation>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/TopPostWidget.swift",
+    "line": 32,
+    "valueKind": "Dictionary",
+    "value": [
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "home"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Home"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Popular"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "all"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "All"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "custom"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      }
+     }
+    ]
+   },
+   {
+    "label": "allCases",
+    "type": "Swift.Array<PhoebusWidget.FeedSourceIntent.Source>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "home"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "popular"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "all"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "custom"
+      }
+     }
+    ]
+   },
+   {
+    "label": "rawValue",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "valueKind": "Runtime"
+   }
+  ],
+  "cases": [
+   {
+    "name": "home",
+    "rawValue": "home"
+   },
+   {
+    "name": "popular",
+    "rawValue": "popular"
+   },
+   {
+    "name": "all",
+    "rawValue": "all"
+   },
+   {
+    "name": "custom",
+    "rawValue": "custom"
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.WidgetSortOption",
+  "mangledTypeName": "13PhoebusWidget0B10SortOptionO",
+  "kind": "enum",
+  "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+  "line": 14,
+  "conformances": [
+   "Swift.Equatable",
+   "Swift.Hashable",
+   "Swift.RawRepresentable",
+   "AppIntents.AppEnum",
+   "AppIntents.AppValue",
+   "AppIntents.StaticDisplayRepresentable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.CaseDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "Swift.CaseIterable",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "Swift.Equatable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Hashable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.RawRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppEnum",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.StaticDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.CaseDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.CaseIterable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "RawValue",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "PhoebusWidget.WidgetSortOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B10SortOptionO"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "PhoebusWidget.WidgetSortOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B10SortOptionO"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "some AppIntents.ResolverSpecification",
+    "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy13PhoebusWidget0H10SortOptionO_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ResolverSpecification"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "AllCases",
+    "substitutedTypeName": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+    "substitutedMangledTypeName": "Say13PhoebusWidget0B10SortOptionOG"
+   }
+  ],
+  "properties": [
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 17,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "caseDisplayRepresentations",
+    "type": "Swift.Dictionary<PhoebusWidget.WidgetSortOption, AppIntents.DisplayRepresentation>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 18,
+    "valueKind": "Dictionary",
+    "value": [
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "hot"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Hot"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "new"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "New"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "topToday"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Top: Today"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "topWeek"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Top: This Week"
+      }
+     }
+    ]
+   },
+   {
+    "label": "shared",
+    "type": "PhoebusCore.WidgetKitShared.Sort",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 22,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "allCases",
+    "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "hot"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "new"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "topToday"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "topWeek"
+      }
+     }
+    ]
+   },
+   {
+    "label": "rawValue",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "valueKind": "Runtime"
+   }
+  ],
+  "cases": [
+   {
+    "name": "hot",
+    "rawValue": "hot"
+   },
+   {
+    "name": "new",
+    "rawValue": "new"
+   },
+   {
+    "name": "topToday",
+    "rawValue": "topToday"
+   },
+   {
+    "name": "topWeek",
+    "rawValue": "topWeek"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.WidgetCaptionOption",
+  "mangledTypeName": "13PhoebusWidget0B13CaptionOptionO",
+  "kind": "enum",
+  "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+  "line": 33,
+  "conformances": [
+   "Swift.Equatable",
+   "Swift.Hashable",
+   "Swift.RawRepresentable",
+   "AppIntents.AppEnum",
+   "AppIntents.AppValue",
+   "AppIntents.StaticDisplayRepresentable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.CaseDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "Swift.CaseIterable",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "Swift.Equatable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Hashable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.RawRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppEnum",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.StaticDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.CaseDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.CaseIterable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "RawValue",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "PhoebusWidget.WidgetCaptionOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B13CaptionOptionO"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "PhoebusWidget.WidgetCaptionOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B13CaptionOptionO"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "some AppIntents.ResolverSpecification",
+    "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy13PhoebusWidget0H13CaptionOptionO_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ResolverSpecification"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "AllCases",
+    "substitutedTypeName": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+    "substitutedMangledTypeName": "Say13PhoebusWidget0B13CaptionOptionOG"
+   }
+  ],
+  "properties": [
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 36,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Caption"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "caseDisplayRepresentations",
+    "type": "Swift.Dictionary<PhoebusWidget.WidgetCaptionOption, AppIntents.DisplayRepresentation>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 37,
+    "valueKind": "Dictionary",
+    "value": [
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "none"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "None"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "title"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Title"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "titleAndStats"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Title + Stats"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "detailed"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Detailed"
+      }
+     }
+    ]
+   },
+   {
+    "label": "shared",
+    "type": "PhoebusCore.WidgetKitShared.Caption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 41,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "allCases",
+    "type": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "none"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "title"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "titleAndStats"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "detailed"
+      }
+     }
+    ]
+   },
+   {
+    "label": "rawValue",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "valueKind": "Runtime"
+   }
+  ],
+  "cases": [
+   {
+    "name": "none",
+    "rawValue": "none"
+   },
+   {
+    "name": "title",
+    "rawValue": "title"
+   },
+   {
+    "name": "titleAndStats",
+    "rawValue": "titleAndStats"
+   },
+   {
+    "name": "detailed",
+    "rawValue": "detailed"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.WidgetSourceOption",
+  "mangledTypeName": "13PhoebusWidget0B12SourceOptionO",
+  "kind": "enum",
+  "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+  "line": 52,
+  "conformances": [
+   "Swift.Equatable",
+   "Swift.Hashable",
+   "Swift.RawRepresentable",
+   "AppIntents.AppEnum",
+   "AppIntents.AppValue",
+   "AppIntents.StaticDisplayRepresentable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.CaseDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "Swift.CaseIterable",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "Swift.Equatable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Hashable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.RawRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppEnum",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.StaticDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.CaseDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.CaseIterable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "RawValue",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "PhoebusWidget.WidgetSourceOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B12SourceOptionO"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "PhoebusWidget.WidgetSourceOption",
+    "substitutedMangledTypeName": "13PhoebusWidget0B12SourceOptionO"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "some AppIntents.ResolverSpecification",
+    "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy13PhoebusWidget0H12SourceOptionO_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ResolverSpecification"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "AllCases",
+    "substitutedTypeName": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+    "substitutedMangledTypeName": "Say13PhoebusWidget0B12SourceOptionOG"
+   }
+  ],
+  "properties": [
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 55,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "caseDisplayRepresentations",
+    "type": "Swift.Dictionary<PhoebusWidget.WidgetSourceOption, AppIntents.DisplayRepresentation>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 56,
+    "valueKind": "Dictionary",
+    "value": [
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "home"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Home"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Popular"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "all"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "All"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "custom"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      }
+     }
+    ]
+   },
+   {
+    "label": "allCases",
+    "type": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "home"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "popular"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "all"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "custom"
+      }
+     }
+    ]
+   },
+   {
+    "label": "rawValue",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "valueKind": "Runtime"
+   }
+  ],
+  "cases": [
+   {
+    "name": "home",
+    "rawValue": "home"
+   },
+   {
+    "name": "popular",
+    "rawValue": "popular"
+   },
+   {
+    "name": "all",
+    "rawValue": "all"
+   },
+   {
+    "name": "custom",
+    "rawValue": "custom"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.PostWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget04PostB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+  "line": 81,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget04PostgC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 86,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 88,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 90,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "hot"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_caption",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 92,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Caption"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "titleAndStats"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 82,
+    "valueKind": "RawLiteral",
+    "value": "Post"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 83,
+    "valueKind": "RawLiteral",
+    "value": "The top post from a feed you choose."
+   },
+   {
+    "label": "source",
+    "type": "PhoebusWidget.WidgetSourceOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 86,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+      "line": 85,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Source"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "popular"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 86,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 88,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+      "line": 87,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "popular"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 88,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "sort",
+    "type": "PhoebusWidget.WidgetSortOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 90,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "hot"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+      "line": 89,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Sort"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "hot"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 90,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "caption",
+    "type": "PhoebusWidget.WidgetCaptionOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 92,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Caption"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "titleAndStats"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+      "line": 91,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Caption"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "titleAndStats"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$caption",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuite.swift",
+    "line": 92,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.CalendarWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget08CalendarB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+  "line": 13,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget08CalendargC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 18,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "EarthPorn"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_dateStyle",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.CalendarDateStyle>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 20,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.CalendarDateStyle>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Date Style"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.CalendarDateStyle>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "rounded"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.CalendarDateStyle>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_showTitle",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 23,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Show Title"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "RawLiteral",
+       "value": "false"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 14,
+    "valueKind": "RawLiteral",
+    "value": "Calendar"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 15,
+    "valueKind": "RawLiteral",
+    "value": "A photo of the day with the date overlaid."
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 18,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "EarthPorn"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+      "line": 17,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "EarthPorn"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 18,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "dateStyle",
+    "type": "PhoebusWidget.CalendarDateStyle",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 20,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.CalendarDateStyle>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Date Style"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.CalendarDateStyle>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "rounded"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.CalendarDateStyle>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+      "line": 19,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Date Style"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.CalendarDateStyle>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "rounded"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$dateStyle",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.CalendarDateStyle>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 20,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "showTitle",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 23,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Show Title"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "RawLiteral",
+       "value": "false"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+      "line": 22,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Show Title"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.Bool>",
+        "valueKind": "RawLiteral",
+        "value": "false"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$showTitle",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 23,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.CalendarDateStyle",
+  "mangledTypeName": "13PhoebusWidget17CalendarDateStyleO",
+  "kind": "enum",
+  "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+  "line": 32,
+  "conformances": [
+   "Swift.Equatable",
+   "Swift.Hashable",
+   "Swift.RawRepresentable",
+   "AppIntents.AppEnum",
+   "AppIntents.AppValue",
+   "AppIntents.StaticDisplayRepresentable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.CaseDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "Swift.CaseIterable",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "Swift.Equatable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Hashable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.RawRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppEnum",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.StaticDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.CaseDisplayRepresentable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.CaseIterable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "RawValue",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "PhoebusWidget.CalendarDateStyle",
+    "substitutedMangledTypeName": "13PhoebusWidget17CalendarDateStyleO"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "PhoebusWidget.CalendarDateStyle",
+    "substitutedMangledTypeName": "13PhoebusWidget17CalendarDateStyleO"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "some AppIntents.ResolverSpecification",
+    "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy13PhoebusWidget17CalendarDateStyleO_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ResolverSpecification"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "AllCases",
+    "substitutedTypeName": "Swift.Array<PhoebusWidget.CalendarDateStyle>",
+    "substitutedMangledTypeName": "Say13PhoebusWidget17CalendarDateStyleOG"
+   }
+  ],
+  "properties": [
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 35,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Date Style"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "caseDisplayRepresentations",
+    "type": "Swift.Dictionary<PhoebusWidget.CalendarDateStyle, AppIntents.DisplayRepresentation>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 36,
+    "valueKind": "Dictionary",
+    "value": [
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "rounded"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Rounded"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "serif"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Serif"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "mono"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Mono"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "condensed"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Condensed"
+      }
+     },
+     {
+      "key": {
+       "valueKind": "Enum",
+       "value": {
+        "name": "stamp"
+       }
+      },
+      "value": {
+       "valueKind": "RawLiteral",
+       "value": "Stamp"
+      }
+     }
+    ]
+   },
+   {
+    "label": "design",
+    "type": "SwiftUICore.Font.Design",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 43,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "allCases",
+    "type": "Swift.Array<PhoebusWidget.CalendarDateStyle>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "rounded"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "serif"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "mono"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "condensed"
+      }
+     },
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "stamp"
+      }
+     }
+    ]
+   },
+   {
+    "label": "rawValue",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "valueKind": "Runtime"
+   }
+  ],
+  "cases": [
+   {
+    "name": "rounded",
+    "rawValue": "rounded"
+   },
+   {
+    "name": "serif",
+    "rawValue": "serif"
+   },
+   {
+    "name": "mono",
+    "rawValue": "mono"
+   },
+   {
+    "name": "condensed",
+    "rawValue": "condensed"
+   },
+   {
+    "name": "stamp",
+    "rawValue": "stamp"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.HeadlineWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget08HeadlineB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+  "line": 203,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget08HeadlinegC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 208,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "worldnews"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 204,
+    "valueKind": "RawLiteral",
+    "value": "Headline"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 205,
+    "valueKind": "RawLiteral",
+    "value": "The top headline from a subreddit."
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 208,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "worldnews"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+      "line": 207,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "worldnews"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteCalendar.swift",
+    "line": 208,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.PhotoWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget05PhotoB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+  "line": 12,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget05PhotogC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 17,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "EarthPorn"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 19,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "topToday"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_caption",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 22,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Caption"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "title"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 13,
+    "valueKind": "RawLiteral",
+    "value": "Photo"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 14,
+    "valueKind": "RawLiteral",
+    "value": "A full-bleed top image from a subreddit."
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 17,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "EarthPorn"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+      "line": 16,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "EarthPorn"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 17,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "sort",
+    "type": "PhoebusWidget.WidgetSortOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 19,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "topToday"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+      "line": 18,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Sort"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "topToday"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 19,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "caption",
+    "type": "PhoebusWidget.WidgetCaptionOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 22,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Caption"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "title"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetCaptionOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+      "line": 21,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Caption"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetCaptionOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "title"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$caption",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetCaptionOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 22,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.ShortcutsWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget09ShortcutsB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+  "line": 141,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget09ShortcutsgC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_subreddits",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 147,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddits"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular, all, worldnews, apolloapp"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 142,
+    "valueKind": "RawLiteral",
+    "value": "Shortcuts"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 143,
+    "valueKind": "RawLiteral",
+    "value": "Tiles that open subreddits in Phoebus."
+   },
+   {
+    "label": "subreddits",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 147,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddits"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular, all, worldnews, apolloapp"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+      "line": 146,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddits"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "popular, all, worldnews, apolloapp"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$subreddits",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetSuiteExtra.swift",
+    "line": 147,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "PhoebusWidget.FeedWidgetIntent",
+  "mangledTypeName": "13PhoebusWidget04FeedB6IntentV",
+  "kind": "struct",
+  "file": "Sources/PhoebusWidget/WidgetViews.swift",
+  "line": 166,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.WidgetConfigurationIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.WidgetConfigurationIntent",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "PhoebusWidget"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "PhoebusWidget"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy13PhoebusWidget04FeedgC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "NeverResult",
+    "substitutedTypeName": "Swift.Never",
+    "substitutedMangledTypeName": "s5NeverO"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 171,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 173,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 175,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "hot"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_compact",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 178,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Compact"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "RawLiteral",
+       "value": "false"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 167,
+    "valueKind": "RawLiteral",
+    "value": "Feed"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 168,
+    "valueKind": "RawLiteral",
+    "value": "A list of a feed's top posts."
+   },
+   {
+    "label": "source",
+    "type": "PhoebusWidget.WidgetSourceOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 171,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Source"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "popular"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSourceOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetViews.swift",
+      "line": 170,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Source"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetSourceOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "popular"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$source",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSourceOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 171,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "query",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 173,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit or Multireddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "RawLiteral",
+       "value": "popular"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetViews.swift",
+      "line": 172,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit or Multireddit"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.String>",
+        "valueKind": "RawLiteral",
+        "value": "popular"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 173,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "sort",
+    "type": "PhoebusWidget.WidgetSortOption",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 175,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Sort"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Enum",
+       "value": {
+        "name": "hot"
+       }
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      },
+      {
+       "label": "supportedValues",
+       "type": "Swift.Array<PhoebusWidget.WidgetSortOption>",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetViews.swift",
+      "line": 174,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Sort"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<PhoebusWidget.WidgetSortOption>",
+        "valueKind": "Enum",
+        "value": {
+         "name": "hot"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$sort",
+    "type": "AppIntents.IntentParameter<PhoebusWidget.WidgetSortOption>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 175,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "compact",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 178,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Compact"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "RawLiteral",
+       "value": "false"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/PhoebusWidget/WidgetViews.swift",
+      "line": 177,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Compact"
+       },
+       {
+        "label": "default",
+        "type": "Swift.Optional<Swift.Bool>",
+        "valueKind": "RawLiteral",
+        "value": "false"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$compact",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/PhoebusWidget/WidgetViews.swift",
+    "line": 178,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "17.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ }
+]

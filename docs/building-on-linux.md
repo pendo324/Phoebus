@@ -46,8 +46,9 @@ root. Run them as `scripts/<name>`.
 | `merge-apps.py <out.app> <in.app>...` | Merges builds of the app for different architectures into one universal app (`lipo -create` for every Mach-O file; the Linux toolchain has no `lipo`). |
 | `package-ipa.sh <app> <ipa>` | Zips a built `.app` into an unsigned `.ipa` and checks it with `check-app.py`. |
 | `ci/*` | The CI image setup, the SDK install, file times, the nightly release and the AltStore sources; see [releases.md](releases.md). |
+| `appintents-metadata.py <out> <values>...`, `add-appintents-metadata.sh <triple> <configuration>` | Write the widget's `Metadata.appintents` on Linux; see "AppIntents metadata". |
 | `check-app.py <app or ipa>` | Checks a built app for what can go wrong without failing the build: extensions linked as stubs, executables that disagree on platform or minimum OS, extensions with their own `Frameworks/`, declared icons missing from the bundle, malformed version strings. Warns when the widget has no `Metadata.appintents`. |
-| `smoke.sh` | Builds and runs `PhoebusCoreSmokeTest` on the host and checks the exit status and the `ALL CHECKS PASSED` line (a crash must not look like a pass). Then runs `build-for-simulator.sh`, unless `SMOKE_SKIP_IOS=1`. Exit codes: 1 failed assertions, 2 build failed, 3 crashed mid-run, 4 no terminator line, 5 iOS build failed. |
+| `smoke.sh` | Builds and runs `PhoebusCoreSmokeTest` on the host and checks the exit status and the `ALL CHECKS PASSED` line (a crash must not look like a pass). Then runs `build-for-simulator.sh`, unless `SMOKE_SKIP_IOS=1`. Also checks the App Intents metadata generator (`appintents-metadata.py --self-test`). Exit codes: 1 failed assertions, 2 build failed, 3 crashed mid-run, 4 no terminator line, 5 iOS build failed, 6 App Intents metadata differs from Apple's. |
 | `code-unchanged.py [rev] [paths]` | Compares Swift files with all comments stripped between a git revision and the working tree; proves that an edit changed only comments. |
 | `generate-icons.sh [--force]` | Renders the Liquid Glass alternate icons and the App Icon picker's previews from the Icon Composer sources in `Icons/LiquidGlass`, and extracts the standard icons from Apollo's IPA into `Icons/Standard`, with `scripts/lgrender`. Unchanged icons are skipped. Run it before any `xtool dev build` you invoke yourself. |
 | `xtool-env.sh` | Sourced by the build scripts. Sets `XTOOL`, `SANDBOX` and `SWIFT_BUILD` (see "Local overrides"). |
@@ -132,7 +133,7 @@ SANDBOX=(bwrap --dev-bind / / --overlay-src /usr/bin --overlay-src "$SHIM_DIR" -
 SWIFT_BUILD=("${SANDBOX[@]}" swift build)
 ```
 
-## AppIntents metadata needs macOS
+## AppIntents metadata
 
 The configurable widgets are App Intents widgets. At runtime the system
 needs `Metadata.appintents` inside the widget extension to construct their
@@ -140,13 +141,47 @@ default configuration; without it each configurable widget fails with
 `CHSErrorDomain` 1103 ("Intent configuration is required but was not
 provided"). Xcode produces that file with Apple's
 `appintentsmetadataprocessor`, which only exists on macOS, and xtool has no
-equivalent step. On Linux the build only prepares the input: the widget
-target is compiled with `-emit-const-values` and the protocol list in
+equivalent step.
+
+On Linux, `scripts/appintents-metadata.py` writes it instead.
+`scripts/build-app.sh` and `scripts/build-for-simulator.sh` run it after
+each build (through `scripts/add-appintents-metadata.sh`). Its input is
+the compiler's const values for the widget: the widget target is compiled
+with `-emit-const-values` and the protocol list in
 `Config/PhoebusWidget/AppIntentsProtocols.json`, which writes
-`*.swiftconstvalues` under `.build/`. Running the processor on a Mac over
-those files and the widget sources, then copying `Metadata.appintents`
-into `PhoebusWidget.appex`, is a separate step that this repository does
-not automate. Everything except the configurable widgets works without it.
+`*.swiftconstvalues` under `.build/`. Those hold what the metadata needs,
+including each type's mangled name. The generator supports what the widget
+uses (`WidgetConfigurationIntent`s with String, Bool and String-backed
+`AppEnum` parameters and literal titles and defaults) and stops with an
+error on anything else.
+
+`Tests/Fixtures/AppIntents` holds the const values of the current widget
+and Apple's output for them, and `scripts/appintents-metadata.py
+--self-test` (run by `scripts/smoke.sh`) checks that the generator matches
+Apple's output field for field; Apple's processor orders enums and some
+lists arbitrarily, so those are compared as sets. When the widget's
+intents change, `add-appintents-metadata.sh` warns that the generator has
+not been checked against them. Regenerate the fixture on a Mac with
+Xcode: copy a device build's const values
+(`.build/out/Intermediates.noindex/Phoebus.build/Release-iphoneos/PhoebusWidget-t.build/Objects-normal/arm64/*.swiftconstvalues`)
+and `Sources/PhoebusWidget/*.swift` there, point the absolute source paths
+in the const values at the copies (the processor stops on a source it
+cannot find), and run:
+
+```bash
+TC=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain
+ls "$PWD"/src/*.swift > sources.txt; ls *.swiftconstvalues > constvals.txt
+"$TC/usr/bin/appintentsmetadataprocessor" --output out --toolchain-dir "$TC" \
+  --module-name PhoebusWidget --sdk-root "$(xcrun --sdk iphoneos --show-sdk-path)" \
+  --xcode-version "$(xcodebuild -version | tail -1 | awk '{print $3}')" \
+  --platform-family iOS --deployment-target 17.0 --target-triple arm64-apple-ios17.0 \
+  --source-file-list sources.txt --swift-const-vals-list constvals.txt --force
+```
+
+Then copy `out/Metadata.appintents` into `Tests/Fixtures/AppIntents`, and
+the const values into `input.swiftconstvalues` with their source paths
+made relative to the repository, and fix the generator until `--self-test`
+passes.
 
 ## Liquid Glass icons
 

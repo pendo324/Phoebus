@@ -22,6 +22,7 @@ source scripts/xtool-env.sh
 [ -n "${SHIM_DIR:-}" ] && trap 'rm -rf "$SHIM_DIR"' EXIT
 
 PHOEBUS_LINK_PLATFORM=$platform "${SANDBOX[@]}" "$XTOOL" dev build --triple "$triple" --configuration "$config"
+scripts/add-appintents-metadata.sh "$triple" "$config"
 rm -rf "$out"
 mkdir -p "$(dirname "$out")"
 cp -a xtool/Phoebus.app "$out"

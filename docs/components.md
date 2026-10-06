@@ -494,7 +494,7 @@ the matching section of `apply`. Keys that should never import go in
 | Settings row not reachable from search | missing `.apolloSearchRow` or stale index | regenerate the index |
 | Settings screen looks carded on iOS 26 | `Form` or missing `apolloFlatListAppearance` | use `List` with `.apolloFlatListAppearance()` |
 | Widget shows nothing | `UserDefaults(suiteName:)` is nil under a free sideload | `SharedFeedCache` App Group container |
-| Configurable widgets fail with CHSErrorDomain 1103 | built without `Metadata.appintents` | needs a macOS-side metadata step; see [widgets-and-signing.md](widgets-and-signing.md) |
+| Configurable widgets fail with CHSErrorDomain 1103 | built without `Metadata.appintents` | `scripts/add-appintents-metadata.sh` after the build; see [building-on-linux.md](building-on-linux.md), "AppIntents metadata" |
 | Login lost between runs in the iOS simulator | keychain unusable in the simulator | container-local credential file |
 | Build fails "Darwin SDK is incompatible" | system xtool newer than the SDK | set `XTOOL` in `scripts/local.sh` (see docs/building-on-linux.md) |
 | Row swipes change a real account | row swipes vote | be careful swiping while signed in |

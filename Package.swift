@@ -99,12 +99,13 @@ let package = Package(
             name: "PhoebusWidget",
             dependencies: ["PhoebusCore"],
             // Emit `*.swiftconstvalues` describing every AppIntent /
-            // AppEnum in this target. `appintentsmetadataprocessor`
-            // consumes them to build `Metadata.appintents`, without
-            // which WidgetKit cannot construct a default
-            // configuration and every `AppIntentConfiguration`
-            // widget fails with CHSErrorDomain 1103. Xcode passes
-            // these flags implicitly; xtool does not.
+            // AppEnum in this target. scripts/appintents-metadata.py
+            // (in place of Xcode's `appintentsmetadataprocessor`)
+            // builds `Metadata.appintents` from them, without which
+            // WidgetKit cannot construct a default configuration and
+            // every `AppIntentConfiguration` widget fails with
+            // CHSErrorDomain 1103. Xcode passes these flags
+            // implicitly; xtool does not.
             //
             // Both flags are required: `-emit-const-values` alone
             // silently produces nothing, since the compiler only

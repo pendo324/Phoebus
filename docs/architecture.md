@@ -7,7 +7,7 @@
 | `PhoebusCore` | Foundation only | Yes | Models, networking (`RedditAPIClient`, `RedditAuthClient`, `RedditRepository` and the per-service clients), settings stores, theming, pure policy enums. **All testable logic goes here.** |
 | `PhoebusUI` | PhoebusCore, AnimatedImage and KSCrash's `Recording` product (SwiftPM, pinned by revision) | No (needs SwiftUI/UIKit) | Every screen, component, media view and gesture recognizer. |
 | `Phoebus` | PhoebusCore, PhoebusUI | No | `PhoebusApp.swift` (`@main`, `MainTabView`, the five root `NavigationStack`s, deep links) and `AppIntents.swift`. |
-| `PhoebusWidget` | PhoebusCore | No | WidgetKit extension: App Intents, a Live Activity, and the calendar, photo, headline, post, feed and shortcuts widgets. Configurable widgets need `Metadata.appintents`, which only a macOS toolchain can generate (see [widgets-and-signing.md](widgets-and-signing.md)). |
+| `PhoebusWidget` | PhoebusCore | No | WidgetKit extension: App Intents, a Live Activity, and the calendar, photo, headline, post, feed and shortcuts widgets. Configurable widgets need `Metadata.appintents`, which `scripts/appintents-metadata.py` generates on Linux (see [building-on-linux.md](building-on-linux.md), "AppIntents metadata"). |
 | `PhoebusOpenIn` | none | No | Share sheet "Open in Apollo" action extension. |
 | `PhoebusSafari` | none | No | Safari web extension handler (`SafariExtension/` holds the JavaScript). |
 | `PhoebusCoreSmokeTest` | PhoebusCore | **Yes: this is the test suite** | `main.swift` (harness, shared fixtures, and the calls in order) plus `Checks/<Area>.swift`. |

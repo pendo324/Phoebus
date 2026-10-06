@@ -46,6 +46,12 @@ if ! printf '%s\n' "$out" | grep -q "ALL CHECKS PASSED"; then
   exit 4
 fi
 
+# The widget's App Intents metadata generator, against Apple's output.
+if ! appintents_log="$(python3 scripts/appintents-metadata.py --self-test 2>&1)"; then
+  printf '%s\n' "$appintents_log" | tail -20 | sed 's/^/  /'
+  echo "SMOKE: APP INTENTS METADATA DIFFERS ($passes assertions passed)"
+  exit 6
+fi
 
 # Also compile the iOS app, unless SMOKE_SKIP_IOS=1. The steps above only
 # build PhoebusCore, so without this a green run says nothing about

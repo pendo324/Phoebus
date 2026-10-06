@@ -51,10 +51,6 @@ certificate signer, read [docs/widgets-and-signing.md](docs/widgets-and-signing.
 first: the configurable widgets need the bundle identifier to match the
 signing App ID.
 
-The configurable widgets (Post, Feed, Photo, Calendar, Headline,
-Shortcuts) need App Intents metadata that only a Mac can generate, so they
-don't work in these builds; the other widgets do.
-
 ### In the iOS Simulator
 
 Each release also has a `-simulator.ipa`, one build for both Intel and

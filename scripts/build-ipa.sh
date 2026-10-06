@@ -15,9 +15,6 @@
 # $GITHUB_OUTPUT when that is set. xtool/Phoebus.app is left as the device
 # build. CI builds the variants in parallel with scripts/build-app.sh
 # instead, then packages them the same way.
-#
-# The configurable widgets need Metadata.appintents, which only a Mac can
-# generate (docs/building-on-linux.md); these IPAs do not have it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

@@ -98,9 +98,9 @@ Both IPAs are unsigned and keep their symbols, which the crash reports the
 app records need (stripping would save only about 5 MB of a 36 MB IPA).
 The device IPA is a release build for arm64 iPhones and iPads; the
 simulator IPA is a universal debug build that installs with
-`xcrun simctl install <device> <file>`. Neither has `Metadata.appintents`,
-which only a Mac can generate, so the configurable widgets don't work in
-CI builds (see [widgets-and-signing.md](widgets-and-signing.md)).
+`xcrun simctl install <device> <file>`. Both carry the widget's
+`Metadata.appintents`, generated on Linux by `scripts/appintents-metadata.py`
+(see [building-on-linux.md](building-on-linux.md), "AppIntents metadata").
 
 ### Caching
 
@@ -192,6 +192,7 @@ these run for pull requests.
 | `scripts/merge-apps.py` | Merges per-architecture builds into one universal app. |
 | `scripts/package-ipa.sh` | Packs an app into an IPA and checks it. |
 | `scripts/check-app.py` | Checks a built app or IPA for what can go wrong without failing the build. |
+| `scripts/appintents-metadata.py`, `scripts/add-appintents-metadata.sh` | Write the widget's App Intents metadata after each build. |
 | `scripts/ci/setup-linux.sh`, `scripts/ci/build-libimobiledevice.sh` | The image's packages and libimobiledevice. |
 | `scripts/ci/install-sdk.sh` | Installs (or packs) the Darwin SDK. |
 | `scripts/ci/restore-mtimes.sh` | Resets file times to their commits'. |

@@ -19,6 +19,7 @@ scripts/generate-icons.sh
 # Links with the simulator's platform name (see Package.swift).
 export PHOEBUS_LINK_PLATFORM=ios-simulator
 "${SANDBOX[@]}" "$XTOOL" dev build --triple "$TRIPLE"
+scripts/add-appintents-metadata.sh "$TRIPLE" debug
 scripts/check-app.py xtool/Phoebus.app
 
 echo "Built xtool/Phoebus.app for $TRIPLE"

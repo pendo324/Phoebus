@@ -270,6 +270,7 @@ def build_intent(entry, enums):
     open_app = static_property(entry, "openAppWhenRun")
     if open_app is not None and open_app.get("valueKind") != "RawLiteral":
         raise Unsupported(f"{name}.openAppWhenRun: expected a literal")
+    opens_app = open_app is not None and open_app["value"] == "true"
     parameters = [build_parameter(p, enums, name) for p in entry.get("properties", [])
                   if p["label"].startswith("_") and p["type"].startswith("AppIntents.IntentParameter<")]
     protocol = [WIDGET_CONFIGURATION, {"empty": {}}] if widget else []
@@ -291,12 +292,13 @@ def build_intent(entry, enums):
         "mangledTypeNameByBundleIdentifier": {},
         "mangledTypeNameByBundleIdentifierV2": {},
         "mangledTypeNameV2": entry["mangledTypeName"],
-        "openAppWhenRun": open_app is not None and open_app["value"] == "true",
+        "openAppWhenRun": opens_app,
         "outputFlags": output_flags,
         "parameters": parameters,
         "presentationStyle": 0,
         "requiredCapabilities": [],
-        "supportedModes": 1,
+        # 1 runs in the background, 2 in the foreground (openAppWhenRun).
+        "supportedModes": 2 if opens_app else 1,
         "systemProtocolMetadata": protocol,
         "systemProtocolMetadataV2": protocol,
         "systemProtocols": [WIDGET_CONFIGURATION] if widget else [],
@@ -422,8 +424,9 @@ def self_test():
             import difflib
             print("\n".join(list(difflib.unified_diff(a, b, "apple", "generated", lineterm=""))[:60]))
             sys.exit(f"appintents-metadata: output differs from Apple's for {fixtures.name}")
-        if (fixtures / "Metadata.appintents/version.json").read_text().strip() != \
-                '{\n  "version" : "3.0",\n  "toolsVersion" : "%s"\n}' % TOOLS_VERSION:
+        # Apple writes its two keys in either order.
+        if json.loads((fixtures / "Metadata.appintents/version.json").read_text()) != \
+                {"version": "3.0", "toolsVersion": TOOLS_VERSION}:
             sys.exit(f"appintents-metadata: version.json differs from Apple's for {fixtures.name}")
         print(f"appintents-metadata: {fixtures.name} matches Apple's output "
               f"({len(actual['actions'])} intents, {len(actual['enums'])} enums, "

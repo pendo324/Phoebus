@@ -7,6 +7,7 @@ import PhoebusCore
 public struct OpenSubredditIntent: AppIntent {
     public static let title: LocalizedStringResource = "Open Subreddit"
     public static let description = IntentDescription("Opens a subreddit in Phoebus.")
+    public static let openAppWhenRun = true
 
     @Parameter(title: "Subreddit")
     public var subredditName: String
@@ -31,6 +32,7 @@ public struct OpenSubredditIntent: AppIntent {
 public struct OpenHomeIntent: AppIntent {
     public static let title: LocalizedStringResource = "Open Home Feed"
     public static let description = IntentDescription("Opens your Phoebus home feed.")
+    public static let openAppWhenRun = true
 
     public init() {}
 
@@ -44,6 +46,7 @@ public struct OpenHomeIntent: AppIntent {
 public struct OpenUserIntent: AppIntent {
     public static let title: LocalizedStringResource = "Open User Profile"
     public static let description = IntentDescription("Opens a Reddit user's profile in Phoebus.")
+    public static let openAppWhenRun = true
 
     @Parameter(title: "Username")
     public var username: String
@@ -69,6 +72,7 @@ public struct OpenUserIntent: AppIntent {
 public struct OpenMultiredditIntent: AppIntent {
     public static let title: LocalizedStringResource = "Open Multireddit"
     public static let description = IntentDescription("Opens a multireddit in Phoebus.")
+    public static let openAppWhenRun = true
 
     @Parameter(title: "Multireddit Name")
     public var multiredditName: String

@@ -62,7 +62,7 @@
     "isStatic": "false",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 12,
+    "line": 13,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -124,13 +124,24 @@
     "value": "Opens a subreddit in Phoebus."
    },
    {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 10,
+    "valueKind": "RawLiteral",
+    "value": "true"
+   },
+   {
     "label": "subredditName",
     "type": "Swift.String",
     "mangledTypeName": "n/a - deprecated",
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 12,
+    "line": 13,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -172,7 +183,7 @@
      {
       "type": "AppIntents.IntentParameter",
       "file": "Sources/Phoebus/AppIntents.swift",
-      "line": 11,
+      "line": 12,
       "arguments": [
        {
         "label": "title",
@@ -191,7 +202,7 @@
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 12,
+    "line": 13,
     "valueKind": "Runtime"
    },
    {
@@ -201,7 +212,7 @@
     "isStatic": "true",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 20,
+    "line": 21,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameterSummary<Phoebus.OpenSubredditIntent>",
@@ -251,7 +262,7 @@
   "mangledTypeName": "7Phoebus14OpenHomeIntentV",
   "kind": "struct",
   "file": "Sources/Phoebus/AppIntents.swift",
-  "line": 31,
+  "line": 32,
   "conformances": [
    "AppIntents.AppIntent",
    "AppIntents.PersistentlyIdentifiable",
@@ -309,7 +320,7 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 32,
+    "line": 33,
     "valueKind": "RawLiteral",
     "value": "Open Home Feed"
    },
@@ -320,9 +331,20 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 33,
+    "line": 34,
     "valueKind": "RawLiteral",
     "value": "Opens your Phoebus home feed."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 35,
+    "valueKind": "RawLiteral",
+    "value": "true"
    }
   ]
  },
@@ -331,7 +353,7 @@
   "mangledTypeName": "7Phoebus14OpenUserIntentV",
   "kind": "struct",
   "file": "Sources/Phoebus/AppIntents.swift",
-  "line": 44,
+  "line": 46,
   "conformances": [
    "AppIntents.AppIntent",
    "AppIntents.PersistentlyIdentifiable",
@@ -389,7 +411,7 @@
     "isStatic": "false",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 49,
+    "line": 52,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -435,7 +457,7 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 45,
+    "line": 47,
     "valueKind": "RawLiteral",
     "value": "Open User Profile"
    },
@@ -446,9 +468,20 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 46,
+    "line": 48,
     "valueKind": "RawLiteral",
     "value": "Opens a Reddit user's profile in Phoebus."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 49,
+    "valueKind": "RawLiteral",
+    "value": "true"
    },
    {
     "label": "username",
@@ -457,7 +490,7 @@
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 49,
+    "line": 52,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -499,7 +532,7 @@
      {
       "type": "AppIntents.IntentParameter",
       "file": "Sources/Phoebus/AppIntents.swift",
-      "line": 48,
+      "line": 51,
       "arguments": [
        {
         "label": "title",
@@ -518,7 +551,7 @@
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 49,
+    "line": 52,
     "valueKind": "Runtime"
    },
    {
@@ -528,7 +561,7 @@
     "isStatic": "true",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 57,
+    "line": 60,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameterSummary<Phoebus.OpenUserIntent>",
@@ -578,7 +611,7 @@
   "mangledTypeName": "7Phoebus21OpenMultiredditIntentV",
   "kind": "struct",
   "file": "Sources/Phoebus/AppIntents.swift",
-  "line": 69,
+  "line": 72,
   "conformances": [
    "AppIntents.AppIntent",
    "AppIntents.PersistentlyIdentifiable",
@@ -636,7 +669,7 @@
     "isStatic": "false",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 74,
+    "line": 78,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -682,7 +715,7 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 70,
+    "line": 73,
     "valueKind": "RawLiteral",
     "value": "Open Multireddit"
    },
@@ -693,9 +726,20 @@
     "isStatic": "true",
     "isComputed": "false",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 71,
+    "line": 74,
     "valueKind": "RawLiteral",
     "value": "Opens a multireddit in Phoebus."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 75,
+    "valueKind": "RawLiteral",
+    "value": "true"
    },
    {
     "label": "multiredditName",
@@ -704,7 +748,7 @@
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 74,
+    "line": 78,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameter<Swift.String>",
@@ -746,7 +790,7 @@
      {
       "type": "AppIntents.IntentParameter",
       "file": "Sources/Phoebus/AppIntents.swift",
-      "line": 73,
+      "line": 77,
       "arguments": [
        {
         "label": "title",
@@ -765,7 +809,7 @@
     "isStatic": "false",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 74,
+    "line": 78,
     "valueKind": "Runtime"
    },
    {
@@ -775,7 +819,7 @@
     "isStatic": "true",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 82,
+    "line": 86,
     "valueKind": "InitCall",
     "value": {
      "type": "AppIntents.IntentParameterSummary<Phoebus.OpenMultiredditIntent>",
@@ -825,7 +869,7 @@
   "mangledTypeName": "7Phoebus0A9ShortcutsV",
   "kind": "struct",
   "file": "Sources/Phoebus/AppIntents.swift",
-  "line": 116,
+  "line": 120,
   "conformances": [
    "AppIntents.AppShortcutsProvider",
    "Swift.Sendable",
@@ -854,7 +898,7 @@
     "isStatic": "true",
     "isComputed": "true",
     "file": "Sources/Phoebus/AppIntents.swift",
-    "line": 117,
+    "line": 121,
     "valueKind": "Builder",
     "value": {
      "type": "AppIntents.AppShortcutsBuilder",

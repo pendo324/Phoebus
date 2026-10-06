@@ -1,28 +1,34 @@
 #!/usr/bin/env python3
-"""Writes a widget extension's Metadata.appintents on Linux, in place of
-Apple's appintentsmetadataprocessor (macOS only).
+"""Writes a target's Metadata.appintents on Linux, in place of Apple's
+appintentsmetadataprocessor (macOS only).
 
 Usage:
   scripts/appintents-metadata.py <out/Metadata.appintents> <file.swiftconstvalues>...
   scripts/appintents-metadata.py --self-test
 
-iOS reads this metadata to give configurable widgets their settings;
-without it every App Intent widget fails (CHSErrorDomain 1103). The input
-is the compiler's const values for the widget target (-emit-const-values,
-see Package.swift), which already hold what the metadata needs: each
-type's mangled name, its conformances, availability, and the literal
-titles, defaults and cases of its parameters and enums.
+iOS reads this metadata to find a bundle's App Intents: without it the
+widget's configurable widgets get no settings (CHSErrorDomain 1103), and
+the app's intents and App Shortcuts don't appear in Shortcuts, Siri or
+Spotlight. The input is the compiler's const values for the target
+(-emit-const-values, see Package.swift), which already hold what the
+metadata needs: each type's mangled name, its conformances, availability,
+and the literal titles, defaults, cases and phrases.
 
-Only what the widget uses is supported: WidgetConfigurationIntent intents
-whose parameters are String, Bool or a String-backed AppEnum, with literal
-titles, descriptions and defaults. Anything else is an error rather than a
-guess, since iOS rejects metadata it cannot match to the binary.
+Only what Phoebus uses is supported:
+- WidgetConfigurationIntents, and AppIntents whose perform() returns a
+  plain result, with literal titles and descriptions;
+- parameters that are String, Bool or a String-backed AppEnum, with
+  literal defaults, and a Summary("...") showing every parameter;
+- one AppShortcutsProvider with AppShortcut(intent:phrases:shortTitle:
+  systemImageName:) entries whose phrases interpolate only the app name.
+Anything else is an error rather than a guess, since iOS ignores or
+rejects metadata it cannot match to the binary.
 
---self-test regenerates Tests/Fixtures/AppIntents/input.swiftconstvalues
-and compares the result with the output of Apple's processor for the same
-input (Tests/Fixtures/AppIntents/Metadata.appintents). When the widget's
-intents change, that fixture is regenerated on a Mac with
-generate-appintents-metadata.sh; until then a mismatch means the
+--self-test runs the generator on each Tests/Fixtures/AppIntents/<target>/
+input.swiftconstvalues and compares the result with the output of Apple's
+processor for the same input (Metadata.appintents next to it). When a
+target's intents change, its fixture is regenerated on a Mac (see
+docs/building-on-linux.md, "AppIntents metadata"); until then the
 generator has not been verified for the new input.
 """
 import json
@@ -191,22 +197,83 @@ def build_parameter(prop, enums, intent):
     }
 
 
+def interpolated(value, what, placeholder):
+    """The text of an interpolated string literal, with each interpolation
+    replaced by placeholder(segment) (which returns its name, or raises)."""
+    if value.get("valueKind") == "RawLiteral":
+        return value["value"], []
+    if value.get("valueKind") != "InterpolatedStringLiteral":
+        raise Unsupported(f"{what}: expected a string literal, got {value.get('valueKind')}")
+    out, names = "", []
+    for segment in value["value"]["segments"]:
+        if segment.get("valueKind") == "RawLiteral":
+            out += segment["value"]
+        else:
+            name = placeholder(segment)
+            out += "${" + name + "}"
+            names.append(name)
+    return out, names
+
+
+def action_summary(entry, parameters):
+    """actionConfiguration for a static parameterSummary of the form
+    Summary("... \\(\\.$parameter) ..."), the only form supported."""
+    name = entry["typeName"]
+    summary = static_property(entry, "parameterSummary")
+    if summary is None:
+        return None
+    if summary.get("valueKind") != "InitCall" or \
+            not summary["value"]["type"].startswith("AppIntents.IntentParameterSummary<"):
+        raise Unsupported(f"{name}.parameterSummary: only Summary(\"...\") is supported")
+    args = summary["value"]["arguments"]
+    for extra in args[1:]:
+        if extra.get("valueKind") != "NilLiteral":
+            raise Unsupported(f"{name}.parameterSummary: argument {extra.get('label')} is not supported")
+
+    def parameter(segment):
+        if segment.get("valueKind") != "KeyPath":
+            raise Unsupported(f"{name}.parameterSummary: only \\.$parameter interpolations are supported")
+        return segment["value"]["path"].lstrip("$")
+
+    format_string, used = interpolated(args[0], f"{name}.parameterSummary", parameter)
+    names = [p["name"] for p in parameters]
+    if any(n not in names for n in used) or sorted(used) != sorted(names):
+        raise Unsupported(f"{name}.parameterSummary: must show every parameter exactly once")
+    return {"actionSummary": {"wrapper": {
+        "otherParameterIdentifiers": [],
+        "summaryString": {"formatString": format_string, "parameterIdentifiers": used},
+    }}}
+
+
 def build_intent(entry, enums):
     name = entry["typeName"]
-    if "AppIntents.WidgetConfigurationIntent" not in entry["conformances"]:
-        raise Unsupported(f"{name}: only WidgetConfigurationIntent intents are supported")
+    widget = "AppIntents.WidgetConfigurationIntent" in entry["conformances"]
     result = next((a["substitutedTypeName"] for a in entry.get("associatedTypeAliases", [])
                    if a["typeAliasName"] == "PerformResult"), None)
-    if result != "Swift.Never":
-        raise Unsupported(f"{name}: intents with a perform() result are not supported")
+    # A widget configuration intent never runs; an intent's perform() may
+    # only return a plain result (no value, dialog or follow-up intent).
+    if result == "Swift.Never" and widget:
+        output_flags = 8
+    elif result == "some AppIntents.IntentResult" and not widget:
+        output_flags = 0
+    else:
+        raise Unsupported(f"{name}: perform() returning {result} is not supported")
+    for supported in entry["conformances"]:
+        if supported.startswith("AppIntents.") and supported not in (
+                "AppIntents.AppIntent", "AppIntents.WidgetConfigurationIntent",
+                "AppIntents.PersistentlyIdentifiable", "AppIntents._SupportsAppDependencies"):
+            raise Unsupported(f"{name}: {supported} is not supported")
     title = static_property(entry, "title")
     if title is None:
         raise Unsupported(f"{name}: no literal title")
     description = static_property(entry, "description")
+    open_app = static_property(entry, "openAppWhenRun")
+    if open_app is not None and open_app.get("valueKind") != "RawLiteral":
+        raise Unsupported(f"{name}.openAppWhenRun: expected a literal")
     parameters = [build_parameter(p, enums, name) for p in entry.get("properties", [])
                   if p["label"].startswith("_") and p["type"].startswith("AppIntents.IntentParameter<")]
-    protocol = [WIDGET_CONFIGURATION, {"empty": {}}]
-    return {
+    protocol = [WIDGET_CONFIGURATION, {"empty": {}}] if widget else []
+    action = {
         "assistantDefinedSchemaTraits": [],
         "assistantDefinedSchemas": [],
         "authenticationPolicy": 0,
@@ -219,24 +286,68 @@ def build_intent(entry, enums):
         "fullyQualifiedTypeName": name,
         "identifier": short_name(name),
         "isAuthPolExplicit": False,
-        "isDiscoverable": False,
+        "isDiscoverable": not widget,
         "mangledTypeName": entry["mangledTypeName"],
         "mangledTypeNameByBundleIdentifier": {},
         "mangledTypeNameByBundleIdentifierV2": {},
         "mangledTypeNameV2": entry["mangledTypeName"],
-        "openAppWhenRun": False,
-        "outputFlags": 8,
+        "openAppWhenRun": open_app is not None and open_app["value"] == "true",
+        "outputFlags": output_flags,
         "parameters": parameters,
         "presentationStyle": 0,
         "requiredCapabilities": [],
         "supportedModes": 1,
         "systemProtocolMetadata": protocol,
         "systemProtocolMetadataV2": protocol,
-        "systemProtocols": [WIDGET_CONFIGURATION],
+        "systemProtocols": [WIDGET_CONFIGURATION] if widget else [],
         "title": text(literal(title, f"{name}.title")),
         "typeSpecificMetadata": [],
         "visibilityMetadata": {"assistantOnly": False, "isDiscoverable": True},
     }
+    summary = action_summary(entry, parameters)
+    if summary:
+        action["actionConfiguration"] = summary
+    return action
+
+
+def build_shortcuts(entry, actions):
+    """autoShortcuts from an AppShortcutsProvider's literal appShortcuts:
+    AppShortcut(intent: SomeIntent(), phrases: [...], shortTitle:,
+    systemImageName:), with phrases that only interpolate the app name."""
+    name = entry["typeName"]
+    prop = static_property(entry, "appShortcuts")
+    if prop is None or prop.get("valueKind") != "Builder":
+        raise Unsupported(f"{name}: appShortcuts must be a literal list of AppShortcut(...)")
+    shortcuts = []
+    for member in prop["value"]["members"]:
+        element = member.get("element", {})
+        if member.get("kind") != "buildExpression" or element.get("valueKind") != "InitCall" \
+                or element["value"]["type"] != "AppIntents.AppShortcut":
+            raise Unsupported(f"{name}.appShortcuts: only AppShortcut(...) entries are supported")
+        args = {a["label"]: a for a in element["value"]["arguments"]}
+        intent = args.get("intent", {})
+        if intent.get("valueKind") != "InitCall" or intent["value"]["arguments"]:
+            raise Unsupported(f"{name}.appShortcuts: the intent must be created without arguments")
+        identifier = short_name(intent["value"]["type"])
+        if identifier not in actions:
+            raise Unsupported(f"{name}.appShortcuts: {identifier} is not an intent in this target")
+        if set(args) - {"intent", "phrases", "shortTitle", "systemImageName"}:
+            raise Unsupported(f"{name}.appShortcuts: arguments {sorted(set(args))} are not supported")
+
+        def app_name(segment):
+            if segment.get("valueKind") == "Enum" and segment["value"]["name"] == "applicationName":
+                return "applicationName"
+            raise Unsupported(f"{name}.appShortcuts: phrases may only interpolate .applicationName")
+
+        phrases = [text(interpolated(p, f"{name} phrase", app_name)[0]) for p in args["phrases"]["value"]]
+        shortcuts.append({
+            "actionIdentifier": identifier,
+            "availabilityAnnotations": availability(entry),
+            "phraseTemplates": phrases,
+            "shortTitle": text(literal(args["shortTitle"], f"{name} shortTitle")),
+            "systemImageName": literal(args["systemImageName"], f"{name} systemImageName"),
+        })
+    return shortcuts
 
 
 def generate(entries):
@@ -249,15 +360,18 @@ def generate(entries):
             actions[action["identifier"]] = action
     enums = [build_enum(e) for e in enum_entries.values()]
     for other in entries:
-        for protocol in ("AppIntents.AppEntity", "AppIntents.AppShortcutsProvider", "AppIntents.EntityQuery"):
+        for protocol in ("AppIntents.AppEntity", "AppIntents.EntityQuery"):
             if protocol in other["conformances"]:
                 raise Unsupported(f"{other['typeName']}: {protocol} is not supported")
-    return {
+    providers = [e for e in entries if "AppIntents.AppShortcutsProvider" in e["conformances"]]
+    if len(providers) > 1:
+        raise Unsupported("more than one AppShortcutsProvider")
+    metadata = {
         "actions": actions,
         "assistantEntities": [],
         "assistantIntentNegativePhrases": [],
         "assistantIntents": [],
-        "autoShortcuts": [],
+        "autoShortcuts": build_shortcuts(providers[0], actions) if providers else [],
         "entities": {},
         "enums": enums,
         "generator": {"name": "xcode-tools", "version": TOOLS_VERSION},
@@ -266,6 +380,9 @@ def generate(entries):
         "shortcutTileColor": 14,
         "version": 1,
     }
+    if providers:
+        metadata["autoShortcutProviderMangledName"] = providers[0]["mangledTypeName"]
+    return metadata
 
 
 def write(out, metadata):
@@ -295,20 +412,22 @@ def normalized(metadata):
 
 
 def self_test():
-    fixtures = Path(__file__).resolve().parent.parent / "Tests/Fixtures/AppIntents"
-    expected = json.loads((fixtures / "Metadata.appintents/extract.actionsdata").read_text())
-    actual = generate(load([fixtures / "input.swiftconstvalues"]))
-    if normalized(actual) != normalized(expected):
-        a = json.dumps(normalized(expected), sort_keys=True, indent=1).splitlines()
-        b = json.dumps(normalized(actual), sort_keys=True, indent=1).splitlines()
-        import difflib
-        print("\n".join(list(difflib.unified_diff(a, b, "apple", "generated", lineterm=""))[:60]))
-        sys.exit("appintents-metadata: output differs from Apple's for the fixture")
-    if (fixtures / "Metadata.appintents/version.json").read_text().strip() != \
-            '{\n  "version" : "3.0",\n  "toolsVersion" : "%s"\n}' % TOOLS_VERSION:
-        sys.exit("appintents-metadata: version.json differs from Apple's for the fixture")
-    print(f"appintents-metadata: matches Apple's output for {len(actual['actions'])} intents "
-          f"and {len(actual['enums'])} enums")
+    root = Path(__file__).resolve().parent.parent / "Tests/Fixtures/AppIntents"
+    for fixtures in sorted(p for p in root.iterdir() if p.is_dir()):
+        expected = json.loads((fixtures / "Metadata.appintents/extract.actionsdata").read_text())
+        actual = generate(load([fixtures / "input.swiftconstvalues"]))
+        if normalized(actual) != normalized(expected):
+            a = json.dumps(normalized(expected), sort_keys=True, indent=1).splitlines()
+            b = json.dumps(normalized(actual), sort_keys=True, indent=1).splitlines()
+            import difflib
+            print("\n".join(list(difflib.unified_diff(a, b, "apple", "generated", lineterm=""))[:60]))
+            sys.exit(f"appintents-metadata: output differs from Apple's for {fixtures.name}")
+        if (fixtures / "Metadata.appintents/version.json").read_text().strip() != \
+                '{\n  "version" : "3.0",\n  "toolsVersion" : "%s"\n}' % TOOLS_VERSION:
+            sys.exit(f"appintents-metadata: version.json differs from Apple's for {fixtures.name}")
+        print(f"appintents-metadata: {fixtures.name} matches Apple's output "
+              f"({len(actual['actions'])} intents, {len(actual['enums'])} enums, "
+              f"{len(actual['autoShortcuts'])} app shortcuts)")
 
 
 def main():

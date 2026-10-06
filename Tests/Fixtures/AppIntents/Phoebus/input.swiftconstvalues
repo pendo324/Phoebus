@@ -1,0 +1,1047 @@
+[
+ {
+  "typeName": "Phoebus.OpenSubredditIntent",
+  "mangledTypeName": "7Phoebus19OpenSubredditIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 7,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus19OpenSubredditIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus19OpenSubredditIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_subredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 12,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 8,
+    "valueKind": "RawLiteral",
+    "value": "Open Subreddit"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 9,
+    "valueKind": "RawLiteral",
+    "value": "Opens a subreddit in Phoebus."
+   },
+   {
+    "label": "subredditName",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 12,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 11,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$subredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 12,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 20,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenSubredditIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenSubredditIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open r/"
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$subredditName",
+           "rootType": "Phoebus.OpenSubredditIntent",
+           "components": [
+            {
+             "label": "$subredditName",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenHomeIntent",
+  "mangledTypeName": "7Phoebus14OpenHomeIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 31,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus14OpenHomeIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus08OpenHomeC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 32,
+    "valueKind": "RawLiteral",
+    "value": "Open Home Feed"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 33,
+    "valueKind": "RawLiteral",
+    "value": "Opens your Phoebus home feed."
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenUserIntent",
+  "mangledTypeName": "7Phoebus14OpenUserIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 44,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus14OpenUserIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus14OpenUserIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_username",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 49,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Username"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 45,
+    "valueKind": "RawLiteral",
+    "value": "Open User Profile"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 46,
+    "valueKind": "RawLiteral",
+    "value": "Opens a Reddit user's profile in Phoebus."
+   },
+   {
+    "label": "username",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 49,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Username"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 48,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Username"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$username",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 49,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 57,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenUserIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenUserIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open u/"
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$username",
+           "rootType": "Phoebus.OpenUserIntent",
+           "components": [
+            {
+             "label": "$username",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenMultiredditIntent",
+  "mangledTypeName": "7Phoebus21OpenMultiredditIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 69,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus21OpenMultiredditIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus21OpenMultiredditIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_multiredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 74,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Multireddit Name"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 70,
+    "valueKind": "RawLiteral",
+    "value": "Open Multireddit"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 71,
+    "valueKind": "RawLiteral",
+    "value": "Opens a multireddit in Phoebus."
+   },
+   {
+    "label": "multiredditName",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 74,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Multireddit Name"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 73,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Multireddit Name"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$multiredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 74,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 82,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenMultiredditIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenMultiredditIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open multireddit "
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$multiredditName",
+           "rootType": "Phoebus.OpenMultiredditIntent",
+           "components": [
+            {
+             "label": "$multiredditName",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusShortcuts",
+  "mangledTypeName": "7Phoebus0A9ShortcutsV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 116,
+  "conformances": [
+   "AppIntents.AppShortcutsProvider",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppShortcutsProvider",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [],
+  "properties": [
+   {
+    "label": "appShortcuts",
+    "type": "Swift.Array<AppIntents.AppShortcut>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 117,
+    "valueKind": "Builder",
+    "value": {
+     "type": "AppIntents.AppShortcutsBuilder",
+     "members": [
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenHomeIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenHomeIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenHomeIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open my "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": " feed"
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Home Feed"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "house"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenSubredditIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenSubredditIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenSubredditIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open a subreddit in "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": ""
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Subreddit"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "text.bubble"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenMultiredditIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenMultiredditIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenMultiredditIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open a multireddit in "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": ""
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Multireddit"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "rectangle.stack"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   }
+  ]
+ }
+]

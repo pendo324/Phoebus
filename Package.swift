@@ -25,6 +25,23 @@ let sdkVersion: [LinkerSetting] = [.unsafeFlags(
 // iOS 18+. Weak-linking it lets the same binary launch on iOS 17.
 let weakSwiftUICore: [LinkerSetting] = [.unsafeFlags(["-Xlinker", "-weak_framework", "-Xlinker", "SwiftUICore", "-Xlinker", "-client_name", "-Xlinker", "SwiftUI", "-Xlinker", "-flat_namespace"])] + sdkVersion
 
+// Emit `*.swiftconstvalues` describing every AppIntent / AppEnum /
+// AppShortcutsProvider in a target. scripts/appintents-metadata.py (in
+// place of Xcode's `appintentsmetadataprocessor`) builds
+// `Metadata.appintents` from them: without it WidgetKit cannot construct a
+// configurable widget's default configuration (CHSErrorDomain 1103), and
+// Shortcuts and Siri do not see the app's intents. Xcode passes these flags
+// implicitly; xtool does not.
+//
+// Both flags are required: `-emit-const-values` alone silently produces
+// nothing, since the compiler only gathers types conforming to the listed
+// protocols.
+let appIntentsConstValues: [SwiftSetting] = [.unsafeFlags([
+    "-emit-const-values",
+    "-Xfrontend", "-const-gather-protocols-file",
+    "-Xfrontend", "\(packageRoot)/Config/AppIntentsProtocols.json",
+])]
+
 let package = Package(
     name: "Phoebus",
     platforms: [
@@ -93,30 +110,13 @@ let package = Package(
         .target(
             name: "Phoebus",
             dependencies: ["PhoebusCore", "PhoebusUI"],
+            swiftSettings: appIntentsConstValues,
             linkerSettings: weakSwiftUICore
         ),
         .target(
             name: "PhoebusWidget",
             dependencies: ["PhoebusCore"],
-            // Emit `*.swiftconstvalues` describing every AppIntent /
-            // AppEnum in this target. scripts/appintents-metadata.py
-            // (in place of Xcode's `appintentsmetadataprocessor`)
-            // builds `Metadata.appintents` from them, without which
-            // WidgetKit cannot construct a default configuration and
-            // every `AppIntentConfiguration` widget fails with
-            // CHSErrorDomain 1103. Xcode passes these flags
-            // implicitly; xtool does not.
-            //
-            // Both flags are required: `-emit-const-values` alone
-            // silently produces nothing, since the compiler only
-            // gathers types conforming to the listed protocols.
-            swiftSettings: [
-                .unsafeFlags([
-                    "-emit-const-values",
-                    "-Xfrontend", "-const-gather-protocols-file",
-                    "-Xfrontend", "\(packageRoot)/Config/PhoebusWidget/AppIntentsProtocols.json",
-                ])
-            ],
+            swiftSettings: appIntentsConstValues,
             linkerSettings: weakSwiftUICore
         ),
         .target(

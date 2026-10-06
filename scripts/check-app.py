@@ -14,8 +14,8 @@ Checked:
   and no Frameworks/ of their own (the libraries belong to the app);
 - the version strings are numeric;
 - every icon file Info.plist declares is in the bundle;
-- the widget extension carries Metadata.appintents (a warning only;
-  scripts/add-appintents-metadata.sh adds it after the build).
+- the app and the widget extension carry Metadata.appintents (a warning
+  only; scripts/add-appintents-metadata.sh adds them after the build).
 
 Prints one line per failure and exits 1 if there are any.
 """
@@ -116,6 +116,9 @@ def main():
     app_id = info.get("CFBundleIdentifier", "")
     binaries = []
     check_bundle(app, info, binaries)
+
+    if not (app / "Metadata.appintents").exists():
+        print(f"warning: {app.name}: no Metadata.appintents, Shortcuts and Siri won't see its intents")
 
     for key in ("CFBundleShortVersionString", "CFBundleVersion"):
         if not re.fullmatch(r"\d+(\.\d+){0,2}", str(info.get(key, ""))):

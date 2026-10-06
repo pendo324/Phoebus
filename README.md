@@ -9,6 +9,8 @@ native iOS Reddit client, built entirely on Linux with
 It is a personal, non-commercial project. It is not affiliated with or
 endorsed by Christian Selig, Apollo or Reddit. See [Disclaimer](#disclaimer).
 
+https://github.com/user-attachments/assets/0af89223-80c8-4dab-8c52-c2023812e959
+
 ## Installing
 
 Phoebus is not on the App Store. Install it with AltStore or SideStore, or

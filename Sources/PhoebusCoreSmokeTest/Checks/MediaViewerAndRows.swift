@@ -676,7 +676,8 @@ import PhoebusCore
         let dev = P.deviceBody(token: "ab", barkEndpoint: URL(string: "https://api.day.app/K")!)
         check("device body uses the backend's field names (APNSToken, transport=bark)",
               dev["APNSToken"] as? String == "ab" && dev["transport"] as? String == "bark"
-              && dev["transport_endpoint"] as? String == "https://api.day.app/K")
+              && dev["transport_endpoint"] as? String == "https://api.day.app/K"
+              && dev["url_scheme"] as? String == "phoebus")
         check("the chosen sound is pinned as ?sound=",
               P.effectiveBarkURL(URL(string: "https://api.day.app/K")!, soundID: "diabolicalDoorbell").absoluteString
                   == "https://api.day.app/K?sound=diabolicalDoorbell")
@@ -694,6 +695,47 @@ import PhoebusCore
                   == "phoebus://reddit.com/r/a/comments/b/_/c/?context=1")
         let target = RedditURLTarget.parseAppScheme(URL(string: "phoebus://reddit.com/r/a/comments/b/_/c/?context=1")!)
         check("a comment click URL opens that comment", target == .comment(subreddit: "a", postID: "b", commentID: "c"))
+
+        // APNs when the signing has push, Bark otherwise.
+        let a = UserDefaults(suiteName: "smoke.push.apns")!
+        a.removePersistentDomain(forName: "smoke.push.apns")
+        let noBark = NotificationBackendSettings(backendURL: "http://h:4000", registrationToken: nil, barkEnabled: false, barkPushURL: nil)
+        check("without an APNs token or Bark there is nothing to register",
+              PushDeviceIdentity.current(settings: noBark, defaults: a) == nil && !P.deliveryActive(noBark, defaults: a))
+        check("without an APNs token, Bark's synthetic token registers",
+              PushDeviceIdentity.current(settings: bark, defaults: a)?.transport == .bark && P.deliveryActive(bark, defaults: a))
+        check("a stored APNs token is new the first time, not the second",
+              PushDeviceIdentity.storeAPNSToken(Data([0xab, 0x01]), sandbox: true, defaults: a)
+              && !PushDeviceIdentity.storeAPNSToken(Data([0xab, 0x01]), sandbox: true, defaults: a))
+        let apns = PushDeviceIdentity.current(settings: noBark, defaults: a)
+        check("without Bark an APNs token registers, hex-encoded",
+              apns?.transport == .apns && apns?.token == "ab01" && PushDeviceIdentity.apnsSandbox(defaults: a)
+              && P.deliveryActive(noBark, defaults: a) && PushDeviceIdentity.usesAPNS(settings: noBark, defaults: a))
+        check("a Bark URL wins over an APNs token",
+              PushDeviceIdentity.current(settings: bark, defaults: a)?.transport == .bark
+              && !PushDeviceIdentity.usesAPNS(settings: bark, defaults: a))
+        PushDeviceIdentity.clearAPNSToken(defaults: a)
+        check("clearing the APNs token leaves nothing without Bark",
+              PushDeviceIdentity.current(settings: noBark, defaults: a) == nil)
+        let apnsBody = P.apnsDeviceBody(token: "ab01", sandbox: true)
+        check("APNs device body: transport apns with the sandbox flag",
+              apnsBody["transport"] as? String == "apns" && apnsBody["Sandbox"] as? Bool == true
+              && apnsBody["APNSToken"] as? String == "ab01")
+        let profile = Data("garbage<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>Entitlements</key><dict><key>aps-environment</key><string>development</string></dict></dict></plist>trailer".utf8)
+        check("aps-environment is read from a provisioning profile",
+              PushDeviceIdentity.apsEnvironment(provisioningProfile: profile) == "development"
+              && PushDeviceIdentity.apsEnvironment(provisioningProfile: Data("no plist".utf8)) == nil)
+
+        // Taps on APNs notifications, as the backend's Bark click URLs.
+        check("a reply push opens its comment in context",
+              P.appURL(fromPushPayload: ["type": "comment", "subreddit": "swift", "post_id": "abc", "comment_id": "def"])?.absoluteString
+                  == "phoebus://reddit.com/r/swift/comments/abc/_/def/?context=1")
+        check("a watcher push opens the post",
+              P.appURL(fromPushPayload: ["subreddit": "swift", "post_id": "abc", "post_title": "t"])?.absoluteString
+                  == "phoebus://reddit.com/r/swift/comments/abc")
+        check("a private message push opens the inbox",
+              P.appURL(fromPushPayload: ["type": "private-message", "account_id": "x"])?.absoluteString == "phoebus://reborn/inbox")
+        check("an unrelated notification opens nothing", P.appURL(fromPushPayload: ["foo": "bar"]) == nil)
     }
 
     // Watcher composer + user watchers.

@@ -23,7 +23,7 @@ public struct NotificationsSettingsScreen: View {
     /// A registered backend with Bark delivery.
     private var backendLive: Bool {
         let backend = notificationBackendSettings
-        return PushNotificationClient.barkModeActive(backend) && PushRegistrationState.isRegistered(backend)
+        return PushNotificationClient.deliveryActive(backend) && PushRegistrationState.isRegistered(backend)
     }
 
     /// With a live backend the toggle shows the server's flag, which defaults to on
@@ -85,7 +85,7 @@ public struct NotificationsSettingsScreen: View {
                     }
             } footer: {
                 Text(backendLive
-                     ? "Delivered by your notification backend through Bark: replies, mentions and messages for this account."
+                     ? (PushDeviceIdentity.usesAPNS(settings: notificationBackendSettings) ? "Delivered by your notification backend as push notifications: replies, mentions and messages for this account." : "Delivered by your notification backend through Bark: replies, mentions and messages for this account.")
                      : "Apollo delivered these through a push server that no longer exists. Set up a backend under Settings › Apollo Reborn › Notification Backend and register this device to get them.")
                     .apolloSectionFooter()
             }

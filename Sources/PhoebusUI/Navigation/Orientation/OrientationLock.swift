@@ -98,6 +98,7 @@ public final class ApolloAppDelegate: NSObject, UIApplicationDelegate {
             }
         }
         MainActor.assumeIsolated {
+            PushNotificationCoordinator.shared.applicationDidFinishLaunching(application)
             application.shortcutItems = QuickAction.allCases.map {
                 UIApplicationShortcutItem(
                     type: QuickAction.typePrefix + $0.rawValue,
@@ -107,6 +108,20 @@ public final class ApolloAppDelegate: NSObject, UIApplicationDelegate {
             }
         }
         return true
+    }
+
+    public func application(_ application: UIApplication,
+                            didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        MainActor.assumeIsolated {
+            PushNotificationCoordinator.shared.didRegisterForRemoteNotifications(deviceToken: deviceToken)
+        }
+    }
+
+    public func application(_ application: UIApplication,
+                            didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        MainActor.assumeIsolated {
+            PushNotificationCoordinator.shared.didFailToRegisterForRemoteNotifications(error: error)
+        }
     }
 
     public func application(

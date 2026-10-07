@@ -14,7 +14,7 @@ import UIKit
 ///    free-Apple-ID sideload has no APNs entitlement) and every API-key account
 ///    with the backend, which polls Reddit and pushes inbox replies, mentions,
 ///    messages and watcher hits.
-///  - "Send Test from Backend" asks the backend to push its own test through Bark,
+///  - "Send Test from Backend" asks the backend to push its own test (APNs or Bark),
 ///    proving the whole chain.
 ///  - "Unregister Device" deletes this device from the backend.
 public struct NotificationBackendSettingsScreen: View {
@@ -142,6 +142,12 @@ public struct NotificationBackendSettingsScreen: View {
         alertMessage = await PushNotificationClient.sendBark(PushNotificationClient.testMessage(sound: sound), to: url).message
     }
 
+    /// How the backend reaches this device: native push when the signing
+    /// has it, else Bark.
+    private var deliveryDescription: String {
+        PushDeviceIdentity.usesAPNS(settings: settings) ? "as push notifications" : "through Bark"
+    }
+
     private func register() async {
         guard let accountManager else { alertMessage = "No accounts to register."; return }
         let registrable = await accountManager.pushRegistrationAccounts()
@@ -159,7 +165,7 @@ public struct NotificationBackendSettingsScreen: View {
                 redirectURI: RedditOAuthConfig.redirectURI,
                 userAgent: api.userAgent.flatMap { $0.isEmpty ? nil : $0 } ?? RedditAPIClient.oauthUserAgent)
             PushRegistrationState.markRegistered(settings)
-            alertMessage = "Registered this device and \(count) account\(count == 1 ? "" : "s"). New inbox activity will arrive through Bark."
+            alertMessage = "Registered this device and \(count) account\(count == 1 ? "" : "s"). New inbox activity will arrive \(deliveryDescription)."
         } catch {
             alertMessage = error.localizedDescription
         }
@@ -168,7 +174,7 @@ public struct NotificationBackendSettingsScreen: View {
     private func backendTest() async {
         do {
             try await PushNotificationClient.sendBackendTest(settings: settings)
-            alertMessage = "The backend sent a test notification. It should arrive through Bark in a few seconds."
+            alertMessage = "The backend sent a test notification. It should arrive \(deliveryDescription) in a few seconds."
         } catch {
             alertMessage = error.localizedDescription
         }

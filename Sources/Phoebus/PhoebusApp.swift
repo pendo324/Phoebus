@@ -289,6 +289,10 @@ struct MainTabView: View {
                 let accounts = accountManager.accounts
                 let username = accountManager.activeIndex.flatMap { accounts.indices.contains($0) ? accounts[$0].username : nil }
                 InboxBadge.shared.start(repository: repository, username: username)
+                PushNotificationCoordinator.shared.registrationAccounts = { [weak accountManager] in
+                    await accountManager?.pushRegistrationAccounts() ?? []
+                }
+                await PushNotificationCoordinator.shared.requestAuthorizationIfNeeded()
             } else {
                 InboxBadge.shared.stop()
             }

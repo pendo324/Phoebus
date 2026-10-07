@@ -59,10 +59,14 @@ Apollo or Reborn, add an entry here.
   Reddit client ID; the build default is a placeholder. The key is
   entered under Custom API Settings and applies app-wide, so there is no
   per-account key editor.
-- **Push notifications go through Bark or a self-hosted notification
-  backend.** Phoebus has no APNs push: a build signed without a paid
-  developer account has no push entitlement, so the backend delivers
-  through Bark.
+- **Push notifications go through a self-hosted notification backend.**
+  There is no central push server: the backend you run delivers through
+  the Bark app when a Bark push URL is set, and otherwise over APNs when
+  the build is signed with push. Bark wins because a signing can grant
+  push while the backend has no APNs key for it.
+  Bark can only badge its own icon, so without APNs the app icon's badge
+  is kept by the app itself, while open and from background refreshes iOS
+  schedules, and can lag behind new messages.
 - **Remind Me uses local notifications.** Reminders are scheduled on the
   device through the system notification center, with no server-side
   reminder service, so they also work offline.

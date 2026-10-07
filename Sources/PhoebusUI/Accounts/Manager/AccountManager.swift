@@ -193,6 +193,14 @@ public final class AccountManager: ObservableObject {
         }
     }
 
+    /// A repository for the active account, for work outside the UI (the
+    /// background inbox refresh) when no `AccountManager` exists yet.
+    public static func makeActiveRepository() -> RedditRepository? {
+        let store = AccountStore()
+        guard let account = store.activeAccount else { return nil }
+        return RedditRepository(client: RedditAPIClient(auth: buildAuthClient(store: store, account: account)))
+    }
+
     private static func buildAuthClient(store: AccountStore, account: StoredAccount?) -> RedditAuthClient {
         guard let account else {
             // No accounts at all: a client with no persisted credential, as on a

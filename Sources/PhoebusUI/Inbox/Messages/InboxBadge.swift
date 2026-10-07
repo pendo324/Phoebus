@@ -92,6 +92,9 @@ public final class InboxBadge: ObservableObject {
 
     private func apply(_ count: Int) {
         unreadCount = count
+        #if canImport(UIKit)
+        PushNotificationCoordinator.shared.setAppIconBadge(count, chatUnread: chatUnread)
+        #endif
         // Also set on the UIKit item itself, as Reborn does: SwiftUI's
         // `Tab.badge` is not reliably carried to the system bar.
         #if canImport(UIKit)

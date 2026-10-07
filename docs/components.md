@@ -270,7 +270,7 @@ flowchart LR
 | Modmail | UI `ModmailListScreen`; Core `ModmailWebService`, `ModmailConversation`, `ModmailWebConversation` | Modmail via web session | See `docs/modmail-web-session.md` |
 | Mod tools | UI `ModQueueScreen`, `ModeratorLogScreen`, `ModeratorUsersScreen`, `ModeratorInviteScreen`, `AutoModeratorScreen`, `SubredditTrafficScreen`; Core `ModQueueItem`, `ModeratorLogEntry`, `ModeratorListedUser`, `ModeratorUserList`, `RedditRemovalReason`, `RemovalNotifyKind`, `SubredditTraffic` | Queue (approve/remove/spam/ignore reports), removal reasons with Apollo's "Notify user via…" step (Public Sticky, Reborn's from-Subreddit #515, Mod Mail from Subreddit/You, private mod note), log, banned/muted users, invites, AutoMod config, traffic | Comment-row mod actions in `CommentRow` remove without the reason flow |
 | Profile | UI `UserProfileScreen`, `ProfileListingView`, `HiddenContentScreen`; Core `ProfileLayoutSettings`, `IdentityHeaderLayout`, `ProfileBannerURL`, `RedditTrophy`, `BadgeBook`, `SavedCategory`, `SocialLinkService`, `HiddenContentFinder` | Immersive/Compact/Native layouts, banner viewer, badge book, saved categories, social links, Hidden & Deleted (#1137), "..." on own profile | |
-| Notifications | UI `NotificationsSettingsScreen`, `NotificationBackendSettingsScreen`, `WatcherComposerScreen`; Core `PushNotificationClient`, `PushRegistrationState`, `NotificationBackendSettings`, `NotificationSettings`, `SubredditWatchStore`, `TrendingSubredditTitleParser` | Bark direct and self-hosted apollo-backend; watchers | No APNs (sideload) |
+| Notifications | UI `NotificationsSettingsScreen`, `NotificationBackendSettingsScreen`, `WatcherComposerScreen`, `PushNotificationCoordinator`; Core `PushNotificationClient`, `PushDeviceIdentity`, `PushRegistrationState`, `NotificationBackendSettings`, `NotificationSettings`, `SubredditWatchStore`, `TrendingSubredditTitleParser` | Self-hosted apollo-backend over APNs (when the signing has push) or Bark; watchers; the app icon badge | `PushNotificationCoordinator` sets the icon badge in the foreground, from a background refresh (`BGAppRefreshTask`, not available in the simulator), and APNs pushes carry it themselves; notification taps open the thread or inbox |
 
 ## 6. Settings
 
@@ -511,7 +511,7 @@ short:
 - The Reddit client ID is your own; Universal OAuth Sign-In is a Reborn
   feature.
 - Remind Me uses local notifications, not Apollo's push.
-- Push is Bark or a self-hosted apollo-backend; no APNs.
+- Push goes through a self-hosted apollo-backend: Bark when a Bark URL is set, else APNs when the signing has push.
 - Safari extension mode is set in the extension popup, not in Settings.
 - One app-wide API key (no per-account editor); Memechine Learning is
   toggle-only.

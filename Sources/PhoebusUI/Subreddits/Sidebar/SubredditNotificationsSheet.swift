@@ -28,7 +28,7 @@ public struct SubredditNotificationsSheet: View {
 
     /// A registered backend with Bark delivery (see `PushNotificationClient`).
     private var isConfigured: Bool {
-        PushNotificationClient.barkModeActive(settings) && PushRegistrationState.isRegistered(settings)
+        PushNotificationClient.deliveryActive(settings) && PushRegistrationState.isRegistered(settings)
     }
 
     private var isWatching: Bool {

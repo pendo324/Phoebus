@@ -6,20 +6,21 @@ import FoundationNetworking
 import Security
 #endif
 
-/// Push notifications through Apollo-Reborn's two delivery paths:
+/// Push notifications through Apollo-Reborn's self-hosted backend, which
+/// polls Reddit for each registered account and pushes inbox replies,
+/// mentions, private messages and watcher hits. It delivers one of two
+/// ways (see `PushDeviceIdentity`):
 ///
-///  - **Self-hosted backend.** The server polls Reddit for each
-///    registered account and pushes inbox replies, mentions, private
-///    messages and watcher hits. This build has no `aps-environment`
-///    entitlement, so the backend always delivers through Bark.
+///  - **APNs**, straight to this app, when the build is signed with push
+///    (`aps-environment`). The push carries the unread count as the app
+///    icon's badge.
 ///  - **Bark.** The free "Bark - Custom Notifications" App Store app
 ///    owns a real push entitlement; its push URL
 ///    (`https://api.day.app/<key>` or a self-hosted `bark-server`)
 ///    accepts a JSON POST and shows the notification. Tapping it opens
-///    `url`, which deep-links back here.
-///
-/// The device identity on the backend is a synthetic 64-hex token,
-/// generated once with `SecRandomCopyBytes` and kept.
+///    `url`, which deep-links back here. The device identity on the
+///    backend is then a synthetic 64-hex token, generated once with
+///    `SecRandomCopyBytes` and kept.
 public enum PushNotificationClient {
     // MARK: Configuration parsing
 
@@ -41,6 +42,13 @@ public enum PushNotificationClient {
     /// Bark mode: Bark configured AND a backend.
     public static func barkModeActive(_ settings: NotificationBackendSettings) -> Bool {
         barkURL(settings) != nil && backendURL(settings) != nil
+    }
+
+    /// The backend can deliver to this device: a backend, and either an
+    /// APNs token or Bark.
+    public static func deliveryActive(_ settings: NotificationBackendSettings,
+                                      defaults: UserDefaults = .standard) -> Bool {
+        backendURL(settings) != nil && PushDeviceIdentity.current(settings: settings, defaults: defaults) != nil
     }
 
     // MARK: Synthetic device token
@@ -67,8 +75,8 @@ public enum PushNotificationClient {
 
     // MARK: Bark payloads
 
-    /// This app's deep-link scheme. The backend's own `apollo://`
-    /// click URLs are rewritten to it by `appClickURL(forBackend:)`.
+    /// This app's deep-link scheme. Registration sends it as `url_scheme`
+    /// so the backend's Bark tap links open Phoebus, not Apollo.
     public static let scheme = "phoebus"
 
     /// Bark's JSON body.
@@ -169,8 +177,16 @@ public enum PushNotificationClient {
     /// token/sandbox fields have no json tags (Go's default names) and
     /// whose transport fields are snake_case. Headers carry the
     /// transport too (`X-Apollo-Transport`), which the backend prefers.
+    /// `url_scheme` makes Bark tap links use `phoebus://`; backends that
+    /// predate it ignore the field and link to `apollo://`.
     public static func deviceBody(token: String, barkEndpoint: URL) -> [String: Any] {
-        ["APNSToken": token, "Sandbox": false, "transport": "bark", "transport_endpoint": barkEndpoint.absoluteString]
+        ["APNSToken": token, "Sandbox": false, "transport": "bark", "transport_endpoint": barkEndpoint.absoluteString,
+         "url_scheme": scheme]
+    }
+
+    /// `POST /v1/device` body for an APNs device.
+    public static func apnsDeviceBody(token: String, sandbox: Bool) -> [String: Any] {
+        ["APNSToken": token, "Sandbox": sandbox, "transport": "apns", "transport_endpoint": "", "url_scheme": scheme]
     }
 
     /// `POST /v1/device/{token}/accounts` item: the backend refreshes the
@@ -211,23 +227,18 @@ public enum PushNotificationClient {
         return data
     }
 
-    /// Registers this device (Bark transport) and every OAuth account.
-    /// Web-session (API-key-free) accounts are skipped: the backend
-    /// needs a refresh token to poll Reddit on its own.
+    /// Registers this device (APNs or Bark, see `PushDeviceIdentity`) and
+    /// every OAuth account. Web-session (API-key-free) accounts are
+    /// skipped: the backend needs a refresh token to poll Reddit on its own.
     @discardableResult
     public static func register(settings: NotificationBackendSettings, accounts: [Account], soundID: String?,
                                 clientID: String, clientSecret: String, redirectURI: String, userAgent: String,
                                 session: URLSession = .shared) async throws -> Int {
         guard let base = backendURL(settings) else { throw BackendError(status: 0, body: "Enter a Backend URL first.") }
-        guard let bark = barkURL(settings) else {
+        guard PushDeviceIdentity.current(settings: settings) != nil else {
             throw BackendError(status: 0, body: "This build can't receive Apple push notifications, so it needs Bark Delivery turned on with a push URL.")
         }
-        let token = syntheticTokenHex()
-        let endpoint = effectiveBarkURL(bark, soundID: soundID)
-        _ = try await send("POST", base, "v1/device", json: deviceBody(token: token, barkEndpoint: endpoint),
-                           token: settings.registrationToken,
-                           headers: ["X-Apollo-Transport": "bark", "X-Apollo-Transport-Endpoint": endpoint.absoluteString],
-                           session: session)
+        let token = try await registerDevice(base: base, settings: settings, soundID: soundID, session: session)
         let items = accounts.map {
             accountBody(username: $0.username, accessToken: $0.accessToken, refreshToken: $0.refreshToken,
                         clientID: clientID, clientSecret: clientSecret, redirectURI: redirectURI, userAgent: userAgent)
@@ -239,31 +250,65 @@ public enum PushNotificationClient {
         return items.count
     }
 
-    /// Re-registers only the device row with the current Bark endpoint and
-    /// sound, flipping it in place, for a changed sound or push URL. The
-    /// accounts already registered stay as they are.
+    /// `POST /v1/device` for this device's current identity; returns its token.
+    static func registerDevice(base: URL, settings: NotificationBackendSettings, soundID: String?,
+                               session: URLSession) async throws -> String {
+        guard let identity = PushDeviceIdentity.current(settings: settings) else {
+            throw BackendError(status: 0, body: "This build can't receive Apple push notifications, so it needs Bark Delivery turned on with a push URL.")
+        }
+        switch identity.transport {
+        case .apns:
+            _ = try await send("POST", base, "v1/device",
+                               json: apnsDeviceBody(token: identity.token, sandbox: PushDeviceIdentity.apnsSandbox()),
+                               token: settings.registrationToken, headers: ["X-Apollo-Transport": "apns"],
+                               session: session)
+        case .bark:
+            guard let bark = barkURL(settings) else { return identity.token }
+            let endpoint = effectiveBarkURL(bark, soundID: soundID)
+            _ = try await send("POST", base, "v1/device", json: deviceBody(token: identity.token, barkEndpoint: endpoint),
+                               token: settings.registrationToken,
+                               headers: ["X-Apollo-Transport": "bark", "X-Apollo-Transport-Endpoint": endpoint.absoluteString],
+                               session: session)
+        }
+        return identity.token
+    }
+
+    /// Re-registers only the device row, flipping it in place, for a
+    /// changed sound, push URL or APNs token. The accounts already
+    /// registered stay as they are.
     public static func syncDevice(settings: NotificationBackendSettings, soundID: String?,
                                   session: URLSession = .shared) async throws {
-        guard let base = backendURL(settings), let bark = barkURL(settings) else { return }
-        let token = syntheticTokenHex()
-        let endpoint = effectiveBarkURL(bark, soundID: soundID)
-        _ = try await send("POST", base, "v1/device", json: deviceBody(token: token, barkEndpoint: endpoint),
-                           token: settings.registrationToken,
-                           headers: ["X-Apollo-Transport": "bark", "X-Apollo-Transport-Endpoint": endpoint.absoluteString],
-                           session: session)
+        guard let base = backendURL(settings), PushDeviceIdentity.current(settings: settings) != nil else { return }
+        _ = try await registerDevice(base: base, settings: settings, soundID: soundID, session: session)
+    }
+
+    /// Moves a registration from the synthetic Bark token to a newly
+    /// arrived APNs token: registers the APNs device, re-registers the
+    /// accounts under it, and deletes the Bark device row, which would
+    /// otherwise deliver every notification a second time.
+    public static func moveToAPNS(settings: NotificationBackendSettings, accounts: [Account], soundID: String?,
+                                  clientID: String, clientSecret: String, redirectURI: String, userAgent: String,
+                                  session: URLSession = .shared) async throws {
+        guard let base = backendURL(settings), PushDeviceIdentity.usesAPNS(settings: settings) else { return }
+        _ = try await register(settings: settings, accounts: accounts, soundID: soundID, clientID: clientID,
+                               clientSecret: clientSecret, redirectURI: redirectURI, userAgent: userAgent,
+                               session: session)
+        _ = try? await send("DELETE", base, "v1/device/\(syntheticTokenHex())", json: nil, token: nil, session: session)
     }
 
     /// `DELETE /v1/device/{token}`: stop all pushes to this device.
     public static func unregister(settings: NotificationBackendSettings, session: URLSession = .shared) async throws {
         guard let base = backendURL(settings) else { return }
-        _ = try await send("DELETE", base, "v1/device/\(syntheticTokenHex())", json: nil, token: nil, session: session)
+        _ = try await send("DELETE", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))",
+                           json: nil, token: nil, session: session)
     }
 
     /// `POST /v1/device/{token}/test`: the backend sends its own
-    /// "📣 Hello, is this thing on?" through Bark, proving the whole path.
+    /// "📣 Hello, is this thing on?" through APNs or Bark, proving the
+    /// whole path.
     public static func sendBackendTest(settings: NotificationBackendSettings, session: URLSession = .shared) async throws {
         guard let base = backendURL(settings) else { throw BackendError(status: 0, body: "Enter a Backend URL first.") }
-        _ = try await send("POST", base, "v1/device/\(syntheticTokenHex())/test", json: nil, token: nil, session: session)
+        _ = try await send("POST", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/test", json: nil, token: nil, session: session)
     }
 
     /// `PATCH /v1/device/{token}/account/{redditID}/notifications`.
@@ -271,7 +316,7 @@ public enum PushNotificationClient {
                                                inbox: Bool, watchers: Bool, globalMute: Bool,
                                                session: URLSession = .shared) async throws {
         guard let base = backendURL(settings) else { return }
-        _ = try await send("PATCH", base, "v1/device/\(syntheticTokenHex())/account/\(redditID)/notifications",
+        _ = try await send("PATCH", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/account/\(redditID)/notifications",
                            json: ["inbox_notifications": inbox, "watcher_notifications": watchers, "global_mute": globalMute],
                            token: nil, session: session)
     }
@@ -280,7 +325,7 @@ public enum PushNotificationClient {
     public static func accountNotifications(settings: NotificationBackendSettings, redditID: String,
                                             session: URLSession = .shared) async throws -> (inbox: Bool, watchers: Bool, globalMute: Bool) {
         guard let base = backendURL(settings) else { return (false, false, false) }
-        let data = try await send("GET", base, "v1/device/\(syntheticTokenHex())/account/\(redditID)/notifications",
+        let data = try await send("GET", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/account/\(redditID)/notifications",
                                   json: nil, token: nil, session: session)
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         return ((json["inbox_notifications"] as? Bool) ?? false, (json["watcher_notifications"] as? Bool) ?? false,
@@ -328,7 +373,7 @@ public enum PushNotificationClient {
     public static func listWatchers(settings: NotificationBackendSettings, redditID: String,
                                     session: URLSession = .shared) async throws -> [Watcher] {
         guard let base = backendURL(settings) else { return [] }
-        let data = try await send("GET", base, "v1/device/\(syntheticTokenHex())/account/\(redditID)/watchers",
+        let data = try await send("GET", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/account/\(redditID)/watchers",
                                   json: nil, token: nil, session: session)
         return try JSONDecoder().decode([Watcher].self, from: data)
     }
@@ -337,7 +382,7 @@ public enum PushNotificationClient {
     public static func createWatcher(settings: NotificationBackendSettings, redditID: String, body: [String: Any],
                                      session: URLSession = .shared) async throws -> Int64? {
         guard let base = backendURL(settings) else { throw BackendError(status: 0, body: "Enter a Backend URL first.") }
-        let data = try await send("POST", base, "v1/device/\(syntheticTokenHex())/account/\(redditID)/watcher",
+        let data = try await send("POST", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/account/\(redditID)/watcher",
                                   json: body, token: nil, session: session)
         return ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any]).flatMap { ($0["id"] as? NSNumber)?.int64Value }
     }
@@ -345,11 +390,36 @@ public enum PushNotificationClient {
     public static func deleteWatcher(settings: NotificationBackendSettings, redditID: String, id: Int64,
                                      session: URLSession = .shared) async throws {
         guard let base = backendURL(settings) else { return }
-        _ = try await send("DELETE", base, "v1/device/\(syntheticTokenHex())/account/\(redditID)/watcher/\(id)",
+        _ = try await send("DELETE", base, "v1/device/\(PushDeviceIdentity.registeredToken(settings: settings))/account/\(redditID)/watcher/\(id)",
                            json: nil, token: nil, session: session)
     }
 
     // MARK: Deep links
+
+    /// Where a tapped APNs notification from the backend leads, from the
+    /// same keys the backend's Bark relay derives its click URL from:
+    /// private messages and anything without a post open the inbox; a
+    /// reply or mention opens its comment in context; a watcher hit opens
+    /// the post.
+    public static func appURL(fromPushPayload userInfo: [AnyHashable: Any]) -> URL? {
+        func string(_ key: String) -> String? {
+            (userInfo[key] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        }
+        let inbox = URL(string: "\(scheme)://reborn/inbox")
+        if string("type") == "private-message" { return inbox }
+        guard let postID = string("post_id"), let subreddit = string("subreddit") else {
+            return string("account_id") != nil ? inbox : nil
+        }
+        var path = CharacterSet.urlPathAllowed
+        path.remove("/")
+        let sub = subreddit.addingPercentEncoding(withAllowedCharacters: path) ?? subreddit
+        let post = postID.addingPercentEncoding(withAllowedCharacters: path) ?? postID
+        if let commentID = string("comment_id") {
+            let comment = commentID.addingPercentEncoding(withAllowedCharacters: path) ?? commentID
+            return URL(string: "\(scheme)://reddit.com/r/\(sub)/comments/\(post)/_/\(comment)/?context=1")
+        }
+        return URL(string: "\(scheme)://reddit.com/r/\(sub)/comments/\(post)")
+    }
 
     /// Maps the backend's click URLs onto this app's scheme:
     /// `apollo://reborn/inbox` -> `phoebus://reborn/inbox`, and

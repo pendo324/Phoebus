@@ -207,7 +207,7 @@ public struct UserProfileScreen: View {
                         }
                         // The self-hosted backend's user watcher: a push for each new post
                         // by this user. Needs a registered backend; the user must allow followers.
-                        if PushNotificationClient.barkModeActive(notificationBackendSettings),
+                        if PushNotificationClient.deliveryActive(notificationBackendSettings),
                            PushRegistrationState.isRegistered(notificationBackendSettings) {
                             Button {
                                 Task { await watchUser() }

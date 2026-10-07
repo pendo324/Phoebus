@@ -3480,6 +3480,13 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>fetch</string>
+	</array>
+	<!-- The background inbox refresh that keeps the app icon's badge current
+	     (PushNotificationCoordinator). -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.pendo324.Phoebus.inbox-badge-refresh</string>
 	</array>
 	<!-- UIDesignRequiresCompatibility is deliberately absent. It is Apple's
 	     global opt-out of the iOS 26 design system and would also force

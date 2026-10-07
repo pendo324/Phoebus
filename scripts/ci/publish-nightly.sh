@@ -14,9 +14,14 @@ device=$1 simulator=$2
 sha=$(git rev-parse HEAD)
 repo="${GITHUB_REPOSITORY:?}"
 
-if gh api "repos/$repo/git/refs/tags/$TAG" >/dev/null 2>&1; then
-  gh api -X PATCH "repos/$repo/git/refs/tags/$TAG" -f sha="$sha" -F force=true >/dev/null
-else
+# Moving the tag over commits that add or change workflow files needs the
+# workflows permission, which the job's token cannot have ("Resource not
+# accessible by integration"); deleting and recreating the tag does not.
+if gh api "repos/$repo/git/refs/tags/$TAG" >/dev/null 2>&1 \
+   && ! gh api -X PATCH "repos/$repo/git/refs/tags/$TAG" -f sha="$sha" -F force=true >/dev/null 2>&1; then
+  gh api -X DELETE "repos/$repo/git/refs/tags/$TAG"
+fi
+if ! gh api "repos/$repo/git/refs/tags/$TAG" >/dev/null 2>&1; then
   gh api -X POST "repos/$repo/git/refs" -f ref="refs/tags/$TAG" -f sha="$sha" >/dev/null
 fi
 if ! gh release view "$TAG" >/dev/null 2>&1; then
@@ -46,5 +51,5 @@ done <<< "$assets"
     echo "- \`$asset\`: $subject"
   done <<< "$keep_device"
 } > notes.md
-gh release edit "$TAG" --prerelease --target "$sha" --notes-file notes.md
+gh release edit "$TAG" --draft=false --prerelease --target "$sha" --notes-file notes.md
 rm -f notes.md

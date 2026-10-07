@@ -23,16 +23,13 @@ it, you then need a Reddit API client ID of your own to sign in: see
 
 ### With AltStore or SideStore
 
-There are no stable releases yet, so for now only the nightly source and
-the `nightly` pre-release have builds.
-
 Add one of these sources (in AltStore, Sources › +; in SideStore, Sources
 › +), or open https://pendo324.github.io/AltStoreRepo/ on the device and
 tap a link:
 
 | Source | URL | Builds |
 |---|---|---|
-| pendo324 | `https://pendo324.github.io/AltStoreRepo/source.json` | Stable releases (none yet) |
+| pendo324 | `https://pendo324.github.io/AltStoreRepo/source.json` | Stable releases |
 | Phoebus Nightly | `https://pendo324.github.io/AltStoreRepo/nightly/source.json` | The last 20 builds of `main`. These can break. |
 
 Then install Phoebus from the source. AltStore or SideStore signs it with
@@ -49,8 +46,7 @@ install the app without them.
 ### From an IPA
 
 - **Stable:** `Phoebus-v<version>.ipa` from
-  [Releases](https://github.com/pendo324/Phoebus/releases), once there is
-  one (none yet).
+  [Releases](https://github.com/pendo324/Phoebus/releases).
 - **Nightly:** the newest builds of `main` in the
   [`nightly` pre-release](https://github.com/pendo324/Phoebus/releases/tag/nightly).
 

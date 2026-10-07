@@ -45,8 +45,10 @@ jobs:
       - name: semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        # The preset's version 10 needs a newer changelog writer than
+        # semantic-release 25's release-notes-generator ships.
         run: >-
           npx --yes
           -p semantic-release@25
-          -p conventional-changelog-conventionalcommits@10
+          -p conventional-changelog-conventionalcommits@9
           semantic-release

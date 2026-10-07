@@ -6,8 +6,9 @@
 #   <name>-simulator.ipa  with --simulator: one universal debug build for
 #                         x86_64 and arm64 simulators
 #                         (`xcrun simctl install <device> <file>`)
-# <name> comes from scripts/ipa-name.sh. With PHOEBUS_BUILD_NUMBER set, the
-# apps get that CFBundleVersion (scripts/stamp-build-number.py).
+# <name> comes from scripts/ipa-name.sh. The apps get the version from
+# scripts/version.sh and, with PHOEBUS_BUILD_NUMBER set, that CFBundleVersion
+# (scripts/stamp-version.py).
 #
 # Usage: scripts/build-ipa.sh [--simulator] [output directory]
 #
@@ -22,11 +23,12 @@ simulator=0
 if [ "${1:-}" = --simulator ]; then simulator=1; shift; fi
 out=$(realpath -m "${1:-xtool}")
 name=$(scripts/ipa-name.sh)
+version=$(scripts/version.sh)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 outputs=()
 
-stamp() { [ -z "${PHOEBUS_BUILD_NUMBER:-}" ] || scripts/stamp-build-number.py "$1" "$PHOEBUS_BUILD_NUMBER"; }
+stamp() { scripts/stamp-version.py "$1" "$version" ${PHOEBUS_BUILD_NUMBER:+"$PHOEBUS_BUILD_NUMBER"}; }
 
 scripts/generate-icons.sh
 

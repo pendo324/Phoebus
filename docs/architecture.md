@@ -44,7 +44,7 @@ SafariExtension/   Web extension resources and their JavaScript tests
 Tests/Fixtures/    JSON fixtures read by the smoke tests
 scripts/           build-for-simulator.sh, smoke.sh, xtool-env.sh, generate-icons.sh, code-unchanged.py
 scripts/generate/  Python generators and audit helpers, and the icon tooling
-Config/Phoebus/Info.plist  Version lives here (CFBundleShortVersionString / CFBundleVersion)
+Config/Phoebus/Info.plist  App Info.plist; its version is a placeholder, stamped from the release tags at build time
 xtool.yml          Bundle id com.pendo324.Phoebus and the resources list
 ```
 

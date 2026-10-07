@@ -1,0 +1,52 @@
+# Cuts a release with semantic-release (.releaserc.json): from the
+# Conventional Commits on main since the last v* tag it picks the next
+# version (feat: minor, fix and perf: patch, a breaking change: major),
+# pushes the v<version> tag and creates the GitHub release with its notes.
+# The tag then starts Build IPA, which attaches the IPAs, and Publish to
+# AltStore sources adds the release to the stable source. Run by hand.
+name: Release
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      # A tag pushed with the workflow's own token would not start Build IPA;
+      # one pushed by PhoebusBot does.
+      - name: Token
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.PHOEBUSBOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PHOEBUSBOT_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # semantic-release pushes the tag with the token below; checkout's
+          # stored credentials would take precedence over it.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        run: >-
+          npx --yes
+          -p semantic-release@25
+          -p conventional-changelog-conventionalcommits@10
+          semantic-release

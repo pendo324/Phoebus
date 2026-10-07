@@ -25,7 +25,9 @@ on:
       - scripts/lgrender/**
       - scripts/merge-apps.py
       - scripts/package-ipa.sh
-      - scripts/stamp-build-number.py
+      - scripts/stamp-version.py
+      - scripts/version.sh
+      - scripts/ci/publish-release.sh
       - scripts/xtool-env.sh
       - scripts/ci/install-sdk.sh
       - scripts/ci/publish-nightly.sh
@@ -187,7 +189,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # ipa-name.sh names the files after the latest tag.
+          # version.sh and ipa-name.sh read the release tags.
           fetch-depth: 0
 
       - uses: actions/download-artifact@v8
@@ -202,12 +204,13 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
           name=$(scripts/ipa-name.sh)
+          version=$(scripts/version.sh)
           for variant in device simulator-x86_64 simulator-arm64; do
             mkdir -p "apps/$variant" && tar -C "apps/$variant" -xf "apps/$variant.tar"
           done
           scripts/merge-apps.py apps/simulator.app apps/simulator-x86_64/Phoebus.app apps/simulator-arm64/Phoebus.app
           for app in apps/device/Phoebus.app apps/simulator.app; do
-            scripts/stamp-build-number.py "$app" "$BUILD_NUMBER"
+            scripts/stamp-version.py "$app" "$version" "$BUILD_NUMBER"
           done
           scripts/package-ipa.sh apps/device/Phoebus.app "dist/$name.ipa"
           scripts/package-ipa.sh apps/simulator.app "dist/$name-simulator.ipa"
@@ -257,14 +260,20 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v5
+        with:
+          # publish-release.sh finds the previous release tag.
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v8
         with:
           pattern: Phoebus-*.ipa
           path: dist
           merge-multiple: true
 
+      # semantic-release (release.yml) has usually created the release, with
+      # its notes, by now; this attaches the IPAs.
       - name: Upload release assets
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/*.ipa
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/publish-release.sh "$GITHUB_REF_NAME" dist/*.ipa

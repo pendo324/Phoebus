@@ -18,7 +18,7 @@
 	<string>Your approximate location is checked once to calculate sunset and sunrise for automatic theme switching. It is not shared or sent.</string>
 	<!-- Declared here because xtool otherwise defaults the version to 1.0.0. -->
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.0.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSSupportsLiveActivities</key>

@@ -7,6 +7,9 @@ cut a release. Building on your own machine is in
 ## Overview
 
 ```
+Release (.github/workflows/release.yml, by hand): semantic-release
+  ─▶ tag v<version> and its GitHub release, with notes
+
 push to main / tag v*
         │
         ▼
@@ -24,8 +27,8 @@ Publish to AltStore sources (.github/workflows/publish-altstore.yml)
     tag  ─▶ source.json           ("pendo324", stable)
 ```
 
-A third workflow, Build container image (`build-image.yml`), builds the
-image the builds run in.
+Build container image (`build-image.yml`) builds the image the builds run
+in.
 
 ## The build image
 
@@ -73,7 +76,7 @@ affect the build.
    (`scripts/ci/install-sdk.sh`) and renders the icons
    (`scripts/generate-icons.sh`) first.
 3. **package** numbers the builds with the workflow's run number
-   (`scripts/stamp-build-number.py`), merges the two simulator builds into
+   (`scripts/stamp-version.py`, which also sets the version), merges the two simulator builds into
    one universal app (`scripts/merge-apps.py`), packs both IPAs
    (`scripts/package-ipa.sh`, which also runs `scripts/check-app.py`) and
    uploads them as the run's artifacts, each the file itself.
@@ -81,8 +84,11 @@ affect the build.
    moves the `nightly` tag to the built commit and adds the IPAs to the
    `nightly` pre-release, keeping the device IPAs of the last 20 builds
    and the newest simulator IPA, and lists them in the release notes.
-5. **release** (tags) attaches both IPAs to the tag's release, with
-   GitHub's generated release notes.
+5. **release** (tags) attaches both IPAs to the tag's release
+   (`scripts/ci/publish-release.sh`). semantic-release has normally created
+   the release with its notes by then; for a tag pushed by hand the script
+   creates it, with GitHub's notes for the changes since the previous `v*`
+   tag.
 
 ### Names and numbers
 
@@ -91,12 +97,17 @@ affect the build.
 | Tag `v1.2.0` | `Phoebus-v1.2.0.ipa` | `Phoebus-v1.2.0-simulator.ipa` |
 | Other builds | `Phoebus-v<latest tag>-<short commit>.ipa` (`v0.0.0` before the first tag) | `…-simulator.ipa` |
 
-`scripts/ipa-name.sh` makes the name, and refuses to build a tag that does
-not match `CFBundleShortVersionString` in `Config/Phoebus/Info.plist`.
+The version comes from the release tags, not from the repository:
+`scripts/version.sh` gives `1.2.0` at the tag `v1.2.0`, and for any other
+commit the version of the latest release before it (`0.0.0` before the
+first), so a nightly reports the release it builds on. The
+`CFBundleShortVersionString` in `Config/Phoebus/Info.plist` is a placeholder
+(`0.0.0`) for local builds, and no commit changes it for a release.
+`scripts/ipa-name.sh` makes the IPAs' name from the same version.
 
-The version in `Info.plist` only changes for a release. The build number
-(`CFBundleVersion`) is the Build IPA run number, stamped into the app and
-its extensions when packaging. It only goes up and is shared by nightly
+The build number (`CFBundleVersion`) is the Build IPA run number. Both are
+stamped into the app and its extensions when packaging
+(`scripts/stamp-version.py`). It only goes up and is shared by nightly
 and stable builds, so AltStore and SideStore see every new build as an
 update. Local AltStore deploys number their builds from their own counter
 instead, so nothing is committed for a build.
@@ -161,17 +172,26 @@ so the sources only install builds while this repository is public.
 
 ## Cutting a release
 
-1. Set `CFBundleShortVersionString` in `Config/Phoebus/Info.plist` to the
-   new version (for example `1.2.0`) and commit it to `main`.
-2. Tag that commit and push the tag:
-   ```bash
-   git tag -s v1.2.0 -m "Phoebus 1.2.0"
-   git push origin v1.2.0
-   ```
-3. Build IPA builds the tag, creates the `v1.2.0` release with both IPAs,
-   and Publish to AltStore sources adds it to the stable source.
-4. Edit the release notes on GitHub if needed; the stable source links to
-   the release.
+Releases are cut by [semantic-release](https://semantic-release.gitbook.io/)
+from the Conventional Commits on `main` (`.releaserc.json`):
+
+1. Run the **Release** workflow (`.github/workflows/release.yml`) on `main`
+   (Actions › Release › Run workflow, or `gh workflow run release.yml`).
+2. semantic-release reads the commits since the last `v*` tag and picks the
+   next version: `feat` raises the minor version, `fix` and `perf` the
+   patch, and a breaking change (`feat!:` or a `BREAKING CHANGE:` footer)
+   the major. With no such commits it releases nothing.
+3. It pushes the tag `v<version>` and creates the GitHub release, with notes
+   listing the features and fixes. The tag is pushed by PhoebusBot, since a
+   tag pushed with the workflow's own token would not start other
+   workflows.
+4. Build IPA builds the tag, stamps the version and attaches both IPAs to
+   the release; Publish to AltStore sources then adds it to the stable
+   source.
+
+Pushing a `v<version>` tag by hand also works; the release job then
+creates the release itself (see Build IPA above). Tags other than `v*`,
+such as `nightly`, are ignored by both.
 
 ## Secrets
 
@@ -179,7 +199,7 @@ so the sources only install builds while this repository is public.
 |---|---|
 | `DARWIN_SDK_URL` | The packed Darwin SDK in private storage. How it is made, and its pinned SHA-256, are in [building-on-linux.md](building-on-linux.md), "The Darwin SDK". |
 | `XCODE_XIP_URL` | Optional: an Xcode `.xip` to install the SDK from instead (slower). |
-| `PHOEBUSBOT_APP_CLIENT_ID`, `PHOEBUSBOT_APP_PRIVATE_KEY` | PhoebusBot, a GitHub App installed on the SDK's storage repository and on AltStoreRepo, with Contents: read and write. The builds make a read-only token for the SDK download; the publishing workflow makes one that can write to AltStoreRepo. The workflows' own `GITHUB_TOKEN` cannot reach other repositories. |
+| `PHOEBUSBOT_APP_CLIENT_ID`, `PHOEBUSBOT_APP_PRIVATE_KEY` | PhoebusBot, a GitHub App installed on the SDK's storage repository, on AltStoreRepo and on this repository, with Contents: read and write. The builds make a read-only token for the SDK download; the publishing workflow makes one that can write to AltStoreRepo; the Release workflow makes one that can push tags here. The workflows' own `GITHUB_TOKEN` cannot reach other repositories. |
 
 `scripts/ci/install-sdk.sh` checks the SDK against the SHA-256 pinned in
 it, and the SDK cache is keyed on that hash, so replacing the SDK means
@@ -195,8 +215,8 @@ these run for pull requests.
 |---|---|
 | `scripts/build-app.sh` | Builds one variant (`device`, `simulator-x86_64`, `simulator-arm64`). |
 | `scripts/build-ipa.sh` | Everything Build IPA does, on your own machine: `scripts/build-ipa.sh --simulator dist`. |
-| `scripts/ipa-name.sh` | The IPAs' base name. |
-| `scripts/stamp-build-number.py` | Sets the build number in a built app and its extensions. |
+| `scripts/version.sh`, `scripts/ipa-name.sh` | The app version from the release tags, and the IPAs' base name. |
+| `scripts/stamp-version.py` | Sets the version and build number in a built app and its extensions. |
 | `scripts/merge-apps.py` | Merges per-architecture builds into one universal app. |
 | `scripts/package-ipa.sh` | Packs an app into an IPA and checks it. |
 | `scripts/check-app.py` | Checks a built app or IPA for what can go wrong without failing the build. |
@@ -205,4 +225,6 @@ these run for pull requests.
 | `scripts/ci/install-sdk.sh` | Installs (or packs) the Darwin SDK. |
 | `scripts/ci/restore-mtimes.sh` | Resets file times to their commits'. |
 | `scripts/ci/publish-nightly.sh` | Updates the `nightly` pre-release. |
+| `scripts/ci/publish-release.sh` | Attaches the IPAs to a tag's release, creating it if needed. |
+| `.releaserc.json`, `.github/workflows/release.yml` | semantic-release's configuration and the workflow that runs it. |
 | `scripts/ci/update-altstore-source.py`, `scripts/ci/altstore-app.json` | Add a build to an AltStore source. |

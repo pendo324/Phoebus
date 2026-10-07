@@ -2,9 +2,10 @@
 
 Phoebus is a SwiftUI reimplementation of Apollo for Reddit's design and
 Apollo Reborn's features, built entirely on Linux with xtool. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for the human-facing rules. The version is
-`CFBundleShortVersionString` / `CFBundleVersion` in `Config/Phoebus/Info.plist`;
-the smoke run prints the current assertion count.
+[CONTRIBUTING.md](CONTRIBUTING.md) for the human-facing rules. The version comes
+from the release tags (`scripts/version.sh`; releases are cut by
+semantic-release, see [docs/releases.md](docs/releases.md)), not from
+`Config/Phoebus/Info.plist`; the smoke run prints the current assertion count.
 
 ## Docs
 

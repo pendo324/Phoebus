@@ -138,6 +138,14 @@ public struct InterfaceSettingsScreen: View {
             Toggle("Return Button", isOn: $settings.scrollReturnButton)
                     .apolloSearchRow("Return Button")
 
+            // Reborn "True Black Keyboard" (#1316), after Return Button as upstream.
+            ApolloSettingsPicker("True Black Keyboard", selection: $settings.trueBlackKeyboardMode,
+                                 options: TrueBlackKeyboardMode.allCases.map { $0 },
+                                 display: { $0.displayName },
+                                 showsChevron: true)
+                .apolloSearchRow("True Black Keyboard")
+                .accessibilityIdentifier("interface.trueBlackKeyboard")
+
             // Reborn "Collapse Navigation Actions", Liquid-Glass-only, default OFF:
             // collapsing is opt-in and the action strip starts expanded.
             if settings.enableLiquidGlassTabBar {
@@ -167,7 +175,7 @@ public struct InterfaceSettingsScreen: View {
             Text("Display & Navigation")
                 .apolloSectionHeader()
         } footer: {
-            Text("Return Button puts an arrow beside Back after a status bar tap scrolls to the top; tap it, the navigation bar, or the status bar again to go back to where you were. Liquid Glass is required for the remaining options.\n\nIn Liquid Glass, navigation titles stay centered unless expanded actions need room. Collapse Navigation Actions hides the actions behind an ellipsis until tapped; scrolling collapses them again. With it off, actions stay expanded. Center Title Between Buttons centers the title in the space between the back button and actions. Both options default to off. Header Style: Soft is the iOS 26 default; Hard is the iOS 27 default. Hidden removes the header edge effect entirely.")
+            Text("Return Button puts an arrow beside Back after a status bar tap scrolls to the top; tap it, the navigation bar, or the status bar again to go back to where you were. True Black Keyboard paints the keyboard background pure black in the chosen appearance (takes effect the next time the keyboard appears). Liquid Glass is required for the remaining options.\n\nIn Liquid Glass, navigation titles stay centered unless expanded actions need room. Collapse Navigation Actions hides the actions behind an ellipsis until tapped; scrolling collapses them again. With it off, actions stay expanded. Center Title Between Buttons centers the title in the space between the back button and actions. Both options default to off. Header Style: Soft is the iOS 26 default; Hard is the iOS 27 default. Hidden removes the header edge effect entirely.")
                     .apolloSectionFooter()
         }
     }

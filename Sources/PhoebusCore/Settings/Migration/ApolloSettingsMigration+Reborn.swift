@@ -71,6 +71,7 @@ extension ApolloSettingsMigration {
         // Feed scrubber, hold speed
         "FeedVideoScrubber", "VideoHoldSpeedEnabled", "VideoHoldSpeed",
         "GalleryAutoplayVideos", "GalleryAutoplayGIFs", "TabBarSwipeNavigation", "SettingsTabShortcuts",
+        "TrueBlackKeyboardMode",
         // Profile layout
         "ProfileHeaderImmersive", "ShowDetailedProfiles", "ProfileShowBanner", "ProfileShowStatCards",
         "ProfileShowSocialLinks", "ProfileShowActions", "BadgeBookEnabled", "ProfileAvatarStyle",
@@ -257,6 +258,9 @@ extension ApolloSettingsMigration {
         take("UseCompactThumbnails", "Post Size", bool) { general.postDisplayStyle = $0 ? .compact : .large }
         take("ShowUserAvatars", "Show User Avatars", bool) { general.showUserProfilePictures = $0 }
         take("TabBarSwipeNavigation", "Swipe Tab Bar to Navigate", bool) { general.tabBarSwipeNavigation = $0 }
+        take("TrueBlackKeyboardMode", "True Black Keyboard", { int($0).flatMap(TrueBlackKeyboardMode.init(rawValue:)) }) {
+            general.trueBlackKeyboardMode = $0
+        }
         // Real type is a STRING ("5"), per Reborn's registered default.
         take("TrendingSubredditsLimit", "Trending Subreddits Limit", int) { general.trendingSubredditsLimit = $0 }
         take("HideRPopularRedditList", "Hide r/popular Row", bool) { general.hidePopularInSubredditList = $0 }

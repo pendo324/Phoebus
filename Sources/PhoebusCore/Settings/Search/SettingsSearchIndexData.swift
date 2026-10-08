@@ -250,6 +250,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Center Title Between Buttons", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "Center Title Between Buttons"),
         SettingsSearchEntry(title: "Hide Style", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "Hide Style"),
         SettingsSearchEntry(title: "Scroll Behavior", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "Scroll Behavior"),
+        SettingsSearchEntry(title: "True Black Keyboard", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "True Black Keyboard"),
         SettingsSearchEntry(title: "Header Style", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "Header Style"),
         SettingsSearchEntry(title: "Settings Shortcuts", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .interfaceSettings, rowTitle: "Settings Shortcuts"),
         SettingsSearchEntry(title: "Preview Card Color", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Preview Card Color"),

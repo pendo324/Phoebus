@@ -98,6 +98,7 @@ public final class ApolloAppDelegate: NSObject, UIApplicationDelegate {
             }
         }
         MainActor.assumeIsolated {
+            TrueBlackKeyboard.install()
             PushNotificationCoordinator.shared.applicationDidFinishLaunching(application)
             application.shortcutItems = QuickAction.allCases.map {
                 UIApplicationShortcutItem(

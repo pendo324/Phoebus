@@ -94,6 +94,13 @@ differs (a removed row, a changed default, a different mechanism), add
 an entry to [docs/intentional-differences.md](docs/intentional-differences.md)
 saying what differs and why.
 
+## Porting from Apollo Reborn
+
+Apollo Reborn is GPL-3.0, like Phoebus, so its code may be ported. When
+you port a Reborn feature, name the Reborn feature (and issue, if any) in
+a code comment and the Reborn source file in the commit message, and add
+anyone not yet listed to [CREDITS.md](CREDITS.md).
+
 ## Apollo's assets and credentials
 
 Do not add Apollo's app binaries, artwork or private credentials. Only the assets already bundled in this repository may be

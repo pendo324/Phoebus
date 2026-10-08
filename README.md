@@ -1,10 +1,15 @@
 # Phoebus
 
-Phoebus is an independent, from-scratch SwiftUI reimplementation of
-[Apollo for Reddit](https://apolloapp.io)'s design and of the feature
-set added by the Apollo Reborn tweak. It is a
-native iOS Reddit client, built entirely on Linux with
-[xtool](https://xtool.sh).
+Phoebus is a native iOS Reddit client that recreates
+[Apollo for Reddit](https://apolloapp.io) together with the features of
+the [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn)
+tweak, built entirely on Linux with [xtool](https://xtool.sh).
+
+- **The core app is written from scratch** in SwiftUI, following Apollo's
+  design. It contains none of Apollo's code.
+- **Apollo Reborn's features are ported directly from Apollo Reborn's
+  GPL-3.0 source code**, translated to Swift. They are the work of the
+  Apollo Reborn team and contributors; see [CREDITS.md](CREDITS.md).
 
 The name comes from Phoebus ("bright", "radiant"), the Greek epithet of
 the god Apollo, often joined as Phoebus Apollo.
@@ -231,10 +236,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents should also read
 
 ## Credits
 
+- [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn) by its
+  maintainers JeffreyCA, icpryde, jordanearle, nickclyde, DeltAndy123 and
+  IllIIllIllIllII, and many code and design contributors. Phoebus's
+  Reborn features are ported from their GPL-3.0 code, and its Liquid Glass
+  icons are theirs. [CREDITS.md](CREDITS.md) lists every contributor and
+  what came from Reborn.
 - [Apollo for Reddit](https://apolloapp.io) by Christian Selig, whose
-  design and behaviour Phoebus reimplements.
-- Apollo Reborn, the tweak that extended Apollo with the features Phoebus
-  also reproduces.
+  design and behaviour Phoebus recreates.
 - [xtool](https://xtool.sh), which makes building iOS apps on Linux
   possible.
 - [AnimatedImage](https://github.com/noppefoxwolf/AnimatedImage) and
@@ -242,9 +251,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents should also read
 
 ## Disclaimer
 
-Phoebus is a personal, non-commercial project and an independent
+Phoebus is a personal, non-commercial project. Its core is an independent
 reimplementation: it contains no Apollo source code, binaries, artwork or
-private credentials. Apollo's standard icons are extracted from Apollo's
+private credentials. Its Apollo Reborn features contain code ported from
+Apollo Reborn under the GPL-3.0 (see [CREDITS.md](CREDITS.md)). Apollo's standard icons are extracted from Apollo's
 own IPA when you build. It is not affiliated with, authorised or endorsed by
 Christian Selig, the Apollo or Apollo Reborn projects, or Reddit. "Apollo"
 and "Reddit" are trademarks of their respective owners and are used here
@@ -253,7 +263,8 @@ only to describe what Phoebus is compatible with.
 ## License
 
 Phoebus is free software, licensed under the GNU General Public License,
-version 3; see [LICENSE](LICENSE). The Liquid Glass icon sources in
-`Icons/LiquidGlass` come from Apollo Reborn, which is GPL-3.0 as well.
+version 3; see [LICENSE](LICENSE). It includes code ported from Apollo
+Reborn, and the Liquid Glass icon sources in `Icons/LiquidGlass`, both
+GPL-3.0 and copyright the Apollo Reborn contributors.
 Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash
 (MIT).

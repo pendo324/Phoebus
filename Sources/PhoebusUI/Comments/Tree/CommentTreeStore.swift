@@ -604,11 +604,16 @@ final class CommentTreeStore: ObservableObject {
                 }
                 return
             }
-            if rootMoreStub?.id == stub.id {
-                roots.append(contentsOf: filtered(built.roots))
-                rootMoreStub = built.moreStub
-            } else {
-                roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: filtered(built.roots)) }
+            // Reborn "Load more replies smoothly" (#1358): the new rows fade in
+            // instead of popping, and the rows below slide.
+            let revealed = filtered(built.roots)
+            withAnimation(.easeOut(duration: 0.3)) {
+                if rootMoreStub?.id == stub.id {
+                    roots.append(contentsOf: revealed)
+                    rootMoreStub = built.moreStub
+                } else {
+                    roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: revealed) }
+                }
             }
         } catch {
             errorMessage = UserFacingError.message(for: error)
@@ -651,8 +656,8 @@ final class CommentTreeStore: ObservableObject {
             }
             let visible = filtered(revealed)
             warmBodies(visible, replacingTree: false)
-            roots = roots.map {
-                $0.resolvingMoreStub(stubID: stub.id, with: visible)
+            withAnimation(.easeOut(duration: 0.3)) {
+                roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: visible) }
             }
         } catch {
             errorMessage = UserFacingError.message(for: error)

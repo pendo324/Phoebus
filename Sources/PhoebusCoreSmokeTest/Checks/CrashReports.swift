@@ -281,3 +281,91 @@ import PhoebusCore
           AppIconOption.all.first { $0.id == "morty" }?.displayName == "Wubalubadubdub"
           && AppIconOption.all.first { $0.id == "the-adventurer" }?.artist == "David Lanham")
 }
+
+// Reborn "Summary Language" (#1362).
+@MainActor func checkAISummaryLanguage() async throws {
+    let onDevice: Set<String> = ["en", "pt", "zh", "nb"]
+    let device = ["pt-BR", "en-US"]
+
+    let followsDevice = AISummaryLanguage.resolve(choice: "", isCloud: false, writable: onDevice, preferredLanguages: device)
+    check("Device Default follows the first device language", followsDevice == .init(identifier: "pt", picked: false))
+    check("a language the on-device model can't write is skipped for the next device language",
+          AISummaryLanguage.resolve(choice: "", isCloud: false, writable: onDevice, preferredLanguages: ["ru-RU", "en-US"])?.identifier == "en")
+    check("no usable device language leaves the prompts unnamed",
+          AISummaryLanguage.resolve(choice: "", isCloud: false, writable: onDevice, preferredLanguages: ["ru-RU"]) == nil)
+    check("an explicit pick the on-device model writes is used and marked picked",
+          AISummaryLanguage.resolve(choice: "en", isCloud: false, writable: onDevice, preferredLanguages: device) == .init(identifier: "en", picked: true))
+    check("an explicit pick the on-device model can't write falls back to the device language",
+          AISummaryLanguage.resolve(choice: "ru", isCloud: false, writable: onDevice, preferredLanguages: device) == .init(identifier: "pt", picked: false))
+    check("a cloud provider writes any picked language",
+          AISummaryLanguage.resolve(choice: "ru", isCloud: true, writable: onDevice, preferredLanguages: device) == .init(identifier: "ru", picked: true))
+    check("a cloud provider ignores the on-device list for the device language",
+          AISummaryLanguage.resolve(choice: "", isCloud: true, writable: onDevice, preferredLanguages: ["ru-RU"])?.identifier == "ru")
+    check("an unknown on-device list skips the pick for the device language",
+          AISummaryLanguage.resolve(choice: "ru", isCloud: false, writable: nil, preferredLanguages: device) == .init(identifier: "pt", picked: false))
+    check("the script is kept so Traditional Chinese stays distinct",
+          AISummaryLanguage.resolve(choice: "", isCloud: false, writable: onDevice, preferredLanguages: ["zh-Hant-TW"])?.identifier == "zh-Hant")
+    check("Translation's Norwegian is matched to the model's Bokmål",
+          AISummaryLanguage.resolve(choice: "no", isCloud: false, writable: onDevice, preferredLanguages: device)?.picked == true)
+
+    let english = AISummaryLanguage.Resolved(identifier: "en", picked: true)
+    for target in [ApolloAIClient.Target.post, .comments, .article, .postAndLink] {
+        for detail in AISummaryDetail.allCases {
+            let base = switch target {
+            case .post: AISummaryPrompts.postInstructions(detail)
+            case .comments: AISummaryPrompts.commentInstructions(detail)
+            case .article: AISummaryPrompts.articleInstructions(detail)
+            case .postAndLink: AISummaryPrompts.postAndLinkInstructions(detail)
+            }
+            check("every prompt leads with the language line (\(target), \(detail))",
+                  AISummaryLanguage.led(base, by: english) == "You MUST respond in English. " + base)
+        }
+    }
+    check("the language line names the language in English",
+          AISummaryLanguage.led("x", by: .init(identifier: "pt", picked: false)) == "You MUST respond in Portuguese. x")
+    check("a missing language leaves the prompt unchanged", AISummaryLanguage.led("x", by: nil) == "x")
+
+    check("the on-device picker only offers languages the model writes",
+          AISummaryLanguage.options(isCloud: false, writable: onDevice).map(\.code) == ["", "en", "pt", "zh", "no"])
+    check("a cloud provider is offered Translation's full list",
+          AISummaryLanguage.options(isCloud: true, writable: onDevice).count == TranslationSettings.languageOptions.count)
+    check("an unknown on-device list keeps the full list",
+          AISummaryLanguage.options(isCloud: false, writable: nil).count == TranslationSettings.languageOptions.count)
+
+    check("Device Default shows the language in use",
+          AISummaryLanguage.detailText(choice: "", resolved: followsDevice) == "Device Default (Portuguese)")
+    check("a usable pick shows its name",
+          AISummaryLanguage.detailText(choice: "en", resolved: english) == "English")
+    check("an unusable pick shows what summaries use instead",
+          AISummaryLanguage.detailText(choice: "ru", resolved: .init(identifier: "en", picked: false)) == "Russian (using English)")
+
+    let en = AISummaryLanguage.Resolved(identifier: "en", picked: true)
+    let pt = AISummaryLanguage.Resolved(identifier: "pt", picked: true)
+    check("the post cache key changes with the language",
+          AISummaryCache.postKey(post: "t3_a", detail: .balanced, language: en)
+              != AISummaryCache.postKey(post: "t3_a", detail: .balanced, language: pt))
+    check("the comment cache key changes with the language",
+          AISummaryCache.commentsKey(post: "t3_a", detail: .balanced, count: 5, language: en)
+              != AISummaryCache.commentsKey(post: "t3_a", detail: .balanced, count: 5, language: pt))
+    check("the cache key is stable for the same language",
+          AISummaryCache.postKey(post: "t3_a", detail: .brief, language: en)
+              == AISummaryCache.postKey(post: "t3_a", detail: .brief, language: en))
+    check("a summary cached before summaries named a language is not reused",
+          AISummaryCache.postKey(post: "t3_a", detail: .balanced, language: nil) != "t3_a.post.1")
+
+    var decoded = try JSONDecoder().decode(ApolloAISettings.self, from: Data(#"{"summariesEnabled":true,"provider":"gemini"}"#.utf8))
+    check("settings stored before the Language setting decode to Device Default", decoded.summaryLanguage == "")
+    decoded.summaryLanguage = "ja"
+    let roundTripped = try JSONDecoder().decode(ApolloAISettings.self, from: JSONEncoder().encode(decoded))
+    check("the Language setting round-trips", roundTripped.summaryLanguage == "ja")
+
+    let before = ApolloAISettingsStore.load()
+    ApolloAISettingsStore.save(.default)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["AISummaryLanguage": "pt"]))
+    check("a Reborn backup's summary language is imported", ApolloAISettingsStore.load().summaryLanguage == "pt")
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["AISummaryLanguage": ""]))
+    check("...and an empty one means Device Default", ApolloAISettingsStore.load().summaryLanguage == "")
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["AISummaryLanguage": "xx-not-a-language"]))
+    check("an unknown language code is ignored", ApolloAISettingsStore.load().summaryLanguage == "")
+    ApolloAISettingsStore.save(before)
+}

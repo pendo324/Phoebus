@@ -265,6 +265,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Comment Summaries", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Comment Summaries"),
         SettingsSearchEntry(title: "AI Provider", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "AI Provider"),
         SettingsSearchEntry(title: "When Opening a Thread", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "When Opening a Thread"),
+        SettingsSearchEntry(title: "Language", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Language"),
         SettingsSearchEntry(title: "Browse Available Models", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Browse Available Models"),
         SettingsSearchEntry(title: "Add Header…", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Add Header…"),
         SettingsSearchEntry(title: "Clear AI Cache", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Clear AI Cache"),

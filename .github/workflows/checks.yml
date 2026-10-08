@@ -1,0 +1,61 @@
+name: Checks
+
+# The smoke suite, required before a pull request can merge. It runs on
+# every pull request (no path filter: a required check that never starts
+# blocks the merge) and on pushes to main, whose build cache the pull
+# requests restore.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  smoke:
+    name: Smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/phoebus-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      XDG_CONFIG_HOME: /github/home/.config
+      XDG_CACHE_HOME: /github/home/.cache
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # restore-mtimes.sh reads every file's last commit.
+          fetch-depth: 0
+
+      - name: Prepare
+        run: |
+          git config --global --add safe.directory '*'
+          scripts/ci/restore-mtimes.sh
+
+      - name: Cache the build
+        uses: actions/cache@v5
+        with:
+          path: |
+            .build
+            /github/home/.cache/org.swift.swiftpm
+          key: smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-
+
+      # The Linux suite only: the iOS build needs the Darwin SDK, which pull
+      # requests from forks have no access to. Build IPA covers it on main.
+      - name: Smoke tests
+        run: SMOKE_SKIP_IOS=1 scripts/smoke.sh

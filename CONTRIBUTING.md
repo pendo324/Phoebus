@@ -65,12 +65,14 @@ and [docs/components.md](docs/components.md).
 
 ## Commit messages
 
-- An imperative subject of at most 72 characters ("Add inbox unread
-  badge"), optionally prefixed with the area ("Gallery viewer: ...").
+- [Conventional Commits](https://www.conventionalcommits.org): an
+  imperative subject of at most 72 characters with a type and optional
+  area (`feat(inbox): add the unread badge`, `fix(gallery): ...`).
+  Releases are cut from these, so `feat` and `fix` decide the version.
 - A blank line, then a short body when the change needs explaining:
   what and why, not a debugging diary.
-- Describe the feature or behaviour. Keep a version bump in its own
-  commit.
+- Describe the feature or behaviour. Don't bump versions; they come
+  from release tags.
 
 ## Pull requests
 

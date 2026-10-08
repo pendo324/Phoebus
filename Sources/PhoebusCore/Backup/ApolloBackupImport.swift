@@ -67,6 +67,8 @@ public enum ApolloBackupImport {
         /// This app's own accounts, from a backup Phoebus wrote
         /// (`RebornBackupArchive`).
         public var phoebusAccounts: AccountStorePersisted?
+        /// The Kagi Session Link (Reborn #1305), from `keychain.plist`.
+        public var kagiToken: String?
 
         /// Written by Phoebus rather than Apollo: its preferences are this
         /// app's own keys, restored as they are.
@@ -146,6 +148,7 @@ public enum ApolloBackupImport {
         if let keychainEntry = entries.first(where: { $0.name == keychainPlistName }),
            let keychainData = try? ZipReader.data(for: keychainEntry, in: zipData) {
             payload.phoebusAccounts = RebornBackupArchive.accounts(fromKeychainPlist: keychainData)
+            payload.kagiToken = ApolloKeychainImport.kagiToken(fromKeychainPlist: keychainData)
         }
         return payload
     }

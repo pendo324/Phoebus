@@ -8,7 +8,8 @@ import Foundation
 ///   domain (`SettingsDomainSnapshot`), as Reborn snapshots its own
 ///   persistent domain.
 /// - `keychain.plist`: one item under this app's own service holding the
-///   signed-in accounts. Reborn skips keychain items it doesn't own, so
+///   signed-in accounts, and one holding the Kagi Session Link when one is
+///   saved (Reborn #1305). Reborn skips keychain items it doesn't own, so
 ///   the archive still passes its checks.
 /// - `accounts.txt`: the usernames, one per line.
 ///
@@ -33,7 +34,8 @@ public enum RebornBackupArchive {
 
     /// The archive's bytes for the current settings (and accounts).
     public static func make(defaults: UserDefaults = .standard,
-                            accounts: AccountStorePersisted? = AccountKeychainStoreBox().load()) throws -> Data {
+                            accounts: AccountStorePersisted? = AccountKeychainStoreBox().load(),
+                            kagiToken: String? = KagiSession.token) throws -> Data {
         var preferences: [String: Any] = [:]
         for (key, value) in defaults.dictionaryRepresentation() where SettingsDomainSnapshot.isBackedUp(key) {
             // Only what a plist can hold; anything else would fail the write.
@@ -49,6 +51,10 @@ public enum RebornBackupArchive {
                           "data": try JSONEncoder().encode(accounts)])
             entries.append((ApolloBackupImport.accountsName,
                             Data(accounts.accounts.map(\.username).joined(separator: "\n").utf8)))
+        }
+        if let kagiToken, !kagiToken.isEmpty {
+            items.append(["service": KagiSession.keychainService, "account": KagiSession.keychainAccount,
+                          "data": Data(kagiToken.utf8)])
         }
         // Always written, as Reborn does, even when empty.
         entries.append((ApolloBackupImport.keychainPlistName,

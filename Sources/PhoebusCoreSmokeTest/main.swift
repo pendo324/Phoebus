@@ -985,6 +985,8 @@ try await checkInlineMediaInMessages()
 
 try await checkPrivateMessageThreads()
 
+try await checkKagiSearch()
+
 // MARK: - Native modmail over a web session
 //
 // These decode captured Reddit responses in Tests/Fixtures/ rather than

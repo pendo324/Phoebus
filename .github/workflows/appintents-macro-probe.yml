@@ -1,0 +1,52 @@
+name: App Intents macro probe
+
+# Expands the assistant-schema macros (@AppIntent(schema:),
+# @DeferredProperty) with Xcode 27, whose compiler plugin the Linux toolchain
+# lacks, and runs Apple's metadata processor on the result. The expansions
+# are what Sources/Phoebus/SiriIntents.swift writes out by hand.
+on:
+  push:
+    branches: [ci/appintents-reference]
+    paths:
+      - Tests/AppIntentsMacroProbe/**
+      - .github/workflows/appintents-macro-probe.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+      - name: Expand and process
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          out=probe-out; mkdir -p "$out"
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          TC=$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain
+          xcrun --sdk iphoneos swiftc -c Tests/AppIntentsMacroProbe/Probe.swift \
+            -module-name Probe -parse-as-library -swift-version 6 \
+            -target arm64-apple-ios27.0 -sdk "$SDK" \
+            -emit-const-values-path "$out/Probe.swiftconstvalues" \
+            -Xfrontend -const-gather-protocols-file -Xfrontend Config/AppIntentsProtocols.json \
+            -Xfrontend -dump-macro-expansions \
+            -o "$out/Probe.o" 2> "$out/macro-expansions.txt" || { cat "$out/macro-expansions.txt"; exit 1; }
+          ls -d "$PWD"/Tests/AppIntentsMacroProbe/*.swift > "$out/sources.txt"
+          ls -d "$PWD/$out"/*.swiftconstvalues > "$out/constvals.txt"
+          "$TC/usr/bin/appintentsmetadataprocessor" --output "$out/meta" --toolchain-dir "$TC" \
+            --module-name Probe --sdk-root "$SDK" \
+            --xcode-version "$(xcodebuild -version | tail -1 | awk '{print $3}')" \
+            --platform-family iOS --deployment-target 27.0 --target-triple arm64-apple-ios27.0 \
+            --source-file-list "$out/sources.txt" --swift-const-vals-list "$out/constvals.txt" --force
+          wc -l "$out/macro-expansions.txt"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: appintents-macro-probe
+          path: probe-out

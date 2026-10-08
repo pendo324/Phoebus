@@ -213,7 +213,9 @@ from the Conventional Commits on `main` (`.releaserc.json`):
 2. semantic-release reads the commits since the last `v*` tag and picks the
    next version: `feat` raises the minor version, `fix` and `perf` the
    patch, and a breaking change (`feat!:` or a `BREAKING CHANGE:` footer)
-   the major. With no such commits it releases nothing.
+   the major. With no such commits it releases nothing. Commits scoped
+   `ci` (`fix(ci): …`) neither release nor appear in the notes; CI
+   changes should use the `ci:` type anyway.
 3. It pushes the tag `v<version>` and creates the GitHub release, with notes
    listing the features and fixes. The tag is pushed by PhoebusBot, since a
    tag pushed with the workflow's own token would not start other

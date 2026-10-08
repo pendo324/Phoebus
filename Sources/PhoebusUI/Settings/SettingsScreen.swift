@@ -151,7 +151,9 @@ public struct SettingsScreen: View {
             if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 GeometryReader { geo in
                 SettingsSearchResultsList(
-                    entries: SettingsSearch.results(for: searchText),
+                    // Update rows exist only in builds with a release channel.
+                    entries: SettingsSearch.results(for: searchText,
+                                                    available: BuildChannel.current != nil ? ["releaseChannel"] : []),
                     accountManager: accountManager,
                     repository: repository
                 )

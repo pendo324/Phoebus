@@ -312,6 +312,19 @@ Apollo or Reborn, add an entry here.
   link, widget, notification, quick action or Shortcut opens where it
   points instead. Neither Apollo nor Reborn has this; it is inspired by
   Continuum's resume.
+- **Update checks read Phoebus's AltStore source.** Reborn's in-app
+  update prompt (#1343) reads a release manifest and compares release
+  versions. Phoebus reads the AltStore source of the build's channel
+  (stable or nightly, stamped into `Info.plist` by CI) and compares build
+  numbers, since a nightly keeps the version of the release it builds on.
+  The notes are the source entry's description (a commit subject or a
+  link), builds without a channel (local and dev builds) never check, and
+  the sheet has no separate expanded notes view.
+- **The update installer can be chosen.** Reborn's update sheet always
+  opens its chooser. Phoebus adds Settings › About › Update Installer
+  (`Phoebus.updateInstaller`, default Ask Every Time): picking AltStore,
+  SideStore, Feather, FlareStore or Download IPA makes Update open it
+  directly, falling back to the chooser when it can't be opened.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

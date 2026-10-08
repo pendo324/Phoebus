@@ -110,6 +110,8 @@ extension ApolloSettingsMigration {
         "ApolloGalleryVideosMuted", "ScrollEdgeEffectStyle",
         // Automatic backups
         "AutomaticBackupsEnabled", "AutomaticBackupIntervalDays",
+        // In-app update prompt (#1343)
+        "AutomaticUpdateChecks",
         // Siri & Spotlight (#1299)
         "ApolloSiriContentEnabled",
     ]
@@ -126,6 +128,7 @@ extension ApolloSettingsMigration {
         "DateLastX": "timestamp", "DateOfLastRateUsageTimestamp2": "rate-limit timestamp",
         "DateOfLastSavedItemsFullRefresh": "cache timestamp",
         "DateOfLastScrollProgressBeam110-2": "timestamp", "DateOfLatestProReminder": "purchase prompt",
+        "UpdateLastCheck": "update-check throttle", "UpdateSkippedVersion": "skipped Reborn release; Phoebus skips by build",
         "LastReviewRequestDate": "review prompt", "ScrollDistanceMilestone2_Date": "timestamp",
         "SubmittedComment_Date": "timestamp", "WallpaperPromptMostRecent2": "prompt timestamp",
         "RatesUsedHistorically2": "API rate history", "RatesUsedInTimestamp2": "API rate history",
@@ -773,6 +776,10 @@ extension ApolloSettingsMigration {
         take("AutomaticBackupsEnabled", "Automatic Backups", bool) { backups.enabled = $0 }
         take("AutomaticBackupIntervalDays", "Backup Interval", int) { if $0 > 0 { backups.intervalDays = $0 } }
         AutomaticBackupSettingsStore.save(backups)
+
+        // MARK: Update checks
+
+        take("AutomaticUpdateChecks", "Automatic Update Checks", bool) { AppUpdatePolicy.automaticChecks.save($0) }
 
         // MARK: Siri & Spotlight
 

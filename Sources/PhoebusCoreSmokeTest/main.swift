@@ -1608,5 +1608,7 @@ try await checkProfileAvatarWebPage()
 
 try await checkMarkNSFWAndSpoiler()
 
+try await checkAppUpdatePrompt()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

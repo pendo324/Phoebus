@@ -59,15 +59,46 @@ public struct FlairActionModifier: ViewModifier {
 
     @State private var options: [RedditFlairOption] = []
     @State private var sprites: [String: FlairSpriteImage] = [:]
+    @State private var failure: Failure?
+
+    private struct Failure {
+        let title: String
+        let message: String
+    }
+
+    /// Saves (or clears) the flair and reports a refusal instead of
+    /// pretending it worked.
+    private func save(templateID: String?, text: String? = nil) {
+        Task {
+            do {
+                try await repository.selectFlair(
+                    subreddit: subreddit,
+                    templateID: templateID,
+                    linkFullname: linkFullname,
+                    username: username,
+                    text: text
+                )
+                onChanged()
+            } catch {
+                failure = Failure(title: "Couldn't Set Flair", message: UserFacingError.text(for: error))
+            }
+        }
+    }
 
     public func body(content: Content) -> some View {
         content
             .task(id: isPresented) {
                 guard isPresented, options.isEmpty else { return }
-                if let linkFullname {
-                    options = (try? await repository.fetchFlairOptions(forLink: linkFullname, subreddit: subreddit)) ?? []
-                } else if let username {
-                    options = (try? await repository.fetchUserFlairOptions(subreddit: subreddit, username: username)) ?? []
+                do {
+                    if let linkFullname {
+                        options = try await repository.fetchFlairOptions(forLink: linkFullname, subreddit: subreddit)
+                    } else if let username {
+                        options = try await repository.fetchUserFlairOptions(subreddit: subreddit, username: username)
+                    }
+                } catch {
+                    isPresented = false
+                    failure = Failure(title: "Couldn't Load Flair", message: UserFacingError.text(for: error))
+                    return
                 }
                 // Names show at once; sprites follow once the sheet is in.
                 sprites = await FlairSpriteImage.load(for: options, subreddit: subreddit, repository: repository)
@@ -80,31 +111,15 @@ public struct FlairActionModifier: ViewModifier {
                     currentFlairID: currentFlairID,
                     isModerator: isModerator,
                     sprites: sprites,
-                    onSelect: { option in
-                        Task {
-                            try? await repository.selectFlair(
-                                subreddit: subreddit,
-                                templateID: option.flairTemplateID,
-                                linkFullname: linkFullname,
-                                username: username,
-                                text: option.text
-                            )
-                            onChanged()
-                        }
-                    },
-                    onRemove: {
-                        Task {
-                            try? await repository.selectFlair(
-                                subreddit: subreddit,
-                                templateID: nil,
-                                linkFullname: linkFullname,
-                                username: username
-                            )
-                            onChanged()
-                        }
-                    }
+                    onSelect: { option in save(templateID: option.flairTemplateID, text: option.text) },
+                    onRemove: { save(templateID: nil) }
                 )
             )
+            .alert(failure?.title ?? "", isPresented: $failure.isPresent(), presenting: failure) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { failure in
+                Text(failure.message)
+            }
     }
 }
 

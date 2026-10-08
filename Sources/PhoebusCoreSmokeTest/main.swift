@@ -1484,6 +1484,12 @@ try await checkRebornBackupArchive()
 try await checkScrollPastTracker()
 try await checkMarkdownFormatting()
 try await checkStandardIconPacks()
+try await checkSiriContentCatalogue()
+try await checkSiriSpokenCommunityNames()
+try await checkSiriSessionContext()
+try await checkSiriCaptureAndPublication()
+try await checkSiriPublicationGate()
+try await checkSiriSettingsAndBackup()
 
 try await checkDeletedCommentRecoveryMustNotReplace()
 

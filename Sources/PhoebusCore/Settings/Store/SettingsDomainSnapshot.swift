@@ -30,6 +30,7 @@ public enum SettingsDomainSnapshot {
         "ChatMessagesUnreadOnly",
         "AutomaticBackupsEnabled",
         "AutomaticBackupIntervalDays",
+        "ApolloSiriContentEnabled",
         "PhoebusLiquidGlassEnabled",
         "CustomAIHeaders",
     ]

@@ -302,6 +302,8 @@ struct CommentTreeContent: View {
                             onAuthorTapped: { onAuthorTapped?(node.comment.author) },
                             onShareAsImage: shareAsImageAction(for: node.comment)
                         )
+                        // Reborn "Siri & Spotlight" (#1299): the comment, for onscreen context.
+                        .siriCommentContext(node.comment.name)
                         .onAppear {
                             // See `CommentTreeStore.visibleTopLevelRootID`: only depth-0 comments update
                             // this, since the floating collapse button targets a whole top-level thread.

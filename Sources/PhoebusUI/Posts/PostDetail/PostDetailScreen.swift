@@ -413,6 +413,8 @@ public struct PostDetailScreen: View {
         }
         // Closing this screen is the back-pop a floating PiP card answers.
         .floatingPiPScreenScope()
+        // Reborn "Siri & Spotlight" (#1299): this screen is about one post.
+        .siriPostActivity(fullName: post.name, title: post.title)
     }
 
     /// The single post header row, extracted from `body`: inlining it
@@ -434,6 +436,8 @@ public struct PostDetailScreen: View {
             onReply: { showingReplyComposer = true },
             aiSummary: aiSummary
         )
+        // Reborn "Siri & Spotlight" (#1299): the header row carries the post entity.
+        .siriPostContext(post.name)
         // Links opened from this post get the browser's comments button.
         .onAppear {
             InAppBrowserContext.set(postID: post.name) {

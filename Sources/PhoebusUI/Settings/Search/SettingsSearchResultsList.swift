@@ -14,7 +14,14 @@ struct SettingsSearchResultsList: View {
     let accountManager: AccountManager
     let repository: RedditRepository
 
+    /// Siri & Spotlight indexing needs iOS 27, so its screen isn't offered before.
+    private var visibleEntries: [SettingsSearchEntry] {
+        if #available(iOS 27.0, *) { return entries }
+        return entries.filter { $0.screen != .siriSpotlight }
+    }
+
     var body: some View {
+        let entries = visibleEntries
         if entries.isEmpty {
             ContentUnavailableViewIfAvailable(
                 title: "No Results",
@@ -107,6 +114,7 @@ struct SettingsSearchDestination: View {
         case .automaticBackup: AutomaticBackupSettingsScreen()
         case .accountsAPIKeys: AccountsAPIKeysScreen(accountManager: accountManager)
         case .clearTweakCaches: ClearTweakCachesScreen()
+        case .siriSpotlight: SiriSpotlightSettingsScreen()
         case .themeGallery:
             // The gallery needs a selection handler a search result cannot supply, so this
             // lands on the Theme screen that owns it.

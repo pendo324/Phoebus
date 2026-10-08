@@ -180,6 +180,7 @@ public final class AccountManager: ObservableObject {
         LinkPreviewFetcher.redditProvider = { linkPreviewRepository }
         ActiveRedditRepository.provider = { linkPreviewRepository }
         refreshMatureMediaPreference()
+        NotificationCenter.default.post(name: .apolloActiveAccountChanged, object: nil)
     }
 
     /// Re-reads the active account's "Blur mature media" pref (which "Blur NSFW

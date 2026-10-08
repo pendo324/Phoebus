@@ -19,6 +19,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Passcode", breadcrumb: "Settings", screen: .security),
         SettingsSearchEntry(title: "Portrait Lock", breadcrumb: "Settings", screen: .portraitLock),
         SettingsSearchEntry(title: "Accounts & API Keys", breadcrumb: "Settings → Apollo Reborn", screen: .accountsAPIKeys),
+        SettingsSearchEntry(title: "Siri & Spotlight", breadcrumb: "Settings → Apollo Reborn", screen: .siriSpotlight),
         SettingsSearchEntry(title: "Posts & Feeds", breadcrumb: "Settings → Apollo Reborn", screen: .postsFeeds),
         SettingsSearchEntry(title: "Comments", breadcrumb: "Settings → Apollo Reborn", screen: .comments),
         SettingsSearchEntry(title: "Media", breadcrumb: "Settings → Apollo Reborn", screen: .media),
@@ -303,5 +304,8 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Subreddit Layout", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Subreddit Layout"),
         SettingsSearchEntry(title: "Community Highlights", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Community Highlights"),
         SettingsSearchEntry(title: "All Menus", breadcrumb: "Settings → Apollo Reborn → Interface → Action Menus", screen: .actionMenus, rowTitle: "All Menus"),
+        SettingsSearchEntry(title: "Index Phoebus Content", breadcrumb: "Settings → Apollo Reborn → Siri & Spotlight", screen: .siriSpotlight, rowTitle: "Index Phoebus Content"),
+        SettingsSearchEntry(title: "Refresh Subscribed Communities", breadcrumb: "Settings → Apollo Reborn → Siri & Spotlight", screen: .siriSpotlight, rowTitle: "Refresh Subscribed Communities"),
+        SettingsSearchEntry(title: "Check Index Status", breadcrumb: "Settings → Apollo Reborn → Siri & Spotlight", screen: .siriSpotlight, rowTitle: "Check Index Status"),
     ]
 }

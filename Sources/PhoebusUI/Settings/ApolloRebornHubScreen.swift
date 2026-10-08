@@ -16,6 +16,7 @@ public struct ApolloRebornHubScreen: View {
     @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     @Setting(ApolloAISettings.self) private var apolloAISettings
     @Setting(NotificationBackendSettings.self) private var notificationBackendSettings
+    @Setting(SiriContentSettings.enabled) private var siriIndexingEnabled
     let accountManager: AccountManager
 
     @Setting(GeneralSettingsStore.storage) private var generalSettings
@@ -42,6 +43,7 @@ public struct ApolloRebornHubScreen: View {
     public var body: some View {
         List {
             setupSection
+            if #available(iOS 27.0, *) { siriSection }
             featuresSection
             shortcutsSection
             dataSection
@@ -93,6 +95,30 @@ public struct ApolloRebornHubScreen: View {
         } footer: {
             Text("Your Reddit sign-in credentials, plus optional Imgur, Giphy and Image Chest keys for uploads and GIFs.")
                     .apolloHubSectionFooter()
+        }
+    }
+
+    // MARK: - Siri & Spotlight
+
+    /// Reborn's opt-in Siri & Spotlight section (#1299), between Setup and
+    /// Features. The index needs iOS 27, so the section is hidden before it.
+    @available(iOS 27.0, *)
+    private var siriSection: some View {
+        Section {
+            SettingsNavigationRow {
+                SiriSpotlightSettingsScreen()
+            } label: {
+                HubRow(
+                    title: "Siri & Spotlight",
+                    subtitle: siriIndexingEnabled ? "On" : "Off",
+                    systemImage: "sparkle.magnifyingglass",
+                    tint: .purple)
+            }
+            // No rule under the section's last row when a footer follows.
+            .apolloSettingsRowInsets(rule: false)
+        } footer: {
+            Text("Find Phoebus posts and communities with Siri, Spotlight and Shortcuts. Content indexing is off until you enable it.")
+                .apolloHubSectionFooter()
         }
     }
 

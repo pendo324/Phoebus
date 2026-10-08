@@ -69,6 +69,8 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case accountsAPIKeys
     /// `Settings → Apollo Reborn → Clear Tweak Caches`.
     case clearTweakCaches
+    /// `Settings → Apollo Reborn → Siri & Spotlight` (iOS 27 and later).
+    case siriSpotlight
 }
 
 /// Settings search: matching and ranking, ported from Apollo-Reborn's

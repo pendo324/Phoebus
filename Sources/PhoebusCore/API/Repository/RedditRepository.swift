@@ -81,7 +81,11 @@ public actor RedditRepository {
     /// Fetch a post's comment tree. Reddit returns a 2-element array:
     /// [0] = the post listing (single item), [1] = comment listing.
     public func fetchComments(subreddit: String, postID: String, sort: String = "confidence") async throws -> Data {
-        try await client.get(path: Self.commentsPath(subreddit: subreddit, postID: postID), parameters: ["sort": sort])
+        let account = SiriContentCapture.activeAccount
+        let data = try await client.get(path: Self.commentsPath(subreddit: subreddit, postID: postID), parameters: ["sort": sort])
+        // Reborn "Siri & Spotlight" (#1299): the opened post and its loaded comments.
+        SiriContentCapture.commentsLoaded(data, requestedBy: account)
+        return data
     }
 
     /// Re-fetches a post's comment tree rooted at one comment.
@@ -96,10 +100,13 @@ public actor RedditRepository {
     /// response shape is identical to `fetchComments`, so the same
     /// builder consumes it.
     public func fetchCommentThread(subreddit: String, postID: String, commentID: String, sort: String = "confidence") async throws -> Data {
-        try await client.get(
+        let account = SiriContentCapture.activeAccount
+        let data = try await client.get(
             path: Self.commentsPath(subreddit: subreddit, postID: postID),
             parameters: ["sort": sort, "comment": commentID, "context": "0"]
         )
+        SiriContentCapture.commentsLoaded(data, requestedBy: account)
+        return data
     }
 
     /// Resolves a Reddit "more comments" continuation stub via
@@ -108,6 +115,7 @@ public actor RedditRepository {
     /// `CommentTreeBuilder` the same way a normal comments response
     /// is.
     public func fetchMoreChildren(linkFullname: String, childIDs: [String], sort: String = "confidence") async throws -> [JSONValue] {
+        let account = SiriContentCapture.activeAccount
         // POST, not GET: the child-id list can exceed a GET query
         // string's length. The `.json` suffix matters: over the
         // cookie transport this endpoint otherwise returns legacy
@@ -125,7 +133,9 @@ public actor RedditRepository {
             return []
         }
         let thingsData = try JSONSerialization.data(withJSONObject: things)
-        return try JSONDecoder.reddit.decode([JSONValue].self, from: thingsData)
+        let decoded = try JSONDecoder.reddit.decode([JSONValue].self, from: thingsData)
+        SiriContentCapture.moreCommentsLoaded(decoded, requestedBy: account)
+        return decoded
     }
 
     /// Fetch just the post itself, for call sites that only have a
@@ -172,6 +182,8 @@ public actor RedditRepository {
     /// The "hide" swipe action - removes a post from the user's
     /// default feed view.
     public func hide(fullname: String) async throws {
+        // Reborn "Siri & Spotlight" (#1299): removal starts when the person asks, even if the request fails.
+        SiriContentCapture.eligibilityChanged([fullname], allow: false)
         try await client.post(path: "/api/hide", parameters: ["id": fullname])
     }
 
@@ -179,6 +191,7 @@ public actor RedditRepository {
     /// list of fullnames, sent here in batches of 50 (Apollo's own
     /// batch size, every id included).
     public func hide(fullnames: [String]) async throws {
+        SiriContentCapture.eligibilityChanged(fullnames, allow: false)
         for start in stride(from: 0, to: fullnames.count, by: 50) {
             let batch = fullnames[start..<min(start + 50, fullnames.count)]
             try await client.post(path: "/api/hide", parameters: ["id": batch.joined(separator: ",")])
@@ -187,6 +200,7 @@ public actor RedditRepository {
 
     public func unhide(fullname: String) async throws {
         try await client.post(path: "/api/unhide", parameters: ["id": fullname])
+        SiriContentCapture.eligibilityChanged([fullname], allow: true)
     }
 
     /// Reports a post, comment, or user to the subreddit's moderators
@@ -227,6 +241,7 @@ public actor RedditRepository {
 
     /// Deletes your own post or comment.
     public func delete(fullname: String) async throws {
+        SiriContentCapture.eligibilityChanged([fullname], allow: false)
         try await client.post(path: "/api/del", parameters: ["id": fullname])
     }
 
@@ -284,10 +299,12 @@ public actor RedditRepository {
 
     /// Subscribes or unsubscribes from a subreddit.
     public func subscribe(subredditFullname: String, subscribe: Bool) async throws {
+        if !subscribe { SiriContentCapture.eligibilityChanged([subredditFullname], allow: false) }
         try await client.post(path: "/api/subscribe", parameters: [
             "sr": subredditFullname,
             "action": subscribe ? "sub" : "unsub",
         ])
+        if subscribe { SiriContentCapture.eligibilityChanged([subredditFullname], allow: true) }
         await Self.announce(SubscriptionChange(fullname: subredditFullname, subscribed: subscribe))
     }
 
@@ -303,10 +320,12 @@ public actor RedditRepository {
     /// parameter names Reddit's API accepts. Used where only the
     /// plain subreddit name is on hand (no fullname fetch needed).
     public func subscribe(subredditName: String, subscribe: Bool) async throws {
+        if !subscribe { SiriContentCapture.eligibilityChanged(["r/\(subredditName)"], allow: false) }
         try await client.post(path: "/api/subscribe", parameters: [
             "sr_name": subredditName,
             "action": subscribe ? "sub" : "unsub",
         ])
+        if subscribe { SiriContentCapture.eligibilityChanged(["r/\(subredditName)"], allow: true) }
         await Self.announce(SubscriptionChange(name: subredditName, subscribed: subscribe))
     }
 
@@ -588,6 +607,12 @@ public actor RedditRepository {
     /// this at 100 per page; this fetches all pages.
     public func fetchSubscribedSubreddits() async throws -> [RedditSubreddit] {
         try await fetchAllSubreddits(path: "/subreddits/mine/subscriber")
+    }
+
+    /// One page of the subscription list, for the explicit refresh of the
+    /// Siri & Spotlight index (Reborn #1299), which walks at most five.
+    public func fetchSubscribedSubredditsPage(after: String?) async throws -> RedditListing {
+        try await client.getListing(path: "/subreddits/mine/subscriber", after: after, limit: 100)
     }
 
     /// Every page of a subreddit listing. Bounded: Reddit caps these

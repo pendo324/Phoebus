@@ -110,6 +110,8 @@ extension ApolloSettingsMigration {
         "ApolloGalleryVideosMuted", "ScrollEdgeEffectStyle",
         // Automatic backups
         "AutomaticBackupsEnabled", "AutomaticBackupIntervalDays",
+        // Siri & Spotlight (#1299)
+        "ApolloSiriContentEnabled",
     ]
 
     /// Keys a backup carries that are deliberately not imported, with the reason,
@@ -767,6 +769,11 @@ extension ApolloSettingsMigration {
         take("AutomaticBackupsEnabled", "Automatic Backups", bool) { backups.enabled = $0 }
         take("AutomaticBackupIntervalDays", "Backup Interval", int) { if $0 > 0 { backups.intervalDays = $0 } }
         AutomaticBackupSettingsStore.save(backups)
+
+        // MARK: Siri & Spotlight
+
+        // The index follows the key; the content service clears or rebuilds it on the change.
+        take("ApolloSiriContentEnabled", "Siri & Spotlight Indexing", bool) { SiriContentSettings.enabled.save($0) }
     }
 
     /// Whether a property-list value is a real boolean. A plist `<true/>` bridges

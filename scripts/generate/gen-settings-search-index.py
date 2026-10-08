@@ -65,6 +65,7 @@ SCREEN_CASES = {
     "AutomaticBackupSettingsScreen": "automaticBackup",
     "AccountsAPIKeysScreen": "accountsAPIKeys",
     "ClearTweakCachesScreen": "clearTweakCaches",
+    "SiriSpotlightSettingsScreen": "siriSpotlight",
 }
 
 # Screen titles as the user sees them, taken from each file's

@@ -56,7 +56,7 @@ SMOKE_SKIP_IOS=1 scripts/smoke.sh       # must print "SMOKE: ok (N passed)"
 |---|---|
 | `PhoebusCore` | Foundation only; builds on Linux. Models, networking, settings stores, theming, pure policies. All testable logic goes here. |
 | `PhoebusUI` | Screens, components, media, gesture recognizers. A thin shell over Core policies. |
-| `Phoebus` | `PhoebusApp.swift`, `AppIntents.swift`. |
+| `Phoebus` | `PhoebusApp.swift`, `AppIntents.swift`, `Siri*.swift`. |
 | `PhoebusWidget`, `PhoebusOpenIn`, `PhoebusSafari` | Extensions. |
 | `PhoebusCoreSmokeTest` | The test suite: `main.swift` plus `Checks/<Area>.swift`. |
 

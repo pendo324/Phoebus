@@ -45,6 +45,25 @@ Apollo or Reborn, add an entry here.
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.
 
+## Siri & Spotlight
+
+- **It needs iOS 27 and builds into the app.** Reborn ships it as a
+  separate framework injected into Apollo; Phoebus compiles it into the app
+  target, and everything is gated on iOS 27 (the Siri & Spotlight section
+  of the Apollo Reborn settings and its search results are hidden before it).
+  Indexing is off until you turn it on, as in Reborn.
+- **"Search Apollo Posts" is not ported.** Reborn's second search action
+  fetched Reddit results into a Siri card. Phoebus has "Search Phoebus", which
+  opens the Search tab's post results, and "Find Indexed Phoebus Posts" for
+  what the device has already seen.
+- **Posts and comments are captured from responses, not from cells.** Reborn
+  collects the comments of the cells that have loaded; Phoebus reads the
+  listing and comment responses it already fetched (including "more
+  comments"), so the loaded comments are the fetched thread, up to the same
+  limits. Nothing extra is requested, except by Refresh Subscribed Communities.
+- **There is no `reborn/settings/siri-spotlight` link.** Phoebus has no
+  settings route URLs; the screen is in the hub and in Settings search.
+
 ## Crash reports
 
 - **Crash reports are reviewed and exported by you.** The review screen

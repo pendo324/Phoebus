@@ -272,8 +272,12 @@ public actor RedditAPIClient {
         var params = parameters
         params["limit"] = String(limit)
         if let after { params["after"] = after }
+        let account = SiriContentCapture.activeAccount
         let data = try await get(path: path, parameters: params)
-        return try JSONDecoder.reddit.decode(RedditListing.self, from: data)
+        let listing = try JSONDecoder.reddit.decode(RedditListing.self, from: data)
+        // Reborn "Siri & Spotlight" (#1299): loaded posts and subscriptions feed the index.
+        SiriContentCapture.listingLoaded(listing, requestedBy: account)
+        return listing
     }
 
     private static func validate(_ response: URLResponse, data: Data) throws {

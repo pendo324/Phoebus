@@ -40,6 +40,12 @@ struct PhoebusApp: App {
 
         // Reddit Chat's token comes from a real browser load.
         ChatTokenWebMinter.install()
+
+        // Reborn "Siri & Spotlight" (#1299): opt-in indexing of loaded posts
+        // and subscribed communities, for iOS 27.
+        if #available(iOS 27.0, *) {
+            MainActor.assumeIsolated { PhoebusContentBridge.start() }
+        }
     }
 
     var body: some Scene {
@@ -397,8 +403,25 @@ struct MainTabView: View {
             subredditsDestination = .home
         case .inbox: liquidGlassSelection = 1
         case .profile: liquidGlassSelection = 2
-        case .search: liquidGlassSelection = 3
+        case .search:
+            liquidGlassSelection = 3
+            if let query = QuickActionRouter.shared.pendingSearchQuery {
+                QuickActionRouter.shared.pendingSearchQuery = nil
+                openSearchResults(for: query)
+            }
         case .settings: liquidGlassSelection = 4
+        }
+    }
+
+    /// "Search Phoebus for …" (Siri): the post results for the query, on the
+    /// Search tab's own stack so back returns to the Search landing page.
+    private func openSearchResults(for query: String) {
+        let repository = repository
+        let view = AnyView(PostSearchScreen(subreddit: "", repository: repository, initialQuery: query))
+        searchNavigation.path = []
+        // Pushed on the next turn: in the same turn as the tab switch the stack isn't frontmost yet.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            searchNavigation.path = [SettingsRoute(view: view)]
         }
     }
 

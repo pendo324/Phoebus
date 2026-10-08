@@ -33,4 +33,6 @@ extension Notification.Name {
     public static let apolloSessionExpired = Notification.Name("apollo.sessionExpired")
     /// A backup restore wrote accounts straight to the keychain.
     public static let apolloAccountsRestored = Notification.Name("Phoebus.accountsRestored")
+    /// The active account was switched, added or removed.
+    public static let apolloActiveAccountChanged = Notification.Name("Phoebus.activeAccountChanged")
 }

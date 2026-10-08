@@ -288,6 +288,8 @@ struct PostRow: View {
         // Read posts are dimmed; the row owns this so it updates the
         // moment a post is marked read, not on the next feed reload.
         .opacity(isRead ? 0.5 : 1)
+        // Reborn "Siri & Spotlight" (#1299): the row's post, for onscreen context.
+        .siriPostContext(post.name)
         .onAppear { isRead = ReadPostStore.isRead(post.name) }
         .onReceive(NotificationCenter.default.publisher(for: .apolloReadPostsChanged)) { note in
             if (note.object as? String) == post.name { isRead = true }

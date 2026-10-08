@@ -139,10 +139,10 @@ iOS finds a bundle's App Intents through a `Metadata.appintents` folder
 inside it. Without it in the widget extension, each configurable widget
 fails with `CHSErrorDomain` 1103 ("Intent configuration is required but
 was not provided"); without it in the app, the app's intents (Open Home
-Feed, Open Subreddit, Open User Profile, Open Multireddit) and its App
-Shortcuts don't appear in Shortcuts, Siri or Spotlight. Xcode produces
-these with Apple's `appintentsmetadataprocessor`, which only exists on
-macOS, and xtool has no equivalent step.
+Feed, Open Subreddit, Open User Profile, Open Multireddit, and the Siri &
+Spotlight ones) and its App Shortcuts don't appear in Shortcuts, Siri or
+Spotlight. Xcode produces these with Apple's `appintentsmetadataprocessor`,
+which only exists on macOS, and xtool has no equivalent step.
 
 On Linux, `scripts/appintents-metadata.py` writes them instead.
 `scripts/build-app.sh` and `scripts/build-for-simulator.sh` run it for the
@@ -170,10 +170,7 @@ workflow, which proves the generator's support for those), and
 `scripts/appintents-metadata.py --self-test` (run by `scripts/smoke.sh`)
 checks that the generator matches Apple's output field for field; Apple's
 processor orders enums and some lists arbitrarily, so those are compared as
-sets. `Phoebus-Siri/` is the app's intents with entities, queries, the
-assistant schemas and the system intents, as Xcode 27 describes them; its
-const values also have to refuse the changes
-`--self-test` tries. When a target's intents change,
+sets. When a target's intents change,
 `add-appintents-metadata.sh` warns that the generator has not been checked
 against them.
 

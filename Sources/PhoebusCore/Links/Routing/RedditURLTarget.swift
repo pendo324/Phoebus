@@ -162,6 +162,9 @@ public final class QuickActionRouter {
     public var pending: QuickAction? {
         didSet { if pending != nil { NotificationCenter.default.post(name: .apolloQuickAction, object: nil) } }
     }
+    /// A search to run when `pending` is `.search` ("Search Phoebus for …"
+    /// from Siri, Reborn #1299). Set before `pending`.
+    public var pendingSearchQuery: String?
     private init() {}
 }
 

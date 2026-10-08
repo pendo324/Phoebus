@@ -104,7 +104,8 @@ public enum DedicatedAppLink {
 
 /// The four toggles Apollo-Reborn's "Open in App" screen shows: Bluesky,
 /// GitHub, Steam, YouTube. X/Twitter is absent since Apollo already ships
-/// a native "Open Tweets in" picker. Only the two Universal-Links services
+/// a native "Open Tweets in" picker; its "Open via Nitter" has its own
+/// section (`NitterInstances`). Only the two Universal-Links services
 /// carry a raw defaults key here; Steam and YouTube's actual state lives
 /// elsewhere (YouTube in `GeneralSettings`), so this enum must not add a
 /// second key for them or the toggle and the reader would disagree.

@@ -271,6 +271,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Add Header…", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Add Header…"),
         SettingsSearchEntry(title: "Clear AI Cache", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Clear AI Cache"),
         SettingsSearchEntry(title: "Export Phoebus AI Logs", breadcrumb: "Settings → Apollo Reborn → Phoebus AI", screen: .apolloAI, rowTitle: "Export Phoebus AI Logs"),
+        SettingsSearchEntry(title: "Open via Nitter", breadcrumb: "Settings → Apollo Reborn → Open in App", screen: .openInApp, rowTitle: "Open via Nitter"),
         SettingsSearchEntry(title: "Open Links in", breadcrumb: "Settings → Apollo Reborn → Open in App", screen: .openInApp, rowTitle: "Open Links in"),
         SettingsSearchEntry(title: "Enable Bulk Translation", breadcrumb: "Settings → Apollo Reborn → Translation", screen: .translation, rowTitle: "Enable Bulk Translation"),
         SettingsSearchEntry(title: "Translate Post Titles", breadcrumb: "Settings → Apollo Reborn → Translation", screen: .translation, rowTitle: "Translate Post Titles"),

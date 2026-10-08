@@ -76,6 +76,190 @@ import PhoebusCore
               == "vnd.youtube://dQw4w9WgXcQ")
 }
 
+// Reborn "Open via Nitter" (#1334): the rewrite, host validation, tracker
+// parsing, the instance cache, and where LinkRouter sends a tapped X link.
+@MainActor func checkNitterInstances() async throws {
+    func rewrite(_ input: String, to expected: String?, host: String = "nitter.example.org") {
+        let actual = NitterInstances.url(for: URL(string: input)!, instanceHost: host)?.absoluteString
+        check("Nitter rewrite \(input) -> \(expected ?? "nil")", actual == expected)
+    }
+    func normalized(_ input: String?, to expected: String?) {
+        check("Nitter host '\(input ?? "nil")' -> \(expected ?? "nil")", NitterInstances.normalizeHost(input) == expected)
+    }
+
+    // Posts and profiles on every web front door; tracking params dropped.
+    rewrite("https://x.com/jack/status/20?s=20&t=abc", to: "https://nitter.example.org/jack/status/20")
+    rewrite("https://twitter.com/jack", to: "https://nitter.example.org/jack")
+    rewrite("https://mobile.twitter.com/jack/status/20", to: "https://nitter.example.org/jack/status/20")
+    rewrite("https://www.x.com/jack/status/20/photo/1", to: "https://nitter.example.org/jack/status/20/photo/1")
+    rewrite("http://X.com/Jack/status/20#frag", to: "https://nitter.example.org/Jack/status/20")
+    rewrite("https://x.com", to: "https://nitter.example.org/")
+    rewrite("https://x.com/hashtag/apollo?src=hashtag_click", to: "https://nitter.example.org/hashtag/apollo")
+
+    // Supported /i/ routes pass through; others keep normal routing.
+    rewrite("https://x.com/i/status/20", to: "https://nitter.example.org/i/status/20")
+    rewrite("https://x.com/i/web/status/20", to: "https://nitter.example.org/i/web/status/20")
+    rewrite("https://x.com/i/spaces/1abc", to: "https://nitter.example.org/i/spaces/1abc")
+    rewrite("https://x.com/i/lists/123", to: "https://nitter.example.org/i/lists/123")
+    rewrite("https://x.com/i/bookmarks", to: nil)
+    rewrite("https://x.com/i", to: nil)
+
+    // X app pages and non-front-door hosts are left alone.
+    rewrite("https://x.com/home", to: nil)
+    rewrite("https://x.com/explore", to: nil)
+    rewrite("https://x.com/messages", to: nil)
+    rewrite("https://x.com/intent/post?text=hi", to: nil)
+    rewrite("https://help.x.com/en/rules", to: nil)
+    rewrite("https://api.x.com/graphql", to: nil)
+    rewrite("https://t.co/abc", to: nil)
+    rewrite("https://example.com/jack/status/20", to: nil)
+    rewrite("twitter://status?id=20", to: nil)
+
+    // Search keeps its query text and maps the people tab.
+    rewrite("https://x.com/search?q=apollo%20app&src=typed_query", to: "https://nitter.example.org/search?f=tweets&q=apollo%20app")
+    rewrite("https://x.com/search?q=apollo&f=user", to: "https://nitter.example.org/search?f=users&q=apollo")
+    rewrite("https://x.com/search", to: "https://nitter.example.org/search")
+    rewrite("https://x.com/search?q=a%26b%3Dc", to: "https://nitter.example.org/search?f=tweets&q=a%26b%3Dc")
+
+    // Instance ports carry over; a plain-http instance is opened over http.
+    rewrite("https://x.com/jack", to: "https://nitter.example.org:8443/jack", host: "nitter.example.org:8443")
+    check("an empty instance rewrites nothing", NitterInstances.url(for: URL(string: "https://x.com/jack")!, instanceHost: "") == nil)
+    check("no instance rewrites nothing", NitterInstances.url(for: URL(string: "https://x.com/jack")!, instanceHost: nil) == nil)
+    rewrite("https://x.com/jack/status/20?s=20", to: "http://192.168.1.5:8080/jack/status/20", host: "http://192.168.1.5:8080")
+    rewrite("https://x.com/jack", to: "http://nitter.lan.example/jack", host: "http://nitter.lan.example")
+
+    // Host normalization.
+    normalized("nitter.example.org", to: "nitter.example.org")
+    normalized("  Nitter.Example.ORG  ", to: "nitter.example.org")
+    normalized("https://nitter.example.org/foo?bar=1", to: "nitter.example.org")
+    normalized("http://nitter.example.org", to: "http://nitter.example.org")
+    normalized("HTTP://192.168.1.5:8080/", to: "http://192.168.1.5:8080")
+    normalized("http://nitter.example.org:80", to: "http://nitter.example.org")
+    normalized("http://nitter.example.org:443", to: "http://nitter.example.org:443")
+    normalized("https://nitter.example.org:80", to: "nitter.example.org:80")
+    normalized("http://x.com", to: nil)
+    normalized("nitter.example.org:8443", to: "nitter.example.org:8443")
+    normalized("https://nitter.example.org:443", to: "nitter.example.org")
+    normalized("x.com", to: nil)
+    normalized("https://mobile.twitter.com", to: nil)
+    normalized("not a host", to: nil)
+    normalized("localhost", to: nil)
+    normalized("-bad.example.org", to: nil)
+    normalized("ftp://nitter.example.org", to: nil)
+    normalized("user:pass@nitter.example.org", to: nil)
+    normalized("", to: nil)
+    normalized(nil, to: nil)
+
+    // Tracker parsing: healthy only, sorted by points, malformed skipped.
+    let payload = """
+        {"hosts":[
+        {"domain":"slow.example.org","healthy":true,"points":38,"ping_avg":3969},
+        {"domain":"down.example.org","healthy":false,"points":0,"ping_avg":null},
+        {"domain":"best.example.org","healthy":true,"points":78,"ping_avg":866},
+        {"domain":"BEST.example.org","healthy":true,"points":10},
+        {"domain":42,"healthy":true},
+        "junk",
+        {"domain":"x.com","healthy":true,"points":99},
+        {"domain":"http://plain.example.org","healthy":true,"points":90}
+        ],"last_update":"2026-10-01T18:11:47Z"}
+        """
+    let parsed = NitterInstances.parseInstanceList(Data(payload.utf8))
+    check("Nitter tracker parse keeps the 2 healthy https hosts", parsed?.count == 2)
+    check("Nitter tracker parse sorts by points and reads fields",
+          parsed?.first == NitterInstances.Instance(host: "best.example.org", points: 78, averagePingMilliseconds: 866))
+    check("Nitter tracker parse keeps the lower-scored host last", parsed?.last?.host == "slow.example.org")
+    check("Nitter tracker parse rejects a non-object", NitterInstances.parseInstanceList(Data("[]".utf8)) == nil)
+    check("Nitter tracker parse rejects HTML", NitterInstances.parseInstanceList(Data("<html>429</html>".utf8)) == nil)
+    check("Nitter tracker parse accepts an empty list", NitterInstances.parseInstanceList(Data("{\"hosts\":[]}".utf8))?.isEmpty == true)
+    check("Nitter tracker parse rejects no data", NitterInstances.parseInstanceList(nil) == nil)
+
+    // Settings: off by default, and an empty or invalid host keeps it off even when toggled on.
+    let defaults = UserDefaults(suiteName: "phoebus.smoke.nitter")!
+    defaults.removePersistentDomain(forName: "phoebus.smoke.nitter")
+    check("Nitter keys are Reborn's",
+          NitterInstances.enabledKey == "OpenTwitterLinksViaNitter" && NitterInstances.hostKey == "NitterInstanceHost")
+    check("Open via Nitter is off by default", NitterInstances.activeHost(defaults: defaults) == nil)
+    defaults.set(true, forKey: NitterInstances.enabledKey)
+    check("the toggle alone, with no host, stays off", NitterInstances.activeHost(defaults: defaults) == nil)
+    defaults.set("not a host", forKey: NitterInstances.hostKey)
+    check("an invalid saved host stays off", NitterInstances.activeHost(defaults: defaults) == nil)
+    defaults.set("Nitter.Example.org", forKey: NitterInstances.hostKey)
+    check("a saved host with the toggle on is active", NitterInstances.activeHost(defaults: defaults) == "nitter.example.org")
+    check("the rewrite reads the saved settings",
+          NitterInstances.rewrittenURL(for: URL(string: "https://x.com/jack/status/20?s=20")!, defaults: defaults)?.absoluteString
+            == "https://nitter.example.org/jack/status/20")
+    defaults.set(false, forKey: NitterInstances.enabledKey)
+    check("a saved host with the toggle off is inactive", NitterInstances.activeHost(defaults: defaults) == nil)
+    check("...but the saved host is still readable for the picker", NitterInstances.savedHost(defaults: defaults) == "nitter.example.org")
+    defaults.removePersistentDomain(forName: "phoebus.smoke.nitter")
+
+    // LinkRouter: Nitter wins over an X client, follows the browser choice, and
+    // leaves pages Nitter can't serve on the normal route.
+    var general = GeneralSettings.default
+    general.openTwitterLinksIn = .twitterApp
+    let inApp = ExternalBrowserSettings.default
+    let chrome = ExternalBrowserSettings(preferredBrowser: .chrome)
+    let tweet = URL(string: "https://x.com/jack/status/20?s=20")!
+    let nitterTweet = URL(string: "https://nitter.example.org/jack/status/20")!
+    check("Nitter on + In-App Safari opens the Nitter page in-app",
+          LinkRouter.route(tweet, general: general, browser: inApp, nitterHost: "nitter.example.org") == .inApp(nitterTweet))
+    check("Nitter on + another browser opens the Nitter page externally",
+          LinkRouter.route(tweet, general: general, browser: chrome, nitterHost: "nitter.example.org") == .externalBrowser(nitterTweet))
+    check("Nitter off still sends the tweet to the X app",
+          LinkRouter.route(tweet, general: general, browser: inApp, nitterHost: nil) == .twitterApp(tweet, client: .twitterApp))
+    check("a page Nitter can't serve keeps the normal X route",
+          LinkRouter.route(URL(string: "https://x.com/home")!, general: general, browser: inApp, nitterHost: "nitter.example.org")
+            == .twitterApp(URL(string: "https://x.com/home")!, client: .twitterApp))
+    check("a non-X link is untouched by Nitter",
+          LinkRouter.route(URL(string: "https://example.com/a")!, general: general, browser: inApp, nitterHost: "nitter.example.org")
+            == .inApp(URL(string: "https://example.com/a")!))
+
+    // The instance directory: one shared request, then a 15 minute reuse.
+    final class Clock: @unchecked Sendable { var date = Date(timeIntervalSince1970: 1_000) }
+    actor Counter { var count = 0; func bump() { count += 1 } }
+    let clock = Clock()
+    let counter = Counter()
+    let directory = NitterInstanceDirectory(now: { clock.date }, fetch: {
+        await counter.bump()
+        try await Task.sleep(nanoseconds: 50_000_000)
+        return (Data(payload.utf8), 200)
+    })
+    async let first = directory.healthyInstances()
+    async let second = directory.healthyInstances()
+    let both = try await [first, second]
+    let sharedRequests = await counter.count
+    check("concurrent picker opens share one tracker request", sharedRequests == 1 && both[0] == both[1] && both[0].count == 2)
+    clock.date.addTimeInterval(NitterInstanceDirectory.cacheLifetime - 1)
+    _ = try await directory.healthyInstances()
+    let reusedRequests = await counter.count
+    check("the list is reused inside 15 minutes", reusedRequests == 1)
+    clock.date.addTimeInterval(2)
+    _ = try await directory.healthyInstances()
+    let refetchedRequests = await counter.count
+    check("the list is refetched after 15 minutes", refetchedRequests == 2)
+
+    let failing = NitterInstanceDirectory(fetch: { (Data("<html>429</html>".utf8), 429) })
+    var failure: NitterInstanceDirectory.TrackerError?
+    do { _ = try await failing.healthyInstances() } catch let error as NitterInstanceDirectory.TrackerError { failure = error }
+    check("a 429 from the tracker is an error, not an empty list", failure?.message.contains("429") == true)
+
+    // Reborn backups carry both keys; a host that no longer validates is dropped.
+    let standard = UserDefaults.standard
+    let savedEnabled = standard.object(forKey: NitterInstances.enabledKey)
+    let savedHost = standard.object(forKey: NitterInstances.hostKey)
+    _ = ApolloSettingsMigration.apply(.init(preferences: [
+        NitterInstances.enabledKey: true, NitterInstances.hostKey: "https://Nitter.Example.org/x",
+    ]))
+    check("a backup's Nitter toggle and host are imported",
+          standard.bool(forKey: NitterInstances.enabledKey) && standard.string(forKey: NitterInstances.hostKey) == "nitter.example.org")
+    standard.removeObject(forKey: NitterInstances.hostKey)
+    _ = ApolloSettingsMigration.apply(.init(preferences: [NitterInstances.hostKey: "x.com"]))
+    check("a backup's invalid Nitter host is not imported", standard.string(forKey: NitterInstances.hostKey) == nil)
+    for (key, value) in [(NitterInstances.enabledKey, savedEnabled), (NitterInstances.hostKey, savedHost)] {
+        if let value { standard.set(value, forKey: key) } else { standard.removeObject(forKey: key) }
+    }
+}
+
 @MainActor func checkDefaultRedditToLoadChoice() async throws {
     let choices: [DefaultRedditToLoadChoice] = [.redditsList, .home, .popular, .all, .subreddit("apple"),
                                                 .multireddit(path: "/user/me/m/tech", name: "tech")]

@@ -35,7 +35,8 @@ public actor RedGifsClient {
         // /v2/gifs/<id> request or the token is rejected.
         var request = URLRequest(url: URL(string: "https://api.redgifs.com/v2/auth/temporary")!)
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        let (data, _) = try await session.data(for: request)
+        let (data, status) = try await send(request)
+        if let failure = RedGifsError.failure(status: status, data: data) { throw failure }
         let response = try JSONDecoder().decode(TokenResponse.self, from: data)
         cachedToken = response.token
         // The JWT's exp is typically ~24h out; refresh hourly to stay well
@@ -55,6 +56,9 @@ public actor RedGifsClient {
     /// A token only works from the IP that minted it (Wi-Fi/cellular switch,
     /// VPN, IPv6 rotation), so a 401 mints a fresh token and retries once
     /// (Reborn #1256).
+    ///
+    /// Failures are thrown as `RedGifsError` where the cause is known
+    /// (Reborn #1359).
     public func resolvePlayableURL(forID rawID: String) async throws -> URL {
         // The v2 API only knows lowercase ids; a CamelCase id in a watch link 404s.
         let id = rawID.lowercased()
@@ -64,6 +68,7 @@ public actor RedGifsClient {
             tokenExpiration = nil
             (data, status) = try await fetchGif(id: id, token: try await validToken())
         }
+        if let failure = RedGifsError.failure(status: status, data: data) { throw failure }
         let response = try JSONDecoder().decode(GifResponse.self, from: data)
         let candidates = [response.gif.urls.hd, response.gif.urls.sd]
             .compactMap { $0.flatMap(URL.init(string:)) }
@@ -88,8 +93,17 @@ public actor RedGifsClient {
         var request = URLRequest(url: URL(string: "https://api.redgifs.com/v2/gifs/\(id)")!)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
-        let (data, response) = try await session.data(for: request)
-        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+        return try await send(request)
+    }
+
+    /// Performs `request`, naming a network failure as `RedGifsError.unreachable`.
+    private func send(_ request: URLRequest) async throws -> (Data, Int) {
+        do {
+            let (data, response) = try await session.data(for: request)
+            return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+        } catch {
+            throw RedGifsError.failure(transport: error) ?? error
+        }
     }
 
     /// Whether RedGIFs refused the token itself (upstream retries on 401 only).
@@ -118,8 +132,81 @@ public actor RedGifsClient {
     }
 }
 
-public enum RedGifsError: Error {
+/// Why a RedGIFs post failed to load. Reborn "RedGIFs failure reasons" (#1359):
+/// the messages are what Reborn titles its failure card with.
+public enum RedGifsError: Error, Equatable {
     case noPlayableURL
+    case deleted
+    case notFound
+    case regionBlocked
+    case unreachable
+    /// An image post: the player only shows videos.
+    case image
+    case httpStatus(Int)
+
+    /// Names the failure of an API answer, or nil for a usable one. RedGIFs'
+    /// own error code in the body wins over the status if they ever disagree.
+    public static func failure(status: Int, data: Data) -> RedGifsError? {
+        if status >= 400 {
+            switch apiErrorCode(in: data) {
+            case "GifDeleted": return .deleted
+            case "GifNotFound": return .notFound
+            default: break
+            }
+            switch status {
+            case 404: return .notFound
+            case 410: return .deleted
+            case 451: return .regionBlocked
+            default: return .httpStatus(status)
+            }
+        }
+        if (200..<300).contains(status), isImageRecord(data) { return .image }
+        return nil
+    }
+
+    /// Names a transport failure (no route, DNS, dropped connection, TLS,
+    /// offline). Cancellation isn't one: it says nothing about RedGIFs.
+    public static func failure(transport error: Error) -> RedGifsError? {
+        guard let code = (error as? URLError)?.code else { return nil }
+        switch code {
+        case .timedOut, .cannotFindHost, .cannotConnectToHost, .networkConnectionLost,
+             .dnsLookupFailed, .notConnectedToInternet, .internationalRoamingOff,
+             .callIsActive, .dataNotAllowed, .secureConnectionFailed,
+             .serverCertificateHasBadDate, .serverCertificateUntrusted,
+             .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid,
+             .clientCertificateRejected, .clientCertificateRequired, .cannotLoadFromNetwork:
+            return .unreachable
+        default:
+            return nil
+        }
+    }
+
+    /// RedGIFs' error body: {"error":{"code":"GifDeleted","description":"..."}}.
+    private static func apiErrorCode(in data: Data) -> String? {
+        let json = try? JSONSerialization.jsonObject(with: data)
+        return ((json as? [String: Any])?["error"] as? [String: Any])?["code"] as? String
+    }
+
+    /// A lookup answer for an image (type 2); it has no mp4 renditions.
+    private static func isImageRecord(_ data: Data) -> Bool {
+        let json = try? JSONSerialization.jsonObject(with: data)
+        let gif = (json as? [String: Any])?["gif"] as? [String: Any]
+        return (gif?["type"] as? NSNumber)?.intValue == 2
+    }
+}
+
+extension RedGifsError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .noPlayableURL: return nil
+        case .deleted: return "Removed from RedGIFs"
+        case .notFound: return "Not found on RedGIFs"
+        case .regionBlocked: return "RedGIFs isn't available in your region"
+        case .unreachable: return "Can't reach RedGIFs"
+        case .image: return "Can't show RedGIFs images"
+        case .httpStatus(let status): return "RedGIFs error (HTTP \(status))"
+        }
+    }
 }
 
 /// Gfycat ID extraction, so gfycat.com links are recognized as

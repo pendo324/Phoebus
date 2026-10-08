@@ -1,0 +1,6078 @@
+[
+ {
+  "typeName": "Phoebus.OpenSubredditIntent",
+  "mangledTypeName": "7Phoebus19OpenSubredditIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 7,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus19OpenSubredditIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus19OpenSubredditIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_subredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 13,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 8,
+    "valueKind": "RawLiteral",
+    "value": "Open Subreddit"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 9,
+    "valueKind": "RawLiteral",
+    "value": "Opens a subreddit in Phoebus."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 10,
+    "valueKind": "RawLiteral",
+    "value": "true"
+   },
+   {
+    "label": "subredditName",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 13,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 12,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$subredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 13,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 21,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenSubredditIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenSubredditIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open r/"
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$subredditName",
+           "rootType": "Phoebus.OpenSubredditIntent",
+           "components": [
+            {
+             "label": "$subredditName",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenHomeIntent",
+  "mangledTypeName": "7Phoebus14OpenHomeIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 32,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus14OpenHomeIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus08OpenHomeC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 33,
+    "valueKind": "RawLiteral",
+    "value": "Open Home Feed"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 34,
+    "valueKind": "RawLiteral",
+    "value": "Opens your Phoebus home feed."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 35,
+    "valueKind": "RawLiteral",
+    "value": "true"
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenUserIntent",
+  "mangledTypeName": "7Phoebus14OpenUserIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 46,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus14OpenUserIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus14OpenUserIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_username",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 52,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Username"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 47,
+    "valueKind": "RawLiteral",
+    "value": "Open User Profile"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 48,
+    "valueKind": "RawLiteral",
+    "value": "Opens a Reddit user's profile in Phoebus."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 49,
+    "valueKind": "RawLiteral",
+    "value": "true"
+   },
+   {
+    "label": "username",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 52,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Username"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 51,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Username"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$username",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 52,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 60,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenUserIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenUserIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open u/"
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$username",
+           "rootType": "Phoebus.OpenUserIntent",
+           "components": [
+            {
+             "label": "$username",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenMultiredditIntent",
+  "mangledTypeName": "7Phoebus21OpenMultiredditIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 72,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus21OpenMultiredditIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus21OpenMultiredditIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_multiredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 78,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Multireddit Name"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 73,
+    "valueKind": "RawLiteral",
+    "value": "Open Multireddit"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 74,
+    "valueKind": "RawLiteral",
+    "value": "Opens a multireddit in Phoebus."
+   },
+   {
+    "label": "openAppWhenRun",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 75,
+    "valueKind": "RawLiteral",
+    "value": "true"
+   },
+   {
+    "label": "multiredditName",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 78,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Multireddit Name"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/AppIntents.swift",
+      "line": 77,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Multireddit Name"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$multiredditName",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 78,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 86,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.OpenMultiredditIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.OpenMultiredditIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Open multireddit "
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$multiredditName",
+           "rootType": "Phoebus.OpenMultiredditIntent",
+           "components": [
+            {
+             "label": "$multiredditName",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusShortcuts",
+  "mangledTypeName": "7Phoebus0A9ShortcutsV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/AppIntents.swift",
+  "line": 120,
+  "conformances": [
+   "AppIntents.AppShortcutsProvider",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppShortcutsProvider",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [],
+  "properties": [
+   {
+    "label": "appShortcuts",
+    "type": "Swift.Array<AppIntents.AppShortcut>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/AppIntents.swift",
+    "line": 121,
+    "valueKind": "Builder",
+    "value": {
+     "type": "AppIntents.AppShortcutsBuilder",
+     "members": [
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenHomeIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenHomeIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenHomeIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open my "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": " feed"
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Home Feed"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "house"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenSubredditIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenSubredditIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenSubredditIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open a subreddit in "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": ""
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Subreddit"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "text.bubble"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "AppIntents.AppShortcut",
+         "arguments": [
+          {
+           "label": "intent",
+           "type": "Phoebus.OpenMultiredditIntent",
+           "valueKind": "InitCall",
+           "value": {
+            "type": "Phoebus.OpenMultiredditIntent",
+            "arguments": []
+           }
+          },
+          {
+           "label": "phrases",
+           "type": "Swift.Array<AppIntents.AppShortcutPhrase<Phoebus.OpenMultiredditIntent>>",
+           "valueKind": "Array",
+           "value": [
+            {
+             "valueKind": "InterpolatedStringLiteral",
+             "value": {
+              "segments": [
+               {
+                "valueKind": "RawLiteral",
+                "value": "Open a multireddit in "
+               },
+               {
+                "valueKind": "Enum",
+                "value": {
+                 "name": "applicationName"
+                }
+               },
+               {
+                "valueKind": "RawLiteral",
+                "value": ""
+               }
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "label": "shortTitle",
+           "type": "Foundation.LocalizedStringResource",
+           "valueKind": "RawLiteral",
+           "value": "Open Multireddit"
+          },
+          {
+           "label": "systemImageName",
+           "type": "Swift.String",
+           "valueKind": "RawLiteral",
+           "value": "rectangle.stack"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusPostEntity",
+  "mangledTypeName": "7Phoebus0A10PostEntityV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 12,
+  "conformances": [
+   "AppIntents.IndexedEntity",
+   "AppIntents.AppEntity",
+   "AppIntents.AppValue",
+   "AppIntents.DisplayRepresentable",
+   "Swift.Identifiable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.InstanceDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "CoreTransferable.Transferable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.IndexedEntity",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppEntity",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Identifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.InstanceDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "CoreTransferable.Transferable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "DefaultQuery",
+    "substitutedTypeName": "Phoebus.PhoebusPostQuery",
+    "substitutedMangledTypeName": "7Phoebus0A9PostQueryV"
+   },
+   {
+    "typeAliasName": "ID",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "Phoebus.PhoebusPostEntity",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "Phoebus.PhoebusPostEntity",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "AppIntents.EmptyResolverSpecification<Phoebus.PhoebusPostEntity>",
+    "substitutedMangledTypeName": "10AppIntents26EmptyResolverSpecificationVy7Phoebus0F10PostEntityVG"
+   },
+   {
+    "typeAliasName": "Representation",
+    "substitutedTypeName": "some CoreTransferable.TransferRepresentation",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV22transferRepresentationQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "CoreTransferable.TransferRepresentation"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "id",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 20,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "expiresAt",
+    "type": "Foundation.Date",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 21,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "_title",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 22,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Title"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_subreddit",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 23,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_author",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 24,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Author"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_text",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 27,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Text"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "textContent",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "textContent",
+          "type": "Swift.Optional<Swift.String>"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "label": "_createdAt",
+    "type": "AppIntents.EntityProperty<Foundation.Date>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 28,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.Date>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Posted"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "contentCreationDate",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "contentCreationDate",
+          "type": "Swift.Optional<Foundation.Date>"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "label": "_webURL",
+    "type": "AppIntents.EntityProperty<Foundation.URL>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 30,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.URL>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Link"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "url",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "url",
+          "type": "Swift.Optional<Foundation.URL>"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "label": "_score",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 31,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Score"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_commentCount",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 32,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Comment Count"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_linkDomain",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 33,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Linked Site"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_loadedComments",
+    "type": "AppIntents.EntityProperty<Swift.Array<Phoebus.PhoebusCommentEntity>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 50,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Array<Phoebus.PhoebusCommentEntity>>",
+     "arguments": [
+      {
+       "label": "identifier",
+       "type": "Swift.String",
+       "valueKind": "RawLiteral",
+       "value": "loadedComments"
+      },
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Loaded Comments"
+      },
+      {
+       "label": "asyncGetter",
+       "type": "@Sendable (Phoebus.PhoebusPostEntity) async throws -> Swift.Array<Phoebus.PhoebusCommentEntity>",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 16,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Reddit Post"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         },
+         {
+          "valueKind": "Enum",
+          "value": {
+           "name": "int"
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": " Reddit posts"
+         }
+        ]
+       }
+      },
+      {
+       "label": "synonyms",
+       "type": "Swift.Array<Foundation.LocalizedStringResource>",
+       "valueKind": "Array",
+       "value": [
+        {
+         "valueKind": "RawLiteral",
+         "value": "Post"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "Reddit Thread"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "Thread"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "label": "defaultQuery",
+    "type": "Phoebus.PhoebusPostQuery",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 19,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "Phoebus.PhoebusPostQuery",
+     "arguments": []
+    }
+   },
+   {
+    "label": "title",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 22,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Title"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 22,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Title"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$title",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 22,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "subreddit",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 23,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 23,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$subreddit",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 23,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "author",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 24,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Author"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 24,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Author"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$author",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 24,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "text",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 27,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Text"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "textContent",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "textContent",
+          "type": "Swift.Optional<Swift.String>"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 27,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Text"
+       },
+       {
+        "label": "indexingKey",
+        "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+        "valueKind": "KeyPath",
+        "value": {
+         "path": "textContent",
+         "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+         "components": [
+          {
+           "label": "textContent",
+           "type": "Swift.Optional<Swift.String>"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$text",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 27,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "createdAt",
+    "type": "Foundation.Date",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 28,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.Date>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Posted"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "contentCreationDate",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "contentCreationDate",
+          "type": "Swift.Optional<Foundation.Date>"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 28,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Posted"
+       },
+       {
+        "label": "indexingKey",
+        "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+        "valueKind": "KeyPath",
+        "value": {
+         "path": "contentCreationDate",
+         "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+         "components": [
+          {
+           "label": "contentCreationDate",
+           "type": "Swift.Optional<Foundation.Date>"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$createdAt",
+    "type": "AppIntents.EntityProperty<Foundation.Date>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 28,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "webURL",
+    "type": "Foundation.URL",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 30,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.URL>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Link"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "url",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "url",
+          "type": "Swift.Optional<Foundation.URL>"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 30,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Link"
+       },
+       {
+        "label": "indexingKey",
+        "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+        "valueKind": "KeyPath",
+        "value": {
+         "path": "url",
+         "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+         "components": [
+          {
+           "label": "url",
+           "type": "Swift.Optional<Foundation.URL>"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$webURL",
+    "type": "AppIntents.EntityProperty<Foundation.URL>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 30,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "score",
+    "type": "Swift.Optional<Swift.Int>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 31,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Score"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 31,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Score"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$score",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 31,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "commentCount",
+    "type": "Swift.Optional<Swift.Int>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 32,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Comment Count"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 32,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Comment Count"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$commentCount",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 32,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "linkDomain",
+    "type": "Swift.Optional<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 33,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Linked Site"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 33,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Linked Site"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$linkDomain",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 33,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "loadedComments",
+    "type": "Swift.Array<Phoebus.PhoebusCommentEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 40,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "displayRepresentation",
+    "type": "AppIntents.DisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 63,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.DisplayRepresentation",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         },
+         {
+          "valueKind": "Runtime"
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "subtitle",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "r/"
+         },
+         {
+          "valueKind": "Runtime"
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": " · u/"
+         },
+         {
+          "valueKind": "Runtime"
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "image",
+       "type": "Swift.Optional<AppIntents.DisplayRepresentation.Image>",
+       "valueKind": "InitCall",
+       "value": {
+        "type": "Swift.Optional<AppIntents.DisplayRepresentation.Image>",
+        "arguments": [
+         {
+          "label": "systemName",
+          "type": "Swift.String",
+          "valueKind": "RawLiteral",
+          "value": "text.bubble"
+         },
+         {
+          "label": "tintColor",
+          "type": "Swift.Optional<UIKit.UIColor>",
+          "valueKind": "NilLiteral"
+         },
+         {
+          "label": "symbolConfiguration",
+          "type": "Swift.Optional<UIKit.UIImage.SymbolConfiguration>",
+          "valueKind": "NilLiteral"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "label": "attributeSet",
+    "type": "CoreSpotlight.CSSearchableItemAttributeSet",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 68,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "transferRepresentation",
+    "type": "some CoreTransferable.TransferRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 91,
+    "valueKind": "Builder",
+    "value": {
+     "type": "CoreTransferable.TransferRepresentationBuilder<Self>",
+     "members": [
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "CoreTransferable.ProxyRepresentation<Phoebus.PhoebusPostEntity, Foundation.URL>",
+         "arguments": [
+          {
+           "label": "exporting",
+           "type": "@Sendable (Phoebus.PhoebusPostEntity) throws -> Foundation.URL",
+           "valueKind": "Runtime"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "CoreTransferable.DataRepresentation<Phoebus.PhoebusPostEntity>",
+         "arguments": [
+          {
+           "label": "exportedContentType",
+           "type": "UniformTypeIdentifiers.UTType",
+           "valueKind": "MemberReference",
+           "value": {
+            "baseType": "UniformTypeIdentifiers.UTType",
+            "memberLabel": "plainText"
+           }
+          },
+          {
+           "label": "exporting",
+           "type": "@Sendable (Phoebus.PhoebusPostEntity) async throws -> Foundation.Data",
+           "valueKind": "Runtime"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusCommentEntity",
+  "mangledTypeName": "7Phoebus0A13CommentEntityV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 102,
+  "conformances": [
+   "AppIntents.AppEntity",
+   "AppIntents.AppValue",
+   "AppIntents.DisplayRepresentable",
+   "Swift.Identifiable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.InstanceDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "CoreTransferable.Transferable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppEntity",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Identifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.InstanceDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "CoreTransferable.Transferable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "DefaultQuery",
+    "substitutedTypeName": "Phoebus.PhoebusCommentQuery",
+    "substitutedMangledTypeName": "7Phoebus0A12CommentQueryV"
+   },
+   {
+    "typeAliasName": "ID",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "Phoebus.PhoebusCommentEntity",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "Phoebus.PhoebusCommentEntity",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "AppIntents.EmptyResolverSpecification<Phoebus.PhoebusCommentEntity>",
+    "substitutedMangledTypeName": "10AppIntents26EmptyResolverSpecificationVy7Phoebus0F13CommentEntityVG"
+   },
+   {
+    "typeAliasName": "Representation",
+    "substitutedTypeName": "some CoreTransferable.TransferRepresentation",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV22transferRepresentationQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "CoreTransferable.TransferRepresentation"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "id",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 107,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "_body",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 108,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Text"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_author",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 109,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Author"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_score",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 110,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Score"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_isOriginalPoster",
+    "type": "AppIntents.EntityProperty<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 111,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Written by Original Poster"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_depth",
+    "type": "AppIntents.EntityProperty<Swift.Int>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 112,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Int>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Reply Depth"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_createdAt",
+    "type": "AppIntents.EntityProperty<Foundation.Date>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 113,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.Date>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Posted"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_subreddit",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 114,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_webURL",
+    "type": "AppIntents.EntityProperty<Foundation.URL>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 115,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.URL>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Link"
+      }
+     ]
+    }
+   },
+   {
+    "label": "shownAs",
+    "type": "AppIntents.DisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 118,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 103,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Reddit Comment"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         },
+         {
+          "valueKind": "Enum",
+          "value": {
+           "name": "int"
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": " Reddit comments"
+         }
+        ]
+       }
+      },
+      {
+       "label": "synonyms",
+       "type": "Swift.Array<Foundation.LocalizedStringResource>",
+       "valueKind": "Array",
+       "value": [
+        {
+         "valueKind": "RawLiteral",
+         "value": "Comment"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "Reply"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "label": "defaultQuery",
+    "type": "Phoebus.PhoebusCommentQuery",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 106,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "Phoebus.PhoebusCommentQuery",
+     "arguments": []
+    }
+   },
+   {
+    "label": "body",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 108,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Text"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 108,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Text"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$body",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 108,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "author",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 109,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Author"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 109,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Author"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$author",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 109,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "score",
+    "type": "Swift.Optional<Swift.Int>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 110,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Score"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 110,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Score"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$score",
+    "type": "AppIntents.EntityProperty<Swift.Optional<Swift.Int>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 110,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "isOriginalPoster",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 111,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Written by Original Poster"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 111,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Written by Original Poster"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$isOriginalPoster",
+    "type": "AppIntents.EntityProperty<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 111,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "depth",
+    "type": "Swift.Int",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 112,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.Int>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Reply Depth"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 112,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Reply Depth"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$depth",
+    "type": "AppIntents.EntityProperty<Swift.Int>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 112,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "createdAt",
+    "type": "Foundation.Date",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 113,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.Date>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Posted"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 113,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Posted"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$createdAt",
+    "type": "AppIntents.EntityProperty<Foundation.Date>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 113,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "subreddit",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 114,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 114,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$subreddit",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 114,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "webURL",
+    "type": "Foundation.URL",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 115,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Foundation.URL>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Link"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 115,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Link"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$webURL",
+    "type": "AppIntents.EntityProperty<Foundation.URL>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 115,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "displayRepresentation",
+    "type": "AppIntents.DisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 133,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "transferRepresentation",
+    "type": "some CoreTransferable.TransferRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 140,
+    "valueKind": "Builder",
+    "value": {
+     "type": "CoreTransferable.TransferRepresentationBuilder<Self>",
+     "members": [
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "CoreTransferable.ProxyRepresentation<Phoebus.PhoebusCommentEntity, Foundation.URL>",
+         "arguments": [
+          {
+           "label": "exporting",
+           "type": "@Sendable (Phoebus.PhoebusCommentEntity) throws -> Foundation.URL",
+           "valueKind": "Runtime"
+          }
+         ]
+        }
+       }
+      },
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "CoreTransferable.DataRepresentation<Phoebus.PhoebusCommentEntity>",
+         "arguments": [
+          {
+           "label": "exportedContentType",
+           "type": "UniformTypeIdentifiers.UTType",
+           "valueKind": "MemberReference",
+           "value": {
+            "baseType": "UniformTypeIdentifiers.UTType",
+            "memberLabel": "plainText"
+           }
+          },
+          {
+           "label": "exporting",
+           "type": "@Sendable (Phoebus.PhoebusCommentEntity) async throws -> Foundation.Data",
+           "valueKind": "Runtime"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusSubredditEntity",
+  "mangledTypeName": "7Phoebus0A15SubredditEntityV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 147,
+  "conformances": [
+   "AppIntents.IndexedEntity",
+   "AppIntents.AppEntity",
+   "AppIntents.AppValue",
+   "AppIntents.DisplayRepresentable",
+   "Swift.Identifiable",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents.TypeDisplayRepresentable",
+   "AppIntents._IntentValue",
+   "Swift.Sendable",
+   "AppIntents.InstanceDisplayRepresentable",
+   "Swift.SendableMetatype",
+   "Foundation.CustomLocalizedStringResourceConvertible",
+   "CoreTransferable.Transferable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.IndexedEntity",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppEntity",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Identifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.TypeDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._IntentValue",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.InstanceDisplayRepresentable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "CoreTransferable.Transferable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "DefaultQuery",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditQuery",
+    "substitutedMangledTypeName": "7Phoebus0A14SubredditQueryV"
+   },
+   {
+    "typeAliasName": "ID",
+    "substitutedTypeName": "Swift.String",
+    "substitutedMangledTypeName": "SS"
+   },
+   {
+    "typeAliasName": "ValueType",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditEntity",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV"
+   },
+   {
+    "typeAliasName": "UnwrappedType",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditEntity",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV"
+   },
+   {
+    "typeAliasName": "Specification",
+    "substitutedTypeName": "AppIntents.EmptyResolverSpecification<Phoebus.PhoebusSubredditEntity>",
+    "substitutedMangledTypeName": "10AppIntents26EmptyResolverSpecificationVy7Phoebus0F15SubredditEntityVG"
+   },
+   {
+    "typeAliasName": "Representation",
+    "substitutedTypeName": "some CoreTransferable.TransferRepresentation",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV22transferRepresentationQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "CoreTransferable.TransferRepresentation"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "id",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 154,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "expiresAt",
+    "type": "Foundation.Date",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 155,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "webURL",
+    "type": "Foundation.URL",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 156,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "_name",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 157,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Name"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_summary",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 158,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Description"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "contentDescription",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "contentDescription",
+          "type": "Swift.Optional<Swift.String>"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "label": "aliases",
+    "type": "Swift.Array<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 161,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "shownAs",
+    "type": "AppIntents.DisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 162,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "typeDisplayRepresentation",
+    "type": "AppIntents.TypeDisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 150,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.TypeDisplayRepresentation",
+     "arguments": [
+      {
+       "label": "name",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "numericFormat",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         },
+         {
+          "valueKind": "Enum",
+          "value": {
+           "name": "int"
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": " subreddits"
+         }
+        ]
+       }
+      },
+      {
+       "label": "synonyms",
+       "type": "Swift.Array<Foundation.LocalizedStringResource>",
+       "valueKind": "Array",
+       "value": [
+        {
+         "valueKind": "RawLiteral",
+         "value": "Community"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "Sub"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "Reddit Community"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "label": "defaultQuery",
+    "type": "Phoebus.PhoebusSubredditQuery",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 153,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "Phoebus.PhoebusSubredditQuery",
+     "arguments": []
+    }
+   },
+   {
+    "label": "name",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 157,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Name"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 157,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Name"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$name",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 157,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "summary",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 158,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.EntityProperty<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Description"
+      },
+      {
+       "label": "indexingKey",
+       "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+       "valueKind": "KeyPath",
+       "value": {
+        "path": "contentDescription",
+        "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+        "components": [
+         {
+          "label": "contentDescription",
+          "type": "Swift.Optional<Swift.String>"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.EntityProperty",
+      "file": "Sources/Phoebus/SiriEntities.swift",
+      "line": 158,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Description"
+       },
+       {
+        "label": "indexingKey",
+        "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+        "valueKind": "KeyPath",
+        "value": {
+         "path": "contentDescription",
+         "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+         "components": [
+          {
+           "label": "contentDescription",
+           "type": "Swift.Optional<Swift.String>"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$summary",
+    "type": "AppIntents.EntityProperty<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 158,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "displayRepresentation",
+    "type": "AppIntents.DisplayRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 181,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "attributeSet",
+    "type": "CoreSpotlight.CSSearchableItemAttributeSet",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 183,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "transferRepresentation",
+    "type": "some CoreTransferable.TransferRepresentation",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriEntities.swift",
+    "line": 196,
+    "valueKind": "Builder",
+    "value": {
+     "type": "CoreTransferable.TransferRepresentationBuilder<Self>",
+     "members": [
+      {
+       "kind": "buildExpression",
+       "element": {
+        "valueKind": "InitCall",
+        "value": {
+         "type": "CoreTransferable.ProxyRepresentation<Phoebus.PhoebusSubredditEntity, Foundation.URL>",
+         "arguments": [
+          {
+           "label": "exporting",
+           "type": "@Sendable (Phoebus.PhoebusSubredditEntity) throws -> Foundation.URL",
+           "valueKind": "Runtime"
+          }
+         ]
+        }
+       }
+      }
+     ]
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusCommentQuery",
+  "mangledTypeName": "7Phoebus0A12CommentQueryV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 202,
+  "conformances": [
+   "AppIntents.EntityStringQuery",
+   "AppIntents.EntityQuery",
+   "AppIntents.DynamicOptionsProvider",
+   "AppIntents.PersistentlyIdentifiable",
+   "Swift.Sendable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.SendableMetatype",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.EntityStringQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.EntityQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DynamicOptionsProvider",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "Entity",
+    "substitutedTypeName": "Phoebus.PhoebusCommentEntity",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusCommentEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A13CommentEntityVG"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusCommentEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A13CommentEntityVG"
+   },
+   {
+    "typeAliasName": "DefaultValue",
+    "substitutedTypeName": "Phoebus.PhoebusCommentEntity",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV"
+   }
+  ],
+  "properties": [],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusPostQuery",
+  "mangledTypeName": "7Phoebus0A9PostQueryV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 219,
+  "conformances": [
+   "AppIntents.EntityStringQuery",
+   "AppIntents.IndexedEntityQuery",
+   "AppIntents.EntityQuery",
+   "AppIntents.DynamicOptionsProvider",
+   "AppIntents.PersistentlyIdentifiable",
+   "Swift.Sendable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.SendableMetatype",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.EntityStringQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.IndexedEntityQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.EntityQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DynamicOptionsProvider",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "Entity",
+    "substitutedTypeName": "Phoebus.PhoebusPostEntity",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusPostEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A10PostEntityVG"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusPostEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A10PostEntityVG"
+   },
+   {
+    "typeAliasName": "DefaultValue",
+    "substitutedTypeName": "Phoebus.PhoebusPostEntity",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV"
+   }
+  ],
+  "properties": [],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusSubredditQuery",
+  "mangledTypeName": "7Phoebus0A14SubredditQueryV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriEntities.swift",
+  "line": 248,
+  "conformances": [
+   "AppIntents.EntityStringQuery",
+   "AppIntents.IndexedEntityQuery",
+   "AppIntents.EntityQuery",
+   "AppIntents.DynamicOptionsProvider",
+   "AppIntents.PersistentlyIdentifiable",
+   "Swift.Sendable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.SendableMetatype",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.EntityStringQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.IndexedEntityQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.EntityQuery",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.DynamicOptionsProvider",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "Entity",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditEntity",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusSubredditEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A15SubredditEntityVG"
+   },
+   {
+    "typeAliasName": "Result",
+    "substitutedTypeName": "Swift.Array<Phoebus.PhoebusSubredditEntity>",
+    "substitutedMangledTypeName": "Say7Phoebus0A15SubredditEntityVG"
+   },
+   {
+    "typeAliasName": "DefaultValue",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditEntity",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV"
+   }
+  ],
+  "properties": [],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenPhoebusPostIntent",
+  "mangledTypeName": "7Phoebus04OpenA10PostIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 15,
+  "conformances": [
+   "AppIntents.AssistantSchemaIntent",
+   "AppIntents.AssistantIntent",
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype",
+   "AppIntents.OpenIntent",
+   "AppIntents.SystemIntent"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AssistantSchemaIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AssistantIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.OpenIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.SystemIntent",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus04OpenA10PostIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus04Openf4PostC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "Value",
+    "substitutedTypeName": "Phoebus.PhoebusPostEntity",
+    "substitutedMangledTypeName": "7Phoebus0A10PostEntityV"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusPostEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 21,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusPostEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Post"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusPostEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which post?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 16,
+    "valueKind": "RawLiteral",
+    "value": "Open Phoebus Post"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 17,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "foreground"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 18,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "target",
+    "type": "Phoebus.PhoebusPostEntity",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 21,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusPostEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Post"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusPostEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which post?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 20,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Post"
+       },
+       {
+        "label": "requestValueDialog",
+        "type": "Swift.Optional<AppIntents.IntentDialog>",
+        "valueKind": "RawLiteral",
+        "value": "Which post?"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusPostEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 21,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "__appSchemaIntent",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 43,
+    "valueKind": "RawLiteral",
+    "value": "system.open"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenPhoebusSubscribedSubredditIntent",
+  "mangledTypeName": "7Phoebus04OpenA25SubscribedSubredditIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 53,
+  "conformances": [
+   "AppIntents.AssistantSchemaIntent",
+   "AppIntents.AssistantIntent",
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype",
+   "AppIntents.OpenIntent",
+   "AppIntents.SystemIntent"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AssistantSchemaIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AssistantIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.OpenIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.SystemIntent",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus04OpenA25SubscribedSubredditIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus04Openf19SubscribedSubredditC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "Value",
+    "substitutedTypeName": "Phoebus.PhoebusSubredditEntity",
+    "substitutedMangledTypeName": "7Phoebus0A15SubredditEntityV"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusSubredditEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 59,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusSubredditEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusSubredditEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which subreddit?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 54,
+    "valueKind": "RawLiteral",
+    "value": "Open Subscribed Phoebus Community"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 55,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "foreground"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 56,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "target",
+    "type": "Phoebus.PhoebusSubredditEntity",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 59,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusSubredditEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Subreddit"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusSubredditEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which subreddit?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 58,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Subreddit"
+       },
+       {
+        "label": "requestValueDialog",
+        "type": "Swift.Optional<AppIntents.IntentDialog>",
+        "valueKind": "RawLiteral",
+        "value": "Which subreddit?"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusSubredditEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 59,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "__appSchemaIntent",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 81,
+    "valueKind": "RawLiteral",
+    "value": "system.open"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.OpenPhoebusCommentIntent",
+  "mangledTypeName": "7Phoebus04OpenA13CommentIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 91,
+  "conformances": [
+   "AppIntents.AssistantSchemaIntent",
+   "AppIntents.AssistantIntent",
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype",
+   "AppIntents.OpenIntent",
+   "AppIntents.SystemIntent"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AssistantSchemaIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AssistantIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.OpenIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.SystemIntent",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus04OpenA13CommentIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus04Openf7CommentC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "Value",
+    "substitutedTypeName": "Phoebus.PhoebusCommentEntity",
+    "substitutedMangledTypeName": "7Phoebus0A13CommentEntityV"
+   }
+  ],
+  "properties": [
+   {
+    "label": "_target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusCommentEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 97,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusCommentEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Comment"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusCommentEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which comment?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 92,
+    "valueKind": "RawLiteral",
+    "value": "Open Phoebus Comment"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 93,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "foreground"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 94,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "target",
+    "type": "Phoebus.PhoebusCommentEntity",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 97,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Phoebus.PhoebusCommentEntity>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Comment"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Phoebus.PhoebusCommentEntity>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "RawLiteral",
+       "value": "Which comment?"
+      },
+      {
+       "label": "requestDisambiguationDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 96,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Comment"
+       },
+       {
+        "label": "requestValueDialog",
+        "type": "Swift.Optional<AppIntents.IntentDialog>",
+        "valueKind": "RawLiteral",
+        "value": "Which comment?"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$target",
+    "type": "AppIntents.IntentParameter<Phoebus.PhoebusCommentEntity>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 97,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "__appSchemaIntent",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 119,
+    "valueKind": "RawLiteral",
+    "value": "system.open"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.SearchPhoebusIntent",
+  "mangledTypeName": "7Phoebus06SearchA6IntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 133,
+  "conformances": [
+   "AppIntents.ShowInAppSearchResultsIntent",
+   "AppIntents.SystemIntent",
+   "AppIntents.AssistantSchemaIntent",
+   "AppIntents.AssistantIntent",
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.ShowInAppSearchResultsIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.SystemIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AssistantSchemaIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AssistantIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "Criteria",
+    "substitutedTypeName": "AppIntents.StringSearchCriteria",
+    "substitutedMangledTypeName": "10AppIntents20StringSearchCriteriaV"
+   },
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.IntentResult",
+    "substitutedMangledTypeName": "7Phoebus06SearchA6IntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.IntentResult"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus06SearchA6IntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_criteria",
+    "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 143,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+     "arguments": [
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 134,
+    "valueKind": "RawLiteral",
+    "value": "Search Phoebus"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 135,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentDescription",
+     "arguments": [
+      {
+       "label": "",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Searches Reddit in Phoebus and shows the results in its search screen."
+      },
+      {
+       "label": "categoryName",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "searchKeywords",
+       "type": "Swift.Array<Foundation.LocalizedStringResource>",
+       "valueKind": "Array",
+       "value": [
+        {
+         "valueKind": "RawLiteral",
+         "value": "search"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "find"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "look up"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "reddit"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "posts"
+        },
+        {
+         "valueKind": "RawLiteral",
+         "value": "subreddit"
+        }
+       ]
+      }
+     ]
+    }
+   },
+   {
+    "label": "searchScopes",
+    "type": "Swift.Array<AppIntents.StringSearchScope>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 138,
+    "valueKind": "Array",
+    "value": [
+     {
+      "valueKind": "Enum",
+      "value": {
+       "name": "general"
+      }
+     }
+    ]
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 139,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "foreground"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 140,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "criteria",
+    "type": "AppIntents.StringSearchCriteria",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 143,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+     "arguments": [
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 142,
+      "arguments": []
+     }
+    ]
+   },
+   {
+    "label": "$criteria",
+    "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 143,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 145,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.SearchPhoebusIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.SearchPhoebusIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Search Phoebus for "
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$criteria",
+           "rootType": "Phoebus.SearchPhoebusIntent",
+           "components": [
+            {
+             "label": "$criteria",
+             "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   },
+   {
+    "label": "__appSchemaIntent",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 166,
+    "valueKind": "RawLiteral",
+    "value": "system.searchInApp"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.SetPhoebusContentIndexingIntent",
+  "mangledTypeName": "7Phoebus03SetA21ContentIndexingIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 175,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.ProvidesDialog",
+    "substitutedMangledTypeName": "7Phoebus03SetA21ContentIndexingIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ProvidesDialog"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus03SetA21ContentIndexingIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_enabled",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 182,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Enabled"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 176,
+    "valueKind": "RawLiteral",
+    "value": "Set Phoebus Content Indexing"
+   },
+   {
+    "label": "description",
+    "type": "AppIntents.IntentDescription",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 177,
+    "valueKind": "RawLiteral",
+    "value": "Make eligible public posts loaded in Phoebus and subscribed communities searchable in Spotlight. Turning off removes this content index. Private, NSFW and hidden content is excluded."
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 178,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "background"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 179,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "enabled",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 182,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Bool>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Enabled"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Bool>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "displayName",
+       "type": "Swift.Optional<Swift.Bool.IntentDisplayName>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 181,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Enabled"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$enabled",
+    "type": "AppIntents.IntentParameter<Swift.Bool>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 182,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 184,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.SetPhoebusContentIndexingIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.SetPhoebusContentIndexingIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Set Phoebus content indexing to "
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$enabled",
+           "rootType": "Phoebus.SetPhoebusContentIndexingIntent",
+           "components": [
+            {
+             "label": "$enabled",
+             "type": "AppIntents.IntentParameter<Swift.Bool>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusContentIndexStatusIntent",
+  "mangledTypeName": "7Phoebus0A24ContentIndexStatusIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 197,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.ProvidesDialog & AppIntents.ReturnsValue<Swift.String>",
+    "substitutedMangledTypeName": "7Phoebus0A24ContentIndexStatusIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ProvidesDialog",
+     "AppIntents.ReturnsValue"
+    ],
+    "opaqueTypeSameTypeRequirements": [
+     {
+      "typeAliasName": "AppIntents.IntentResult.Value",
+      "substitutedTypeName": "Swift.String",
+      "substitutedMangledTypeName": "SS"
+     }
+    ]
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus0f18ContentIndexStatusC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 198,
+    "valueKind": "RawLiteral",
+    "value": "Phoebus Content Index Status"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 199,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "background"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 200,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.FindIndexedPhoebusPostsIntent",
+  "mangledTypeName": "7Phoebus011FindIndexedA11PostsIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 209,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.ProvidesDialog & AppIntents.ReturnsValue<Swift.Array<Phoebus.PhoebusPostEntity>> & AppIntents.ShowsSnippetIntent",
+    "substitutedMangledTypeName": "7Phoebus011FindIndexedA11PostsIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ProvidesDialog",
+     "AppIntents.ReturnsValue",
+     "AppIntents.ShowsSnippetIntent"
+    ],
+    "opaqueTypeSameTypeRequirements": [
+     {
+      "typeAliasName": "AppIntents.IntentResult.Value",
+      "substitutedTypeName": "Swift.Array<Phoebus.PhoebusPostEntity>",
+      "substitutedMangledTypeName": "Say7Phoebus0A10PostEntityVG"
+     }
+    ]
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "7Phoebus011FindIndexedA11PostsIntentV16parameterSummaryQrvpZQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_query",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 215,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Search"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 210,
+    "valueKind": "RawLiteral",
+    "value": "Find Indexed Phoebus Posts"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 211,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "background"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 212,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "query",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 215,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Search"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 214,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Search"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$query",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 215,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "parameterSummary",
+    "type": "some AppIntents.ParameterSummary",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 217,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameterSummary<Phoebus.FindIndexedPhoebusPostsIntent>",
+     "arguments": [
+      {
+       "label": "",
+       "type": "AppIntents.ParameterSummaryString<Phoebus.FindIndexedPhoebusPostsIntent>",
+       "valueKind": "InterpolatedStringLiteral",
+       "value": {
+        "segments": [
+         {
+          "valueKind": "RawLiteral",
+          "value": "Find indexed Phoebus posts matching "
+         },
+         {
+          "valueKind": "KeyPath",
+          "value": {
+           "path": "$query",
+           "rootType": "Phoebus.FindIndexedPhoebusPostsIntent",
+           "components": [
+            {
+             "label": "$query",
+             "type": "AppIntents.IntentParameter<Swift.String>"
+            }
+           ]
+          }
+         },
+         {
+          "valueKind": "RawLiteral",
+          "value": ""
+         }
+        ]
+       }
+      },
+      {
+       "label": "table",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      }
+     ]
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.RefreshPhoebusSubscriptionsIntent",
+  "mangledTypeName": "7Phoebus07RefreshA19SubscriptionsIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 235,
+  "conformances": [
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype",
+   "Swift.BitwiseCopyable"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.BitwiseCopyable",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.ProvidesDialog",
+    "substitutedMangledTypeName": "7Phoebus07RefreshA19SubscriptionsIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ProvidesDialog"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus07Refreshf13SubscriptionsC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 236,
+    "valueKind": "RawLiteral",
+    "value": "Refresh Phoebus Subscriptions Index"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 237,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "background"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 238,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ },
+ {
+  "typeName": "Phoebus.PhoebusPostResultsSnippetIntent",
+  "mangledTypeName": "7Phoebus0A24PostResultsSnippetIntentV",
+  "kind": "struct",
+  "file": "Sources/Phoebus/SiriIntents.swift",
+  "line": 249,
+  "conformances": [
+   "AppIntents.SnippetIntent",
+   "AppIntents.AppIntent",
+   "AppIntents.PersistentlyIdentifiable",
+   "AppIntents._SupportsAppDependencies",
+   "Swift.Sendable",
+   "Swift.SendableMetatype"
+  ],
+  "allConformances": [
+   {
+    "protocolName": "AppIntents.SnippetIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.AppIntent",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents.PersistentlyIdentifiable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "AppIntents._SupportsAppDependencies",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.Sendable",
+    "conformanceDefiningModule": "Phoebus"
+   },
+   {
+    "protocolName": "Swift.SendableMetatype",
+    "conformanceDefiningModule": "Phoebus"
+   }
+  ],
+  "associatedTypeAliases": [
+   {
+    "typeAliasName": "PerformResult",
+    "substitutedTypeName": "some AppIntents.ShowsSnippetView",
+    "substitutedMangledTypeName": "7Phoebus0A24PostResultsSnippetIntentV7performQryYaKFQOy_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ShowsSnippetView"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   },
+   {
+    "typeAliasName": "SummaryContent",
+    "substitutedTypeName": "some AppIntents.ParameterSummary",
+    "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy7Phoebus0f18PostResultsSnippetC0V_Qo_",
+    "opaqueTypeProtocolRequirements": [
+     "AppIntents.ParameterSummary"
+    ],
+    "opaqueTypeSameTypeRequirements": []
+   }
+  ],
+  "properties": [
+   {
+    "label": "_identifiers",
+    "type": "AppIntents.IntentParameter<Swift.Array<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 256,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Array<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Post identifiers"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Array<Swift.String>>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "_account",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 259,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Account scope"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    }
+   },
+   {
+    "label": "title",
+    "type": "Foundation.LocalizedStringResource",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 250,
+    "valueKind": "RawLiteral",
+    "value": "Phoebus Post Results"
+   },
+   {
+    "label": "isDiscoverable",
+    "type": "Swift.Bool",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "false",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 251,
+    "valueKind": "RawLiteral",
+    "value": "false"
+   },
+   {
+    "label": "supportedModes",
+    "type": "AppIntents.IntentModes",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 252,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentModes",
+     "memberLabel": "background"
+    }
+   },
+   {
+    "label": "allowedExecutionTargets",
+    "type": "AppIntents.IntentExecutionTargets",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "true",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 253,
+    "valueKind": "MemberReference",
+    "value": {
+     "baseType": "AppIntents.IntentExecutionTargets",
+     "memberLabel": "main"
+    }
+   },
+   {
+    "label": "identifiers",
+    "type": "Swift.Array<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 256,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.Array<Swift.String>>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Post identifiers"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.Array<Swift.String>>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 255,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Post identifiers"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$identifiers",
+    "type": "AppIntents.IntentParameter<Swift.Array<Swift.String>>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 256,
+    "valueKind": "Runtime"
+   },
+   {
+    "label": "account",
+    "type": "Swift.String",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 259,
+    "valueKind": "InitCall",
+    "value": {
+     "type": "AppIntents.IntentParameter<Swift.String>",
+     "arguments": [
+      {
+       "label": "title",
+       "type": "Foundation.LocalizedStringResource",
+       "valueKind": "RawLiteral",
+       "value": "Account scope"
+      },
+      {
+       "label": "description",
+       "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "default",
+       "type": "Swift.Optional<Swift.String>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputOptions",
+       "type": "Swift.Optional<Swift.String.IntentInputOptions>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "requestValueDialog",
+       "type": "Swift.Optional<AppIntents.IntentDialog>",
+       "valueKind": "NilLiteral"
+      },
+      {
+       "label": "inputConnectionBehavior",
+       "type": "AppIntents.InputConnectionBehavior",
+       "valueKind": "Runtime"
+      }
+     ]
+    },
+    "propertyWrappers": [
+     {
+      "type": "AppIntents.IntentParameter",
+      "file": "Sources/Phoebus/SiriIntents.swift",
+      "line": 258,
+      "arguments": [
+       {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "valueKind": "RawLiteral",
+        "value": "Account scope"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "label": "$account",
+    "type": "AppIntents.IntentParameter<Swift.String>",
+    "mangledTypeName": "n/a - deprecated",
+    "isStatic": "false",
+    "isComputed": "true",
+    "file": "Sources/Phoebus/SiriIntents.swift",
+    "line": 259,
+    "valueKind": "Runtime"
+   }
+  ],
+  "availabilityAttributes": [
+   {
+    "platform": "iOS",
+    "introducedVersion": "27.0",
+    "isUnavailable": false,
+    "isDeprecated": false
+   }
+  ]
+ }
+]

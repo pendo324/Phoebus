@@ -209,6 +209,9 @@ Apollo or Reborn, add an entry here.
 
 ## Settings and interface
 
+- **Deleting your own post asks first.** Delete Post in the post's ••• menu
+  shows a "Delete Post?" alert. Apollo's strings hold no such prompt, but a
+  delete cannot be undone.
 - **Header Style has an "Automatic" option** that follows the system.
   This is a Phoebus addition.
 - **Comment Filters is a Phoebus addition.** Settings → Filters & Blocks →

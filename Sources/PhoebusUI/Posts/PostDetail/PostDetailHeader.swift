@@ -52,6 +52,9 @@ struct PostDetailHeader: View {
     /// Drives the inline AI summary cards. Optional so the header
     /// still renders standalone in previews.
     var aiSummary: AISummaryController?
+    /// The post's ••• rows, arranged by the Action Menus layout; touch and
+    /// hold on the header shows the same rows. Reborn "Action Menus" (#1282).
+    var overflowMenu: AnyView?
     @ObservedObject private var voteStore = VoteStateStore.shared
     /// Recolours the author after a Follow/Unfollow (`AuthorHighlight`).
     @ObservedObject private var followedRevision = FollowedUsernamesRevision.shared
@@ -61,10 +64,10 @@ struct PostDetailHeader: View {
     @Setting(InfoRowSettings.self) private var infoRow
     @Setting(VoteCountSettings.self) private var voteCounts
     @State private var selfTextCollapsed = false
-    @State private var isEditing = false
+    /// Owned by `PostDetailScreen`, whose ••• menu offers Edit Post and Delete Post.
+    @Binding private var isEditing: Bool
     @State private var editedText: String
-    @State private var isOwnPost = false
-    @State private var isDeleted = false
+    @Binding private var isDeleted: Bool
     @State private var showingTagEditor = false
     /// The body as last saved from the editor, shown until the post
     /// is reloaded (the post passed in still has the old text).
@@ -75,8 +78,11 @@ struct PostDetailHeader: View {
     /// With this device's own vote, as the feed row shows it.
     private var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }
 
-    init(post: RedditPost, repository: RedditRepository, onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil, aiSummary: AISummaryController? = nil) {
+    init(post: RedditPost, repository: RedditRepository, onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil, aiSummary: AISummaryController? = nil, overflowMenu: AnyView? = nil, isEditing: Binding<Bool> = .constant(false), isDeleted: Binding<Bool> = .constant(false)) {
         self.onReply = onReply
+        self.overflowMenu = overflowMenu
+        _isEditing = isEditing
+        _isDeleted = isDeleted
         self.aiSummary = aiSummary
         self.post = post
         self.onJumpToComments = onJumpToComments
@@ -84,7 +90,6 @@ struct PostDetailHeader: View {
         self.onSubredditTap = onSubredditTap
         self.onAuthorTap = onAuthorTap
         _editedText = State(initialValue: post.selftext ?? "")
-        _isDeleted = State(initialValue: OwnPostChanges.shared.isDeleted(post.name))
     }
 
     /// Image, GIF, video and gallery posts open with their media across the full
@@ -110,13 +115,20 @@ struct PostDetailHeader: View {
                 .padding(.horizontal, 16)
                 .padding(.top, mediaLeads ? 12 : 19)
                 .padding(.bottom, 12.7)
+                // Media keeps its own long-press menu; the author byline's
+                // Copy Username menu is the narrower one inside.
+                .contextMenu { overflowMenuItems }
         }
         .userTagEditor(isPresented: $showingTagEditor, username: post.author)
-        .task { await checkOwnership() }
         // Each edit starts from the post as it stands, so Cancel or a discarded back swipe
         // doesn't leave the abandoned draft behind. Only on opening: saving closes the
         // editor before its request reads the draft.
         .onChange(of: isEditing) { _, editing in if editing { editedText = savedEdit ?? post.selftext ?? "" } }
+    }
+
+    @ViewBuilder
+    private var overflowMenuItems: some View {
+        if let overflowMenu { overflowMenu }
     }
 
     private var content: some View {
@@ -440,25 +452,7 @@ struct PostDetailHeader: View {
                 }
                 .accessibilityLabel("Share")
                 .accessibilityIdentifier("postDetail.share")
-                // No pencil/trash glyphs in this bar; own-post actions live in the long-press
-                // menu below.
-            }
-            // Own-post Edit/Delete, evicted from the five-glyph bar.
-            .contextMenu {
-                if isOwnPost && post.isSelf && !isDeleted {
-                    Button {
-                        isEditing = true
-                    } label: {
-                        Label("Edit Post", systemImage: "pencil")
-                    }
-                }
-                if isOwnPost && !isDeleted {
-                    Button(role: .destructive) {
-                        Task { await deletePost() }
-                    } label: {
-                        Label("Delete Post", systemImage: "trash")
-                    }
-                }
+                // No pencil/trash glyphs in this bar; own-post actions live in the ••• menu.
             }
             // Glyphs use the theme accent.
             .padding(.leading, 25 - 16)
@@ -518,14 +512,6 @@ struct PostDetailHeader: View {
         }
     }
 
-    /// Mirrors Apollo's "Edit"/"Delete" own-content menu items, gated
-    /// on whether the signed-in user authored this post.
-    private func checkOwnership() async {
-        if let username = await CurrentUsernameCache.username(repository: repository) {
-            isOwnPost = username.caseInsensitiveCompare(post.author) == .orderedSame
-        }
-    }
-
     private func saveEdit() async {
         do {
             try await repository.editUserText(fullname: post.name, text: editedText)
@@ -535,13 +521,6 @@ struct PostDetailHeader: View {
         } catch {
             // Leave editor open on failure so the user can retry.
         }
-    }
-
-    private func deletePost() async {
-        // Only on success, so a failed delete does not show the post as deleted.
-        guard (try? await repository.delete(fullname: post.name)) != nil else { return }
-        OwnPostChanges.shared.recordDeletion(fullname: post.name)
-        isDeleted = true
     }
 
     private func vote(direction: Int) async {

@@ -42,7 +42,9 @@ public final class PushNotificationCoordinator: NSObject, UNUserNotificationCent
     /// tasks must be registered before launch finishes.
     public func applicationDidFinishLaunching(_ application: UIApplication) {
         UNUserNotificationCenter.current().delegate = self
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.refreshTaskIdentifier, using: nil) { task in
+        // On the main queue: the handler is main-actor isolated, and on
+        // BackgroundTasks' own queue Swift's isolation check aborts.
+        BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.refreshTaskIdentifier, using: .main) { task in
             guard let task = task as? BGAppRefreshTask else { task.setTaskCompleted(success: false); return }
             MainActor.assumeIsolated { Self.shared.handle(task) }
         }
@@ -125,7 +127,9 @@ public final class PushNotificationCoordinator: NSObject, UNUserNotificationCent
             setAppIconBadge(count)
             task.setTaskCompleted(success: true)
         }
-        task.expirationHandler = { work.cancel() }
+        // Called on a background queue, so it must not inherit this
+        // method's main-actor isolation.
+        task.expirationHandler = { @Sendable in work.cancel() }
     }
 
     // MARK: APNs registration

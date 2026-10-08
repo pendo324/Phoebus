@@ -126,6 +126,7 @@ public struct LiquidGlassTabBar: View {
                         .badge(tabs[4].badge.map { Text($0) })
                 }
             }
+            .onAppear { NavigationRevealHooks.install() }
             .background(TabBarHideStyleProbe(style: hideBarsOnScroll ? hideStyle : 0)
                 .frame(width: 0, height: 0))
         } else {
@@ -191,12 +192,18 @@ private struct TabBarScrollHost<Content: View>: View {
             // Fade/Down keep it off and animate the whole bar instead.
             .tabBarMinimizeBehavior(hideBarsOnScroll && hideStyle <= 1 && !policy.holdExpanded
                                     ? .onScrollDown : .never)
-            .onAppear { policy.classic = classic }
+            .onAppear {
+                policy.classic = classic
+                policy.hideBarsOnScroll = hideBarsOnScroll
+                policy.hideStyle = hideStyle
+            }
             // Turned off while collapsed: bring everything back now.
             .onChange(of: hideBarsOnScroll) { _, on in
+                policy.hideBarsOnScroll = on
                 if !on { NotificationCenter.default.post(name: .apolloBarsShouldShow, object: nil) }
             }
             .onChange(of: classic) { _, classic in policy.classic = classic }
+            .onChange(of: hideStyle) { _, style in policy.hideStyle = style }
     }
 }
 

@@ -685,6 +685,7 @@ try await checkExpandedMultiredditsStockApollo()
 try await checkMultiredditCopy()
 
 try await checkApolloReborn370Parity4()
+try await checkTabBarNavigationReveal()
 
 try await checkApolloReborn370Parity5()
 

@@ -8,6 +8,11 @@ import Foundation
 /// Reborn "Removal reasons" (#1292, #1298), "Mod user lists" (#1304) and
 /// "Moderator Mail" (#1311): www answers the OAuth-only ones with a 403 for
 /// any cookie request and 404s the `/r/<sub>/api/` writes.
+///
+/// Edit Profile (Phoebus's own, docs/intentional-differences.md) sends its
+/// reads and writes the same way: a profile is the account's user subreddit,
+/// `u_<name>`, and these are the subreddit-settings endpoints; the account
+/// preferences (`/api/v1/me/prefs`) holding "Allow People to Follow You" too.
 public enum WebBearerRouting {
     /// Subreddit user lists and declining a mod invite, `/api/v1/<sub>/<name>`.
     private static let subredditEndpoints: Set<String> = [
@@ -20,11 +25,20 @@ public enum WebBearerRouting {
     /// unbanning and removing a moderator.
     private static let subredditWrites: Set<String> = ["friend", "unfriend", "accept_moderator_invite"]
 
+    /// A profile's banner upload and removal, `/r/u_<name>/api/<name>`.
+    private static let profileWrites: Set<String> = ["upload_sr_img", "delete_sr_banner"]
+
     /// Whether a request path (with or without a query) must use the bearer.
     public static func needsBearer(path: String) -> Bool {
         let bare = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? path
         let parts = bare.lowercased().split(separator: "/").map(String.init)
 
+        // Edit Profile: saving the settings, and a profile's own subreddit settings and images.
+        if parts == ["api", "site_admin"] || parts == ["api", "v1", "me", "prefs"] { return true }
+        if parts.count == 4, parts[0] == "r", parts[1].hasPrefix("u_") {
+            if parts[2] == "about", parts[3] == "edit" { return true }
+            if parts[2] == "api", profileWrites.contains(parts[3]) { return true }
+        }
         // Sending a private message (also "message the moderators"). Phoebus
         // only: Reborn leaves /api/compose on the cookie, where www answers 401.
         if parts == ["api", "compose"] { return true }

@@ -45,20 +45,8 @@ public final class ChatTokenWebMinter: NSObject, WKNavigationDelegate {
         webView.customUserAgent = ScrapeWebView.safariUserAgent()
         self.webView = webView
 
-        let seeds = cookieHeader.components(separatedBy: "; ").compactMap { pair -> HTTPCookie? in
-            guard let eq = pair.firstIndex(of: "="), eq != pair.startIndex else { return nil }
-            let name = String(pair[..<eq])
-            // Without `redesign_optout`: old Reddit never sets token_v2.
-            guard name != "token_v2", name != "redesign_optout" else { return nil }
-            return HTTPCookie(properties: [
-                .name: name,
-                .value: String(pair[pair.index(after: eq)...]),
-                .domain: ".reddit.com",
-                .path: "/",
-                .secure: "TRUE",
-                .expires: Date().addingTimeInterval(24 * 60 * 60),
-            ])
-        }
+        // Without `redesign_optout`: old Reddit never sets token_v2.
+        let seeds = WebSessionCookies.cookies(fromHeader: cookieHeader, skipping: ["token_v2", "redesign_optout"])
         let jar = configuration.websiteDataStore.httpCookieStore
         let group = DispatchGroup()
         for cookie in seeds {

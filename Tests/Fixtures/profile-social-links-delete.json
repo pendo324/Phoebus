@@ -1,0 +1,20 @@
+{
+  "data": {
+    "deleteSocialLinks": {
+      "ok": true,
+      "errors": null,
+      "socialLinks": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "type": "CUSTOM",
+          "title": "Example Site",
+          "handle": null,
+          "outboundUrl": "https://example.com/me"
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "operation": "DeleteProfileSocialLinks",
+  "extensions": { "traceID": "00000000000000000000000000000000" }
+}

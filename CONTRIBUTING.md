@@ -78,7 +78,12 @@ and [docs/components.md](docs/components.md).
 
 - One logical change per pull request, with a description of what
   changed and why.
-- The app builds and the smoke suite passes.
+- A Conventional Commits title (see above); a check enforces it.
+- Sign off your commits (`git commit -s`) to certify the
+  [Developer Certificate of Origin](https://developercertificate.org); the
+  DCO check fails otherwise.
+- The app builds and the smoke suite passes. The Linux suite runs on every
+  pull request; a maintainer can run the iOS build with a `/test` comment.
 - Mention anything you could only check on a device.
 - Don't mix refactors or formatting changes into a feature.
 

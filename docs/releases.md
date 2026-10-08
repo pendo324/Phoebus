@@ -30,6 +30,10 @@ Publish to AltStore sources (.github/workflows/publish-altstore.yml)
 Build container image (`build-image.yml`) builds the image the builds run
 in.
 
+Pull requests run Checks and PR title, which must pass before merging, and
+maintainers can run the full suite or a build on one by commenting (see
+"Pull requests" below).
+
 ## The build image
 
 `docker/build.Dockerfile` is Ubuntu 24.04 with:
@@ -140,6 +144,32 @@ A run after the first only compiles what changed:
 A change to a module still recompiles that whole module in the release
 device build. Cold, the three builds take about 6, 8 and 11 minutes in
 parallel.
+
+## Pull requests
+
+Two checks are required before a pull request merges (a ruleset on
+`main`; admins can bypass it to push directly):
+
+- **Smoke tests** (`checks.yml`): `SMOKE_SKIP_IOS=1 scripts/smoke.sh` in
+  the build image, on every pull request and push to `main`. The iOS
+  build is skipped because it needs the Darwin SDK, which pull requests
+  from forks can't reach.
+- **Conventional title** (`pr-title.yml`): the title is a Conventional
+  Commit (`feat: …`, `fix(inbox): …`), since squashed pull requests use it
+  as the commit subject and semantic-release reads those.
+
+Users with write access or more can comment on a pull request
+(`pr-commands.yml`):
+
+- `/test` runs the full smoke suite, iOS build included.
+- `/build` runs Build IPA and attaches the IPAs to the run as artifacts.
+  It never publishes a nightly or release.
+
+The result appears as a `/test` or `/build` commit status on the pull
+request and as a reply. These runs use the pull request's code with the
+repository's secrets, so review it before commenting; the workflows
+themselves always come from `main`. Their caches are saved under a `pr-`
+prefix that runs on `main` and tags never restore.
 
 ## AltStore and SideStore sources
 

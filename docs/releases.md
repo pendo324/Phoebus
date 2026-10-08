@@ -151,9 +151,12 @@ Two checks are required before a pull request merges (a ruleset on
 `main`; admins can bypass it to push directly):
 
 - **Smoke tests** (`checks.yml`): `SMOKE_SKIP_IOS=1 scripts/smoke.sh` in
-  the build image, on every pull request and push to `main`. The iOS
-  build is skipped because it needs the Darwin SDK, which pull requests
-  from forks can't reach.
+  the build image, on pull requests and pushes to `main` that change
+  something the suite builds or reads (`Sources/`, `Tests/`, `Icons/`,
+  the package manifests, the smoke and build-image scripts). Otherwise the
+  job is skipped, which counts as passing. The iOS build is left out
+  because it needs the Darwin SDK, which pull requests from forks can't
+  reach.
 - **Conventional title** (`pr-title.yml`): the title is a Conventional
   Commit (`feat: …`, `fix(inbox): …`), since squashed pull requests use it
   as the commit subject and semantic-release reads those.

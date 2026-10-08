@@ -71,6 +71,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      pull-requests: read
     uses: ./.github/workflows/checks.yml
     with:
       ref: ${{ needs.command.outputs.sha }}

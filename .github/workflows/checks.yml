@@ -1,9 +1,11 @@
 name: Checks
 
-# The smoke suite, required before a pull request can merge. It runs on
-# every pull request (no path filter: a required check that never starts
-# blocks the merge) and on pushes to main, whose build cache the pull
-# requests restore.
+# The smoke suite, required before a pull request can merge. The workflow
+# starts on every pull request and push to main (a path filter here would
+# leave the required check waiting forever); the changes job then skips the
+# suite when nothing it builds or reads changed, and a skipped job counts
+# as passing. Pushes to main also keep the build cache pull requests
+# restore.
 on:
   pull_request:
   push:
@@ -26,10 +28,43 @@ concurrency:
 permissions:
   contents: read
   packages: read
+  pull-requests: read
 
 jobs:
+  changes:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    outputs:
+      smoke: ${{ steps.filter.outputs.smoke }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            smoke:
+              - Sources/**
+              - Tests/**
+              - SafariExtension/Tests/**
+              - Icons/**
+              - Package.swift
+              - Package.resolved
+              - scripts/smoke.sh
+              - scripts/xtool-env.sh
+              - scripts/appintents-metadata.py
+              - scripts/ci/restore-mtimes.sh
+              - scripts/ci/setup-linux.sh
+              - docker/build.Dockerfile
+              - .github/workflows/checks.yml
+
   smoke:
     name: Smoke tests
+    needs: changes
+    # Runs for /test and by hand (changes is skipped), when the filter
+    # matched, and when the filter itself failed.
+    if: >-
+      !cancelled() &&
+      (needs.changes.result != 'success' || needs.changes.outputs.smoke == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     container:

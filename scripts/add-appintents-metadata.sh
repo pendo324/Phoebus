@@ -46,7 +46,7 @@ def load(paths):
     return sorted((strip(e) for e in entries), key=lambda e: e["typeName"])
 if load(glob.glob(sys.argv[1] + "/*.swiftconstvalues")) != load([sys.argv[2]]):
     print(f"warning: the App Intents in {sys.argv[2].split('/')[-2]} changed since the generator "
-          "was checked against Apple's processor; regenerate its fixture on a Mac "
-          "(docs/building-on-linux.md, \"AppIntents metadata\")", file=sys.stderr)
+          "was checked against Apple's processor; regenerate its fixture with the App Intents "
+          "reference workflow (docs/building-on-linux.md, \"AppIntents metadata\")", file=sys.stderr)
 PY
 done

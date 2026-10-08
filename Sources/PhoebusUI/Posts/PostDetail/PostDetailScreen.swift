@@ -265,8 +265,12 @@ public struct PostDetailScreen: View {
                                          repository: repository,
                                          force: true)
             }
-            // Reserve room for the floating Liquid Glass tab bar so the
-            // last row is reachable at the bottom of the scroll.
+            // Room under the last comment, so the floating tab bar
+            // doesn't cover it at the end of the thread, nor the jump
+            // button when it sits at the bottom: the button's 44pt and
+            // its 16pt padding, plus a 12pt gap.
+            .modifier(ApolloTabBarClearance(bottom: generalSettings.showJumpButton
+                                            && generalSettings.jumpButtonPosition.sitsAtBottom ? 72 : 24))
             .restoresPositionOnSecondScrollToTop()
             .apolloScrollReturnButton()
             // NOT `.apolloHidesHeaderOnScroll()`: that's gated on the
@@ -923,4 +927,6 @@ private extension JumpButtonPosition {
         case .topLeading: return .topLeading
         }
     }
+
+    var sitsAtBottom: Bool { alignment.vertical == .bottom }
 }

@@ -64,6 +64,8 @@ public struct CommentTreeScreen: View {
             }
             // See `PostDetailScreen`: comment rows size to their content.
             .environment(\.defaultMinListRowHeight, 1)
+            // See `PostDetailScreen`: room under the last comment.
+            .modifier(ApolloTabBarClearance())
             // Parent Comment swipe.
             .onChange(of: store.scrollRequest) { _, target in
                 guard let target else { return }

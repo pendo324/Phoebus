@@ -85,9 +85,11 @@ extension EnvironmentValues {
 /// up by a negative bottom pad ends below the list's content, and
 /// without this margin it scrolls no further than under the bar.
 struct ApolloTabBarClearance: ViewModifier {
+    var bottom: CGFloat = 24
+
     func body(content: Content) -> some View {
         if #available(iOS 17.0, *) {
-            content.contentMargins(.bottom, 24, for: .scrollContent)
+            content.contentMargins(.bottom, bottom, for: .scrollContent)
         } else {
             content
         }

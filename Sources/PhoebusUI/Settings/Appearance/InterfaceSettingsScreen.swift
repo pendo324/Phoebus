@@ -9,20 +9,9 @@ import UIKit
 /// fields `GeneralSettingsScreen` uses, rather than a second copy.
 public struct InterfaceSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var settings
-
-    @Setting(ProfileLayoutSettingsStore.storage) private var profileLayout
     @State private var showingRestartAlert = false
 
     public init() {}
-
-    private var pictureShapeBinding: Binding<ProfileLayoutSettings.AvatarStyle> {
-        Binding(
-            get: { profileLayout.avatarStyle },
-            set: {
-                $profileLayout.avatarStyle.wrappedValue = $0
-            }
-        )
-    }
 
     public var body: some View {
         List {
@@ -144,19 +133,6 @@ public struct InterfaceSettingsScreen: View {
 
     @ViewBuilder private var displayNavigationSection: some View {
         Section {
-            // Shared with General -> Post Rows.
-            Toggle("Show User Profile Pictures", isOn: $settings.showUserProfilePictures)
-                    .apolloSearchRow("Show User Profile Pictures")
-
-            // Reborn #1136: shares the Profile Layout avatar key, so
-            // changing it here also changes the profile header.
-            ApolloSettingsPicker("Profile Picture Shape", selection: pictureShapeBinding,
-                                 options: ProfileLayoutSettings.AvatarStyle.allCases.map { $0 },
-                                 display: { $0.displayName },
-                                 showsChevron: true)
-                .apolloSearchRow("Profile Picture Shape")
-                .accessibilityIdentifier("interface.avatarShape")
-
             // Reborn "Return Button", default ON. Not Liquid-Glass-gated, unlike
             // the two rows below it.
             Toggle("Return Button", isOn: $settings.scrollReturnButton)
@@ -191,7 +167,7 @@ public struct InterfaceSettingsScreen: View {
             Text("Display & Navigation")
                 .apolloSectionHeader()
         } footer: {
-            Text("User Profile Pictures adds avatars beside usernames in posts, comments, messages, inbox rows, and moderator lists. Return Button puts an arrow beside Back after a status bar tap scrolls to the top; tap it, the navigation bar, or the status bar again to go back to where you were. Liquid Glass is required for the remaining options.\n\nIn Liquid Glass, navigation titles stay centered unless expanded actions need room. Collapse Navigation Actions hides the actions behind an ellipsis until tapped; scrolling collapses them again. With it off, actions stay expanded. Center Title Between Buttons centers the title in the space between the back button and actions. Both options default to off. Header Style: Soft is the iOS 26 default; Hard is the iOS 27 default. Hidden removes the header edge effect entirely.")
+            Text("Return Button puts an arrow beside Back after a status bar tap scrolls to the top; tap it, the navigation bar, or the status bar again to go back to where you were. Liquid Glass is required for the remaining options.\n\nIn Liquid Glass, navigation titles stay centered unless expanded actions need room. Collapse Navigation Actions hides the actions behind an ellipsis until tapped; scrolling collapses them again. With it off, actions stay expanded. Center Title Between Buttons centers the title in the space between the back button and actions. Both options default to off. Header Style: Soft is the iOS 26 default; Hard is the iOS 27 default. Hidden removes the header edge effect entirely.")
                     .apolloSectionFooter()
         }
     }

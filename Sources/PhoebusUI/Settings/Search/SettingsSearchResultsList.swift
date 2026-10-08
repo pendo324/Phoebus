@@ -100,6 +100,7 @@ struct SettingsSearchDestination: View {
         case .polls: PollsSettingsScreen(accountManager: accountManager)
         case .postsFeeds: PostsFeedsSettingsScreen()
         case .profileLayout: ProfileLayoutSettingsScreen()
+        case .userProfiles: UserProfilesSettingsScreen()
         case .subredditLayout: SubredditLayoutSettingsScreen()
         case .subredditSections: SubredditSectionsSettingsScreen()
         case .subreddits: SubredditsSettingsScreen()

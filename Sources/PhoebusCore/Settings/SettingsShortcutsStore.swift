@@ -12,7 +12,7 @@ public enum SettingsShortcutsStore {
     /// Fixed discovery order.
     public static let catalog: [String] = [
         "reborn", "accounts-api-keys", "posts-feeds", "comments", "media",
-        "subreddits", "profile-layout", "interface", "rich-link-previews", "apollo-ai",
+        "subreddits", "user-profiles", "interface", "rich-link-previews", "apollo-ai",
         "theme-manager", "open-in-app", "picture-in-picture", "translation", "saved-categories", "tag-filters",
         "automatic-backups", "crash-reports", "feature-requests", "bug-reports",
         "buy-coffee", "general", "appearance", "app-icon", "filters", "gestures",
@@ -21,8 +21,8 @@ public enum SettingsShortcutsStore {
     /// Reborn's default when nothing is saved.
     public static let defaults = ["theme-manager", "automatic-backups", "feature-requests", "bug-reports", "buy-coffee"]
 
-    /// Saved order, unknown IDs dropped,
-    /// "inline-media" migrated to "media", de-duplicated, capped.
+    /// Saved order, unknown IDs dropped, "inline-media" migrated to "media" and
+    /// "profile-layout" to "user-profiles" (Reborn #1352), de-duplicated, capped.
     public static let storage = CustomSettingsSource<[String]>(
         key: key, load: { read($0) }, save: { ids, defaults in defaults.set(Array(ids.prefix(limit)), forKey: key) })
 
@@ -32,10 +32,19 @@ public enum SettingsShortcutsStore {
         guard let saved = store.array(forKey: key) as? [String] else { return defaults }
         var valid: [String] = []
         for entry in saved {
-            let id = entry == "inline-media" ? "media" : entry
+            let id = migratedID(entry)
             if catalog.contains(id), !valid.contains(id), valid.count < limit { valid.append(id) }
         }
         return valid
+    }
+
+    /// IDs renamed by Reborn since a shortcut list was saved.
+    public static func migratedID(_ id: String) -> String {
+        switch id {
+        case "inline-media": return "media"
+        case "profile-layout": return "user-profiles"
+        default: return id
+        }
     }
 
     public static func save(_ ids: [String]) { storage.save(ids) }
@@ -49,7 +58,7 @@ public enum SettingsShortcutsStore {
         case "comments": return "Comments"
         case "media": return "Media"
         case "subreddits": return "Subreddits"
-        case "profile-layout": return "Profile Layout"
+        case "user-profiles": return "User Profiles"
         case "interface": return "Interface"
         case "rich-link-previews": return "Rich Link Previews"
         case "apollo-ai": return "Phoebus AI"
@@ -89,7 +98,7 @@ public enum SettingsShortcutsStore {
         case "posts-feeds": return "newspaper.fill"
         case "comments": return "text.bubble.fill"
         case "subreddits": return "person.3.fill"
-        case "profile-layout": return "person.crop.circle.fill"
+        case "user-profiles": return "person.crop.circle.fill"
         case "interface": return "slider.horizontal.3"
         case "accounts-api-keys": return "key.fill"
         case "rich-link-previews": return "link"

@@ -12,6 +12,7 @@ public struct LinkPreviewSettingsScreen: View {
     @State private var modeSheetForBody: Bool?
     @State private var showingColorPicker = false
     @State private var showingTwitterFallback = false
+    @State private var showingCardLimit = false
 
     /// `ApolloLPQuickSwatchHexes()`.
     static let quickSwatchHexes = ["FF3B30", "FF9500", "FFCC00", "34C759", "30B0C7", "007AFF", "5856D6", "AF52DE", "FF2D55"]
@@ -59,6 +60,19 @@ public struct LinkPreviewSettingsScreen: View {
                     .apolloSectionHeader()
             } footer: {
                 Text("Off keeps Phoebus's classic link button, Compact shows a small thumbnail row, Full shows a large hero image card. The preview above follows each setting. Comments with more than one link always use compact cards, even when Full is selected, so long comments don't stack up hero images.")
+                    .apolloSectionFooter()
+            }
+
+            // Phoebus's own cap on cards stacked under one post body or comment.
+            Section {
+                Button { showingCardLimit = true } label: { valueRow("Maximum Cards", settings.maxCards.title) }
+                    .apolloSearchRow("Maximum Cards", lastBeforeFooter: true)
+                    .accessibilityIdentifier("linkPreviews.maxCards")
+            } header: {
+                Text("Cards")
+                    .apolloSectionHeader()
+            } footer: {
+                Text("How many link preview cards stack under a post or comment. Any more are folded behind a Show More Previews row. Images and videos are never hidden.")
                     .apolloSectionFooter()
             }
 
@@ -149,6 +163,16 @@ public struct LinkPreviewSettingsScreen: View {
             Text(modeSheetForBody == true
                  ? "Choose how rich link preview cards appear in feeds and post bodies."
                  : "Choose how rich link preview cards appear in comments.")
+        }
+        .confirmationDialog("Maximum Cards", isPresented: $showingCardLimit, titleVisibility: .visible) {
+            ForEach(LinkCardLimit.allCases) { limit in
+                Button(limit == settings.maxCards ? "\(limit.title) (Current)" : limit.title) {
+                    $settings.maxCards.wrappedValue = limit
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Link preview cards shown under one post or comment.")
         }
         .confirmationDialog("Twitter Fallback Provider", isPresented: $showingTwitterFallback, titleVisibility: .visible) {
             ForEach(TwitterFallbackProvider.allCases) { provider in

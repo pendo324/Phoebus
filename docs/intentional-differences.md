@@ -92,6 +92,13 @@ Apollo or Reborn, add an entry here.
   so the section links there). A player that isn't playing reloads when you
   sign in or out; a playing one picks it up when it next loads. Apollo and
   Reborn have no YouTube sign-in.
+- **Link cards under a post or comment are capped (Maximum Cards,
+  default 5).** Apollo and Reborn draw a card for every link. In Settings
+  > Rich Link Previews you can pick 1, 2, 3, 5, 10 or Unlimited; the cards
+  past the limit fold behind a "Show N more previews" row that expands in
+  place. Inline images and videos are never hidden, and a link post's own
+  top card is not affected. This is a Phoebus addition, so Reborn backups
+  carry no value for it.
 
 ## Settings and interface
 

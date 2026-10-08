@@ -19,6 +19,44 @@ import PhoebusCore
     LinkPreviewSettingsStore.save(linkPreviewSettings)
     check("LinkPreviewSettingsStore.load reflects the last saved settings", LinkPreviewSettingsStore.load() == linkPreviewSettings)
     LinkPreviewSettingsStore.save(.default)
+
+    // Phoebus's own Maximum Cards limit.
+    check("LinkPreviewSettings.default limits cards to 5", LinkPreviewSettings.default.maxCards == .five && LinkPreviewSettings.default.maxCards.count == 5)
+    check("LinkCardLimit offers 1, 2, 3, 5, 10 and Unlimited in order",
+          LinkCardLimit.allCases.map(\.title) == ["1", "2", "3", "5", "10", "Unlimited"] && LinkCardLimit.unlimited.count == nil)
+    let oldLinkPreviewBlob = Data(#"{"bodyDisplayMode":"compact","commentsDisplayMode":"off"}"#.utf8)
+    if let old = try? JSONDecoder().decode(LinkPreviewSettings.self, from: oldLinkPreviewBlob) {
+        check("LinkPreviewSettings decoded from data without maxCards gets 5", old.maxCards == .five && old.bodyDisplayMode == .compact)
+    } else {
+        check("LinkPreviewSettings decoded from data without maxCards gets 5", false)
+    }
+    var limited = LinkPreviewSettings.default
+    limited.maxCards = .unlimited
+    if let data = try? JSONEncoder().encode(limited), let back = try? JSONDecoder().decode(LinkPreviewSettings.self, from: data) {
+        check("LinkPreviewSettings keeps an Unlimited card limit through Codable", back.maxCards == .unlimited)
+    } else {
+        check("LinkPreviewSettings keeps an Unlimited card limit through Codable", false)
+    }
+}
+
+// MARK: - LinkCardLimit visibility
+@MainActor func checkLinkCardLimitVisibility() {
+    let links = [Bool](repeating: true, count: 4)
+    let under = LinkCardLimit.five.visibility(isLink: links, expanded: false)
+    check("LinkCardLimit shows every card when under the limit", under.visible == [true, true, true, true] && under.hiddenCount == 0)
+    let exact = LinkCardLimit.three.visibility(isLink: [true, true, true], expanded: false)
+    check("LinkCardLimit shows every card when exactly at the limit", exact.visible == [true, true, true] && exact.hiddenCount == 0)
+    let over = LinkCardLimit.two.visibility(isLink: links, expanded: false)
+    check("LinkCardLimit keeps the first N cards and counts the rest as hidden", over.visible == [true, true, false, false] && over.hiddenCount == 2)
+    check("LinkCardLimit.unlimited hides nothing", LinkCardLimit.unlimited.visibility(isLink: [Bool](repeating: true, count: 40), expanded: false).hiddenCount == 0)
+    let one = LinkCardLimit.one.visibility(isLink: links, expanded: false)
+    check("LinkCardLimit.one shows only the first card", one.visible == [true, false, false, false] && one.hiddenCount == 3)
+    let expanded = LinkCardLimit.one.visibility(isLink: links, expanded: true)
+    check("LinkCardLimit shows everything once expanded", expanded.visible == [true, true, true, true] && expanded.hiddenCount == 0)
+    let mixed = LinkCardLimit.one.visibility(isLink: [false, true, false, true, true, false], expanded: false)
+    check("LinkCardLimit never hides inline media and counts only link cards",
+          mixed.visible == [true, true, true, false, false, true] && mixed.hiddenCount == 2)
+    check("LinkCardLimit with no attachments hides nothing", LinkCardLimit.one.visibility(isLink: [], expanded: false) == LinkCardVisibility(visible: [], hiddenCount: 0))
 }
 
 // MARK: - DeletedCommentsClassifier / ArchivedComment

@@ -580,6 +580,8 @@ try await checkPushPopGesturePolicy()
 
 try await checkInteractiveTransition()
 
+try await checkUnsavedTextEdit()
+
 // MARK: - Row-swipe / navigation mutual exclusivity
 //
 // `navigationClaimsTouch` is the single arbiter between navigation and row

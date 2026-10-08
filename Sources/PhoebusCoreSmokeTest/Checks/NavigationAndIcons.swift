@@ -1162,3 +1162,24 @@ import PhoebusCore
               !FollowThreadActivityStore.isActive(postID: "t3_abc", activityDefaults))
     }
 }
+
+// MARK: - Unsaved text edits
+//
+// A back page swipe over an inline post or comment edit asks before discarding
+// it; the prompt shows only when the text differs from what was saved.
+@MainActor func checkUnsavedTextEdit() async throws {
+    check("untouched text is not an unsaved change",
+          !UnsavedTextEdit.hasChanges(original: "Hello\nworld", edited: "Hello\nworld"))
+    check("an edit to the words is an unsaved change",
+          UnsavedTextEdit.hasChanges(original: "Hello world", edited: "Hello world!"))
+    check("trailing whitespace and newlines are not a change, as Reddit trims them on save",
+          !UnsavedTextEdit.hasChanges(original: "Hello", edited: "Hello  \n\n")
+            && !UnsavedTextEdit.hasChanges(original: "\nHello", edited: "Hello"))
+    check("line endings are compared as Reddit stores them",
+          !UnsavedTextEdit.hasChanges(original: "a\nb", edited: "a\r\nb"))
+    check("clearing the text is a change; so is typing into an empty post",
+          UnsavedTextEdit.hasChanges(original: "Hello", edited: "")
+            && UnsavedTextEdit.hasChanges(original: "", edited: "Hello"))
+    check("an empty edit of an empty post is not",
+          !UnsavedTextEdit.hasChanges(original: "", edited: "  \n"))
+}

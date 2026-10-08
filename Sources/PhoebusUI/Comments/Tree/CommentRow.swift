@@ -466,6 +466,9 @@ struct CommentRow: View {
                     if isEditing {
                         TextEditor(text: $editedText)
                             .frame(minHeight: 60)
+                            .apolloConfirmsDiscard(
+                                isDirty: UnsavedTextEdit.hasChanges(original: displayBody, edited: editedText),
+                                message: "Your changes to this comment haven't been saved.") { isEditing = false }
                         HStack {
                             Button("Cancel") { isEditing = false }
                             Button("Save") { Task { await saveEdit() } }

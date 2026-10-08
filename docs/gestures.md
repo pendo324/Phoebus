@@ -13,6 +13,7 @@ any of the files below.
 | `Sources/PhoebusCore/Navigation/Gestures/NavigationGestureSettings.swift` | User toggles: `pushPopSwipeGesturesEnabled`, `disableRightSwipeGestureActions`, `disableLeftSwipeGestureActions`, `longSwipeTriggerPoint`. These are the Gestures settings screen's keys. |
 | `Sources/PhoebusCore/Navigation/Swipes/SwipeCommitPolicy.swift` | Row-swipe thresholds: short action at 60pt, long action at `60 + 120 * fraction`. Pure, smoke-tested. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/PageSwipeNavigation.swift` | **Back and forward page swipes**: `PageSwipeController`, `PageSwipeInstaller`, `PageSwipeAnimator`, `PageSwipeInteraction`. |
+| `Sources/PhoebusUI/Navigation/PageSwipes/UnsavedChangesGuard.swift` | `apolloConfirmsDiscard`: a screen's unsaved-changes flag, which holds a back page swipe and asks instead. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/ForwardNavigation.swift` | `ForwardNavigationStore` (the forward stack), `apolloForwardSwipe()`, `apolloTracksForwardNavigation()`. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/InteractiveSwipeNavigationModifier.swift` | `apolloInteractiveSwipeNavigation()` for the root stacks, and `UINavigationController.apolloDisableSystemPopGestures()`. |
 | `Sources/PhoebusUI/Settings/Rows/SettingsNavigation.swift` | Path-driven navigation for the Settings tab: `SettingsNavigationModel`, `SettingsRoute`, `SettingsLink`, `settingsDestination(isPresented:)`. |
@@ -73,6 +74,30 @@ Phoebus implements this as a real interactive transition of the
   whole content area; leaving it enabled would contest every rightward
   row swipe, so `apolloDisableSystemPopGestures()` turns off both it and
   the classic edge recognizer.
+
+### Unsaved changes
+
+The page swipe pops the navigation controller itself, so a SwiftUI
+dismiss confirmation never sees it. A screen with edits a pop would lose
+marks itself with `.apolloConfirmsDiscard(isDirty:onAttempt:)`
+(`PageSwipes/UnsavedChangesGuard.swift`), which puts a hidden
+`UnsavedChangesProbe` view in the screen. When a back swipe begins,
+`PageSwipeController` looks for a dirty probe under the top screen. If
+there is one the page does not move, and a swipe that would have
+completed (same distance and velocity test) calls the probe's
+`onAttempt` on release, which shows the screen's own discard
+confirmation. A swipe too short to complete does nothing. The tab bar's
+swipe goes through the same `begin(back:)`. Forward swipes ignore the
+probe. A second form, `.apolloConfirmsDiscard(isDirty:message:onDiscard:)`,
+brings the standard "Discard Changes?" dialog, whose Discard runs
+`onDiscard` and leaves the screen.
+
+UIKit's own pop recognizers are disabled (above), so there is no
+second path. The navigation bar's back button and a tab switch are not
+guarded; a screen that wants the back button guarded replaces it with a
+Cancel button that asks. Sheets are not covered either: a
+sheet that holds edits needs `interactiveDismissDisabled` and its own
+confirmation.
 
 ### Settings tab
 

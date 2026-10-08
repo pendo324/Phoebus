@@ -100,6 +100,16 @@ Apollo or Reborn, add an entry here.
   top card is not affected. This is a Phoebus addition, so Reborn backups
   carry no value for it.
 
+## Navigation
+
+- **A back swipe out of an unsaved post or comment edit asks first.**
+  Apollo edits your own post or comment in its composer, a modal sheet
+  that vetoes a swipe-down while it holds text. Phoebus edits inline in
+  the post, where a back page swipe would drop the edit without a word,
+  so the swipe is held and "Discard Changes?" is shown instead. Phoebus's
+  own design (`docs/gestures.md`, "Unsaved changes"); the back button and
+  the inline Cancel are not guarded.
+
 ## Settings and interface
 
 - **Header Style has an "Automatic" option** that follows the system.

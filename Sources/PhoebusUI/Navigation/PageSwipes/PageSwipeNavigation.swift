@@ -36,6 +36,8 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
     private var lastMovement: (x: Double, time: CFTimeInterval) = (0, 0)
     private var interaction: PageSwipeInteraction?
     private var animator: PageSwipeAnimator?
+    /// The unsaved-changes probe a back swipe is held at instead of popping.
+    private var heldAt: UnsavedChangesProbe?
     private weak var forwardedDelegate: UINavigationControllerDelegate?
     private let scrollLock = ScrollLock()
     /// Ends a swipe whose transition never started (a forward entry
@@ -156,6 +158,12 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
         guard let navigationController else { return }
         pageSwipeLog.notice("begin \(back ? "back" : "forward", privacy: .public) depth=\(navigationController.viewControllers.count)")
         isBack = back
+        if back, let probe = navigationController.apolloUnsavedChangesProbe() {
+            // Unsaved edits: the page stays put, and a swipe that would have
+            // completed asks the screen to confirm instead (see `end`).
+            heldAt = probe
+            return
+        }
         Self.active = self
         if navigationController.delegate !== self {
             forwardedDelegate = navigationController.delegate
@@ -188,10 +196,19 @@ final class PageSwipeController: NSObject, UIGestureRecognizerDelegate, UINaviga
         let complete = PushPopGesturePolicy.shouldComplete(translationX: translationX, velocityX: velocityX,
                                                            viewWidth: width, isForward: !isBack)
             && (isBack ? translationX > Self.minimumTravel : translationX < -Self.minimumTravel)
+        if let probe = heldAt {
+            heldAt = nil
+            if complete { probe.onAttempt() }
+            return
+        }
         end(complete: complete)
     }
 
     func end(complete: Bool) {
+        if heldAt != nil {
+            heldAt = nil
+            return
+        }
         guard let interaction else { return }
         pageSwipeLog.notice("end complete=\(complete) started=\(interaction.hasStarted)")
         interaction.end(complete: complete)

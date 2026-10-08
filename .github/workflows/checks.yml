@@ -9,9 +9,18 @@ on:
   push:
     branches: [main]
   workflow_dispatch: {}
+  # A maintainer's /test comment on a pull request (pr-commands.yml): the
+  # full suite, iOS build included. Its caches are saved under a "pr-"
+  # prefix that runs on main never restore.
+  workflow_call:
+    inputs:
+      ref:
+        description: The pull request commit to test
+        type: string
+        required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.ref || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -22,7 +31,7 @@ jobs:
   smoke:
     name: Smoke tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     container:
       image: ghcr.io/${{ github.repository_owner }}/phoebus-builder:latest
       credentials:
@@ -37,13 +46,53 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.sha }}
           # restore-mtimes.sh reads every file's last commit.
           fetch-depth: 0
 
       - name: Prepare
+        id: pins
         run: |
           git config --global --add safe.directory '*'
           scripts/ci/restore-mtimes.sh
+          echo "sdk=$(sed -n 's/^DARWIN_SDK_SHA256=//p' scripts/ci/install-sdk.sh)" >> "$GITHUB_OUTPUT"
+          echo "apollo-ipa=$(sed -n 's/^DEFAULT_IPA_SHA256="\(.*\)"/\1/p' scripts/generate-icons.sh)" >> "$GITHUB_OUTPUT"
+
+      # The SDK and the Apollo IPA are only needed for the iOS build.
+      - name: Cache Darwin SDK
+        id: sdk-cache
+        if: inputs.ref
+        uses: actions/cache@v5
+        with:
+          path: /github/home/.config/swiftpm/swift-sdks/darwin.artifactbundle
+          key: pr-darwin-sdk-${{ steps.pins.outputs.sdk }}
+          restore-keys: darwin-sdk-${{ steps.pins.outputs.sdk }}
+
+      - name: Token for the SDK download
+        id: sdk-token
+        if: inputs.ref && steps.sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.PHOEBUSBOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PHOEBUSBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+
+      - name: Install Darwin SDK
+        if: inputs.ref && steps.sdk-cache.outputs.cache-hit != 'true'
+        run: scripts/ci/install-sdk.sh
+        env:
+          DARWIN_SDK_URL: ${{ secrets.DARWIN_SDK_URL }}
+          XCODE_XIP_URL: ${{ secrets.XCODE_XIP_URL }}
+          DOWNLOAD_AUTH_HEADER: "Authorization: Bearer ${{ steps.sdk-token.outputs.token }}"
+
+      - name: Cache Apollo IPA
+        if: inputs.ref
+        uses: actions/cache@v5
+        with:
+          path: /github/home/.cache/phoebus/apollobase.ipa
+          key: pr-apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
+          restore-keys: apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
 
       - name: Cache the build
         uses: actions/cache@v5
@@ -51,11 +100,13 @@ jobs:
           path: |
             .build
             /github/home/.cache/org.swift.swiftpm
-          key: smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ github.sha }}
+          key: ${{ inputs.ref && 'pr-' || '' }}smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ inputs.ref || github.sha }}
           restore-keys: |
+            ${{ inputs.ref && 'pr-' || '' }}smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-
             smoke-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-
 
-      # The Linux suite only: the iOS build needs the Darwin SDK, which pull
-      # requests from forks have no access to. Build IPA covers it on main.
+      # Pull requests and main run the Linux suite: the iOS build needs the
+      # Darwin SDK, which pull requests from forks have no access to, and
+      # Build IPA covers it on main. /test runs both.
       - name: Smoke tests
-        run: SMOKE_SKIP_IOS=1 scripts/smoke.sh
+        run: SMOKE_SKIP_IOS=${{ inputs.ref && '0' || '1' }} scripts/smoke.sh

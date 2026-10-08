@@ -34,9 +34,18 @@ on:
       - scripts/ci/restore-mtimes.sh
       - .github/workflows/build-ipa.yml
   workflow_dispatch: {}
+  # A maintainer's /build comment on a pull request (pr-commands.yml).
+  # Its caches are saved under a "pr-" prefix that builds of main and tags
+  # never restore, and it never publishes.
+  workflow_call:
+    inputs:
+      ref:
+        description: The pull request commit to build
+        type: string
+        required: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -90,6 +99,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.sha }}
           # restore-mtimes.sh reads every file's last commit.
           fetch-depth: 0
 
@@ -110,7 +120,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /github/home/.config/swiftpm/swift-sdks/darwin.artifactbundle
-          key: darwin-sdk-${{ steps.pins.outputs.sdk }}
+          key: ${{ inputs.ref && 'pr-' || '' }}darwin-sdk-${{ steps.pins.outputs.sdk }}
+          restore-keys: darwin-sdk-${{ steps.pins.outputs.sdk }}
 
       # The SDK is in private storage that the job's own token cannot read;
       # PhoebusBot's installation can.
@@ -136,7 +147,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /github/home/.cache/phoebus/apollobase.ipa
-          key: apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
+          key: ${{ inputs.ref && 'pr-' || '' }}apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
+          restore-keys: apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
 
       # The rendered icons, so they are not rendered again (and do not
       # change the resources) when their sources did not change.
@@ -149,7 +161,8 @@ jobs:
             Icons/Standard/*/
             Icons/Standard/.extracted
             Sources/PhoebusUI/Resources/LiquidGlassIcons/*.png
-          key: icons-${{ steps.pins.outputs.apollo-ipa }}-${{ hashFiles('Icons/LiquidGlass/**/*.json', 'Icons/LiquidGlass/**/*.svg', 'scripts/lgrender/**') }}
+          key: ${{ inputs.ref && 'pr-' || '' }}icons-${{ steps.pins.outputs.apollo-ipa }}-${{ hashFiles('Icons/LiquidGlass/**/*.json', 'Icons/LiquidGlass/**/*.svg', 'scripts/lgrender/**') }}
+          restore-keys: icons-${{ steps.pins.outputs.apollo-ipa }}-${{ hashFiles('Icons/LiquidGlass/**/*.json', 'Icons/LiquidGlass/**/*.svg', 'scripts/lgrender/**') }}
 
       # Keyed on what invalidates a build; a new commit restores the
       # newest build of the same inputs and compiles only what changed.
@@ -159,7 +172,7 @@ jobs:
           path: |
             .build
             /github/home/.cache/org.swift.swiftpm
-          key: build-${{ matrix.variant }}-${{ steps.pins.outputs.xtool }}-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ github.sha }}
+          key: ${{ inputs.ref && 'pr-' || '' }}build-${{ matrix.variant }}-${{ steps.pins.outputs.xtool }}-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ inputs.ref || github.sha }}
           restore-keys: |
             build-${{ matrix.variant }}-${{ steps.pins.outputs.xtool }}-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-
 
@@ -189,6 +202,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref || github.sha }}
           # version.sh and ipa-name.sh read the release tags.
           fetch-depth: 0
 
@@ -230,7 +244,7 @@ jobs:
 
   # Builds of main go to the rolling "nightly" pre-release.
   nightly:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && !inputs.ref
     needs: package
     runs-on: ubuntu-24.04
     permissions:
@@ -254,7 +268,7 @@ jobs:
         run: scripts/ci/publish-nightly.sh dist/${{ needs.package.outputs.ipa }} dist/${{ needs.package.outputs.simulator }}
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && !inputs.ref
     needs: package
     runs-on: ubuntu-24.04
     permissions:

@@ -1,0 +1,125 @@
+name: PR commands
+
+# Maintainers (write access or more) can comment on a pull request:
+#   /test   the full smoke suite, iOS build included (Checks)
+#   /build  the IPAs, attached to the run as artifacts (Build IPA)
+#
+# Both run the pull request's code with the repository's secrets (the
+# Darwin SDK download), so review the changes first. The workflows
+# themselves always come from main. The result is reported as a commit
+# status on the pull request's head commit and as a reply.
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  command:
+    if: >-
+      github.event.issue.pull_request &&
+      (startsWith(github.event.comment.body, '/test') || startsWith(github.event.comment.body, '/build'))
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+    outputs:
+      command: ${{ steps.parse.outputs.command }}
+      sha: ${{ steps.parse.outputs.sha }}
+    steps:
+      - id: parse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.event.comment.user.login }}
+          BODY: ${{ github.event.comment.body }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          command=$(printf '%s\n' "$BODY" | head -n1 | awk '{print $1}')
+          case "$command" in
+            /test) command=test ;;
+            /build) command=build ;;
+            *) echo "Not a command: $command"; exit 0 ;;
+          esac
+
+          permission=$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq .permission || echo none)
+          case "$permission" in
+            admin|maintain|write) ;;
+            *)
+              echo "::notice::@$ACTOR ($permission) cannot run /$command"
+              gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=-1 >/dev/null
+              exit 0
+              ;;
+          esac
+
+          sha=$(gh api "repos/$REPO/pulls/$PR" --jq .head.sha)
+          gh api -X POST "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content=rocket >/dev/null
+          gh api -X POST "repos/$REPO/statuses/$sha" -f state=pending -f context="/$command" \
+            -f target_url="$RUN_URL" -f description="Requested by @$ACTOR" >/dev/null
+          echo "command=$command" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: command
+    if: needs.command.outputs.command == 'test'
+    concurrency:
+      group: pr-test-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/checks.yml
+    with:
+      ref: ${{ needs.command.outputs.sha }}
+    secrets: inherit
+
+  build:
+    needs: command
+    if: needs.command.outputs.command == 'build'
+    concurrency:
+      group: pr-build-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    # contents: write only because Build IPA's publishing jobs declare it;
+    # they are skipped for pull requests.
+    permissions:
+      contents: write
+      packages: read
+    uses: ./.github/workflows/build-ipa.yml
+    with:
+      ref: ${{ needs.command.outputs.sha }}
+    secrets: inherit
+
+  report:
+    needs: [command, test, build]
+    if: always() && needs.command.outputs.command != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          COMMAND: ${{ needs.command.outputs.command }}
+          SHA: ${{ needs.command.outputs.sha }}
+          RESULT: ${{ needs.command.outputs.command == 'test' && needs.test.result || needs.build.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$RESULT" in
+            success) state=success; summary="passed" ;;
+            cancelled) state=error; summary="was cancelled" ;;
+            *) state=failure; summary="failed" ;;
+          esac
+          gh api -X POST "repos/$REPO/statuses/$SHA" -f state="$state" -f context="/$COMMAND" \
+            -f target_url="$RUN_URL" -f description="/$COMMAND $summary" >/dev/null
+          extra=""
+          if [ "$COMMAND" = build ] && [ "$RESULT" = success ]; then
+            extra=" The IPAs are attached to the run as artifacts."
+          fi
+          gh pr comment "$PR" --repo "$REPO" \
+            --body "\`/$COMMAND\` $summary for ${SHA:0:7}: $RUN_URL.$extra"

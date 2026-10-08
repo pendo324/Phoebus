@@ -71,26 +71,11 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
     public var subredditShowUserFlairButton: Bool
     public var communityHighlights: CommunityHighlightsMode
 
-    /// The hub row's subtitle: "Native (Apollo)" when custom headers are off
-    /// entirely, else the header mode followed by a "X, Y off" list of hidden
-    /// header elements, joined with " · ".
+    /// The Subreddits screen's Subreddit Layout value: "Native", "Immersive" or
+    /// "Compact" (Reborn #1350 dropped the hidden-element list).
     public var summaryText: String {
-        // "Native", or "Immersive"/"Compact" then "X, Y off".
         guard showSubredditHeaders else { return "Native" }
-        var parts: [String] = [subredditHeaderImmersive ? "Immersive" : "Compact"]
-        var hidden: [String] = []
-        if !subredditShowBanner { hidden.append("Banner") }
-        if !subredditShowJoinButton { hidden.append("Join Button") }
-        // Reborn lists these too, though they default off.
-        if !subredditShowUserFlairButton { hidden.append("User Flair Button") }
-        if !subredditShowSidebarButton { hidden.append("Sidebar Button") }
-        if !subredditShowDisplayName { hidden.append("Subreddit Name") }
-        if !subredditShowSubtitle { hidden.append("Subtitle") }
-        if !subredditShowDescription { hidden.append("Description") }
-        if !hidden.isEmpty {
-            parts.append("\(hidden.joined(separator: ", ")) off")
-        }
-        return parts.joined(separator: " · ")
+        return subredditHeaderImmersive ? "Immersive" : "Compact"
     }
 
     /// Reborn defaults: its own header is off (the native Apollo page shows

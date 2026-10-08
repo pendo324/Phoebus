@@ -41,7 +41,12 @@ public actor RedditAPIClient {
         guard let credential = await auth.credential else {
             throw RedditAPIError.notAuthenticated
         }
+        return oauthRequest(path: path, method: method, parameters: parameters,
+                            bearer: credential.accessToken, userAgent: Self.oauthUserAgent)
+    }
 
+    private func oauthRequest(path: String, method: String, parameters: [String: String],
+                              bearer: String, userAgent: String) -> URLRequest {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         var request: URLRequest
 
@@ -66,8 +71,8 @@ public actor RedditAPIClient {
         }
 
         request.httpMethod = method
-        request.setValue("Bearer \(credential.accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(Self.oauthUserAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         return request
     }
 
@@ -158,6 +163,9 @@ public actor RedditAPIClient {
     /// change), so the token is refreshed once and the request retried;
     /// a refused refresh surfaces as `sessionExpired`.
     private func send(path: String, method: String, parameters: [String: String]) async throws -> Data {
+        if let webSession = await auth.webSession, WebBearerRouting.needsBearer(path: path) {
+            return try await sendWithWebBearer(path: path, method: method, parameters: parameters, webSession: webSession)
+        }
         let request = try await authorizedRequest(path: path, method: method, parameters: parameters)
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode == 429, await auth.webSession != nil,
@@ -178,6 +186,34 @@ public actor RedditAPIClient {
         }
         try Self.validate(response, data: data)
         return data
+    }
+
+    /// Sends a request Reddit refuses over the cookie (`WebBearerRouting`) to
+    /// `oauth.reddit.com` with the web session's own bearer. A 401/403 means
+    /// the bearer is dead, so it is re-minted once, as Reddit Chat does.
+    /// Reborn "Removal reasons" (#1292), "Mod user lists" (#1304) and
+    /// "Moderator Mail" (#1311).
+    private func sendWithWebBearer(path: String, method: String, parameters: [String: String],
+                                   webSession: WebSessionCredential) async throws -> Data {
+        var forceMint = false
+        while true {
+            let bearer: String
+            do {
+                bearer = try await WebBearerCache.shared.bearer(for: webSession, forceMint: forceMint)
+            } catch is RedditChatClient.ChatError {
+                throw WebBearerUnavailableError()
+            }
+            let request = oauthRequest(path: path, method: method, parameters: parameters,
+                                       bearer: bearer, userAgent: Self.webBrowserUserAgent)
+            let (data, response) = try await session.data(for: request)
+            if let status = (response as? HTTPURLResponse)?.statusCode, status == 401 || status == 403, !forceMint {
+                await WebBearerCache.shared.clear(account: webSession.username)
+                forceMint = true
+                continue
+            }
+            try Self.validate(response, data: data)
+            return data
+        }
     }
 
     /// Whether the current sign-in is a cookie-authed web session, as

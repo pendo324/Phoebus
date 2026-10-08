@@ -4,28 +4,17 @@ import Foundation
 extension RedditRepository {
     // MARK: - Reddit Chat (Matrix)
 
-    /// Caches the minted Matrix bearer and the account's own Matrix
-    /// user id. Minting costs a full round trip and the token is good
-    /// for a day, so re-minting per poll would be wasteful. The
-    /// expiry is read out of the JWT rather than assumed.
+    /// Caches the account's own Matrix user id. The bearer lives in the
+    /// shared `WebBearerCache`.
     private actor ChatSessionCache {
-        var bearer: String?
         var selfUserID: String?
 
         func store(selfUserID: String?) { self.selfUserID = selfUserID }
         func currentSelfUserID() -> String? { selfUserID }
-
-        func currentBearer() -> String? {
-            guard let bearer, !RedditChatClient.isExpired(bearer) else { return nil }
-            return bearer
-        }
-
-        func store(bearer: String) { self.bearer = bearer }
-        func clearBearer() { bearer = nil }
     }
 
     /// One per account, so a switch never carries over the previous
-    /// account's bearer, sync token and user id.
+    /// account's user id.
     private actor ChatSessionCaches {
         private var byAccount: [String: ChatSessionCache] = [:]
         func cache(for account: String) -> ChatSessionCache {
@@ -50,21 +39,15 @@ extension RedditRepository {
     /// A valid Matrix bearer for the active account, minting one when
     /// needed.
     private func chatBearer(forceMint: Bool = false) async throws -> String {
-        if !forceMint, let cached = await chatCache.currentBearer() {
-            return cached
-        }
         guard let session = await webFeatureSession() else {
             throw RedditChatClient.ChatError.noWebSession
         }
-        // The session's own token_v2 while it lasts; a forced mint means
-        // that one was just rejected.
-        if !forceMint, let stored = RedditChatClient.storedBearer(cookieHeader: session.cookieHeader) {
-            await chatCache.store(bearer: stored)
-            return stored
-        }
-        let bearer = try await RedditChatClient.mintBearer(cookieHeader: session.cookieHeader)
-        await chatCache.store(bearer: bearer)
-        return bearer
+        return try await WebBearerCache.shared.bearer(for: session, forceMint: forceMint)
+    }
+
+    private func clearChatBearer() async {
+        guard let session = await webFeatureSession() else { return }
+        await WebBearerCache.shared.clear(account: session.username)
     }
 
     /// Fetches the Chat room list and unread counters. Retries once
@@ -75,7 +58,7 @@ extension RedditRepository {
             let bearer = try await chatBearer()
             return try await RedditChatClient.sync(bearer: bearer)
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             let bearer = try await chatBearer(forceMint: true)
             return try await RedditChatClient.sync(bearer: bearer)
         }
@@ -87,7 +70,7 @@ extension RedditRepository {
             return try await RedditChatClient.liveSync(
                 bearer: try await chatBearer(), since: since, timeoutMilliseconds: timeoutMilliseconds)
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             return try await RedditChatClient.liveSync(
                 bearer: try await chatBearer(forceMint: true), since: since, timeoutMilliseconds: timeoutMilliseconds)
         }
@@ -98,7 +81,7 @@ extension RedditRepository {
         do {
             return try await RedditChatClient.messages(roomID: roomID, bearer: try await chatBearer(), limit: limit)
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             return try await RedditChatClient.messages(roomID: roomID, bearer: try await chatBearer(forceMint: true), limit: limit)
         }
     }
@@ -148,7 +131,7 @@ extension RedditRepository {
                 roomID: entry.roomID, body: entry.body,
                 transactionID: entry.transactionID, bearer: try await chatBearer())
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             return try await RedditChatClient.send(
                 roomID: entry.roomID, body: entry.body,
                 transactionID: entry.transactionID, bearer: try await chatBearer(forceMint: true))
@@ -177,7 +160,7 @@ extension RedditRepository {
                 roomID: roomID, eventID: eventID, newBody: newBody,
                 transactionID: txn, bearer: try await chatBearer())
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             // Same txn id on retry, for the reason the send path
             // documents: it is the idempotency key.
             _ = try await RedditChatClient.editMessage(
@@ -194,7 +177,7 @@ extension RedditRepository {
                 roomID: roomID, eventID: eventID, reason: nil,
                 transactionID: txn, bearer: try await chatBearer())
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             _ = try await RedditChatClient.redactMessage(
                 roomID: roomID, eventID: eventID, reason: nil,
                 transactionID: txn, bearer: try await chatBearer(forceMint: true))
@@ -322,7 +305,7 @@ extension RedditRepository {
             return try await RedditChatClient.threadReplies(
                 roomID: roomID, eventID: eventID, bearer: try await chatBearer())
         } catch RedditChatClient.ChatError.unauthorized {
-            await chatCache.clearBearer()
+            await clearChatBearer()
             return try await RedditChatClient.threadReplies(
                 roomID: roomID, eventID: eventID, bearer: try await chatBearer(forceMint: true))
         }

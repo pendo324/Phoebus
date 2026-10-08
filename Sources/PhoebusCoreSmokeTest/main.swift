@@ -914,6 +914,8 @@ func makeChatJWT(expiringIn seconds: TimeInterval) -> String {
 
 try await checkRedditChatOverMatrix()
 
+try await checkWebSessionModeratorRequestsWebBearer()
+
 try await checkChatSendQueueDesignPortedFrom()
 
 try await checkChatMediaDateHeaders()

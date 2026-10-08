@@ -28,7 +28,8 @@ Publish to AltStore sources (.github/workflows/publish-altstore.yml)
 ```
 
 Build container image (`build-image.yml`) builds the image the builds run
-in.
+in. App Intents reference (`appintents-reference.yml`) regenerates the App
+Intents test fixtures with Xcode 27 (see "App Intents reference" below).
 
 Pull requests run Checks and PR title, which must pass before merging, and
 maintainers can run the full suite or a build on one by commenting (see
@@ -123,7 +124,8 @@ simulator IPA is a universal debug build that installs with
 `xcrun simctl install <device> <file>`. Both carry the App Intents metadata
 of the app and the widget, generated on Linux by
 `scripts/appintents-metadata.py` (see
-[building-on-linux.md](building-on-linux.md), "AppIntents metadata").
+[building-on-linux.md](building-on-linux.md), "AppIntents metadata"; the
+App Intents reference workflow below checks that generator against Apple's).
 
 ### Caching
 
@@ -173,6 +175,31 @@ request and as a reply. These runs use the pull request's code with the
 repository's secrets, so review it before commenting; the workflows
 themselves always come from `main`. Their caches are saved under a `pr-`
 prefix that runs on `main` and tags never restore.
+
+## App Intents reference
+
+`appintents-reference.yml` produces Apple's App Intents metadata for the
+app and the widget and checks `scripts/appintents-metadata.py` against it.
+It runs by hand, on pushes to `main` that change the app's or the widget's
+sources, the generator, its protocol list, the fixtures or the workflow,
+and on pushes to the `ci/appintents-reference` branch (so it can be tried
+before it is merged). Nothing is published.
+
+1. **const-values** (the build image, on Linux) builds the `device`
+   variant like Build IPA does, restoring its SDK and build caches without
+   saving a build of its own, and uploads each target's const values and
+   sources (`scripts/ci/collect-appintents-input.sh`) as `appintents-input`.
+2. **apple** runs on `xcode-27`, a larger macOS runner with Xcode 27 (Apple
+   silicon only), which it selects with `DEVELOPER_DIR`. It runs
+   `appintentsmetadataprocessor` on that input
+   (`scripts/ci/appintents-reference.sh`), uploads the result as the
+   `appintents-fixtures` artifact, then runs
+   `scripts/appintents-metadata.py --compare` on it. The job fails with the
+   difference when the generator's output is not Apple's.
+
+To regenerate `Tests/Fixtures/AppIntents/`, run the workflow, download
+`appintents-fixtures` and copy its folders into that directory (see
+[building-on-linux.md](building-on-linux.md), "AppIntents metadata").
 
 ## AltStore and SideStore sources
 
@@ -256,6 +283,7 @@ these run for pull requests.
 | `scripts/package-ipa.sh` | Packs an app into an IPA and checks it. |
 | `scripts/check-app.py` | Checks a built app or IPA for what can go wrong without failing the build. |
 | `scripts/appintents-metadata.py`, `scripts/add-appintents-metadata.sh` | Write the app's and the widget's App Intents metadata after each build. |
+| `scripts/ci/collect-appintents-input.sh`, `scripts/ci/appintents-reference.sh` | The two halves of the App Intents reference workflow: gather the const values and sources on Linux; run Apple's processor on them on macOS. |
 | `scripts/ci/setup-linux.sh`, `scripts/ci/build-libimobiledevice.sh` | The image's packages and libimobiledevice. |
 | `scripts/ci/install-sdk.sh` | Installs (or packs) the Darwin SDK. |
 | `scripts/ci/restore-mtimes.sh` | Resets file times to their commits'. |

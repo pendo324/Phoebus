@@ -1,0 +1,4 @@
+# Larger runner (Apple silicon, Xcode 27) of the repository owner.
+self-hosted-runner:
+  labels:
+    - xcode-27

@@ -1,0 +1,166 @@
+name: App Intents reference
+
+# Produces Apple's App Intents metadata for the app and the widget with
+# Xcode 27 and checks scripts/appintents-metadata.py against it. The
+# `appintents-fixtures` artifact is what Tests/Fixtures/AppIntents/ should
+# hold (docs/building-on-linux.md, "AppIntents metadata").
+on:
+  push:
+    branches: [main, ci/appintents-reference]
+    paths:
+      - Sources/Phoebus/**
+      - Sources/PhoebusWidget/**
+      - scripts/appintents-metadata.py
+      - scripts/add-appintents-metadata.sh
+      - scripts/ci/appintents-reference.sh
+      - scripts/ci/collect-appintents-input.sh
+      - Config/AppIntentsProtocols.json
+      - Tests/Fixtures/AppIntents/**
+      - .github/workflows/appintents-reference.yml
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  # Builds the device variant on Linux, which is where the const values
+  # come from, and keeps them and the sources they describe.
+  const-values:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/phoebus-builder:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      # See build-ipa.yml: the cached paths depend on these.
+      XDG_CONFIG_HOME: /github/home/.config
+      XDG_CACHE_HOME: /github/home/.cache
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # restore-mtimes.sh reads every file's last commit.
+          fetch-depth: 0
+
+      - name: Prepare
+        id: pins
+        run: |
+          git config --global --add safe.directory '*'
+          scripts/ci/restore-mtimes.sh
+          source scripts/xtool-env.sh
+          echo "xtool=$XTOOL_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "sdk=$(sed -n 's/^DARWIN_SDK_SHA256=//p' scripts/ci/install-sdk.sh)" >> "$GITHUB_OUTPUT"
+          echo "apollo-ipa=$(sed -n 's/^DEFAULT_IPA_SHA256="\(.*\)"/\1/p' scripts/generate-icons.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Darwin SDK
+        id: sdk-cache
+        uses: actions/cache@v5
+        with:
+          path: /github/home/.config/swiftpm/swift-sdks/darwin.artifactbundle
+          key: darwin-sdk-${{ steps.pins.outputs.sdk }}
+
+      - name: Token for the SDK download
+        id: sdk-token
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.PHOEBUSBOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PHOEBUSBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+
+      - name: Install Darwin SDK
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        run: scripts/ci/install-sdk.sh
+        env:
+          DARWIN_SDK_URL: ${{ secrets.DARWIN_SDK_URL }}
+          XCODE_XIP_URL: ${{ secrets.XCODE_XIP_URL }}
+          DOWNLOAD_AUTH_HEADER: "Authorization: Bearer ${{ steps.sdk-token.outputs.token }}"
+
+      - name: Cache Apollo IPA
+        uses: actions/cache@v5
+        with:
+          path: /github/home/.cache/phoebus/apollobase.ipa
+          key: apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
+
+      - name: Cache the icons
+        uses: actions/cache@v5
+        with:
+          path: |
+            Icons/LiquidGlass/*/*/*.png
+            Icons/LiquidGlass/*/*/.rendered
+            Icons/Standard/*/
+            Icons/Standard/.extracted
+            Sources/PhoebusUI/Resources/LiquidGlassIcons/*.png
+          key: icons-${{ steps.pins.outputs.apollo-ipa }}-${{ hashFiles('Icons/LiquidGlass/**/*.json', 'Icons/LiquidGlass/**/*.svg', 'scripts/lgrender/**') }}
+
+      # The device build Build IPA saves. This only restores it: a run here
+      # is not a build to keep.
+      - name: Restore the build
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .build
+            /github/home/.cache/org.swift.swiftpm
+          key: build-device-${{ steps.pins.outputs.xtool }}-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            build-device-${{ steps.pins.outputs.xtool }}-${{ hashFiles('docker/build.Dockerfile', 'scripts/ci/setup-linux.sh', 'Package.resolved') }}-
+
+      - name: Build
+        run: |
+          scripts/generate-icons.sh
+          scripts/build-app.sh device out/Phoebus.app
+
+      - name: Collect the const values and sources
+        run: scripts/ci/collect-appintents-input.sh appintents-input
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: appintents-input
+          path: appintents-input
+          retention-days: 1
+          if-no-files-found: error
+
+  # Apple's processor on that input, then the Linux generator against it.
+  apple:
+    needs: const-values
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: appintents-input
+          path: appintents-input
+
+      - name: Xcode
+        run: |
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Run appintentsmetadataprocessor
+        run: scripts/ci/appintents-reference.sh appintents-input appintents-fixtures
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: appintents-fixtures
+          path: appintents-fixtures
+          retention-days: 30
+          if-no-files-found: error
+
+      # Fails with the difference (and, if Apple's processor has a newer
+      # version than the generator writes, with that) when they disagree.
+      - name: Compare the generator with Apple's output
+        run: python3 scripts/appintents-metadata.py --compare appintents-fixtures

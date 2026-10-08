@@ -161,27 +161,32 @@ Apple's output for them, and `scripts/appintents-metadata.py --self-test`
 output field for field; Apple's processor orders enums and some lists
 arbitrarily, so those are compared as sets. When a target's intents
 change, `add-appintents-metadata.sh` warns that the generator has not been
-checked against them. Regenerate that fixture on a Mac with Xcode: copy a
-device build's const values
-(`.build/out/Intermediates.noindex/Phoebus.build/Release-iphoneos/<target>-t.build/Objects-normal/arm64/*.swiftconstvalues`)
-and `Sources/<target>/*.swift` there, point the absolute source paths in
-the const values at the copies (the processor stops on a source it cannot
-find), and run:
+checked against them.
 
-```bash
-TC=$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain
-ls "$PWD"/src/*.swift > sources.txt; ls *.swiftconstvalues > constvals.txt
-"$TC/usr/bin/appintentsmetadataprocessor" --output out --toolchain-dir "$TC" \
-  --module-name <target> --sdk-root "$(xcrun --sdk iphoneos --show-sdk-path)" \
-  --xcode-version "$(xcodebuild -version | tail -1 | awk '{print $3}')" \
-  --platform-family iOS --deployment-target 17.0 --target-triple arm64-apple-ios17.0 \
-  --source-file-list sources.txt --swift-const-vals-list constvals.txt --force
-```
+Regenerate the fixtures with the App Intents reference workflow
+(`.github/workflows/appintents-reference.yml`; see
+[releases.md](releases.md), "App Intents reference"). Run it from the
+Actions tab (or push the branch it covers) and download its
+`appintents-fixtures` artifact. It holds a folder per target, each with
+`input.swiftconstvalues` (the device build's const values, source paths
+relative to the repository) and Apple's `Metadata.appintents`; copy them
+into `Tests/Fixtures/AppIntents/`. Then fix the generator until
+`scripts/appintents-metadata.py --self-test` passes. The workflow also runs
+`scripts/appintents-metadata.py --compare appintents-fixtures`, the same
+check on the fresh output, so it fails when the generator and Apple's
+processor disagree, and when Apple's `toolsVersion` is not the generator's
+`TOOLS_VERSION`.
 
-Then copy `out/Metadata.appintents` into `Tests/Fixtures/AppIntents/<target>`,
-and the const values into `input.swiftconstvalues` with their source paths
-made relative to the repository, and fix the generator until `--self-test`
-passes.
+The processor comes from Xcode 27, which runs only on Apple silicon, so it
+runs on GitHub's `xcode-27` macOS runner. The workflow runs the processor as
+`scripts/ci/appintents-reference.sh` does: for each target,
+`appintentsmetadataprocessor --output <out> --toolchain-dir <toolchain>
+--module-name <target> --sdk-root <iphoneos SDK> --xcode-version <build>
+--platform-family iOS --deployment-target 17.0 --target-triple
+arm64-apple-ios17.0 --source-file-list <sources> --swift-const-vals-list
+<const values> --force`, on copies of `Sources/<target>/*.swift` with the
+const values' source paths pointed at them (the processor stops on a source
+it cannot find).
 
 ## Liquid Glass icons
 

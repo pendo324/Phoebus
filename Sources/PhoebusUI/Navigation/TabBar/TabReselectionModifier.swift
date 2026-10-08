@@ -184,30 +184,48 @@ private struct TabReselectionScrollsThenPops: UIViewRepresentable {
             // Search with a feed pushed: UIKit pops to root (not vetoed).
             if focusesSearchAtRoot && nav.viewControllers.count > 1 { return }
             let viewport = content.convert(content.bounds, to: nil)
-            if let scroll = Self.contentScrollView(in: content, viewport: viewport) {
-                let topOffset = -scroll.adjustedContentInset.top
-                if scroll.contentOffset.y > topOffset + 1 {
-                    scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: topOffset),
-                                            animated: !UIAccessibility.isReduceMotionEnabled)
-                    // A lazy SwiftUI List re-estimates row heights as
-                    // rows scroll in, which can leave one animated
-                    // scroll short of the top. Settle once it ends.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak scroll] in
-                        guard let scroll, !scroll.isDragging else { return }
-                        let settledTop = -scroll.adjustedContentInset.top
-                        if scroll.contentOffset.y > settledTop + 1 {
-                            scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: settledTop), animated: false)
-                        }
-                    }
+            let scroll = Self.contentScrollView(in: content, viewport: viewport)
+            // Reborn "Fix Posts tab scroll-to-top and preserve return
+            // position" (#1360): Posts lists with the status-bar proxy
+            // jump through it, saving the position for the Return Button.
+            let proxy = focusesSearchAtRoot ? nil : scroll?.delegate as? ScrollToTopDelegateProxy
+            let reduceMotion = UIAccessibility.isReduceMotionEnabled
+            switch TabReselectScrollPolicy.action(
+                offsetY: scroll.map { Double($0.contentOffset.y) },
+                topY: scroll.map { Double(-$0.adjustedContentInset.top) } ?? 0,
+                jumpInFlight: proxy?.isJumping ?? false,
+                canPop: nav.viewControllers.count > 1
+            ) {
+            case .ignore:
+                return
+            case .scrollToTop:
+                guard let scroll else { return }
+                if let proxy {
+                    proxy.scrollToTopSavingPosition(scroll, animated: !reduceMotion)
                     return
                 }
-            }
-            if nav.viewControllers.count > 1 {
-                nav.popViewController(animated: !UIAccessibility.isReduceMotionEnabled)
-            } else if focusesSearchAtRoot, let field = Self.searchField(in: nav.view) {
-                // Already at the top of the Search root: focus the
-                // field, matching Reborn #1190.
-                field.becomeFirstResponder()
+                let topOffset = -scroll.adjustedContentInset.top
+                scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: topOffset),
+                                        animated: !reduceMotion)
+                // A lazy SwiftUI List re-estimates row heights as
+                // rows scroll in, which can leave one animated
+                // scroll short of the top. Settle once it ends.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak scroll] in
+                    guard let scroll, !scroll.isDragging else { return }
+                    let settledTop = -scroll.adjustedContentInset.top
+                    if scroll.contentOffset.y > settledTop + 1 {
+                        scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: settledTop), animated: false)
+                    }
+                }
+            case .popPage:
+                // The popped page's saved spot goes with its scroll proxy.
+                nav.popViewController(animated: !reduceMotion)
+            case .atRoot:
+                if focusesSearchAtRoot, let field = Self.searchField(in: nav.view) {
+                    // Already at the top of the Search root: focus the
+                    // field, matching Reborn #1190.
+                    field.becomeFirstResponder()
+                }
             }
         }
 

@@ -340,6 +340,7 @@ try await checkTagFiltersApolloRebornFeature()
 try await checkAvatarCacheApolloRebornShowUser()
 
 try await checkSteamDeepLinkingApolloRebornFeature()
+checkRebornContributorsList()
 
 try await checkBackupRestoreApolloRebornFeature()
 

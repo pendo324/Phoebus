@@ -2,7 +2,8 @@ import SwiftUI
 import PhoebusCore
 
 /// The app's own About page: name, tagline, version, and credit to the
-/// two projects it follows. No outbound links.
+/// two projects it follows, including that Reborn's features are ported
+/// from Reborn's own code. No outbound links.
 public struct AboutScreen: View {
     public init() {}
 
@@ -31,11 +32,24 @@ public struct AboutScreen: View {
             }
 
             Section {
-                creditRow("Apollo", "The original Reddit app by Christian Selig, whose design and behaviour Phoebus follows.")
-                creditRow("Apollo Reborn", "The community project that keeps Apollo running, and the source of many of the features here.")
+                creditRow("Apollo Reborn", "The community project that keeps Apollo running. Phoebus's Apollo Reborn features are ported directly from its GPL-3.0 code, the work of the Apollo Reborn team and contributors, as are its Liquid Glass icons.")
+                SettingsNavigationRow {
+                    ThanksToScreen()
+                } label: {
+                    HStack {
+                        Text("Apollo Reborn Contributors")
+                        Spacer()
+                        ApolloSettingsChevron()
+                    }
+                }
+                .apolloPlainSettingsRowInsets()
+                creditRow("Apollo", "The original Reddit app by Christian Selig, whose design and behaviour Phoebus recreates.")
             } header: {
                 Text("Credits")
                     .apolloSectionHeader()
+            } footer: {
+                Text("The rest of Phoebus is written from scratch and contains none of Apollo's code.")
+                    .apolloSectionFooter()
             }
         }
         .apolloSettingsListAppearance()
@@ -53,46 +67,49 @@ public struct AboutScreen: View {
     }
 }
 
-/// "Thanks To": contributor sections loaded from GitHub, with "Loading
-/// contributors…" / "Couldn't load contributors" states.
+/// "Thanks To": Apollo Reborn's contributors, grouped as Reborn credits
+/// them (`RebornContributors`), with "Loading contributors…" /
+/// "Couldn't load contributors" states.
 struct ThanksToScreen: View {
-    @State private var contributors: [String]?
+    @State private var groups: [RebornContributors.Group]?
     @State private var failed = false
 
     var body: some View {
         List {
-            Section {
-                if let contributors {
-                    // Dynamic rows use the same 32/32 geometry as static ones; this section has
-                    // no footer, so every row keeps its rule.
-                    ForEach(contributors, id: \.self) {
-                        Text($0).apolloPlainSettingsRowInsets()
+            if let groups {
+                ForEach(groups, id: \.title) { group in
+                    Section {
+                        // Dynamic rows use the same 32/32 geometry as static ones; these
+                        // sections have no footer, so every row keeps its rule.
+                        ForEach(group.names, id: \.self) {
+                            Text($0).apolloPlainSettingsRowInsets()
+                        }
+                    } header: {
+                        Text(group.title)
+                            .apolloSectionHeader()
                     }
-                } else if failed {
-                    Text("Couldn't load contributors").foregroundStyle(.secondary)
-                } else {
-                    Text("Loading contributors…").foregroundStyle(.secondary)
                 }
-            } header: {
-                Text("Contributors")
-                    .apolloSectionHeader()
+            } else {
+                Section {
+                    Text(failed ? "Couldn't load contributors" : "Loading contributors…")
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Contributors")
+                        .apolloSectionHeader()
+                }
             }
         }
         .apolloSettingsListAppearance()
         .navigationTitle("Thanks To")
         .navigationBarTitleDisplayModeIfAvailable()
         .task {
-            guard contributors == nil else { return }
-            do {
-                let url = URL(string: "https://api.github.com/repos/Apollo-Reborn/Apollo-Reborn/contributors?per_page=100")!
-                let (data, _) = try await URLSession.shared.data(from: url)
-                let list = try JSONDecoder().decode([Contributor].self, from: data)
-                contributors = list.map(\.login)
-            } catch {
+            guard groups == nil else { return }
+            if let (data, _) = try? await URLSession.shared.data(from: RebornContributors.sourceURL),
+               let parsed = RebornContributors.parse(data) {
+                groups = parsed
+            } else {
                 failed = true
             }
         }
     }
-
-    private struct Contributor: Decodable { let login: String }
 }

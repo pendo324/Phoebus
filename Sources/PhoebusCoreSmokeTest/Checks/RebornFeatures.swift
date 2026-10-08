@@ -832,3 +832,27 @@ import PhoebusCore
     check("a malformed hex does not claim a contrast decision",
           HexContrast.luminance(ofHex: "nope") == nil)
 }
+
+// MARK: - Thanks To (Reborn's contributors.json)
+@MainActor func checkRebornContributorsList() {
+    let json = Data("""
+    {"repo": "Apollo-Reborn/Apollo-Reborn", "contributors": [
+      {"role": "code", "github": "coder"},
+      {"role": "maintainer", "github": "lead"},
+      {"role": "code", "github": "github-actions[bot]"},
+      {"role": "design", "id": "u1", "displayName": "artist", "source": "reddit"},
+      {"role": "design", "github": "designer"},
+      {"role": "unknown", "github": "someone"}
+    ]}
+    """.utf8)
+    let groups = RebornContributors.parse(json)
+    check("Reborn contributors: grouped in Reborn's order, maintainers first",
+          groups?.map(\.title) == ["Maintainers", "Code", "Icons & Design"])
+    check("Reborn contributors: bots are left out",
+          groups?.first { $0.title == "Code" }?.names == ["coder"])
+    check("Reborn contributors: non-GitHub entries use their display name",
+          groups?.last?.names == ["artist", "designer"])
+    check("Reborn contributors: unreadable data is a failure, not an empty list",
+          RebornContributors.parse(Data("{}".utf8)) == nil
+          && RebornContributors.parse(Data(#"{"contributors": []}"#.utf8)) == nil)
+}

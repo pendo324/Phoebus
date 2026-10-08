@@ -1505,4 +1505,7 @@ try await checkGalleryMuteIsStickyAndThe()
 
 try await checkTheAudioSessionSurvivesAPage()
 
+try await checkBuildChannelParsing()
+
+// Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

@@ -38,7 +38,7 @@ import json
 import sys
 from pathlib import Path
 
-TOOLS_VERSION = "17F113"  # the appintentsmetadataprocessor build the format follows
+TOOLS_VERSION = "27A266a"  # Xcode 27.0's appintentsmetadataprocessor, whose format this follows
 WIDGET_CONFIGURATION = "com.apple.link.systemProtocol.WidgetConfiguration"
 STRING, BOOL = 0, 1
 
@@ -129,6 +129,8 @@ def build_enum(entry):
         "mangledTypeName": entry["mangledTypeName"],
         "mangledTypeNameByBundleIdentifier": {},
         "numericFormatTypeName": text(display_name),
+        # Xcode 27 writes this for every enum, empty for an AppEnum.
+        "systemProtocolMetadata": [],
         "visibilityMetadata": {"assistantOnly": False, "isDiscoverable": True},
     }
 

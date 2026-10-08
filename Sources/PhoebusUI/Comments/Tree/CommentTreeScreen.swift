@@ -347,6 +347,8 @@ struct CommentTreeContent: View {
                             onDeleted: { store.commentDeleted(id: node.id) },
                             onShareAsImage: shareAsImageAction(for: node.comment)
                         )
+                        // Reborn "Siri & Spotlight" (#1299): the comment, for onscreen context.
+                        .siriCommentContext(node.comment.name)
                         .threadRowMarker(node.id, tracker: store.threadScroll, enabled: store.tracksThreadPosition)
                         .onAppear {
                             store.prefetchImages(after: node.id)

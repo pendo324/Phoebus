@@ -44,7 +44,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Inline Media", breadcrumb: "Settings → Apollo Reborn → Media", screen: .inlineMedia),
         SettingsSearchEntry(title: "Subreddit Sections", breadcrumb: "Settings → Apollo Reborn → Subreddits", screen: .subredditSections),
         SettingsSearchEntry(title: "Subreddit Layout", breadcrumb: "Settings → Apollo Reborn → Subreddits", screen: .subredditLayout),
-        SettingsSearchEntry(title: "Action Menus", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .actionMenus),
+        SettingsSearchEntry(title: "Customize Action Menus", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .actionMenus),
         SettingsSearchEntry(title: "Open Links In", breadcrumb: "Settings → Apollo Reborn → Open in App", screen: .externalBrowser),
         SettingsSearchEntry(title: "Buy Us a Coffee", breadcrumb: "Settings", screen: .settingsRoot, rowTitle: "Buy Us a Coffee"),
         SettingsSearchEntry(title: "Disable Left Swipes", breadcrumb: "Settings → Gestures", screen: .gestures, rowTitle: "Disable Left Swipes"),
@@ -338,6 +338,6 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Header Style", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Header Style"),
         SettingsSearchEntry(title: "Display", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Display"),
         SettingsSearchEntry(title: "Community Highlights", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Community Highlights"),
-        SettingsSearchEntry(title: "All Menus", breadcrumb: "Settings → Apollo Reborn → Interface → Action Menus", screen: .actionMenus, rowTitle: "All Menus"),
+        SettingsSearchEntry(title: "All Menus", breadcrumb: "Settings → Apollo Reborn → Interface → Customize Action Menus", screen: .actionMenus, rowTitle: "All Menus"),
     ]
 }

@@ -3,7 +3,8 @@ import PhoebusCore
 
 /// Remind Me: "Or Choose Hours…" / "Or Choose a Date…" quick-pick reminder UI.
 public struct RemindMeScreen: View {
-    let post: RedditPost
+    let title: String
+    let permalink: String
     let onDone: () -> Void
 
     @State private var selectedHours: Int?
@@ -13,7 +14,13 @@ public struct RemindMeScreen: View {
     @State private var scheduled = false
 
     public init(post: RedditPost, onDone: @escaping () -> Void) {
-        self.post = post
+        self.init(title: post.title, permalink: post.permalink, onDone: onDone)
+    }
+
+    /// For a comment: its text stands in for the title.
+    public init(title: String, permalink: String, onDone: @escaping () -> Void) {
+        self.title = title
+        self.permalink = permalink
         self.onDone = onDone
     }
 
@@ -99,7 +106,7 @@ public struct RemindMeScreen: View {
             return
         }
         do {
-            try await RemindMeScheduler.scheduleReminder(postTitle: post.title, postPermalink: post.permalink, fireDate: fireDate)
+            try await RemindMeScheduler.scheduleReminder(postTitle: title, postPermalink: permalink, fireDate: fireDate)
             scheduled = true
         } catch {
             errorMessage = UserFacingError.message(for: error)

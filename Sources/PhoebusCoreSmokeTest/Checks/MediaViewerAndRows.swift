@@ -963,12 +963,13 @@ import PhoebusCore
         let appIDs = ["upvote", "downvote", "reply", "quote", "save", "share", "copy-link", "report"]
         check("action menus: an untouched menu keeps the app's order",
               ActionMenuLayoutStore.arrange(appIDs, for: .comment) == appIDs)
-        check("action menus: untouched summary is Default", ActionMenuLayoutStore.summary(.comment) == "Default")
+        check("action menus: an untouched menu has no summary", ActionMenuLayoutStore.summary(.comment) == nil)
+        check("action menus: no All Menus summary while nothing is hidden", ActionMenuLayoutStore.allMenusSummary() == nil)
 
         ActionMenuLayoutStore.setHidden(true, itemID: "downvote", for: .comment)
         check("action menus: a hidden item drops out, the rest keep order",
               ActionMenuLayoutStore.arrange(appIDs, for: .comment) == ["upvote", "reply", "quote", "save", "share", "copy-link", "report"])
-        check("action menus: summary counts hidden", ActionMenuLayoutStore.summary(.comment) == "1 hidden")
+        check("action menus: summary counts hidden", ActionMenuLayoutStore.summary(.comment) == "1 action hidden")
 
         var order = ActionMenuLayoutStore.resolvedOrder(.comment)
         order.removeAll { $0 == "share" }
@@ -977,9 +978,82 @@ import PhoebusCore
         check("action menus: a moved item leads, extras travel with their neighbour",
               // Apollo's comment order has Save before Reply; Quote rides with Reply.
               ActionMenuLayoutStore.arrange(appIDs, for: .comment) == ["share", "copy-link", "upvote", "save", "reply", "quote", "report"])
-        check("action menus: summary shows both", ActionMenuLayoutStore.summary(.comment) == "Custom order · 1 hidden")
-        check("action menus: interface summary names the menu",
-              ActionMenuLayoutStore.interfaceSummary() == "Customized: Comment")
+        check("action menus: summary shows both", ActionMenuLayoutStore.summary(.comment) == "Custom order · 1 action hidden")
+        check("action menus: All Menus summary counts distinct hidden actions",
+              ActionMenuLayoutStore.allMenusSummary() == "1 action hidden")
+        check("action menus: both an order and hidden rows offer Reset Order Only first",
+              ActionMenuLayoutStore.resetChoices(.comment).map(\.title) == ["Reset Order Only", "Reset Order and Visibility"]
+              && ActionMenuLayoutStore.resetChoices(.comment).map(\.orderOnly) == [true, false])
+
+        ActionMenuLayoutStore.resetOrder(.comment)
+        check("action menus: Reset Order Only clears the order and keeps what is hidden",
+              !ActionMenuLayoutStore.hasCustomOrder(.comment) && ActionMenuLayoutStore.hiddenIDs(.comment) == ["downvote"])
+        check("action menus: hidden rows alone offer one reset",
+              ActionMenuLayoutStore.resetChoices(.comment).map(\.title) == ["Show All Actions"])
+        ActionMenuLayoutStore.setOrder(order, for: .comment)
+        ActionMenuLayoutStore.setHidden(false, itemID: "downvote", for: .comment)
+        check("action menus: an order alone offers one reset",
+              ActionMenuLayoutStore.resetChoices(.comment).map(\.title) == ["Reset Order"])
+        ActionMenuLayoutStore.setHidden(true, itemID: "downvote", for: .comment)
+
+        let catalogueOrder = ActionMenuCatalog.items(for: .comment).map(\.id)
+        ActionMenuLayoutStore.setOrder(catalogueOrder, for: .comment)
+        check("action menus: an order equal to the default counts as default",
+              !ActionMenuLayoutStore.hasCustomOrder(.comment) && ActionMenuLayoutStore.summary(.comment) == "1 action hidden")
+        ActionMenuLayoutStore.setOrder(["share"] + catalogueOrder.filter { $0 != "share" }, for: .comment)
+        check("action menus: dragging back to the default clears the saved order",
+              ActionMenuLayoutStore.hasCustomOrder(.comment))
+        ActionMenuLayoutStore.setOrder(catalogueOrder, for: .comment)
+        check("action menus: a stored default order is removed, not kept",
+              (ActionMenuLayoutStore.defaults.dictionary(forKey: ActionMenuLayoutStore.key)?["comment"] as? [String: Any])?["order"] == nil)
+        ActionMenuLayoutStore.setOrder(["share"] + catalogueOrder.filter { $0 != "share" }, for: .comment)
+
+        check("action menus: Remind Me In… is catalogued in Post, Post with Comments and Comment",
+              [ActionMenuContext.post, .postDetail, .comment].allSatisfy {
+                  ActionMenuCatalog.item("remind-me", in: $0)?.title == "Remind Me In…"
+                      && ActionMenuCatalog.item("remind-me", in: $0)?.usuallyShown == true
+              })
+        check("action menus: Remind Me In… is not in the feed or moderator menus",
+              [ActionMenuContext.feed, .moderatorSubreddit, .moderatorPost, .moderatorComment].allSatisfy {
+                  ActionMenuCatalog.item("remind-me", in: $0) == nil
+              })
+        ActionMenuLayoutStore.setHidden(true, itemID: "remind-me", for: .comment)
+        check("action menus: Remind Me In… can be hidden",
+              !ActionMenuLayoutStore.arrange(["upvote", "remind-me", "report"], for: .comment).contains("remind-me"))
+        ActionMenuLayoutStore.setHidden(false, itemID: "remind-me", for: .comment)
+
+        check("action menus: an action hidden in one menu names it",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "downvote") == "Hidden in Comment")
+        ActionMenuLayoutStore.setHidden(true, itemID: "downvote", for: .post)
+        check("action menus: an action hidden in several menus names them",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "downvote") == "Hidden in Post and Comment")
+        ActionMenuLayoutStore.setHidden(true, itemID: "downvote", for: .postDetail)
+        check("action menus: hidden in all three menus that have it reads Hidden everywhere",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "downvote") == "Hidden everywhere")
+        for context in [ActionMenuContext.post, .postDetail, .comment] {
+            ActionMenuLayoutStore.setHidden(true, itemID: "report", for: context)
+        }
+        check("action menus: three of four menus are listed with commas and an and",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "report") == "Hidden in Post, Post with Comments and Comment")
+        for context in [ActionMenuContext.post, .postDetail, .comment] {
+            ActionMenuLayoutStore.setHidden(false, itemID: "report", for: context)
+        }
+        check("action menus: a shown action has no hidden-in text",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "upvote") == nil)
+        ActionMenuLayoutStore.setHidden(true, itemID: "mod-approve", for: .moderatorPost)
+        check("action menus: hidden in one of two menus that have it names that menu",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "mod-approve") == "Hidden in Moderator Post")
+        ActionMenuLayoutStore.setHidden(true, itemID: "mod-approve", for: .moderatorComment)
+        check("action menus: hidden in every menu that has it reads Hidden everywhere",
+              ActionMenuLayoutStore.hiddenInSummary(itemID: "mod-approve") == "Hidden everywhere")
+        ActionMenuLayoutStore.setHidden(false, itemID: "downvote", for: .post)
+        ActionMenuLayoutStore.setHidden(false, itemID: "downvote", for: .postDetail)
+        ActionMenuLayoutStore.setHidden(false, itemID: "mod-approve", for: .moderatorPost)
+        ActionMenuLayoutStore.setHidden(false, itemID: "mod-approve", for: .moderatorComment)
+        check("action menus: titles are distinct across all seven menus",
+              Set(ActionMenuContext.allCases.map(\.title)).count == ActionMenuContext.allCases.count
+              && ActionMenuContext.postDetail.title == "Post with Comments"
+              && ActionMenuContext.moderatorPost.hubTitle == "Post")
 
         ActionMenuLayoutStore.setHidden(true, itemID: "submit", for: .feed)
         check("action menus: a locked item cannot be hidden", ActionMenuLayoutStore.hiddenIDs(.feed).isEmpty)

@@ -68,6 +68,7 @@ struct CommentRow: View {
     @State private var showingModNotes = false
     @State private var showingTranslator = false
     @State private var showingAward = false
+    @State private var showingRemindMe = false
     @State private var showingTagEditor = false
     @State private var isOwnComment = false
     /// Author-only "Comment Insights" (see the context menu item).
@@ -145,7 +146,7 @@ struct CommentRow: View {
         if onShareAsImage != nil { ids.append("share-image") }
         ids.append("copy-username")
         if displayAuthor != "[deleted]" { ids.append("tag-user") }
-        ids += ["translate", "award", "report", "mute-notifications"]
+        ids += ["translate", "award", "report", "remind-me", "mute-notifications"]
         return ids
     }
 
@@ -209,6 +210,9 @@ struct CommentRow: View {
             Button { showingAward = true } label: { Label("Give Award", systemImage: "medal") }
         case "report":
             Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
+        case "remind-me":
+            // Reborn "Action Menus" (#1368): Remind Me In… is a catalogued row.
+            Button { showingRemindMe = true } label: { Label("Remind Me In…", systemImage: "alarm") }
         case "mute-notifications":
             // On-device suppression list: Reddit's API has no endpoint.
             Button {
@@ -602,6 +606,13 @@ struct CommentRow: View {
         .apolloTranslator(isPresented: $showingTranslator, text: node.comment.body)
         .sheet(isPresented: $showingInsights) {
             CommentVoteInsightsSheet(comment: node.comment, repository: repository)
+        }
+        .sheet(isPresented: $showingRemindMe) {
+            NavigationStack {
+                RemindMeScreen(title: String(node.comment.body.prefix(140)), permalink: node.comment.permalinkPath) {
+                    showingRemindMe = false
+                }
+            }
         }
         .sheet(isPresented: $showingAward) {
             AwardGiftingScreen(fullname: node.comment.name, repository: repository) {

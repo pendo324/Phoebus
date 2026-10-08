@@ -200,7 +200,7 @@ flowchart LR
 | Link routing | Core `LinkRouter`, `RedditURLTarget`, `ShareLink*`, `ExternalBrowser`, `SafariDarkLoadingPolicy`; UI `InAppSafariView` | Which Reddit URLs open natively, share-link normalisation, external browser choice, in-app Safari | |
 | Sign-in prompts | UI `SignInRequiredPresenter`; Core `SignInRequiredCopy` | Apollo's "Sign In to X" alerts | |
 | Icons | UI `StockIcon`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Apollo's vector glyphs (`Resources/StockIcons`), app icon picker incl. Liquid Glass packs | |
-| Menus | UI `ApolloActionSheet`, `ApolloUIKitMenuButton`; Core `ApolloMenuSectioning`, `ActionMenuLayout`; UI `ActionMenusSettingsScreen` | Apollo's bottom action sheet; real `UIMenu` hosted in SwiftUI; Reborn Action Menus (#1131): each ••• menu is a list of id-keyed rows passed through `ActionMenuLayoutStore.arrange(_:for:)`; touch and hold on a feed post, a comment, or the title area of the post header (#1282) shows the same arranged rows | Rows not in Reborn's catalogue ride with the catalogued row before them |
+| Menus | UI `ApolloActionSheet`, `ApolloUIKitMenuButton`; Core `ApolloMenuSectioning`, `ActionMenuLayout`; UI `ActionMenusSettingsScreen` | Apollo's bottom action sheet; real `UIMenu` hosted in SwiftUI; Reborn Action Menus (#1131): each ••• menu is a list of id-keyed rows passed through `ActionMenuLayoutStore.arrange(_:for:)`; touch and hold on a feed post, a comment, or the title area of the post header (#1282) shows the same arranged rows. Customize Action Menus (#1368, built on #1300 by AcornElf): a saved order equal to the default counts as default, Reset Menu… offers Reset Order Only / Reset Order and Visibility, All Menus says where an action is hidden, and `remind-me` (Remind Me In…) is catalogued in Post, Post with Comments and Comment | Rows not in Reborn's catalogue ride with the catalogued row before them |
 
 ## 2. Feeds and subreddits
 
@@ -474,7 +474,7 @@ during backup import.
 | `NotificationSettingsStore`, `NotificationBackendSettingsStore` | `…notificationSettings`, `…notificationBackendSettings` | Notifications, Notification Backend |
 | `SubredditWatchStore` | `…watchedSubreddits` | subreddit "•••" > Notifications |
 | `SettingsShortcutsStore` | `SettingsTabShortcuts` | Settings Shortcuts |
-| `ActionMenuLayoutStore` | `ActionMenuLayouts` (Reborn's key and shape) | Interface → Action Menus |
+| `ActionMenuLayoutStore` | `ActionMenuLayouts` (Reborn's key and shape) | Interface → Customize Action Menus |
 | `FavoriteSubredditsStore.confirmChanges` | `ConfirmFavoriteToggle` | Subreddits → Favorites |
 | `ImgurUploadHistoryStore` | `…imgurUploadHistory` | Manage Uploads |
 

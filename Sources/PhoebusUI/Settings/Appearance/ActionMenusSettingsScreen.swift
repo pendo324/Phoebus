@@ -1,7 +1,7 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn "Action Menus" (#1131, Interface → Menus → Action Menus): pick
+/// Reborn "Customize Action Menus" (#1131, #1368; Interface → Menus): pick
 /// a menu, then show/hide and reorder its items. Layouts live in
 /// `ActionMenuLayoutStore` and are applied by each menu's builder.
 public struct ActionMenusSettingsScreen: View {
@@ -14,7 +14,7 @@ public struct ActionMenusSettingsScreen: View {
             Section {
                 SettingsLink { ActionMenuAllMenusScreen() } label: {
                     menuRowLabel("All Menus", symbol: "list.bullet",
-                                 summary: allSummary)
+                                 summary: ActionMenuLayoutStore.allMenusSummary())
                 }
                 .apolloSearchRow("All Menus")
             } footer: {
@@ -24,21 +24,21 @@ public struct ActionMenusSettingsScreen: View {
             Section {
                 ForEach(ActionMenuContext.menus) { context in
                     SettingsLink { ActionMenuEditorScreen(context: context) } label: {
-                        menuRowLabel(context.title, symbol: "ellipsis", summary: ActionMenuLayoutStore.summary(context))
+                        menuRowLabel(context.hubTitle, symbol: "ellipsis", summary: ActionMenuLayoutStore.summary(context))
                     }
                     .apolloSettingsRowHeight()
                     .apolloSettingsRowInsets()
                 }
             } header: {
-                Text("••• Menus").apolloSectionHeader()
+                Text("Menus").apolloSectionHeader()
             } footer: {
-                Text("The ••• button’s menu in each place. Touching and holding a post or comment opens the same menu. Open one to reorder its actions or hide some, and to preview it.")
+                Text("Touching and holding a post or comment opens the same menu.")
                     .apolloSectionFooter()
             }
             Section {
                 ForEach(ActionMenuContext.moderatorMenus) { context in
                     SettingsLink { ActionMenuEditorScreen(context: context) } label: {
-                        menuRowLabel(context.title, symbol: "shield", summary: ActionMenuLayoutStore.summary(context))
+                        menuRowLabel(context.hubTitle, symbol: "shield", summary: ActionMenuLayoutStore.summary(context))
                     }
                     .apolloSettingsRowHeight()
                     .apolloSettingsRowInsets()
@@ -46,30 +46,30 @@ public struct ActionMenusSettingsScreen: View {
             } header: {
                 Text("Moderator Menus").apolloSectionHeader()
             } footer: {
-                Text("The moderator shield’s menus. They only appear in subreddits you moderate.")
+                Text("Shown in subreddits you moderate.")
                     .apolloSectionFooter()
             }
         }
         .id(revision)
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Action Menus")
+        .navigationTitle("Customize Action Menus")
         .onReceive(NotificationCenter.default.publisher(for: .apolloActionMenuLayoutsChanged)) { _ in
             revision += 1
         }
     }
 
-    private var allSummary: String {
-        let count = ActionMenuContext.allCases.filter(ActionMenuLayoutStore.isCustomized).count
-        return count == 0 ? "Default" : "\(count) customized"
-    }
-
-    private func menuRowLabel(_ title: String, symbol: String, summary: String) -> some View {
+    /// The summary only shows on a menu that differs from the default.
+    private func menuRowLabel(_ title: String, symbol: String, summary: String?) -> some View {
         HStack(spacing: 15) {
             Image(systemName: symbol).frame(width: 29)
-            Text(title)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                if let summary {
+                    Text(summary).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
             Spacer()
-            Text(summary).foregroundStyle(.secondary)
         }
     }
 }
@@ -80,6 +80,7 @@ struct ActionMenuEditorScreen: View {
     let context: ActionMenuContext
     @State private var order: [String] = []
     @State private var hidden: Set<String> = []
+    @State private var confirmingReset = false
 
     var body: some View {
         List {
@@ -96,7 +97,7 @@ struct ActionMenuEditorScreen: View {
             } header: {
                 Text("Preview").apolloSectionHeader()
             } footer: {
-                Text(context.detail + " Dimmed rows appear only for your own content or when a feature is enabled.")
+                Text(context.detail + " Dimmed rows are shown only when relevant.")
                     .apolloSectionFooter()
             }
             Section {
@@ -116,8 +117,13 @@ struct ActionMenuEditorScreen: View {
                     } label: {
                         HStack(spacing: 15) {
                             Image(systemName: item.symbol).frame(width: 29)
-                            Text(item.title)
-                                .foregroundStyle(hidden.contains(item.id) ? .secondary : .primary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.title)
+                                    .foregroundStyle(hidden.contains(item.id) ? .secondary : .primary)
+                                if let note = relevanceNote(item) {
+                                    Text(note).font(.footnote).foregroundStyle(.secondary)
+                                }
+                            }
                             Spacer()
                             if !hidden.contains(item.id) {
                                 Image(systemName: "checkmark").foregroundStyle(Color.apolloAccent)
@@ -134,17 +140,24 @@ struct ActionMenuEditorScreen: View {
             } header: {
                 Text("Items").apolloSectionHeader()
             } footer: {
-                Text("Only actions supported by this menu are listed. Some appear only for your own content or when a feature is enabled; the preview at the top dims those. Tap an action to show or hide it; touch and hold to reorder. Hiding keeps Phoebus’s order.")
+                Text("Tap an action to show or hide it. Drag to reorder. Some actions are only available in certain contexts." + lockedNote)
                     .apolloSectionFooter()
             }
             Section {
-                Button("Reset This Menu", role: .destructive) {
-                    ActionMenuLayoutStore.reset(context)
+                Button("Reset Menu…", role: .destructive) { confirmingReset = true }
+                    .disabled(!ActionMenuLayoutStore.isCustomized(context))
+                    .accessibilityIdentifier("actionMenus.resetMenu")
+                    .apolloPlainSettingsRowInsets(rule: false)
+            }
+        }
+        .confirmationDialog("Reset Menu", isPresented: $confirmingReset, titleVisibility: .visible) {
+            ForEach(ActionMenuLayoutStore.resetChoices(context), id: \.title) { choice in
+                Button(choice.title, role: .destructive) {
+                    if choice.orderOnly { ActionMenuLayoutStore.resetOrder(context) } else { ActionMenuLayoutStore.reset(context) }
                     reload()
                 }
-                .disabled(!ActionMenuLayoutStore.isCustomized(context))
-                .apolloPlainSettingsRowInsets(rule: false)
             }
+            Button("Cancel", role: .cancel) {}
         }
         .environment(\.editMode, .constant(.active))
         .apolloSettingsListAppearance()
@@ -153,6 +166,16 @@ struct ActionMenuEditorScreen: View {
     }
 
     private var catalog: [ActionMenuItem] { ActionMenuCatalog.items(for: context) }
+
+    private var lockedNote: String {
+        lockedItems.map { " \($0.title) stays at the top and can’t be hidden." }.joined()
+    }
+
+    /// Why a row may be missing from the menu right now.
+    private func relevanceNote(_ item: ActionMenuItem) -> String? {
+        if item.usuallyShown { return nil }
+        return item.id == "moderator" ? "Shown in subreddits you moderate" : "Shown when relevant"
+    }
     private var lockedItems: [ActionMenuItem] { catalog.filter(\.locked) }
     private var movableItems: [ActionMenuItem] {
         order.compactMap { id in catalog.first { $0.id == id && !$0.locked } }
@@ -183,9 +206,14 @@ struct ActionMenuEditorScreen: View {
 /// Visibility across every menu at once.
 struct ActionMenuAllMenusScreen: View {
     @State private var revision = 0
+    @State private var confirmingReset = false
 
     var body: some View {
         List {
+            Section {} footer: {
+                Text("Show or hide actions across all menus, including moderator menus. Actions enabled here appear in every menu that supports them.")
+                    .apolloSectionFooter()
+            }
             Section {
                 ForEach(allItems, id: \.id) { item in
                     let state = visibility(item.id)
@@ -196,10 +224,8 @@ struct ActionMenuAllMenusScreen: View {
                             Image(systemName: item.symbol).frame(width: 29)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title).foregroundStyle(state == .hidden ? .secondary : .primary)
-                                if state == .mixed {
-                                    Text("Shown in Some Menus").font(.footnote).foregroundStyle(.secondary)
-                                } else if state == .hidden {
-                                    Text("Hidden in All Supported Menus").font(.footnote).foregroundStyle(.secondary)
+                                if let hiddenIn = ActionMenuLayoutStore.hiddenInSummary(itemID: item.id) {
+                                    Text(hiddenIn).font(.footnote).foregroundStyle(.secondary)
                                 }
                             }
                             Spacer()
@@ -215,20 +241,22 @@ struct ActionMenuAllMenusScreen: View {
                     .apolloSettingsRowHeight()
                     .apolloSettingsRowInsets()
                 }
-            } header: {
-                Text("Items").apolloSectionHeader()
             } footer: {
-                Text("Tap an action to show or hide it across the menus that support it. Shown in Some Menus means your per-menu choices differ. Select a menu to adjust its choices and order.")
+                Text("Tap an action to show or hide it across the menus that support it.")
                     .apolloSectionFooter()
             }
             Section {
-                Button("Reset All Menus", role: .destructive) { ActionMenuLayoutStore.resetAll() }
+                Button("Reset All Menus…", role: .destructive) { confirmingReset = true }
                     .disabled(!ActionMenuContext.allCases.contains(where: ActionMenuLayoutStore.isCustomized))
+                    .accessibilityIdentifier("actionMenus.resetAllMenus")
                     .apolloPlainSettingsRowInsets(rule: false)
-            } footer: {
-                Text("Visibility across every menu, the moderator menus included. Open a menu from the previous screen to reorder its actions or preview it.")
-                    .apolloSectionFooter()
             }
+        }
+        .confirmationDialog("Reset All Menus", isPresented: $confirmingReset, titleVisibility: .visible) {
+            Button("Reset All Menus", role: .destructive) { ActionMenuLayoutStore.resetAll() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This restores the default order and visibility in every menu.")
         }
         .id(revision)
         .apolloSettingsListAppearance()

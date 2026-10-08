@@ -1,6 +1,7 @@
 import Foundation
 
-/// Reborn "Action Menus" (#1131, Interface → Menus): per-menu order and
+/// Reborn "Action Menus" (#1131, Interface → Menus; clearer settings and
+/// Remind Me In… #1368, built on #1300 by AcornElf): per-menu order and
 /// hidden set for Apollo's ••• menus. Contexts, item ids, titles and each
 /// menu's default order are Reborn's, and storage uses Reborn's shape
 /// under the same key (`ActionMenuLayouts`: `{context: {order, hidden}}`),
@@ -25,23 +26,34 @@ public enum ActionMenuContext: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .feed: return "Feed"
         case .post: return "Post"
-        case .postDetail: return "Post (Comments)"
+        case .postDetail: return "Post with Comments"
         case .comment: return "Comment"
-        case .moderatorSubreddit: return "Moderator (Subreddit)"
-        case .moderatorPost: return "Moderator (Post)"
-        case .moderatorComment: return "Moderator (Comment)"
+        case .moderatorSubreddit: return "Moderator Subreddit"
+        case .moderatorPost: return "Moderator Post"
+        case .moderatorComment: return "Moderator Comment"
+        }
+    }
+
+    /// A row's title in the hub: the moderator menus go by their object
+    /// alone, under the Moderator Menus heading.
+    public var hubTitle: String {
+        switch self {
+        case .moderatorSubreddit: return "Subreddit"
+        case .moderatorPost: return "Post"
+        case .moderatorComment: return "Comment"
+        default: return title
         }
     }
 
     public var detail: String {
         switch self {
-        case .feed: return "The ••• button at the top of a subreddit or feed."
-        case .post: return "The ••• button on a post in a feed."
-        case .postDetail: return "The ••• button at the top of a post's comments."
-        case .comment: return "The ••• button on a comment."
-        case .moderatorSubreddit: return "The moderator shield at the top of a subreddit you moderate."
-        case .moderatorPost: return "The moderator shield on a post, the Moderator row in a post’s ••• menus, and the shield at the top of its comments."
-        case .moderatorComment: return "The moderator shield on a comment, and the Moderator row in its ••• menu."
+        case .feed: return "The ••• menu at the top of a subreddit or feed."
+        case .post: return "The ••• menu on a post in a feed. Touching and holding the post opens the same menu."
+        case .postDetail: return "The ••• menu at the top of a post’s comments. Touching and holding the post above them opens the same menu."
+        case .comment: return "The ••• menu on a comment. Touching and holding the comment opens the same menu."
+        case .moderatorSubreddit: return "The shield menu at the top of a subreddit you moderate."
+        case .moderatorPost: return "The shield menu on a post in a subreddit you moderate."
+        case .moderatorComment: return "The shield menu on a comment in a subreddit you moderate."
         }
     }
 
@@ -122,6 +134,7 @@ public enum ActionMenuCatalog {
     static let postFlair = ActionMenuItem("post-flair", "Set Post Flair", "tag")
     static let excludeSubscriptions = ActionMenuItem("exclude-subscriptions", "Exclude Subscriptions", "nosign")
     static let muteNotifications = ActionMenuItem("mute-notifications", "Mute Notifications", "bell.slash")
+    static let remindMe = ActionMenuItem("remind-me", "Remind Me In…", "alarm")
     // Reborn's own rows, stored as `spec.<identifier>`.
     static let floatingTabs = ActionMenuItem("spec.FloatingTabs", "Keep in Floating Tab", "pin.circle")
     static let deletedComments = ActionMenuItem("spec.DeletedComments", "Show Deleted Comments", "eye")
@@ -169,16 +182,16 @@ public enum ActionMenuCatalog {
                     excludeSubscriptions.sometimes()]
         case .post:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, subreddit, hide, hideAbove,
-                    share, shareImage, crosspost, award, report, floatingTabs.sometimes()]
+                    share, shareImage, crosspost, award, report, remindMe, floatingTabs.sometimes()]
                 + [translate, filterSubreddit, edit, delete, postInsights, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
         case .postDetail:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, subreddit, collapseChildren, selectText, share,
-                    shareImage, crosspost, find, award, report, liveActivity,
+                    shareImage, crosspost, find, award, report, liveActivity, remindMe,
                     deletedComments.sometimes(), floatingTabs.sometimes()]
                 + [translate, edit, delete, postInsights, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
         case .comment:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, selectText, share,
-                    shareImage, collapseTop, award, report]
+                    shareImage, collapseTop, award, report, remindMe]
                 + [viewReplies, parent, translate, edit, delete, muteNotifications].map { $0.sometimes() }
         case .moderatorSubreddit:
             return [modMail, modQueue, modLog, modReports, modSpamQueue, modUnmoderated, modEdited,
@@ -253,8 +266,16 @@ public enum ActionMenuLayoutStore {
         })
     }
 
+    /// The order an untouched menu has: the catalogue's, locked items first.
+    static func defaultOrder(_ context: ActionMenuContext) -> [String] {
+        let catalog = ActionMenuCatalog.items(for: context)
+        return catalog.filter(\.locked).map(\.id) + catalog.filter { !$0.locked }.map(\.id)
+    }
+
+    /// A saved order that comes out as the catalogue's own counts as the
+    /// default (Reborn #1368).
     public static func hasCustomOrder(_ context: ActionMenuContext) -> Bool {
-        !stored(context, orderKey).isEmpty
+        !stored(context, orderKey).isEmpty && resolvedOrder(context) != defaultOrder(context)
     }
 
     public static func isCustomized(_ context: ActionMenuContext) -> Bool {
@@ -264,7 +285,15 @@ public enum ActionMenuLayoutStore {
     public static func setOrder(_ order: [String], for context: ActionMenuContext) {
         var all = layouts()
         var layout = all[context.rawValue] ?? [:]
-        layout[orderKey] = order
+        let catalog = ActionMenuCatalog.items(for: context)
+        let catalogIDs = catalog.map(\.id)
+        var normalized: [String] = []
+        for id in order where catalogIDs.contains(id) && !normalized.contains(id) { normalized.append(id) }
+        for id in catalogIDs where !normalized.contains(id) { normalized.append(id) }
+        let locked = catalog.filter(\.locked).map(\.id)
+        normalized = locked + normalized.filter { !locked.contains($0) }
+        // Dragged back into the catalogue's order: nothing custom to keep.
+        layout[orderKey] = normalized == defaultOrder(context) ? nil : order
         all[context.rawValue] = layout
         write(all)
     }
@@ -281,6 +310,13 @@ public enum ActionMenuLayoutStore {
         write(all)
     }
 
+    /// Back to the catalogue's order, keeping what is hidden.
+    public static func resetOrder(_ context: ActionMenuContext) {
+        var all = layouts()
+        all[context.rawValue]?[orderKey] = nil
+        write(all)
+    }
+
     public static func reset(_ context: ActionMenuContext) {
         var all = layouts()
         all[context.rawValue] = nil
@@ -289,21 +325,50 @@ public enum ActionMenuLayoutStore {
 
     public static func resetAll() { write([:]) }
 
-    /// Row subtitle in the menu list ("Default", "Custom order · 2 hidden").
-    public static func summary(_ context: ActionMenuContext) -> String {
-        let order = hasCustomOrder(context)
-        let hidden = hiddenIDs(context).count
-        if !order && hidden == 0 { return "Default" }
+    /// Row subtitle in the menu list ("Custom order · 2 actions hidden");
+    /// nil for a menu at its default.
+    public static func summary(_ context: ActionMenuContext) -> String? {
         var parts: [String] = []
-        if order { parts.append("Custom order") }
-        if hidden > 0 { parts.append("\(hidden) hidden") }
-        return parts.joined(separator: " · ")
+        if hasCustomOrder(context) { parts.append("Custom order") }
+        let hidden = hiddenIDs(context).count
+        if hidden > 0 { parts.append(hiddenCountText(hidden)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// The Interface row's subtitle ("Default" or "Customized: Feed, Comment").
-    public static func interfaceSummary() -> String {
-        let customized = ActionMenuContext.allCases.filter(isCustomized).map(\.title)
-        return customized.isEmpty ? "Default" : "Customized: " + customized.joined(separator: ", ")
+    /// All Menus' subtitle: how many distinct actions are hidden anywhere.
+    public static func allMenusSummary() -> String? {
+        let hidden = ActionMenuContext.allCases.reduce(into: Set<String>()) { $0.formUnion(hiddenIDs($1)) }
+        return hidden.isEmpty ? nil : hiddenCountText(hidden.count)
+    }
+
+    private static func hiddenCountText(_ count: Int) -> String {
+        "\(count) action\(count == 1 ? "" : "s") hidden"
+    }
+
+    /// All Menus' per-action text: nil when it shows everywhere, "Hidden
+    /// everywhere" when every menu that has it hides it, else the menus by
+    /// name ("Hidden in Post and Moderator Post").
+    public static func hiddenInSummary(itemID: String) -> String? {
+        let contexts = ActionMenuContext.allCases.filter { ActionMenuCatalog.item(itemID, in: $0) != nil }
+        let names = contexts.filter { hiddenIDs($0).contains(itemID) }.map(\.title)
+        if names.isEmpty { return nil }
+        if names.count == contexts.count && contexts.count > 1 { return "Hidden everywhere" }
+        if names.count == 1 { return "Hidden in \(names[0])" }
+        return "Hidden in " + names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
+    }
+
+    /// What "Reset Menu…" offers: Reset Order Only appears only beside
+    /// the full reset, when both an order and hidden actions apply.
+    public static func resetChoices(_ context: ActionMenuContext) -> [ActionMenuResetChoice] {
+        let order = hasCustomOrder(context)
+        let hidden = !hiddenIDs(context).isEmpty
+        if order && hidden {
+            return [ActionMenuResetChoice(title: "Reset Order Only", orderOnly: true),
+                    ActionMenuResetChoice(title: "Reset Order and Visibility", orderOnly: false)]
+        }
+        if order { return [ActionMenuResetChoice(title: "Reset Order", orderOnly: false)] }
+        if hidden { return [ActionMenuResetChoice(title: "Show All Actions", orderOnly: false)] }
+        return []
     }
 
     /// Applies the layout to the entries a menu offers right now, given
@@ -339,6 +404,11 @@ public enum ActionMenuLayoutStore {
             return Array(group.members.dropFirst())
         }
     }
+}
+
+public struct ActionMenuResetChoice: Equatable, Sendable {
+    public let title: String
+    public let orderOnly: Bool
 }
 
 public extension Notification.Name {

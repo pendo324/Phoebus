@@ -907,7 +907,7 @@ extension PostDetailScreen {
                 Label("Copy Link", systemImage: "link")
             }
         case "remind-me":
-            Button { showingRemindMe = true } label: { Label("Remind Me", systemImage: "alarm") }
+            Button { showingRemindMe = true } label: { Label("Remind Me In…", systemImage: "alarm") }
         case "translate":
             Button { showingTranslator = true } label: {
                 Label("Translate", systemImage: "character.bubble")

@@ -473,8 +473,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var threeDTouchMarksRead: Bool
     /// Real key: `HideBarsOnScroll`.
     public var hideBarsOnScroll: Bool
-    /// Reborn's "Hide Style": 0 Left, 1 Right, 2 Fade, 3 Down. Shown
-    /// only while Hide Bars on Scroll is on.
+    /// Reborn's "Hide Style" (`TabBarCollapseSide`): 0 Left, 1 Right,
+    /// 2 Fade, 3 Down, 4 Minimize. Shown only while Hide Bars on Scroll is on.
     public var tabBarHideStyle: Int
     /// Apollo-Reborn "Hide Header on Scroll" (#1079, `HideTopBarOnScroll`,
     /// default off): nav bar slides away with the tab bar while scrolling.

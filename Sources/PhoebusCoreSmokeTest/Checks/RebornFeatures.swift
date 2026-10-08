@@ -570,9 +570,129 @@ import PhoebusCore
           !Policy.decide(hideBarsOnScroll: false, hideStyle: 2, barsHidden: true, tabBarHiddenByScreen: false).reveal)
     let deliberate = Policy.decide(hideBarsOnScroll: true, hideStyle: 0, barsHidden: true, tabBarHiddenByScreen: true)
     check("a bar the screen hides on purpose is not expanded natively", !deliberate.expandNativeMinimize)
-    check("hide styles 0 and 1 are UIKit's minimize, 2 and 3 are not",
+    check("hide styles 0 and 1 are UIKit's minimize, 2, 3 and 4 are not",
           Policy.usesNativeMinimize(hideStyle: 0) && Policy.usesNativeMinimize(hideStyle: 1)
-          && !Policy.usesNativeMinimize(hideStyle: 2) && !Policy.usesNativeMinimize(hideStyle: 3))
+          && !Policy.usesNativeMinimize(hideStyle: 2) && !Policy.usesNativeMinimize(hideStyle: 3)
+          && !Policy.usesNativeMinimize(hideStyle: 4))
+    let minimize = Policy.decide(hideBarsOnScroll: true, hideStyle: 4, barsHidden: true, tabBarHiddenByScreen: false)
+    check("navigating reveals a minimized pill without a native nudge", minimize.reveal && !minimize.expandNativeMinimize)
+}
+
+// MARK: - Minimize hide style (Reborn #1349)
+//
+// The pill's size, its cross-fade with the bar, and the two recorded motion
+// curves, including picking a curve up part-way when a morph is reversed.
+@MainActor func checkTabBarMinimizeStyle() async throws {
+    typealias Style = TabBarMinimizeStyle
+    check("Minimize is the fifth hide style, after Left, Right, Fade and Down",
+          TabBarHideStyle.all == [0, 1, 2, 3, 4] && TabBarHideStyle.titles.last == "Minimize"
+          && TabBarHideStyle.minimize == 4 && TabBarHideStyle.titles.count == TabBarHideStyle.all.count)
+    check("only Left and Right use UIKit's minimize",
+          TabBarHideStyle.all.map(TabBarHideStyle.usesNativeMinimize) == [true, true, false, false, false])
+
+    let short = Style.pillSize(titleWidth: 30, titleHeight: 14, availableWidth: 402)
+    check("a short title gets the 96x32 pill", short.width == 96 && short.height == 32)
+    let long = Style.pillSize(titleWidth: 140.2, titleHeight: 14.5, availableWidth: 402)
+    check("a long title widens the pill by its padding", long.width == 141 + 36 && long.height == 32)
+    check("a taller title grows the pill", Style.pillSize(titleWidth: 30, titleHeight: 30.2, availableWidth: 402).height == 31 + 14)
+    check("the pill stays 32 points clear of a narrow screen",
+          Style.pillSize(titleWidth: 400, titleHeight: 14, availableWidth: 320).width == 288)
+    check("the pill never gets narrower than a finger", Style.pillSize(titleWidth: 400, titleHeight: 14, availableWidth: 40).width == 44)
+    check("the pill sits 14 points above a 34-point home indicator", Style.bottomGap(safeAreaBottom: 34) == 14)
+    check("the gap is at least 8 points without a home indicator", Style.bottomGap(safeAreaBottom: 0) == 8)
+
+    check("the bar's items are fully back by 95% expanded and gone by 70%",
+          Style.barOpacity(expansion: 1) == 1 && Style.barOpacity(expansion: 0.95) == 1
+          && Style.barOpacity(expansion: 0.70) == 0 && Style.barOpacity(expansion: 0) == 0)
+    check("the bar's items fade in between", Style.barOpacity(expansion: 0.825) == 0.5)
+    check("the pill's glass covers for the bar while the items are away",
+          Style.pillOpacity(expansion: 1) == 0 && Style.pillOpacity(expansion: 0) == 1
+          && Style.pillOpacity(expansion: 0.825) == 0.5)
+    check("the title is drawn once the pill is small",
+          Style.titleOpacity(expansion: 1) == 0 && Style.titleOpacity(expansion: 0.35) == 0
+          && Style.titleOpacity(expansion: 0.05) == 1 && Style.titleOpacity(expansion: 0) == 1)
+    check("the bar takes taps again at 95% on the way out, never while collapsing",
+          Style.barAcceptsTouches(expansion: 0.95, collapsing: false)
+          && !Style.barAcceptsTouches(expansion: 0.9, collapsing: false)
+          && !Style.barAcceptsTouches(expansion: 1, collapsing: true))
+
+    for collapsing in [true, false] {
+        let name = collapsing ? "collapse" : "reveal"
+        let curve = Style.curve(collapsing: collapsing)
+        check("the \(name) curve starts at zero and ends at one",
+              curve.first?.progress == 0 && curve.last?.progress == 1)
+        check("the \(name) curve's times only go forward",
+              zip(curve, curve.dropFirst()).allSatisfy { $0.time < $1.time })
+        let end = Style.expansion(afterSeconds: Style.duration(collapsing: collapsing), startOffset: 0, collapsing: collapsing)
+        check("the \(name) is finished once its curve has played", end.finished && end.progress == (collapsing ? 0 : 1))
+        let start = Style.expansion(afterSeconds: 0, startOffset: 0, collapsing: collapsing)
+        check("the \(name) begins where it was", !start.finished && start.progress == (collapsing ? 1 : 0))
+    }
+    check("the collapse settles in about 0.37 recorded seconds and the reveal in 0.9",
+          Style.duration(collapsing: true) == 0.366667 && Style.duration(collapsing: false) == 0.905)
+    let midCollapse = Style.expansion(afterSeconds: 0.12 / Style.playbackRate, startOffset: 0, collapsing: true)
+    check("the collapse is half done at 0.12 recorded seconds", abs(midCollapse.progress - (1 - 0.5006)) < 1e-9)
+    let overshoot = Style.expansion(afterSeconds: 0.423333 / Style.playbackRate, startOffset: 0, collapsing: false)
+    check("the reveal overshoots full size before settling", overshoot.progress > 1)
+
+    check("a morph from its resting end starts at the beginning of the curve",
+          Style.startOffset(fromExpansion: 1, collapsing: true) == 0
+          && Style.startOffset(fromExpansion: 0, collapsing: false) == 0)
+    for (collapsing, expansion) in [(true, 0.8), (true, 0.3), (false, 0.2), (false, 0.7)] {
+        let offset = Style.startOffset(fromExpansion: expansion, collapsing: collapsing)
+        let resumed = Style.expansion(afterSeconds: 0, startOffset: offset, collapsing: collapsing)
+        check("reversing at \(expansion) resumes the \(collapsing ? "collapse" : "reveal") at the same size",
+              abs(resumed.progress - expansion) < 1e-9)
+    }
+    check("a size past the curve's range is clamped, not skipped past",
+          Style.startOffset(fromExpansion: 1.5, collapsing: false) > 0.4
+          && Style.startOffset(fromExpansion: -0.5, collapsing: true) == Style.duration(collapsing: true))
+
+    // Geometry, in the space of the bar's superview.
+    let bar = Style.Rect(x: 0, y: 769, width: 393, height: 83)
+    let compact = Style.compactRect(inBar: bar, titleWidth: 30, titleHeight: 14, safeAreaBottom: 34)
+    check("the pill is centered over the bar, 14 points above its bottom edge",
+          compact == Style.Rect(x: 148.5, y: 806, width: 96, height: 32) && compact.midX == bar.midX
+          && bar.maxY - compact.maxY == 14)
+    check("a long title widens the pill around the same center",
+          Style.compactRect(inBar: bar, titleWidth: 140.2, titleHeight: 14.5, safeAreaBottom: 34).midX == bar.midX)
+    let fallback = Style.fallbackGlassRect(inBar: bar, safeAreaBottom: 34)
+    check("the fallback glass is inset 21 points from the sides and 20 above a home indicator",
+          fallback == Style.Rect(x: 21, y: 770, width: 351, height: 62) && bar.maxY - fallback.maxY == 20)
+    check("the fallback glass counts as the bar's glass", Style.isPlausibleGlass(fallback, inBar: bar))
+    check("a collapsed platter, an empty rectangle or one off the bar are not the bar's glass",
+          !Style.isPlausibleGlass(Style.Rect(x: 21, y: 790, width: 48, height: 48), inBar: bar)
+          && !Style.isPlausibleGlass(.zero, inBar: bar)
+          && !Style.isPlausibleGlass(Style.Rect(x: 21, y: 700, width: 351, height: 62), inBar: bar)
+          && !Style.isPlausibleGlass(Style.Rect(x: -40, y: 770, width: 351, height: 62), inBar: bar))
+    check("the capsule is the bar's glass at full size and the pill at none",
+          Style.rect(from: compact, to: fallback, expansion: 1) == fallback
+          && Style.rect(from: compact, to: fallback, expansion: 0) == compact)
+    let half = Style.rect(from: compact, to: fallback, expansion: 0.5)
+    check("halfway it is halfway in every dimension",
+          half.width == (compact.width + fallback.width) / 2 && half.height == (compact.height + fallback.height) / 2
+          && half.midX == bar.midX)
+    check("the reveal's overshoot takes the capsule past the glass",
+          Style.rect(from: compact, to: fallback, expansion: 1.019).width > fallback.width)
+
+    // Telling the bar's glass apart from the other platters in the bar.
+    typealias Platter = TabBarPlatter.Candidate
+    let background = Platter(className: "UIKit._UIBarBackground", inheritsPlatterBase: false, width: 393, visible: true)
+    let glass26 = Platter(className: "UIKit._UITabBarPlatterView", inheritsPlatterBase: true, width: 351, visible: true)
+    let glass27 = Platter(className: "UIKit._UITabBarItemPlatterView", inheritsPlatterBase: true, width: 351, visible: true)
+    let collapsedPlatter = Platter(className: "UIKit._UITabBarPlatterView", inheritsPlatterBase: true, width: 48, visible: false)
+    check("iOS 26's platter is picked out of the bar's subviews", TabBarPlatter.pick(from: [background, glass26]) == 1)
+    check("iOS 27's platter subclass is picked too", TabBarPlatter.pick(from: [background, glass27]) == 1)
+    check("the visible platter wins over the collapsed one in either order",
+          TabBarPlatter.pick(from: [collapsedPlatter, glass26]) == 1 && TabBarPlatter.pick(from: [glass26, collapsedPlatter]) == 0)
+    check("with none on screen the widest platter is picked",
+          TabBarPlatter.pick(from: [Platter(className: "UIKit._UITabBarPlatterView", inheritsPlatterBase: true, width: 48, visible: false),
+                                    Platter(className: "UIKit._UITabBarPlatterView", inheritsPlatterBase: true, width: 351, visible: false)]) == 1)
+    check("a platter is recognised by name when its base class can't be looked up",
+          TabBarPlatter.pick(from: [background, Platter(className: "UIKit._UITabBarItemPlatterView", inheritsPlatterBase: false, width: 351, visible: true)]) == 1)
+    check("a view that only holds the platter's content is not a platter",
+          TabBarPlatter.pick(from: [background, Platter(className: "UIKit._UITabBarPlatterContentView", inheritsPlatterBase: false, width: 351, visible: true)]) == nil)
+    check("no platter in the bar gives nil", TabBarPlatter.pick(from: []) == nil)
 }
 
 // MARK: - Subreddit header bands

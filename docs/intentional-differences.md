@@ -233,6 +233,12 @@ Apollo or Reborn, add an entry here.
   match usernames case-insensitively and are included in backups.
   Neither Apollo nor Reborn has this; it is inspired by Continuum's user
   tags.
+- **The Minimize hide style draws its own pill.** Reborn resizes UIKit's
+  own tab bar glass into the pill. Phoebus lays a glass capsule over the
+  bar, shrinks it on Reborn's measured curves while the real bar fades,
+  and keeps the bar hidden (UIKit writes its alpha back during layout)
+  until the pill is tapped. Its Down style moves the bar's sublayers
+  rather than the bar, which UIKit's layout turned into a jump.
 - **There is no What's New screen, no FLEX debugging and no debug rows
   in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
   setting is not imported from backups.

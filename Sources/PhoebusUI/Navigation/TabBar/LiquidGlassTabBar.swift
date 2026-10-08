@@ -7,7 +7,7 @@ import UIKit
 /// The app's five-tab bar. A real system `TabView`, which on iOS 26 is
 /// Apollo-Reborn's "Liquid Glass Tab Bar"; "Hide Bars on Scroll" maps to
 /// UIKit's own minimize behaviour (`tabBarMinimizeBehavior`), with
-/// Reborn's Left/Right/Fade/Down hide styles on top.
+/// Reborn's Left/Right/Fade/Down/Minimize hide styles on top.
 public struct LiquidGlassTabBar: View {
     public struct Tab: Identifiable {
         public let id: Int
@@ -53,7 +53,7 @@ public struct LiquidGlassTabBar: View {
     var classicScrollBehavior: Bool = false
     /// Reborn "Icon-Only Tab Bar": hides every tab's text label.
     var iconOnly: Bool = false
-    /// Reborn "Hide Style": 0 Left, 1 Right, 2 Fade, 3 Down.
+    /// Reborn "Hide Style": 0 Left, 1 Right, 2 Fade, 3 Down, 4 Minimize.
     var hideStyle: Int = 0
 
     public init(tabs: [Tab], selection: Binding<Int>, hideBarsOnScroll: Bool, hideTopBarOnScroll: Bool = false, classicScrollBehavior: Bool = false, iconOnly: Bool = false, hideStyle: Int = 0) {
@@ -127,7 +127,8 @@ public struct LiquidGlassTabBar: View {
                 }
             }
             .onAppear { NavigationRevealHooks.install() }
-            .background(TabBarHideStyleProbe(style: hideBarsOnScroll ? hideStyle : 0)
+            .background(TabBarHideStyleProbe(style: hideBarsOnScroll ? hideStyle : 0,
+                                             title: tabs.first { $0.id == selection }?.title ?? "")
                 .frame(width: 0, height: 0))
         } else {
             // Pre-iOS-26: the same tabs through the classic API. No
@@ -189,8 +190,8 @@ private struct TabBarScrollHost<Content: View>: View {
             // UIKit's own minimize-on-scroll, matching Apollo's
             // default. `.onScrollDown`; `.never` when Hide Bars on
             // Scroll is off. Left/Right use UIKit's own minimize;
-            // Fade/Down keep it off and animate the whole bar instead.
-            .tabBarMinimizeBehavior(hideBarsOnScroll && hideStyle <= 1 && !policy.holdExpanded
+            // Fade/Down/Minimize keep it off and animate the whole bar instead.
+            .tabBarMinimizeBehavior(hideBarsOnScroll && TabBarHideStyle.usesNativeMinimize(hideStyle) && !policy.holdExpanded
                                     ? .onScrollDown : .never)
             .onAppear {
                 policy.classic = classic
@@ -478,8 +479,13 @@ public struct TabBarSwipeNavigationProbe: UIViewRepresentable {
 ///   so it runs on every pass, including mid-morph.
 /// - Fade / Down: native minimize off; a scroll down fades the whole bar
 ///   to 0 or slides it below the screen, a scroll up brings it back.
+/// - Minimize (Reborn #1349): native minimize off; a scroll down morphs the
+///   bar into a small glass pill naming the current tab (`MinimizedTabPill`),
+///   a scroll up, a tap on the pill or navigating expands it again.
 struct TabBarHideStyleProbe: UIViewRepresentable {
     let style: Int
+    /// The selected tab's name, shown on the Minimize pill.
+    var title = ""
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -491,6 +497,7 @@ struct TabBarHideStyleProbe: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.style = style
+        context.coordinator.title = title
         DispatchQueue.main.async {
             guard let bar = uiView.window.flatMap(TabItemLongPressProbe.findTabBar) else { return }
             context.coordinator.attach(to: bar)
@@ -502,26 +509,60 @@ struct TabBarHideStyleProbe: UIViewRepresentable {
         var style = 0 {
             didSet {
                 guard oldValue != style else { return }
+                tabBarLog.notice("style applied: \(self.style) (\(Self.name(self.style), privacy: .public))")
                 updateMirrorLink()
                 show(animated: false)
+                keepNativeMinimizeOff()
                 bar?.setNeedsLayout()
             }
         }
+        var title = "" {
+            didSet { if title != oldValue { pill?.setTitle(title) } }
+        }
         private weak var bar: UITabBar?
+        private var pill: MinimizedTabPillController?
         private var displayLink: CADisplayLink?
         private var observers: [NSObjectProtocol] = []
 
+        private static func name(_ style: Int) -> String {
+            TabBarHideStyle.titles.indices.contains(style) ? TabBarHideStyle.titles[style] : "unknown"
+        }
+
         func attach(to tabBar: UITabBar) {
             guard bar !== tabBar else { return }
+            pill?.release()
             bar = tabBar
+            tabBarLog.notice("tab bar attached: style=\(self.style) (\(Self.name(self.style), privacy: .public)) frame=\(TabBarMinimizeStyle.Rect(tabBar.frame).text, privacy: .public)")
             updateMirrorLink()
+            keepNativeMinimizeOff()
             let center = NotificationCenter.default
-            observers.append(center.addObserver(forName: .apolloBarsShouldHide, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.hide() }
-            })
-            observers.append(center.addObserver(forName: .apolloBarsShouldShow, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.show(animated: true) }
-            })
+            observers.forEach(center.removeObserver)
+            observers = [
+                center.addObserver(forName: .apolloBarsShouldHide, object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.hide() }
+                },
+                center.addObserver(forName: .apolloBarsShouldShow, object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.show(animated: true) }
+                },
+            ]
+        }
+
+        /// Fade, Down and Minimize animate the bar themselves, so UIKit's own
+        /// minimize has to stay off. SwiftUI asks for `.never`; the live value
+        /// is read back, and set, in case UIKit restored its own.
+        private func keepNativeMinimizeOff() {
+            guard #available(iOS 26.0, *), let bar, !TabBarHideStyle.usesNativeMinimize(style) else { return }
+            var controller = bar.owningViewController()
+            while let current = controller, !(current is UITabBarController) { controller = current.parent }
+            guard let tabs = controller as? UITabBarController else {
+                tabBarLog.notice("no UITabBarController above the tab bar")
+                return
+            }
+            let live = tabs.tabBarMinimizeBehavior
+            if live != .never {
+                tabs.tabBarMinimizeBehavior = .never
+            }
+            tabBarLog.notice("native minimize behavior was \(live.rawValue) (1 = never)\(live != .never ? ", set to never" : "", privacy: .public)")
         }
 
         /// Mirror pass for Right: a display link, since there is no public
@@ -569,22 +610,46 @@ struct TabBarHideStyleProbe: UIViewRepresentable {
         }
 
         private func hide() {
-            guard let bar, style >= 2 else { return }
+            tabBarLog.notice("hide: style=\(self.style) bar=\(self.bar != nil) pill=\(self.pill?.isPresented ?? false)")
+            guard let bar, style >= TabBarHideStyle.fade else { return }
+            if style == TabBarHideStyle.minimize {
+                let pill = self.pill ?? makePill()
+                pill.collapse(bar, title: title, animated: true)
+                return
+            }
+            // Down moves the bar's sublayers, not the bar: UIKit rewrites the
+            // bar's frame on layout, which turns a transform into a jump.
+            let drop = bar.bounds.height + bar.safeAreaInsets.bottom + 20
             UIView.animate(withDuration: 0.25, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut]) {
-                if self.style == 2 {
+                if self.style == TabBarHideStyle.fade {
                     bar.alpha = 0
                 } else {
-                    let drop = bar.bounds.height + bar.safeAreaInsets.bottom + 20
-                    bar.transform = CGAffineTransform(translationX: 0, y: drop)
+                    bar.layer.sublayerTransform = CATransform3DMakeTranslation(0, drop, 0)
                 }
             }
         }
 
+        private func makePill() -> MinimizedTabPillController {
+            let pill = MinimizedTabPillController()
+            // Through the scroll policy, which knows the bar is hidden.
+            pill.onTap {
+                NotificationCenter.default.post(name: .apolloBarsExpandRequested, object: nil)
+            }
+            self.pill = pill
+            return pill
+        }
+
         private func show(animated: Bool) {
             guard let bar else { return }
+            if let pill, pill.isPresented {
+                tabBarLog.notice("show: pill presented, animated=\(animated)")
+                if animated { pill.expand(animated: true) } else { pill.release() }
+                return
+            }
             let work = {
                 bar.alpha = 1
                 bar.transform = .identity
+                bar.layer.sublayerTransform = CATransform3DIdentity
             }
             if animated {
                 UIView.animate(withDuration: 0.25, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut], animations: work)

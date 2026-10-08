@@ -70,8 +70,8 @@ public struct InterfaceSettingsScreen: View {
 
             if settings.hideBarsOnScroll {
                 ApolloSettingsPicker("Hide Style", selection: $settings.tabBarHideStyle,
-                                 options: [0, 1, 2, 3],
-                                 display: { ["Left", "Right", "Fade", "Down"][$0] },
+                                 options: TabBarHideStyle.all,
+                                 display: { TabBarHideStyle.titles[$0] },
                                  showsMenuChevrons: true)
                     .apolloSearchRow("Hide Style")
                 Toggle("Hide Header on Scroll", isOn: $settings.hideTopBarOnScroll)

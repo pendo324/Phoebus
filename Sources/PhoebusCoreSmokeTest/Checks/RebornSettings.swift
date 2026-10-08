@@ -277,7 +277,7 @@ import PhoebusCore
     profileHidden.avatarStyle = .square
     profileHidden.showBanner = false
     profileHidden.showStatCards = false
-    check("ProfileLayoutSettings.summaryText counts hidden bands", profileHidden.summaryText == "Compact · Square · 2 hidden")
+    check("ProfileLayoutSettings.summaryText no longer counts hidden bands", profileHidden.summaryText == "Compact · Square")
 
     // -subredditLayoutSummaryText: headers off short-circuits to "Native (Apollo)".
     var layoutNative = SubredditLayoutSettings.default

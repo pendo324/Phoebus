@@ -114,21 +114,11 @@ public struct ProfileLayoutSettings: Codable, Sendable, Equatable {
         showDetailedProfiles = (try? container.decodeIfPresent(Bool.self, forKey: .showDetailedProfiles)) ?? true
     }
 
-    /// The hub row's subtitle: header mode, then avatar style, then an "N hidden"
-    /// count of the five hideable bands (banner, stat cards, social links,
-    /// badge book, actions), joined with " · ".
+    /// The hub row's value: header mode, then avatar style, joined with " · ".
+    /// Reborn #1351 dropped the "N hidden" count.
     public var summaryText: String {
         if !showDetailedProfiles { return "Native (Apollo)" }
-        var parts: [String] = []
-        parts.append(headerImmersive ? "Immersive" : "Compact")
-        parts.append(avatarStyle.displayName)
-        let hiddenCount = [showBanner, showStatCards, showSocialLinks, badgeBookEnabled, showActions]
-            .filter { !$0 }
-            .count
-        if hiddenCount > 0 {
-            parts.append("\(hiddenCount) hidden")
-        }
-        return parts.joined(separator: " · ")
+        return "\(headerImmersive ? "Immersive" : "Compact") · \(avatarStyle.displayName)"
     }
 }
 

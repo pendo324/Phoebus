@@ -70,12 +70,8 @@ public struct PostsFeedsSettingsScreen: View {
             SettingsLink {
                 InfoRowSettingsScreen()
             } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Info Row")
-                    Text(infoRowSettings.summaryText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                // Value on the trailing edge (Reborn #1351).
+                ValueRow(title: "Info Row", value: infoRowSettings.summaryText)
             }
             .apolloSearchRow("Info Row")
             Toggle("Feed Video Scrubber", isOn: $scrubber.isEnabled)

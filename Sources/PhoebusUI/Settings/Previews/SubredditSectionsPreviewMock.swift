@@ -1,7 +1,7 @@
 import SwiftUI
 import PhoebusCore
 
-/// Live preview mock for the Subreddit Sections settings screen.
+/// Live preview mock for the Subreddit List Sections settings screen.
 ///
 /// Renders `SubredditSectionsPreview.blocks(for:)`: a miniature,
 /// non-interactive rendering of the Subreddits list: one band + sample
@@ -31,9 +31,11 @@ import PhoebusCore
 /// in white.
 struct SubredditSectionsPreviewMock: View {
     let settings: SubredditSectionsSettings
+    /// "Show Subreddit Icons" (Reborn #1351): hides every row's sample icon.
+    let showIcons: Bool
 
     private var blocks: [SubredditSectionsPreviewBlock] {
-        SubredditSectionsPreview.blocks(for: settings)
+        SubredditSectionsPreview.blocks(for: settings, showIcons: showIcons)
     }
 
     var body: some View {
@@ -92,17 +94,21 @@ struct SubredditSectionsPreviewMock: View {
         }
     }
 
-    /// Real row: 22pt initial circle at +12, 10pt gap, a
-    /// 14pt name over an optional 11pt subtitle, accent star at -12.
+    /// Real row: 22pt initial circle at +12 (generic letter badges stand in for
+    /// the sample subreddits' own icons), 10pt gap, a 14pt name over an
+    /// optional 11pt subtitle, accent star at -12.
     private func row(_ block: SubredditSectionsPreviewBlock) -> some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle().fill(color(for: block.tint))
-                Text(initial(for: block.title))
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
+            if block.showIcon {
+                ZStack {
+                    Circle().fill(color(for: block.tint))
+                    Text(initial(for: block.title))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 22, height: 22)
+                .transition(.scale.combined(with: .opacity))
             }
-            .frame(width: 22, height: 22)
             VStack(alignment: .leading, spacing: 1) {
                 Text(block.title)
                     .font(.system(size: 14))

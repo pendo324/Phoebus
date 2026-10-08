@@ -18,7 +18,7 @@ public struct AppearanceSettingsScreen: View {
 
     public var body: some View {
         // Sections: Themes / Text Size / Posts / Large Posts / Compact Posts / Media /
-        // Subreddits List / Flair / Other. Each has a small-caps header and no footer.
+        // Flair / Other. Each has a small-caps header and no footer.
         List {
             Section {
                 SettingsLink {
@@ -134,17 +134,6 @@ public struct AppearanceSettingsScreen: View {
                     .apolloSearchRow("Show GIF Progress")
             } header: {
                 Text("Media")
-                    .apolloSectionHeader()
-            }
-
-            Section {
-                Toggle("Show Subreddit Icons", isOn: binding(\.showSubredditIconsInSubredditList))
-                    // Second "Show Subreddit Icons" (see the Posts
-                    // section): geometry only, same reason.
-                    .apolloPlainSettingsRowInsets()
-                    .accessibilityIdentifier("appearance.showSubredditIconsInList")
-            } header: {
-                Text("Subreddits List")
                     .apolloSectionHeader()
             }
 

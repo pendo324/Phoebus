@@ -157,6 +157,9 @@ private final class WebSessionLoginCoordinator: NSObject, WKNavigationDelegate {
     func attach(to webView: WKWebView) {
         self.webView = webView
         webView.navigationDelegate = self
+        #if canImport(UIKit)
+        webView.uiDelegate = self
+        #endif
         load(clearingCookiesFirst: false)
         timer = Timer.scheduledTimer(withTimeInterval: WebSessionLoginWebView.probeInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.probe() }
@@ -313,13 +316,29 @@ private final class WebSessionLoginCoordinator: NSObject, WKNavigationDelegate {
                 // Committing to this session: stop the poll.
                 self.timer?.invalidate()
                 self.timer = nil
-                self.onProbeResult(WebSessionProbeResult(username: username, modhash: modhash, cookieHeader: header))
+                let result = WebSessionProbeResult(username: username, modhash: modhash, cookieHeader: header)
+                #if canImport(UIKit)
+                // A popup still up would cover the mismatch alert and the sheet's dismissal.
+                WebAuthPopupViewController.closePopups(above: webView) { self.onProbeResult(result) }
+                #else
+                self.onProbeResult(result)
+                #endif
             }
         }
     }
 }
 
 #if canImport(UIKit)
+/// Reborn "Sign-in popups" (#1342, #1372): "Continue with Google" and
+/// "Continue with Apple" open their page with `window.open()`.
+extension WebSessionLoginCoordinator: WKUIDelegate {
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        guard !finished else { return nil }
+        return WebAuthPopupViewController.present(from: webView, configuration: configuration, navigationAction: navigationAction)
+    }
+}
+
 extension WebSessionLoginWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let webView = makeWebView()

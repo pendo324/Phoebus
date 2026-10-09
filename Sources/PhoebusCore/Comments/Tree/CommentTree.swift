@@ -536,6 +536,41 @@ public enum PostedCommentResponse {
     }
 }
 
+/// A comment the user just posted and the fullname of what it replies to.
+public struct PostedReply: Sendable, Equatable {
+    public let comment: RedditComment
+    public let parentFullname: String
+
+    public init(comment: RedditComment, parentFullname: String) {
+        self.comment = comment
+        self.parentFullname = parentFullname
+    }
+}
+
+extension Array where Element == CommentTreeNode {
+    /// Puts back posted comments a freshly fetched tree doesn't list yet:
+    /// Reddit's comment listing can trail a post by a while, and the
+    /// refresh would otherwise drop the comment the user just saw appear.
+    /// A reply whose parent is not in the tree is left out.
+    public func restoringPosted(_ posted: [PostedReply], postFullname: String) -> [CommentTreeNode] {
+        var roots = self
+        let present = Set(roots.flatMap { $0.allIDs() })
+        for reply in posted where !present.contains(reply.comment.id) {
+            if reply.parentFullname == postFullname {
+                roots.insert(CommentTreeNode(comment: reply.comment, depth: 0), at: 0)
+                continue
+            }
+            for (index, root) in roots.enumerated() {
+                if let updated = root.inserting(reply: reply.comment, under: reply.parentFullname) {
+                    roots[index] = updated
+                    break
+                }
+            }
+        }
+        return roots
+    }
+}
+
 /// A `/comments/<id>` response (`[postListing, commentListing]`), parsed
 /// into the comment tree plus the post's own comment count.
 public struct CommentsResponse: Sendable {

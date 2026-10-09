@@ -1060,6 +1060,17 @@ import PhoebusCore
             check("posted comment: the parent is expanded to show it", updated?.isCollapsed == false)
             check("posted comment: a missing parent returns nil",
                   parent.inserting(reply: posted, under: "t1_elsewhere") == nil)
+            // A refresh that doesn't list the comment yet gets it put back; one that does is left alone.
+            let fetched = [CommentTreeNode(comment: makeComment(id: "root"), depth: 0)]
+            let underRoot = fetched.restoringPosted([PostedReply(comment: posted, parentFullname: "t1_root")], postFullname: "t3_p")
+            check("posted comment: restored under its parent when a refresh lacks it",
+                  underRoot.first?.children.first?.id == "new1")
+            let atTop = fetched.restoringPosted([PostedReply(comment: posted, parentFullname: "t3_p")], postFullname: "t3_p")
+            check("posted comment: restored first among the top-level comments", atTop.first?.id == "new1" && atTop.count == 2)
+            let listed = underRoot.restoringPosted([PostedReply(comment: posted, parentFullname: "t1_root")], postFullname: "t3_p")
+            check("posted comment: not duplicated when the refresh lists it", listed.first?.children.count == 1)
+            check("posted comment: skipped when its parent is not in the tree",
+                  fetched.restoringPosted([PostedReply(comment: posted, parentFullname: "t1_elsewhere")], postFullname: "t3_p") == fetched)
         }
     }
 

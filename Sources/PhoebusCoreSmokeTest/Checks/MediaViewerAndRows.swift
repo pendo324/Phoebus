@@ -1051,6 +1051,14 @@ import PhoebusCore
               (try? PostedCommentResponse.throwIfRejected(response)) != nil)
         check("posted comment: an error response yields nothing",
               PostedCommentResponse.comment(from: Data(#"{"json":{"errors":[["RATELIMIT","slow down","ratelimit"]]}}"#.utf8)) == nil)
+        // A web session's slim answer is rebuilt into a comment by the poster.
+        let slim = Data(#"{"json":{"errors":[],"data":{"things":[{"kind":"t1","data":{"id":"t1_abc12","parent":"t3_xyz","link":"t3_xyz","contentText":"hello there","contentHTML":"<p>hello there</p>","replies":""}}]}}}"#.utf8)
+        let rebuilt = PostedCommentResponse.comment(from: slim, author: "someone")
+        check("a web session's posted comment is rebuilt from its slim answer",
+              rebuilt?.id == "abc12" && rebuilt?.name == "t1_abc12" && rebuilt?.author == "someone"
+              && rebuilt?.body == "hello there" && rebuilt?.parentID == "t3_xyz" && rebuilt?.linkID == "t3_xyz")
+        check("without a known author the slim answer isn't guessed at",
+              PostedCommentResponse.comment(from: slim, author: nil) == nil)
         if let posted {
             let parent = CommentTreeNode(comment: makeComment(id: "root"), depth: 0,
                                          children: [CommentTreeNode(comment: makeComment(id: "old"), depth: 1)], isCollapsed: true)

@@ -523,15 +523,32 @@ public enum PostedCommentResponse {
         throw CommentRejectedError(code: code, message: message)
     }
 
-    public static func comment(from data: Data) -> RedditComment? {
+    /// Over a web session (www.reddit.com) Reddit answers with a slim thing
+    /// instead: `id` (the fullname), `parent`, `link` and `contentText`, so
+    /// the comment is rebuilt from those with `author` as its author.
+    public static func comment(from data: Data,
+                               author: String? = FavoriteSubredditsAccountContext.currentUsernameProvider(),
+                               now: Date = Date()) -> RedditComment? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let json = root["json"] as? [String: Any],
               (json["errors"] as? [Any])?.isEmpty ?? true,
               let payload = json["data"] as? [String: Any],
               let things = payload["things"] as? [[String: Any]],
               let first = things.first, first["kind"] as? String == "t1",
-              let inner = first["data"],
-              let body = try? JSONSerialization.data(withJSONObject: inner) else { return nil }
+              let inner = first["data"] as? [String: Any] else { return nil }
+        if inner["body"] == nil, let fullname = inner["id"] as? String, fullname.hasPrefix("t1_"),
+           let parent = inner["parent"] as? String, let author, !author.isEmpty {
+            let full: [String: Any] = [
+                "id": String(fullname.dropFirst(3)), "name": fullname, "author": author,
+                "body": inner["contentText"] as? String ?? "", "score": 1,
+                "created_utc": now.timeIntervalSince1970, "parent_id": parent,
+                "link_id": inner["link"] as? String ?? parent, "likes": true,
+                "saved": false, "score_hidden": false, "stickied": false, "replies": "",
+            ]
+            guard let body = try? JSONSerialization.data(withJSONObject: full) else { return nil }
+            return try? JSONDecoder.reddit.decode(RedditComment.self, from: body)
+        }
+        guard let body = try? JSONSerialization.data(withJSONObject: inner) else { return nil }
         return try? JSONDecoder.reddit.decode(RedditComment.self, from: body)
     }
 }

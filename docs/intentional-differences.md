@@ -22,6 +22,13 @@ Apollo or Reborn, add an entry here.
 - **"Use Community Icons" exists and defaults on.** It uses Reddit's
   current community icons. Apollo only had the older icon style, which
   is what turning the setting off gives you.
+- **Your own changes show as soon as you reopen a thread or feed.** An
+  edited or deleted post, a comment you edited or deleted, the comment
+  count after you comment, and a post you just submitted are kept on the
+  device (`OwnPostChanges`, the comment-tree caches, `SubmittedPosts`)
+  rather than waiting for Reddit's listings to catch up. A just-posted
+  comment also gets the OP mark and the flair Phoebus already has for
+  you (the post's, or an earlier comment's), without a fetch.
 
 ## Media and link previews
 

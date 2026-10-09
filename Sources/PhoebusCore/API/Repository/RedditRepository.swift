@@ -36,6 +36,13 @@ public actor RedditRepository {
         return try await client.getListing(path: path, parameters: parameters, after: after, limit: limit)
     }
 
+    /// One post by fullname, which Reddit serves as soon as it exists, ahead
+    /// of the listings.
+    public func fetchPost(fullname: String) async throws -> RedditPost? {
+        let listing = try await client.getListing(path: "/api/info", parameters: ["id": fullname], limit: 1)
+        return await listing.postsInBackground().first
+    }
+
     /// Fetch a random subreddit's name via Reddit's own `/random`
     /// endpoint. Unlike a browser hitting `reddit.com/r/random` (a
     /// redirect), the OAuth API returns the picked subreddit's hot

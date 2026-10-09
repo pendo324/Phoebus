@@ -45,6 +45,9 @@ final class FeedListingModel: ObservableObject {
     @Published var errorMessage: String?
 
     private var generation = 0
+    /// Posts the user just submitted here, which a reload puts back while
+    /// Reddit's listing doesn't have them yet.
+    private var submitted: [SubmittedPost] = []
 
     /// Fetches the first page, replacing the listing.
     ///
@@ -67,7 +70,8 @@ final class FeedListingModel: ObservableObject {
             let listing = try await request.fetch(after: nil)
             let fetched = await filter(await listing.postsInBackground())
             guard current == generation else { return }
-            posts = fetched
+            submitted.removeAll { Date().timeIntervalSince($0.at) >= SubmittedPost.lifetime }
+            posts = fetched.restoringSubmitted(submitted)
             if let lastOfFirstPage = fetched.last {
                 pageBoundaryPostIDs.insert(lastOfFirstPage.id)
             }
@@ -108,6 +112,13 @@ final class FeedListingModel: ObservableObject {
             // paging: `afterToken` stays, so the next row that appears
             // retries.
         }
+    }
+
+    /// Shows a post the user just submitted at the top, ahead of Reddit's
+    /// listing, and keeps it through reloads until the listing has it.
+    func showSubmitted(_ post: RedditPost) {
+        submitted.append(SubmittedPost(post: post, at: Date()))
+        posts = posts.restoringSubmitted(submitted)
     }
 
     /// Restores a listing kept by `FeedSnapshotCache`.

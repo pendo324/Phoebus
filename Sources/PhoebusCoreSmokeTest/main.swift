@@ -1510,5 +1510,7 @@ try await checkTheAudioSessionSurvivesAPage()
 
 try await checkBuildChannelParsing()
 
+try await checkOwnChangesShowWhenReopened()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

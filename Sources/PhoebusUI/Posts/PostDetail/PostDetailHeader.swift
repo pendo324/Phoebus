@@ -79,6 +79,7 @@ struct PostDetailHeader: View {
         self.onSubredditTap = onSubredditTap
         self.onAuthorTap = onAuthorTap
         _editedText = State(initialValue: post.selftext ?? "")
+        _isDeleted = State(initialValue: OwnPostChanges.shared.isDeleted(post.name))
     }
 
     /// Image, GIF, video and gallery posts open with their media across the full
@@ -490,6 +491,7 @@ struct PostDetailHeader: View {
         do {
             try await repository.editUserText(fullname: post.name, text: editedText)
             savedEdit = editedText
+            OwnPostChanges.shared.recordEdit(fullname: post.name, body: editedText)
             isEditing = false
         } catch {
             // Leave editor open on failure so the user can retry.
@@ -499,6 +501,7 @@ struct PostDetailHeader: View {
     private func deletePost() async {
         // Only on success, so a failed delete does not show the post as deleted.
         guard (try? await repository.delete(fullname: post.name)) != nil else { return }
+        OwnPostChanges.shared.recordDeletion(fullname: post.name)
         isDeleted = true
     }
 

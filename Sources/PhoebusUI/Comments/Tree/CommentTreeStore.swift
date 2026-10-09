@@ -294,6 +294,7 @@ final class CommentTreeStore: ObservableObject {
             // `PostCommentsSnapshots`.
             if let total = built.postCommentCount {
                 NewCommentsTracker.recordCommentCount(postID: postID, count: total)
+                OwnPostChanges.shared.observeCommentCount(fullname: "t3_\(postID)", count: total)
             }
             errorMessage = nil
             if sort == "live" {
@@ -427,6 +428,26 @@ final class CommentTreeStore: ObservableObject {
         }
     }
 
+    /// The just-posted `comment` with the OP mark and the author's flair, as far
+    /// as the loaded post and thread know them.
+    func decoratingPosted(_ comment: RedditComment, post: RedditPost?) -> RedditComment {
+        PostedCommentContext.decorate(comment, post: post, roots: roots)
+    }
+
+    /// The user saved an edit to a comment of theirs: the loaded tree and the
+    /// cached ones show the new text, so a row built again, or the thread
+    /// reopened, doesn't revert to the old.
+    func commentEdited(id: String, body: String) {
+        roots = roots.settingBody(of: id, to: body)
+        Self.recentTrees.edit { $0.settingBody(of: id, to: body) }
+    }
+
+    /// The user deleted a comment of theirs; see `commentEdited`.
+    func commentDeleted(id: String) {
+        roots = roots.markingDeleted(id)
+        Self.recentTrees.edit { $0.markingDeleted(id) }
+    }
+
     /// Resolves a "more replies" stub (nested, or the root-level
     /// `rootMoreStub`) by fetching its children via `/api/morechildren`
     /// and splicing them into the tree in place. See `MoreStub`'s doc
@@ -542,6 +563,13 @@ final class RecentCommentTreeCache {
     func touch(key: String) {
         guard let entry = entries[key] else { return }
         entries[key] = Entry(roots: entry.roots, moreStub: entry.moreStub, storedAt: Date())
+    }
+
+    /// Applies a change to every cached tree, leaving their ages alone.
+    func edit(_ transform: ([CommentTreeNode]) -> [CommentTreeNode]) {
+        for (key, entry) in entries {
+            entries[key] = Entry(roots: transform(entry.roots), moreStub: entry.moreStub, storedAt: entry.storedAt)
+        }
     }
 
     func store(key: String, roots: [CommentTreeNode], moreStub: MoreStub?) {

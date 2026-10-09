@@ -616,6 +616,10 @@ struct CommentRow: View {
             displayBody = body
             if !isEditing { editedText = body }
         }
+        // Each edit starts from the comment as it stands, so Cancel or a discarded back swipe
+        // doesn't leave the abandoned draft behind. Only on opening: saving closes the
+        // editor before its request reads the draft.
+        .onChange(of: isEditing) { _, editing in if editing { editedText = displayBody } }
         .onChange(of: node.comment.distinguished) { _, value in isDistinguished = value == "moderator" }
         .onChange(of: node.comment.stickied) { _, value in isStickied = value }
         .onChange(of: isDeleted) { _, deleted in if deleted { onDeleted() } }

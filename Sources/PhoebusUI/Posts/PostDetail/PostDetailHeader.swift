@@ -113,6 +113,10 @@ struct PostDetailHeader: View {
         }
         .userTagEditor(isPresented: $showingTagEditor, username: post.author)
         .task { await checkOwnership() }
+        // Each edit starts from the post as it stands, so Cancel or a discarded back swipe
+        // doesn't leave the abandoned draft behind. Only on opening: saving closes the
+        // editor before its request reads the draft.
+        .onChange(of: isEditing) { _, editing in if editing { editedText = savedEdit ?? post.selftext ?? "" } }
     }
 
     private var content: some View {

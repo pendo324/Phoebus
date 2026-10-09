@@ -345,6 +345,7 @@ public struct GeneralSettingsScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
             }
+            // search: item "Clear Browser Cache"
             .apolloSearchRow("Clear Cache", lastBeforeFooter: true)
         } header: {
             Text("Cache").apolloSectionHeader()

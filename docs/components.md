@@ -276,7 +276,7 @@ flowchart LR
 
 | Component | Files | What it is | Notes |
 |---|---|---|---|
-| Root and search | UI `SettingsScreen`, `SettingsSearchResultsList`; UI `SettingsSearchFieldRow`, `SettingsSearchRow`, `SettingsNavigation`, `SettingsNavigationRow`; Core `Settings/SettingsSearchIndex*` | Apollo's root table with Reborn hub row, searchable with scroll-to-and-flash, path-driven stack | Index is generated (`scripts/generate/`) |
+| Root and search | UI `SettingsScreen`, `SettingsSearchResultsList`; UI `SettingsSearchFieldRow`, `SettingsSearchRow`, `SettingsNavigation`, `SettingsNavigationRow`; Core `Settings/SettingsSearchIndex*` | Apollo's root table with Reborn hub row, searchable with scroll-to-and-flash, path-driven stack | Index is generated (`scripts/generate/gen-settings-search-index.py`, see "Settings search index") |
 | Row kit | UI `ApolloFlatList`, `SettingsRowMetrics`, `ApolloSettingsPicker`, `ApolloSettingsTextFieldRow`, `SettingsDetailToggle`, `SettingsPreviewCard`, `*PreviewMock`, `Setting` | Flat full-bleed lists (`apolloFlatListAppearance`, never `Form`), 32/32 row geometry, pickers, text-field rows, title+detail toggle (Reborn switch cell: 3pt gap, 11pt padding), preview cards, `@Setting` read/write | Never use `Form`; it ignores the list style on iOS 26 |
 | Stock screens | UI `GeneralSettingsScreen`, `AppearanceSettingsScreen`, `ThemeSettingsScreen`, `CommentsThemeSettingsScreen`, `GestureSettingsScreen`, `FiltersSettingsScreen`, `MarkReadSettingsScreen`, `NotificationsSettingsScreen`, `SecuritySettingsScreen`, `PortraitLockSettingsScreen`, `ExternalBrowserSettingsScreen`, `AppIconSettingsScreen`, `AboutScreen`, `CacheExplainerScreen`, `AwardGiftingScreen` | Apollo's own settings tree, section for section, real `UserDefaults` keys so backups import | Defaults follow Apollo's registered defaults |
 | Reborn hub | UI `ApolloRebornHubScreen` and every Reborn sub-screen (`InterfaceSettings`, `PostsFeedsSettings`, `CommentsSettings`, `MediaSettings`, `InlineMediaSettings`, `LinkPreviewSettings`, `PollsSettings`, `SubredditsSettings`, `SubredditLayout/Sections`, `ProfileLayout`, `InfoRow`, `Translation`, `ApolloAI`, `AIModelBrowser`, `PictureInPicture`, `DeletedComments`, `PostFilters`, `TagFilters`, `SavedCategories`, `OpenInApp`, `CustomSubredditSource`, `SettingsShortcuts`, `Wallpapers`, `BugReport`, `CrashReports`, `ClearTweakCaches`, `DeleteImgurUploads`, `WidgetSetup`, `BuyUsACoffee`) | Reborn's hub tree | `ApolloSettingsMigration+Reborn` lists which keys import |
@@ -443,8 +443,37 @@ unless noted.
    `.apolloSearchRow("Title")` so search can scroll to it.
 4. Regenerate the search index:
    `python3 scripts/generate/gen-settings-search-index.py Sources/PhoebusUI Sources/PhoebusCore/Settings/Search/SettingsSearchIndexData.swift`.
+   See "Settings search index" below for what it reads and how to tune a row.
 5. Read it where the behaviour lives, and add a Core value check to
    the smoke suite if there is any logic.
+
+### Settings search index
+
+`SettingsSearchIndexData.swift` is generated; `scripts/smoke.sh` runs the
+generator with `--check` and fails (exit 7) when the committed file differs.
+
+- Screens are the structs listed in the generator's `SCREEN_CASES`, found
+  by declaration anywhere under `Sources/PhoebusUI`, so moving a file
+  needs no change. A screen's title is the outermost `.navigationTitle`
+  in its struct (a sheet's own title is ignored); a literal, a ternary
+  (the last string) and a computed `String` property (its first `return`)
+  are understood, anything else stops the run.
+- Breadcrumbs are the tap path found by a BFS over `SomeScreen(` /
+  `SomeScreen {` destinations from `SettingsScreen`.
+- Rows are every `Toggle("…")`, `*Picker("…")`, `SettingsIconRow(title:)`,
+  `LabeledContent("…")`, `NavigationLink("…")`, `.apolloSearchRow("…")`
+  (with or without `lastBeforeFooter:`) and `SettingsSearchRowModifier(title:)`
+  in the file the screen is declared in, so detail views declared in the
+  same file contribute their rows. Comments are ignored, and so are
+  interpolated titles (`"r/\(name)"`).
+- A `// search:` comment on a row's line, or the line above it, adjusts it:
+  `// search: skip` leaves it out; `// search: requires <tag>` makes it
+  searchable only when the caller passes `<tag>` in
+  `SettingsSearch.results(for:available:)` (rows that exist only on some
+  builds); `// search: item "Title"` also indexes a choice inside the row,
+  such as a menu item, landing on that row.
+- A new screen needs a `SCREEN_CASES` entry and a `SettingsSearchScreen`
+  case.
 
 ### Add a settings screen
 

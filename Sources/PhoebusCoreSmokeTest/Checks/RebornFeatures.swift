@@ -752,6 +752,19 @@ import PhoebusCore
     check("identically named rows are kept apart by breadcrumb",
           providers.count < 2 || Set(providers.map(\.breadcrumb)).count == providers.count)
 
+    // A row that exists only under a condition is searchable only while it holds.
+    let conditional = [
+        SettingsSearchEntry(title: "Gated Row", breadcrumb: "Settings", screen: .settingsRoot,
+                            rowTitle: "Gated Row", requires: "channel"),
+        SettingsSearchEntry(title: "Plain Row", breadcrumb: "Settings", screen: .settingsRoot,
+                            rowTitle: "Plain Row"),
+    ]
+    check("a conditional row is hidden unless its condition is available",
+          SettingsSearch.results(for: "row", in: conditional).map(\.title) == ["Plain Row"])
+    check("...and shown once the condition is available",
+          SettingsSearch.results(for: "row", in: conditional, available: ["channel"]).map(\.title)
+            == ["Gated Row", "Plain Row"])
+
     // Every entry resolves to a real screen case.
     check("every index entry names a known screen",
           SettingsSearch.index.allSatisfy { SettingsSearchScreen(rawValue: $0.screen.rawValue) != nil })

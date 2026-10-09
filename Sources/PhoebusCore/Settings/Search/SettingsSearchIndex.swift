@@ -9,14 +9,20 @@ public struct SettingsSearchEntry: Sendable, Equatable, Identifiable {
     public let screen: SettingsSearchScreen
     /// The row to highlight once `screen` is showing. `nil` when the entry IS the screen.
     public let rowTitle: String?
+    /// Names a condition the row only exists under (for example a build
+    /// with a release channel). The entry is searchable only while the
+    /// caller lists it in `SettingsSearch.results(available:)`.
+    public let requires: String?
 
     public var id: String { "\(screen.rawValue)|\(breadcrumb)|\(title)" }
 
-    public init(title: String, breadcrumb: String, screen: SettingsSearchScreen, rowTitle: String? = nil) {
+    public init(title: String, breadcrumb: String, screen: SettingsSearchScreen, rowTitle: String? = nil,
+                requires: String? = nil) {
         self.title = title
         self.breadcrumb = breadcrumb
         self.screen = screen
         self.rowTitle = rowTitle
+        self.requires = requires
     }
 }
 
@@ -216,12 +222,15 @@ public enum SettingsSearch {
 
     /// Ranked results for a query, best first: score descending, with
     /// equal scores kept in index order (`sort(by:)` isn't stable, hence
-    /// the manual offset tiebreak).
-    public static func results(for query: String, in entries: [SettingsSearchEntry] = index) -> [SettingsSearchEntry] {
+    /// the manual offset tiebreak). Entries that `requires` a condition
+    /// are left out unless `available` contains it.
+    public static func results(for query: String, in entries: [SettingsSearchEntry] = index,
+                               available: Set<String> = []) -> [SettingsSearchEntry] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
         var scored: [(offset: Int, entry: SettingsSearchEntry, score: Int)] = []
         for (offset, entry) in entries.enumerated() {
+            if let required = entry.requires, !available.contains(required) { continue }
             let value = score(entry, query: trimmed)
             if value > 0 { scored.append((offset, entry, value)) }
         }

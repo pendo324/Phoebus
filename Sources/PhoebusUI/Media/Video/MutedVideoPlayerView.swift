@@ -209,30 +209,9 @@ struct MutedVideoPlayerView: View {
     /// since `AVPlayer.isMuted` isn't observable by SwiftUI.
     @State private var isMutedForBadge = true
     @Setting(FeedVideoScrubberStore.storage) private var scrubberSettings
-    @State private var isScrubbing = false
-    @State private var scrubFraction: CGFloat = 0
-    @State private var scrubDuration: Double = 0
-    @State private var wasPlayingBeforeScrub = false
-    @State private var scrubProgressObserver: Any?
-    /// Refreshed by a periodic time observer so `feedScrubStrip`'s
-    /// progress fill redraws as the video plays; reading
-    /// `player.currentTime()` directly in the body wouldn't trigger a re-render.
-    @State private var currentTimeSeconds: Double = 0
-
     @Setting(VideoHoldSpeedStore.storage) private var holdSpeedSettings
-    @State private var holdForSpeedPending: Task<Void, Never>?
-    @State private var isHoldingForSpeed = false
-    @State private var rateBeforeHold: Float = 1
-
-    /// Apollo's own hold-and-drag scrub, distinct from the "Feed
-    /// Video Scrubber" strip and the gallery viewer's own copy of
-    /// this gesture. On `.began` it snapshots the player rate and
-    /// pauses; every `.changed` seeks relative to the start position;
-    /// on end it resumes at the snapshotted rate.
-    @State private var gestureScrubActive = false
-    @State private var gestureScrubStartX: CGFloat = 0
-    @State private var gestureScrubStartTime: Double = 0
-    @State private var gestureScrubWasPlaying = false
+    @StateObject private var holdForSpeed = VideoHoldForSpeed()
+    private var isHoldingForSpeed: Bool { holdForSpeed.isHolding }
 
     /// Includes 0.75x and 1.25x (Reborn #445), keeping the menu in ascending
     /// order. Sourced from `VideoPlaybackSpeeds` (PhoebusCore) so ordering and
@@ -332,41 +311,12 @@ struct MutedVideoPlayerView: View {
             .overlay {
                 // Scoped like `enablesHoldForSpeed` (fullscreen pager
                 // only): covers the left two-thirds when hold-for-speed
-                // is also active, leaving its right third alone.
+                // is also active, leaving its right third alone. Apollo's own
+                // hold-and-drag scrub, distinct from the "Feed Video Scrubber"
+                // strip and the gallery viewer's own copy of this gesture.
                 if enablesHoldForSpeed {
-                    GeometryReader { geo in
-                        let scrubWidth = holdSpeedSettings.isEnabled ? geo.size.width * 2 / 3 : geo.size.width
-                        VideoScrubGestureCatcher(
-                            scrubDuration: {
-                                let d = player.currentItem?.duration
-                                guard let d, d.isNumeric, d.seconds.isFinite, d.seconds > 0 else { return nil }
-                                return d.seconds
-                            },
-                            onScrubBegan: {
-                                gestureScrubWasPlaying = player.rate > 0
-                                let seconds = player.currentTime().seconds
-                                gestureScrubStartTime = (seconds.isFinite && seconds >= 0) ? seconds : 0
-                                gestureScrubActive = true
-                                Haptics.selection()
-                                player.pause()
-                                return gestureScrubStartTime
-                            },
-                            onScrubChanged: { fraction, duration in
-                                guard gestureScrubActive else { return }
-                                let target = max(0, min(duration, gestureScrubStartTime + Double(fraction) * duration))
-                                VideoScrubSession.shared(for: player).scrub(to: target)
-                            },
-                            onScrubEnded: {
-                                guard gestureScrubActive else { return }
-                                gestureScrubActive = false
-                                let resume = gestureScrubWasPlaying
-                                VideoScrubSession.shared(for: player).end {
-                                    if resume { player.play() }
-                                }
-                            })
-                            .frame(width: scrubWidth, height: geo.size.height)
-                            .position(x: scrubWidth / 2, y: geo.size.height / 2)
-                    }
+                    VideoGestureScrubLayer(transport: AVPlayerTransport.shared(for: player),
+                                           leavesRightThird: holdSpeedSettings.isEnabled)
                 }
             }
             .overlay {
@@ -376,7 +326,8 @@ struct MutedVideoPlayerView: View {
                 // Feed Video Scrubber stands alone, as Reborn's; stock
                 // Show GIF Progress is about GIFs, not this strip.
                 if enablesFeedScrubber, scrubberSettings.isEnabled {
-                    feedScrubStrip
+                    VideoScrubStrip(transport: AVPlayerTransport.shared(for: player),
+                                    loadDuration: { await loadScrubDuration() })
                 } else if showsGIFProgress {
                     gifProgressLine
                 }
@@ -387,23 +338,10 @@ struct MutedVideoPlayerView: View {
             .overlay(alignment: .bottomTrailing) {
                 if !showsControlPanel, drawsOwnChrome {
                     // Not interactive when the tap layer below owns
-                    // the whole surface: two UIKit controls in one
-                    // subtree meant the mute button won every hit test.
-                    Button {
+                    // the whole surface.
+                    VideoMuteBadge(isMuted: isMutedForBadge, isInteractive: onRequestFullscreen == nil) {
                         toggleMute()
-                    } label: {
-                        Image(systemName: isMutedForBadge ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.footnote)
-                            .foregroundStyle(.white)
-                            .frame(width: Self.muteBadgeSize.width, height: Self.muteBadgeSize.height)
-                            .background(
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(.black.opacity(0.55))
-                            )
                     }
-                    .allowsHitTesting(onRequestFullscreen == nil)
-                    .accessibilityIdentifier("video.inlineMuteButton")
-                    .accessibilityLabel(isMutedForBadge ? "Unmute" : "Mute")
                 }
             }
             // Sizing from the asset's natural aspect ratio (falling
@@ -425,36 +363,12 @@ struct MutedVideoPlayerView: View {
                 // Hidden with the rest of the chrome in the fullscreen
                 // viewer: the speed control lives in the "..." menu instead.
                 if controlsVisible, drawsOwnChrome {
-                Menu {
-                    // A `Toggle`, not a checkmark image: SwiftUI maps
-                    // a toggle inside a `Menu` onto
-                    // `UIAction.state`, so UIKit draws the checkmark on
-                    // the trailing edge; a checkmark image would land in
-                    // the leading icon slot instead.
-                    ForEach(Self.playbackSpeeds, id: \.self) { speed in
-                        Toggle(isOn: Binding(
-                            get: { speed == playbackSpeed },
-                            set: { isOn in
-                                guard isOn else { return }
-                                playbackSpeed = speed
-                                if player.timeControlStatus == .playing {
-                                    player.rate = speed
-                                }
-                            }
-                        )) {
-                            Text(Self.speedTitle(speed))
+                    VideoInlineSpeedMenu(speed: playbackSpeed) { speed in
+                        playbackSpeed = speed
+                        if player.timeControlStatus == .playing {
+                            player.rate = speed
                         }
                     }
-                } label: {
-                    Image(systemName: "speedometer")
-                        .font(.footnote)
-                        .foregroundStyle(.white)
-                        .padding(6)
-                        .background(Circle().fill(.black.opacity(0.5)))
-                    .accessibilityLabel("Playback Speed")
-                }
-                .padding(8)
-                .accessibilityIdentifier("video.playbackSpeedMenu")
                 }
             }
             // The badge follows the player's own state: another video can
@@ -499,7 +413,6 @@ struct MutedVideoPlayerView: View {
                 if initialAspectRatio == nil {
                     Task { await loadNaturalAspectRatio() }
                 }
-                if enablesFeedScrubber { startScrubProgressObserver() }
                 // Only the page the user is actually on: a pager keeps
                 // its neighbours alive, and several `AVPlayer`s
                 // decoding at once is a crash risk.
@@ -550,7 +463,6 @@ struct MutedVideoPlayerView: View {
                 if !VideoPlayerCache.shared.isStillHeld(url: url), !ownedByPiP {
                     player.pause()
                 }
-                stopScrubProgressObserver()
                 stopLooping()
                 inlineSystemPiP.detach()
                 if sharesFeedSound { FeedVideoSound.left(player) }
@@ -573,44 +485,18 @@ struct MutedVideoPlayerView: View {
     }
 
     private func startHoldForSpeed() {
-        guard !isHoldingForSpeed else { return }
-        isHoldingForSpeed = true
-        rateBeforeHold = player.rate == 0 ? 1 : player.rate
-        player.rate = holdSpeedSettings.holdSpeed
-        Haptics.selection()
+        holdForSpeed.start(AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed)
     }
 
     private func endHoldForSpeed() {
-        holdForSpeedPending?.cancel()
-        holdForSpeedPending = nil
-        guard isHoldingForSpeed else { return }
-        isHoldingForSpeed = false
-        player.rate = rateBeforeHold
+        holdForSpeed.end(AVPlayerTransport.shared(for: player))
     }
 
     /// Hold for Video Speed, on the surface layer that owns the video's
-    /// touches: a finger resting on the right third for a moment speeds
-    /// it up until lifted; moving first (a swipe) or a quick tap doesn't.
+    /// touches (see `VideoHoldForSpeed`).
     private func holdForSpeedGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                guard enablesHoldForSpeed, holdSpeedSettings.isEnabled,
-                      value.startLocation.x > width * 2 / 3 else { return }
-                let moved = hypot(value.translation.width, value.translation.height)
-                if isHoldingForSpeed { return }
-                if moved > 12 {
-                    holdForSpeedPending?.cancel()
-                    holdForSpeedPending = nil
-                    return
-                }
-                guard holdForSpeedPending == nil else { return }
-                holdForSpeedPending = Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(250))
-                    guard !Task.isCancelled else { return }
-                    startHoldForSpeed()
-                }
-            }
-            .onEnded { _ in endHoldForSpeed() }
+        holdForSpeed.gesture(width: width, isEnabled: enablesHoldForSpeed && holdSpeedSettings.isEnabled,
+                             transport: AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed)
     }
 
     /// Routes one tap on the video surface, in UIKit coordinates.
@@ -632,15 +518,8 @@ struct MutedVideoPlayerView: View {
                     .simultaneousGesture(holdForSpeedGesture(width: geo.size.width))
                     .overlay {
                         if isHoldingForSpeed {
-                            Text(holdSpeedSettings.holdSpeed.formatted() + "\u{00D7}")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(.black.opacity(0.6)))
+                            VideoHoldSpeedBadge(speed: holdSpeedSettings.holdSpeed)
                                 .position(x: geo.size.width * 5 / 6, y: geo.size.height / 2)
-                                .allowsHitTesting(false)
-                                .accessibilityIdentifier("video.holdForSpeedIndicator")
                         }
                     }
                     // The drag lives here, above the player's own
@@ -689,24 +568,15 @@ struct MutedVideoPlayerView: View {
             return
         }
         guard let onRequestFullscreen else { return }
-        let inMuteBadge = !showsControlPanel
-            && point.x >= size.width - Self.muteBadgeSize.width
-            && point.y >= size.height - Self.muteBadgeSize.height
-        let inScrubStrip = enablesFeedScrubber
-            && scrubberSettings.isEnabled
-            && point.y >= size.height - Self.scrubStripHeight
-            && !inMuteBadge
-        if inMuteBadge {
-            toggleMute()
-        } else if !inScrubStrip {
-            onRequestFullscreen()
+        let target = VideoSurfaceTap.target(
+            at: point, in: size, hasMuteBadge: !showsControlPanel,
+            hasScrubStrip: enablesFeedScrubber && scrubberSettings.isEnabled)
+        switch target {
+        case .muteBadge: toggleMute()
+        case .logo, .scrubStrip: break
+        case .fullscreen: onRequestFullscreen()
         }
     }
-
-    /// The inline mute badge's measured size, shared by the badge
-    /// itself and by the tap layer's hit region so the two cannot
-    /// drift apart.
-    private static let muteBadgeSize = CGSize(width: 38, height: 37)
 
     /// The user's own mute toggle (badge or control panel). Claims the audio
     /// session before unmuting, matching `applyInitialMuteState`'s ordering.
@@ -727,17 +597,6 @@ struct MutedVideoPlayerView: View {
         if !muting, sharesFeedSound { FeedVideoSound.take(player) }
     }
 
-    /// Height of the touch strip and its visible progress track,
-    /// drawing its own progress bar since AVKit's GIF progress view
-    /// has no public equivalent.
-    private static let scrubStripHeight: CGFloat = 28
-
-    /// The invisible touch strip and its own thin progress track,
-    /// driven by a periodic time observer since SwiftUI's `VideoPlayer` exposes none.
-    ///
-    /// A plain tap on the strip scrubs to that exact position, rather
-    /// than being forwarded to open-fullscreen: SwiftUI has no bridge
-    /// for UIKit's "classify by movement, forward on tap" arbitration.
     /// Stock "Show GIF Progress": a GIF shown inline (not in the viewer,
     /// which has its own transport) draws a thin progress line along its
     /// bottom edge, where the setting is Everywhere or Thumbnails.
@@ -769,99 +628,6 @@ struct MutedVideoPlayerView: View {
         return value.isFinite && value > 0 ? value : 0
     }
 
-    private var feedScrubStrip: some View {
-        GeometryReader { geo in
-            let duration = scrubDuration
-            VideoLiveTime(player: player) { seconds in
-                let progress: CGFloat = isScrubbing
-                    ? scrubFraction
-                    : (duration > 0 ? CGFloat(seconds / duration) : 0)
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(.white.opacity(0.25))
-                        .frame(height: 3)
-                    Rectangle()
-                        .fill(.white)
-                        .frame(width: max(0, min(1, progress)) * geo.size.width, height: 3)
-                }
-            }
-            .frame(height: Self.scrubStripHeight, alignment: .bottom)
-            .contentShape(Rectangle())
-            .highPriorityGesture(
-                // High priority, not plain `.gesture`: this strip is
-                // layered inside `PostMediaView`'s `.video` case,
-                // which also attaches a whole-view `.onTapGesture`
-                // that would otherwise win every time.
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        guard duration > 0 else { return }
-                        if !isScrubbing {
-                            isScrubbing = true
-                            wasPlayingBeforeScrub = player.rate > 0
-                            // Pauses for the duration of the drag so
-                            // the progress observer only moves as
-                            // seeks land, matching the finger.
-                            if wasPlayingBeforeScrub { player.pause() }
-                            Haptics.selection()
-                        }
-                        let fraction = max(0, min(1, value.location.x / geo.size.width))
-                        scrubFraction = fraction
-                        VideoScrubSession.shared(for: player).scrub(to: duration * Double(fraction))
-                    }
-                    .onEnded { value in
-                        guard duration > 0 else { return }
-                        let fraction = max(0, min(1, value.location.x / geo.size.width))
-                        isScrubbing = false
-                        let resume = wasPlayingBeforeScrub
-                        VideoScrubSession.shared(for: player).end(at: duration * Double(fraction)) {
-                            if resume { player.play() }
-                        }
-                    }
-            )
-            .onAppear {
-                scrubDuration = Self.ScrubbableDuration(player)
-                if scrubDuration <= 0 { Task { await loadScrubDurationAsync() } }
-            }
-        }
-        .frame(height: Self.scrubStripHeight)
-        .accessibilityIdentifier("video.feedScrubStrip")
-        .accessibilityLabel("Video progress")
-    }
-
-    /// Total duration in seconds, or 0 when unknown/live: never lie
-    /// about scrubbing an indefinite-length stream.
-    private static func ScrubbableDuration(_ player: AVPlayer) -> Double {
-        guard let duration = player.currentItem?.duration, duration.isNumeric else { return 0 }
-        let seconds = CMTimeGetSeconds(duration)
-        guard seconds.isFinite, seconds >= 1 else { return 0 }
-        return seconds
-    }
-
-    /// Drives `currentTimeSeconds` so the scrub strip's progress fill
-    /// animates during normal playback, not just while dragging.
-    /// `MainActor.assumeIsolated` documents that the `queue: .main`
-    /// argument is a real isolation guarantee the compiler can't see
-    /// across the AVFoundation boundary.
-    private func startScrubProgressObserver() {
-        let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
-        scrubProgressObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [self] time in
-            MainActor.assumeIsolated {
-                guard !isScrubbing else { return }
-                currentTimeSeconds = CMTimeGetSeconds(time)
-                if scrubDuration <= 0 {
-                    scrubDuration = Self.ScrubbableDuration(player)
-                }
-            }
-        }
-    }
-
-    private func stopScrubProgressObserver() {
-        if let observer = scrubProgressObserver {
-            player.removeTimeObserver(observer)
-        }
-        scrubProgressObserver = nil
-    }
-
     static func speedTitle(_ speed: Float) -> String {
         VideoPlaybackSpeeds.title(speed)
     }
@@ -879,18 +645,14 @@ struct MutedVideoPlayerView: View {
         naturalAspectRatio = width / height
     }
 
-    /// `ScrubbableDuration` reads `player.currentItem?.duration` synchronously,
-    /// populated only once AVFoundation has loaded it (normally when playback
-    /// starts). A post-detail video not yet played would leave `scrubDuration`
-    /// at 0, so this awaits the asset's `.duration` explicitly, as
-    /// `loadNaturalAspectRatio` does.
-    private func loadScrubDurationAsync() async {
+    /// The asset's duration for the scrub strip while the item hasn't
+    /// loaded one yet (a post-detail video not yet played).
+    private func loadScrubDuration() async -> Double {
         guard let asset = player.currentItem?.asset,
               let duration = try? await asset.load(.duration),
-              duration.isNumeric else { return }
+              duration.isNumeric else { return 0 }
         let seconds = CMTimeGetSeconds(duration)
-        guard seconds.isFinite, seconds >= 1 else { return }
-        scrubDuration = seconds
+        return seconds.isFinite ? seconds : 0
     }
 
     private func applyInitialMuteState() {
@@ -988,7 +750,7 @@ enum RememberedVideoMuteStore {
 /// the recognizer lives on an ancestor that hands every touch through
 /// untouched (`hitTest` returns nil), the only shape proven to
 /// actually receive touches alongside `TabView(.page)`'s own recognizers.
-private struct VideoScrubGestureCatcher: UIViewRepresentable {
+struct VideoScrubGestureCatcher: UIViewRepresentable {
     /// nil when the current page has no known scrubbable duration;
     /// the recognizer then commits nothing.
     var scrubDuration: () -> Double?

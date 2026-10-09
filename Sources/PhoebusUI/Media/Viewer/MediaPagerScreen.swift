@@ -12,12 +12,16 @@ public enum MediaPagerItem: Identifiable, Equatable {
     /// A GIF: drawn as a GIF (or its silent MP4 sibling) with only a
     /// play/pause badge, never the video transport.
     case gif(URL)
+    /// A YouTube video, played by the IFrame player under the app's own
+    /// controls (`YouTubeFullscreenPage`).
+    case youtube(id: String)
 
     public var id: String {
         switch self {
         case .image(let url): return "image:\(url.absoluteString)"
         case .video(let url): return "video:\(url.absoluteString)"
         case .gif(let url): return "gif:\(url.absoluteString)"
+        case .youtube(let id): return "youtube:\(id)"
         }
     }
 }
@@ -57,7 +61,7 @@ public struct MediaPagerScreen: View {
 
     private var rotationKind: String {
         switch items[safe: selection] {
-        case .video: return "Video"
+        case .video, .youtube: return "Video"
         case .gif: return "GIF"
         default: return "Image"
         }
@@ -107,6 +111,9 @@ public struct MediaPagerScreen: View {
     /// and playback speed, not a pre-mounted neighbour's.
     @State private var pagePlayers: [Int: AVPlayer] = [:]
     private var currentPlayer: AVPlayer? { pagePlayers[selection] }
+    /// Each YouTube page's player, by page.
+    @State private var pageBridges: [Int: YouTubePlayerBridge] = [:]
+    private var currentBridge: YouTubePlayerBridge? { pageBridges[selection] }
     /// Every player this viewer has shown, and the inline ones it muted
     /// while it's up (#1252); the latter get their sound back on close.
     @State private var viewerPlayers: [AVPlayer] = []
@@ -168,6 +175,8 @@ public struct MediaPagerScreen: View {
                         // The viewer takes the card's own player: the
                         // card goes, playback carries on here.
                         FloatingPiPController.shared.yield(to: newPlayer, url: newURL)
+                    }, onYouTubeReady: { bridge in
+                        pageBridges[index] = bridge
                     })
                         .tag(index)
                 }
@@ -188,6 +197,9 @@ public struct MediaPagerScreen: View {
                     if case .video(let url) = items[safe: index],
                        VideoPlayerCache.shared.holderCount(url: url) > 1 { continue }
                     player.pause()
+                }
+                for (index, bridge) in pageBridges where index != current && bridge !== pageBridges[current] {
+                    bridge.pause()
                 }
             }
             .onAppear { FeedVideoSound.viewersShowing += 1 }
@@ -237,9 +249,9 @@ public struct MediaPagerScreen: View {
                     Spacer()
                     // Reborn's fullscreen "enter PiP" (#528): sends the
                     // video to the floating card and closes the viewer.
-                    if showsPiPEntry, let currentPlayer, let url = currentURL {
+                    if showsPiPEntry, let enterPiP = pipEntryAction {
                         Button {
-                            enterFloatingPiP(player: currentPlayer, url: url)
+                            enterPiP()
                         } label: {
                             Image(systemName: "pip.enter")
                                 .font(.system(size: 20))
@@ -392,6 +404,22 @@ public struct MediaPagerScreen: View {
                         // Playback speed, for video pages only. An
                         // icon-less checked row, so UIKit draws
                         // the checkmark on the trailing edge.
+                        if let currentBridge, case .youtube = items[safe: selection] {
+                            Section {
+                                ForEach(VideoPlaybackSpeeds.all, id: \.self) { speed in
+                                    Toggle(isOn: Binding(
+                                        get: { speed == Float(currentBridge.playbackRate) },
+                                        set: { isOn in
+                                            guard isOn else { return }
+                                            currentBridge.setPlaybackRate(Double(speed))
+                                        }
+                                    )) {
+                                        Text(VideoPlaybackSpeeds.title(speed))
+                                    }
+                                }
+                            }
+                            .accessibilityIdentifier("mediaPager.playbackSpeedSection")
+                        }
                         if let currentPlayer, case .video = items[safe: selection] {
                             Section {
                                 ForEach(VideoPlaybackSpeeds.all, id: \.self) { speed in
@@ -512,12 +540,32 @@ public struct MediaPagerScreen: View {
     /// can't be autoplaying inline: autoplay off, a spoiler/NSFW post, or a
     /// viewer opened from a link with no post behind it.
     private var showsPiPEntry: Bool {
-        guard case .video = items[safe: selection] else { return false }
+        switch items[safe: selection] {
+        case .video, .youtube: break
+        default: return false
+        }
         return PictureInPicturePolicy.showsFullscreenEntry(
             inAppEnabled: pictureInPictureSettings.inAppEnabled,
             autoplaysInline: VideoAutoplayPolicy.shouldAutoplay(mode: generalSettings.autoplayMode),
             isSpoilerOrNSFW: votePost.map { $0.spoiler || $0.over18 } ?? false,
             isURLOpened: votePost == nil)
+    }
+
+    /// What the PiP button does for the current page, if it can.
+    private var pipEntryAction: (() -> Void)? {
+        if case .youtube(let id) = items[safe: selection] {
+            guard let currentBridge else { return nil }
+            return { enterFloatingPiP(bridge: currentBridge, videoID: id) }
+        }
+        guard let currentPlayer, let url = currentURL else { return nil }
+        return { enterFloatingPiP(player: currentPlayer, url: url) }
+    }
+
+    /// A YouTube video goes to the card as it is: the card takes the player's
+    /// web view as the viewer lets go of it, so playback carries on.
+    private func enterFloatingPiP(bridge: YouTubePlayerBridge, videoID: String) {
+        FloatingPiPController.shared.show(youtube: bridge, owner: "youtube:" + videoID, fromFullscreen: true)
+        dismiss()
     }
 
     /// Closes the viewer and plays its video on in the card, from the same
@@ -549,6 +597,7 @@ public struct MediaPagerScreen: View {
     private var currentURL: URL? {
         switch items[safe: selection] {
         case .image(let url), .video(let url), .gif(let url): return url
+        case .youtube(let id): return YouTubeURLParser.nativeAppURL(forVideoID: id)
         case nil: return nil
         }
     }
@@ -597,6 +646,8 @@ private struct MediaPagerPageView: View {
     /// Hands the pager the player, so its "..." menu can drive
     /// playback speed since Apollo has no speedometer button here.
     var onPlayerReady: ((AVPlayer, URL) -> Void)?
+    /// Hands the pager a YouTube page's player, for the same menu.
+    var onYouTubeReady: ((YouTubePlayerBridge) -> Void)?
     @State private var scale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
@@ -640,6 +691,10 @@ private struct MediaPagerPageView: View {
                 .ignoresSafeArea()
         case .gif(let url):
             FullscreenGIFPage(url: url, onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe)
+        case .youtube(let id):
+            YouTubeFullscreenPage(videoID: id, isCurrentPage: isCurrentPage, controlsVisible: controlsVisible,
+                                  onSurfaceTapped: onSurfaceTapped, onVerticalSwipe: onVerticalSwipe,
+                                  onBridgeReady: onYouTubeReady)
         }
     }
 

@@ -32,8 +32,11 @@ public enum YouTubeURLParser {
     /// regular `https://` watch URL rather than a `youtube://` scheme: iOS
     /// routes it to the installed app via Universal Links and falls back to
     /// Safari, avoiding an `LSApplicationQueriesSchemes` entry.
-    public static func nativeAppURL(forVideoID videoID: String) -> URL? {
-        URL(string: "https://www.youtube.com/watch?v=\(videoID)")
+    ///
+    /// `startSeconds` opens it at that time (`t=`).
+    public static func nativeAppURL(forVideoID videoID: String, startSeconds: Int = 0) -> URL? {
+        let time = startSeconds > 0 ? "&t=\(startSeconds)" : ""
+        return URL(string: "https://www.youtube.com/watch?v=\(videoID)\(time)")
     }
 
     /// Poster image for a video, from YouTube's public thumbnail host.

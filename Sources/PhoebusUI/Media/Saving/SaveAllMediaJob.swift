@@ -70,6 +70,9 @@ final class SaveAllMediaJob: ObservableObject {
                 case .gif(let url):
                     try await GIFSaveService.save(gifURL: url, format: gifFormat ?? GeneralSettingsStore.load().gifSaveFormat,
                                                   useApolloAlbum: useAlbum)
+                case .youtube:
+                    // YouTube's player has no file to save.
+                    throw AlbumImageSaver.SaveError.downloadFailed
                 }
                 saved += 1
             } catch {

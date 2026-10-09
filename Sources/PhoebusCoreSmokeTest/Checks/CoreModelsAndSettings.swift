@@ -286,6 +286,7 @@ import PhoebusCore
     check("GeneralSettings round-trips through Codable", decodedGeneral == defaultGeneral)
     check("default general settings plays YouTube inline, not in native app (confirmed via Defaults.plist)", !defaultGeneral.openVideosInYouTubeApp)
     check("YouTubeURLParser builds native app URL from video ID", YouTubeURLParser.nativeAppURL(forVideoID: "dQw4w9WgXcQ")?.absoluteString == "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    check("YouTubeURLParser native app URL carries the start time", YouTubeURLParser.nativeAppURL(forVideoID: "dQw4w9WgXcQ", startSeconds: 42)?.absoluteString == "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42" && YouTubeURLParser.nativeAppURL(forVideoID: "dQw4w9WgXcQ", startSeconds: 0)?.absoluteString == "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 }
 
 // --- Auto-collapse pinned comments (Apollo-Reborn feature) ---

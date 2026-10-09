@@ -12,6 +12,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSCrossWebsiteTrackingUsageDescription</key>
+	<string>Lets the YouTube player use the YouTube account you sign in to, for Premium, watch history and age-restricted videos.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Used to reach a notification backend or Bark server you host on your own network.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -24,7 +24,14 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
     /// corner.
     private var edgeToEdge: Bool { screen == .profileLayout }
 
-    @State private var cardHeight: CGFloat = 0
+    /// The card's height pinned and in the list, measured separately; see
+    /// `SettingsPreviewPinStore.decidingCardHeight`.
+    @State private var pinnedCardHeight: CGFloat?
+    @State private var listCardHeight: CGFloat?
+    private var cardHeight: CGFloat {
+        CGFloat(SettingsPreviewPinStore.decidingCardHeight(pinned: pinnedCardHeight.map(Double.init),
+                                                           inList: listCardHeight.map(Double.init)))
+    }
     @State private var containerHeight: CGFloat = .greatestFiniteMagnitude
 
     public init(
@@ -45,7 +52,7 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
     /// otherwise a tall preview card would fill the `safeAreaInset`
     /// entirely and leave the `List` beneath it unable to scroll.
     private var pinningAvailable: Bool {
-        containerHeight - (cardHeight + 8) >= 200
+        SettingsPreviewPinStore.pinningAvailable(containerHeight: containerHeight, cardHeight: cardHeight)
     }
     private var shouldPin: Bool {
         isPinned && pinningAvailable && verticalSizeClass != .compact
@@ -63,7 +70,7 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
         List {
             if !shouldPin {
                 Section {
-                    card
+                    card(pinned: false)
                         .listRowInsets(edgeToEdge
                                        ? EdgeInsets(top: 0, leading: 16, bottom: 15, trailing: 16)
                                        : EdgeInsets())
@@ -112,7 +119,7 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
                         Spacer()
                         if edgeToEdge { pinControl.padding(.trailing, 5) }
                     }
-                    card
+                    card(pinned: true)
                 }
                 .padding(.horizontal, 16)
                 // Rich Link Previews' pinned title sits 31pt under the bar, as Apollo's
@@ -126,7 +133,7 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
         }
     }
 
-    private var card: some View {
+    private func card(pinned: Bool) -> some View {
         ZStack(alignment: .topTrailing) {
             if edgeToEdge {
                 // The preview is the card (22pt clip inside), no inner
@@ -158,10 +165,15 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
         .padding(.horizontal, edgeToEdge || screen == .linkPreview ? 0 : 4)
         .background(GeometryReader { proxy in
             Color.clear
-                .onAppear { cardHeight = proxy.size.height }
-                .onChange(of: proxy.size.height) { _, h in cardHeight = h }
+                .onAppear { record(proxy.size.height, pinned: pinned) }
+                .onChange(of: proxy.size.height) { _, h in record(h, pinned: pinned) }
         })
         .accessibilityIdentifier("settings.preview.\(screen.rawValue)")
+    }
+
+    private func record(_ height: CGFloat, pinned: Bool) {
+        guard height > 0 else { return }
+        if pinned { pinnedCardHeight = height } else { listCardHeight = height }
     }
 
     /// Caption + pin glyph. Reborn's pin target is a real `UIButton`,

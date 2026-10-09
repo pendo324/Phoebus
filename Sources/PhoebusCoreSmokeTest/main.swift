@@ -514,6 +514,8 @@ try await checkCopyLinkApolloSCopyURLActivity()
 
 try await checkWebSessionHarvestCompletenessGate()
 
+try await checkSignInSessionPolicyVerdict()
+
 try await checkJumpBarAutocompleteMinimumLengthDebounce()
 
 try await checkPollVoteResponseParsingTheNSNull()

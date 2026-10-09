@@ -5,8 +5,9 @@ import WebKit
 import PhoebusCore
 
 /// Apollo-Reborn's "Web Session Login (Experimental)" flow: a
-/// `WKWebView` loads Reddit's own login page on the persistent website
-/// data store, then polls `fetch('/api/me.json')` on a 2-second timer
+/// `WKWebView` loads Reddit's own login page on a fresh non-persistent
+/// website data store (see `SignInSessionPolicy`), then polls
+/// `fetch('/api/me.json')` on a 2-second timer
 /// (the login form submits by fetch, so `didFinish` never fires for
 /// the moment auth completes) until it returns a signed-in username.
 /// Every `.reddit.com` cookie is then harvested into a single
@@ -25,6 +26,9 @@ public struct WebSessionLoginScreen: View {
     @State private var probeResult: WebSessionProbeResult?
     @State private var isHarvesting = false
     @State private var mismatchedUsername: String?
+    /// Bumped by "Sign In Again" to rebuild the web view on a new cookie
+    /// store; the wrong account's session would otherwise stay in the old one.
+    @State private var signInAttempt = 0
 
     public init(requiredUsername: String? = nil, onSuccess: @escaping (WebSessionCredential) -> Void, onCancel: @escaping () -> Void) {
         self.requiredUsername = requiredUsername?.lowercased()
@@ -40,11 +44,12 @@ public struct WebSessionLoginScreen: View {
                     .padding()
             }
             WebSessionLoginWebView(onProbeResult: handleProbeResult)
+                .id(signInAttempt)
         }
         .navigationTitle("Sign In")
         // "Different Reddit Account" alert with its verbatim message and actions.
         .alert("Different Reddit Account", isPresented: $mismatchedUsername.isPresent()) {
-            Button("Sign In Again") { mismatchedUsername = nil }
+            Button("Sign In Again") { mismatchedUsername = nil; signInAttempt += 1 }
             Button("Cancel", role: .cancel) { mismatchedUsername = nil; onCancel() }
         } message: {
             Text("Phoebus is using u/\(requiredUsername ?? ""), but Reddit signed in as u/\(mismatchedUsername ?? ""). Sign in with the matching account for Chat, Modmail, and Polls.")
@@ -69,8 +74,8 @@ public struct WebSessionLoginScreen: View {
         // Reject a session for the wrong account rather than storing
         // it. Without this a user with two Reddit logins could vote as
         // the wrong one without ever being told.
-        if let requiredUsername, requiredUsername != username.lowercased() {
-            mismatchedUsername = username
+        if case .mismatch(let signedInAs) = SignInSessionPolicy.verdict(requiredUsername: requiredUsername, harvestedUsername: username) {
+            mismatchedUsername = signedInAs
             return
         }
         isHarvesting = true
@@ -100,11 +105,12 @@ private struct WebSessionLoginWebView: PlatformViewRepresentable {
 
     @MainActor
     func makeWebView() -> WKWebView {
-        // The persistent data store, not `.nonPersistent()`, so signing
-        // in once survives app restarts without separate persistence
-        // for the raw WebView session, only for the harvested credential.
+        // A fresh store per presentation, so Reddit shows its login form even
+        // when another account's session sits in the shared default store.
+        // Only the harvested credential is persisted, not the web view session;
+        // the harvest below reads this same store.
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        config.websiteDataStore = .nonPersistent()
         let webView = WKWebView(frame: .zero, configuration: config)
         return webView
     }
@@ -142,6 +148,11 @@ private final class WebSessionLoginCoordinator: NSObject, WKNavigationDelegate {
     }
 
     static let loginURL = URL(string: "https://www.reddit.com/login")!
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
 
     func attach(to webView: WKWebView) {
         self.webView = webView
@@ -316,6 +327,7 @@ extension WebSessionLoginWebView: UIViewRepresentable {
         return webView
     }
     func updateUIView(_ webView: WKWebView, context: Context) { loadContent(into: webView) }
+    static func dismantleUIView(_ webView: WKWebView, coordinator: WebSessionLoginCoordinator) { coordinator.stop() }
 }
 #elseif canImport(AppKit)
 extension WebSessionLoginWebView: NSViewRepresentable {
@@ -325,6 +337,7 @@ extension WebSessionLoginWebView: NSViewRepresentable {
         return webView
     }
     func updateNSView(_ webView: WKWebView, context: Context) { loadContent(into: webView) }
+    static func dismantleNSView(_ webView: WKWebView, coordinator: WebSessionLoginCoordinator) { coordinator.stop() }
 }
 #endif
 #endif

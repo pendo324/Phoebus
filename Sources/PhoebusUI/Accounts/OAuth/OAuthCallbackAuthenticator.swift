@@ -47,7 +47,9 @@ enum OAuthCallbackAuthenticator {
                 }
             }
             session.presentationContextProvider = contextProvider
-            session.prefersEphemeralWebBrowserSession = false
+            // Both callers add a new account; sharing Safari's cookies would
+            // skip Reddit's account prompt and re-authorize the signed-in one.
+            session.prefersEphemeralWebBrowserSession = true
             session.start()
         }
     }

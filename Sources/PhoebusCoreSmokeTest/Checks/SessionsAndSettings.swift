@@ -104,6 +104,18 @@ import PhoebusCore
     }
 }
 
+// MARK: - Sign-in harvest account match
+@MainActor func checkSignInSessionPolicyVerdict() async throws {
+    check("adding a new account accepts whatever Reddit signed in as",
+          SignInSessionPolicy.verdict(requiredUsername: nil, harvestedUsername: "alice") == .accept)
+    check("an empty required username is treated as adding a new account",
+          SignInSessionPolicy.verdict(requiredUsername: "", harvestedUsername: "alice") == .accept)
+    check("the required account is accepted regardless of case",
+          SignInSessionPolicy.verdict(requiredUsername: "alice", harvestedUsername: "Alice") == .accept)
+    check("another account is a mismatch carrying the name Reddit signed in as",
+          SignInSessionPolicy.verdict(requiredUsername: "alice", harvestedUsername: "Bob") == .mismatch(signedInAs: "Bob"))
+}
+
 // MARK: - Web session harvest completeness gate
 //
 // The harvest waits until the cookie set is complete; an early session

@@ -374,7 +374,6 @@ public struct FeedScreen: View {
                     .padding(.bottom, 24)
             }
         }
-        .apolloScrollReturnButton()
         .apolloHidesHeaderOnScroll()
         // iOS 26's `List` (even with `.listStyle(.plain)`) wraps its
         // scrollable content in a rounded "Liquid Glass" card by
@@ -524,11 +523,14 @@ public struct FeedScreen: View {
                     .accessibilityLabel("Cancel")
                 }
             }
-            if multiredditDisplayName == nil {
-                ToolbarItem(placement: .navigation) {
+            // The feed's own back circle, with the Return Button after it in
+            // the same glass group (in a separate toolbar it would land before it).
+            ToolbarItemGroup(placement: .topBarLeading) {
+                if multiredditDisplayName == nil {
                     FeedBackButton()
                         .apolloGlassBarTint()
                 }
+                ScrollReturnArrow()
             }
             if !jumpBarActive {
             // The feed toolbar shows two trailing icons: sort and

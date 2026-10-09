@@ -274,24 +274,70 @@ public struct ScrollReturnButtonModifier: ViewModifier {
         enabled = GeneralSettingsStore.load().scrollReturnButton
     }
 
+    /// With Liquid Glass the arrow shares the back button's glass, as the
+    /// trailing actions share theirs: the system back button can't be grouped
+    /// with anything, so while the arrow shows it is swapped for an
+    /// identical chevron in one group with it.
+    private var mergesWithBack: Bool { enabled && store.canReturn && LiquidGlass.isEnabled }
+
     public func body(content: Content) -> some View {
-        content.toolbar {
-            // `.navigation` is the placement beside the back button,
-            // which is where the real arrow sits.
-            ToolbarItem(placement: .navigation) {
-                if enabled && store.canReturn {
-                    Button {
-                        ScrollReturnStore.shared.performReturn()
-                    } label: {
-                        Image(systemName: "arrow.uturn.down")
+        content
+            .navigationBarBackButtonHidden(mergesWithBack)
+            .toolbar {
+                // Beside the back button, where the real arrow sits. Not
+                // `.navigation`: on iOS 26+ that can join the trailing glass
+                // group, over the title.
+                if mergesWithBack {
+                    ToolbarItemGroup(placement: .topBarLeading) {
+                        ScrollReturnBackButton()
+                            .apolloGlassBarTint()
+                        ScrollReturnArrow(enabled: enabled)
                     }
-                    .accessibilityLabel("Return to Position")
-                    .accessibilityIdentifier("scroll.returnButton")
-                    .transition(.opacity)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) { ScrollReturnArrow(enabled: enabled) }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: store.canReturn)
+    }
+}
+
+/// The back chevron standing in for the system one while the Return arrow
+/// shares its glass. `dismiss` is read in this leaf, not the screen.
+struct ScrollReturnBackButton: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
         }
-        .animation(.easeInOut(duration: 0.2), value: store.canReturn)
+        .accessibilityLabel("Back")
+        .accessibilityIdentifier("scroll.returnBack")
+    }
+}
+
+/// The Return Button's arrow, for a screen that draws its own back button and
+/// has to put the arrow after it in its own toolbar.
+public struct ScrollReturnArrow: View {
+    @ObservedObject private var store = ScrollReturnStore.shared
+    private let enabled: Bool
+
+    public init(enabled: Bool = GeneralSettingsStore.load().scrollReturnButton) {
+        self.enabled = enabled
+    }
+
+    public var body: some View {
+        if enabled && store.canReturn {
+            Button {
+                ScrollReturnStore.shared.performReturn()
+            } label: {
+                Image(systemName: "arrow.uturn.down")
+            }
+            .accessibilityLabel("Return to Position")
+            .accessibilityIdentifier("scroll.returnButton")
+            .transition(.opacity)
+        }
     }
 }
 

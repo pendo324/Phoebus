@@ -167,6 +167,9 @@ final class CommentTreeStore: ObservableObject {
     /// The comment a link pointed at, which the Comment Filters leave alone.
     var focusedCommentID: String?
 
+    /// Comments posted from this screen in the last two minutes, which a
+    /// refresh puts back if Reddit's listing doesn't have them yet.
+    private var postedReplies: [(reply: PostedReply, at: Date)] = []
     private var lastKey: String?
     private var lastSubreddit = ""
     private var lastPostID = ""
@@ -386,6 +389,7 @@ final class CommentTreeStore: ObservableObject {
                 CommentBodyWarmUp.warm(Array(opening), inlineMediaEnabled: inlineEnabled)
             }.value
             roots = filtered(built.roots)
+                .restoringPosted(pendingPosted(), postFullname: "t3_\(postID)")
             rootMoreStub = built.moreStub
             warmBodies(roots)
             postDuplicateCount = built.postDuplicateCount
@@ -529,6 +533,11 @@ final class CommentTreeStore: ObservableObject {
     /// is not loaded, so the caller refetches.
     @discardableResult
     func insertPosted(_ comment: RedditComment, parentFullname: String) -> Bool {
+        defer {
+            // A screen rebuilt from the cache must still show it.
+            if let lastKey { Self.recentTrees.store(key: lastKey, roots: roots, moreStub: rootMoreStub, duplicateCount: postDuplicateCount) }
+        }
+        postedReplies.append((PostedReply(comment: comment, parentFullname: parentFullname), Date()))
         if parentFullname.hasPrefix("t3_") {
             withAnimation(.easeOut(duration: 0.3)) {
                 roots.insert(CommentTreeNode(comment: comment, depth: 0), at: 0)
@@ -542,6 +551,11 @@ final class CommentTreeStore: ObservableObject {
             }
         }
         return false
+    }
+
+    private func pendingPosted() -> [PostedReply] {
+        postedReplies.removeAll { Date().timeIntervalSince($0.at) > 120 }
+        return postedReplies.map(\.reply)
     }
 
     func toggleCollapse(_ node: CommentTreeNode) {

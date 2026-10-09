@@ -75,6 +75,7 @@ struct CommentRow: View {
     @State private var isEditing = false
     @State private var editedText: String
     @State private var isDeleted = false
+    @State private var confirmingDelete = false
     @State private var displayBody: String
     @Setting(GeneralSettings.self) private var general
     @State private var isMuted = false
@@ -173,7 +174,7 @@ struct CommentRow: View {
         case "edit":
             Button { isEditing = true } label: { Label("Edit", systemImage: "pencil") }
         case "delete":
-            Button(role: .destructive) { Task { await deleteComment() } } label: {
+            Button(role: .destructive) { confirmingDelete = true } label: {
                 Label("Delete", systemImage: "trash")
             }
         case "vote-insights":
@@ -609,6 +610,12 @@ struct CommentRow: View {
         }
         .userTagEditor(isPresented: $showingTagEditor, username: displayAuthor)
         .task { await checkOwnership() }
+        .alert("Delete Comment?", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive) { Task { await deleteComment() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This can't be undone.")
+        }
         // The row keeps its identity across refreshes, so its local copies
         // follow the comment when a newer version arrives (edit, live update,
         // moderator change).
@@ -647,7 +654,8 @@ struct CommentRow: View {
     }
 
     private func deleteComment() async {
-        try? await repository.delete(fullname: node.comment.name)
+        // Only on success, so a failed delete does not show the comment as deleted.
+        guard (try? await repository.delete(fullname: node.comment.name)) != nil else { return }
         isDeleted = true
     }
 

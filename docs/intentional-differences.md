@@ -40,6 +40,12 @@ Apollo or Reborn, add an entry here.
   provider (for example fxtwitter) because Twitter's own embed is
   unreliable, and Bluesky and Twitter cards have a Compact mode to match
   the other previews.
+- **Inline YouTube videos fall back to a poster.** A video that can't play
+  in the embedded player (embedding disabled by its owner, removed or
+  private) shows its thumbnail with "Can't play here. Watch on YouTube",
+  which opens the video, instead of YouTube's own error page.
+- **Inline YouTube captions follow the system caption setting.** They are
+  off unless Closed Captions + SDH is on or Subtitles is On for the app.
 
 ## Settings and interface
 

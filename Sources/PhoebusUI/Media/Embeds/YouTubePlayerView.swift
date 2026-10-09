@@ -4,13 +4,14 @@ import PhoebusCore
 import WebKit
 #endif
 
-/// Plays a YouTube video inline using the YouTube IFrame Player embed (like
-/// Apollo, which embeds the public `youtube.com/embed/<id>` player in a web
-/// view and needs no API key), with "Off to Safari we goooo" as the fallback
-/// string when inline playback isn't possible.
+/// Plays a YouTube video inline using the YouTube IFrame Player API (like
+/// Apollo, which loads it in a web view and needs no API key). A video that
+/// can't play inline (embedding disabled, removed) becomes a tap-to-open
+/// poster instead of YouTube's error page.
 public struct YouTubePlayerView: View {
     let videoID: String
     let startSeconds: Int
+    @State private var unplayableInline = false
     @Environment(\.openURL) private var openURL
     @Setting(GeneralSettingsStore.storage) private var settings
 
@@ -25,9 +26,11 @@ public struct YouTubePlayerView: View {
             // YouTube app (via Universal Links) instead of playing inline.
             if settings.openVideosInYouTubeApp {
                 openInYouTubeAppPrompt
+            } else if unplayableInline {
+                openInYouTubeAppPrompt(caption: "Can't play here. Watch on YouTube")
             } else {
                 #if canImport(WebKit)
-                YouTubeWebView(videoID: videoID, startSeconds: startSeconds)
+                YouTubeWebView(videoID: videoID, startSeconds: startSeconds) { unplayableInline = true }
                     .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 #else
                 Link("Open on YouTube", destination: youtubeURL)
@@ -39,7 +42,9 @@ public struct YouTubePlayerView: View {
     /// The video's poster frame with a play button, shown when "Open Videos in
     /// YouTube App" is on. A poster rather than text, because the setting means
     /// "open in the app when I tap it": nothing launches until the user taps.
-    private var openInYouTubeAppPrompt: some View {
+    private var openInYouTubeAppPrompt: some View { openInYouTubeAppPrompt(caption: nil) }
+
+    private func openInYouTubeAppPrompt(caption: String?) -> some View {
         Button {
             if let url = YouTubeURLParser.nativeAppURL(forVideoID: videoID) {
                 openURL(url)
@@ -60,6 +65,15 @@ public struct YouTubePlayerView: View {
             }
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .clipped()
+            .overlay(alignment: .bottom) {
+                if let caption {
+                    Text(caption)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.6), radius: 3)
+                        .padding(.bottom, 10)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -83,36 +97,62 @@ public struct YouTubePlayerView: View {
 struct YouTubeWebView: PlatformViewRepresentable {
     let videoID: String
     let startSeconds: Int
+    let onUnplayable: () -> Void
 
     @MainActor
-    func makeWebView() -> WKWebView {
+    func makeWebView(_ coordinator: Coordinator) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        config.userContentController.add(coordinator, name: YouTubeEmbed.messageHandlerName)
         return WKWebView(frame: .zero, configuration: config)
     }
 
+    // The page's origin, not youtube.com, is what YouTube sees as the
+    // embedder; see `YouTubeEmbed.origin`.
     @MainActor
-    func loadContent(into webView: WKWebView) {
-        let embedURL = "https://www.youtube.com/embed/\(videoID)?playsinline=1&start=\(startSeconds)"
-        let html = """
-        <html><body style="margin:0;background:black;">
-        <iframe width="100%" height="100%" src="\(embedURL)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </body></html>
-        """
-        webView.loadHTMLString(html, baseURL: URL(string: "https://www.youtube.com"))
+    func loadContent(into webView: WKWebView, coordinator: Coordinator) {
+        coordinator.onUnplayable = onUnplayable
+        let key = "\(videoID)#\(startSeconds)"
+        guard coordinator.loadedKey != key else { return }
+        coordinator.loadedKey = key
+        let origin = YouTubeEmbed.origin(bundleIdentifier: Bundle.main.bundleIdentifier)
+        if let html = YouTubeEmbed.html(videoID: videoID, startSeconds: startSeconds, origin: origin,
+                                       captionsWanted: YouTubeCaptions.wanted) {
+            webView.loadHTMLString(html, baseURL: origin)
+        } else {
+            DispatchQueue.main.async(execute: onUnplayable)
+        }
+    }
+
+    @MainActor
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    /// Receives the page's `ready` / `error` messages. Registered with the
+    /// web view's user content controller, which retains it.
+    @MainActor
+    final class Coordinator: NSObject, WKScriptMessageHandler {
+        var loadedKey: String?
+        var onUnplayable: () -> Void = {}
+
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard let body = message.body as? [String: Any], body["event"] as? String == "error",
+                  let code = body["code"] as? Int, YouTubeEmbed.isUnplayableInline(errorCode: code)
+            else { return }
+            onUnplayable()
+        }
     }
 }
 
 #if canImport(UIKit)
 extension YouTubeWebView: UIViewRepresentable {
-    func makeUIView(context: Context) -> WKWebView { makeWebView() }
-    func updateUIView(_ webView: WKWebView, context: Context) { loadContent(into: webView) }
+    func makeUIView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
+    func updateUIView(_ webView: WKWebView, context: Context) { loadContent(into: webView, coordinator: context.coordinator) }
 }
 #elseif canImport(AppKit)
 extension YouTubeWebView: NSViewRepresentable {
-    func makeNSView(context: Context) -> WKWebView { makeWebView() }
-    func updateNSView(_ webView: WKWebView, context: Context) { loadContent(into: webView) }
+    func makeNSView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
+    func updateNSView(_ webView: WKWebView, context: Context) { loadContent(into: webView, coordinator: context.coordinator) }
 }
 #endif
 

@@ -17,6 +17,31 @@ import PhoebusCore
     }
 }
 
+// The Return arrow belongs to the screen whose list saved the position.
+@MainActor func checkScrollReturnOffersPerScreen() async throws {
+    let thread = ScrollReturnOwner()
+    let feed = ScrollReturnOwner()
+    var offers = ScrollReturnOffers<UUID>()
+    check("no screen can return before a position is saved",
+          !offers.canReturn(thread.id) && !offers.canReturn(feed.id))
+    offers.offer(thread.id)
+    check("the screen that saved the position can return",
+          offers.canReturn(thread.id))
+    check("another screen is not offered that position",
+          !offers.canReturn(feed.id))
+    offers.offer(feed.id)
+    check("each screen keeps its own offer while the other is showing",
+          offers.canReturn(thread.id) && offers.canReturn(feed.id))
+    check("withdrawing reports that an offer existed",
+          offers.withdraw(thread.id))
+    check("withdrawing one screen's offer leaves the other's",
+          !offers.canReturn(thread.id) && offers.canReturn(feed.id))
+    check("withdrawing with no offer reports nothing to withdraw",
+          !offers.withdraw(thread.id))
+    check("each owner token has its own identity",
+          thread.id != feed.id && ScrollReturnOwner().id != ScrollReturnOwner().id)
+}
+
 // MARK: - Automatic Backups (Reborn, PR #1060)
 //
 // Keys AutomaticBackupsEnabled (default OFF) and AutomaticBackupIntervalDays

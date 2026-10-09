@@ -11,6 +11,7 @@ public struct PostDetailScreen: View {
     @ObservedObject private var changes = OwnPostChanges.shared
     private var post: RedditPost { changes.apply(to: listedPost) }
     let repository: RedditRepository
+    @State private var returnOwner = ScrollReturnOwner()
     @State private var isSubmitting = false
     @State private var submitError: String?
     @State private var showingCrosspost = false
@@ -270,8 +271,8 @@ public struct PostDetailScreen: View {
             // its 16pt padding, plus a 12pt gap.
             .modifier(ApolloTabBarClearance(bottom: generalSettings.showJumpButton
                                             && generalSettings.jumpButtonPosition.sitsAtBottom ? 72 : 24))
-            .restoresPositionOnSecondScrollToTop()
-            .apolloScrollReturnButton()
+            .restoresPositionOnSecondScrollToTop(owner: returnOwner)
+            .apolloScrollReturnButton(owner: returnOwner)
             // NOT `.apolloHidesHeaderOnScroll()`: that's gated on the
             // tab bar's own setting and pairs with hiding it; this
             // screen is pushed and has no tab bar of its own.

@@ -1,6 +1,7 @@
 import Foundation
 
-/// The moderator endpoints Reddit refuses over a web session's cookie, so a
+/// The endpoints Reddit refuses over a web session's cookie (the moderator
+/// ones, and private-message compose), so a
 /// keyless account sends them to `oauth.reddit.com` with the account's web
 /// bearer instead (`RedditAPIClient`). API-key accounts are unaffected.
 ///
@@ -23,6 +24,11 @@ public enum WebBearerRouting {
     public static func needsBearer(path: String) -> Bool {
         let bare = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? path
         let parts = bare.lowercased().split(separator: "/").map(String.init)
+
+        // Sending a private message (also "message the moderators"). Phoebus
+        // only: Reborn leaves /api/compose on the cookie, where www answers 401.
+        if parts == ["api", "compose"] { return true }
+
         guard parts.count >= 3 else { return false }
 
         // New modmail: the list, a thread and every action under it.

@@ -26,8 +26,8 @@ import UIKit
 /// (needed for infinite scroll's cell lifecycle), so this proxy
 /// forwards every selector it does not implement via
 /// `forwardingTarget(for:)` rather than replacing it.
-/// Publishes whether a scroll-to-top return position is currently
-/// available, so a screen can offer the Return Button affordance.
+/// Publishes which screens have a scroll-to-top return position available,
+/// so each can offer the Return Button affordance for its own position only.
 ///
 /// Reborn "Return Button" (`ScrollReturnButton`, default on). The saved
 /// position and the second status-bar tap are always on; this setting governs
@@ -36,32 +36,51 @@ import UIKit
 public final class ScrollReturnStore: ObservableObject {
     public static let shared = ScrollReturnStore()
 
-    /// True while a first status-bar tap has parked a position that a
-    /// return would restore.
-    @Published public private(set) var canReturn = false
+    @Published private var offers = ScrollReturnOffers<UUID>()
 
-    private var restore: (() -> Void)?
+    private var restores: [UUID: () -> Void] = [:]
 
-    func offer(_ restore: @escaping () -> Void) {
-        self.restore = restore
-        if !canReturn { canReturn = true }
+    /// True while a first status-bar tap in `owner`'s list has parked a
+    /// position that a return would restore.
+    public func canReturn(_ owner: ScrollReturnOwner) -> Bool {
+        offers.canReturn(owner.id)
     }
 
-    func withdraw() {
-        restore = nil
-        if canReturn { canReturn = false }
+    func offer(for owner: UUID, _ restore: @escaping () -> Void) {
+        restores[owner] = restore
+        if !offers.canReturn(owner) { offers.offer(owner) }
+    }
+
+    func withdraw(for owner: UUID) {
+        restores[owner] = nil
+        if offers.canReturn(owner) { offers.withdraw(owner) }
     }
 
     /// Real footer: "tap it, the navigation bar, or the status bar
     /// again to go back to where you were."
-    public func performReturn() {
-        let action = restore
-        withdraw()
+    public func performReturn(_ owner: ScrollReturnOwner) {
+        let action = restores[owner.id]
+        withdraw(for: owner.id)
         action?()
     }
 }
 
 final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
+    /// The screen this proxy's list belongs to; its saved position is offered
+    /// to that screen's Return arrow only.
+    let owner: UUID
+
+    init(owner: UUID) {
+        self.owner = owner
+        super.init()
+    }
+
+    deinit {
+        // The screen is gone with its list, and so is the position.
+        let owner = owner
+        Task { @MainActor in ScrollReturnStore.shared.withdraw(for: owner) }
+    }
+
     /// The delegate SwiftUI installed. Everything this proxy does not
     /// implement is forwarded here.
     weak var forwardingDelegate: NSObjectProtocol?
@@ -94,7 +113,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
             // Second tap: back to where the user was reading.
             guard let offset = savedOffset else { return false }
             savedOffset = nil
-            ScrollReturnStore.shared.withdraw()
+            ScrollReturnStore.shared.withdraw(for: owner)
             scrollView.setContentOffset(offset, animated: true)
         } else {
             // First tap: remember this spot, then go (almost) to top.
@@ -103,7 +122,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
             scrollView.setContentOffset(top, animated: true)
             // Offer the Return Button affordance. Populated
             // unconditionally; the setting gates only the UI.
-            ScrollReturnStore.shared.offer { [weak self, weak scrollView] in
+            ScrollReturnStore.shared.offer(for: owner) { [weak self, weak scrollView] in
                 guard let scrollView else { return }
                 self?.savedOffset = nil
                 scrollView.setContentOffset(parked, animated: true)
@@ -121,7 +140,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
         savedOffset = nil
         // The affordance must disappear with the saved position it
         // would have restored.
-        ScrollReturnStore.shared.withdraw()
+        ScrollReturnStore.shared.withdraw(for: owner)
         // Reborn collapse trigger: an expanded navigation action group closes on
         // the first scroll. This proxy is already the List's scroll view delegate,
         // so it is the one place that observes the drag (a SwiftUI `DragGesture`
@@ -207,8 +226,10 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
 /// soft: if the scroll view cannot be found, the modifier does nothing
 /// and the user keeps stock iOS scroll-to-top behaviour.
 struct ScrollToTopRestoreModifier: UIViewRepresentable {
+    let owner: ScrollReturnOwner
+
     func makeCoordinator() -> ScrollToTopDelegateProxy {
-        ScrollToTopDelegateProxy()
+        ScrollToTopDelegateProxy(owner: owner.id)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -268,17 +289,23 @@ extension UIView {
 /// the status-bar tap are NOT gated - see that setting's doc comment.
 public struct ScrollReturnButtonModifier: ViewModifier {
     @ObservedObject private var store = ScrollReturnStore.shared
+    private let owner: ScrollReturnOwner
     private let enabled: Bool
 
-    public init() {
+    /// `owner` is the screen's token, the one its list was given in
+    /// `restoresPositionOnSecondScrollToTop(owner:)`.
+    public init(owner: ScrollReturnOwner) {
+        self.owner = owner
         enabled = GeneralSettingsStore.load().scrollReturnButton
     }
+
+    private var canReturn: Bool { store.canReturn(owner) }
 
     /// With Liquid Glass the arrow shares the back button's glass, as the
     /// trailing actions share theirs: the system back button can't be grouped
     /// with anything, so while the arrow shows it is swapped for an
     /// identical chevron in one group with it.
-    private var mergesWithBack: Bool { enabled && store.canReturn && LiquidGlass.isEnabled }
+    private var mergesWithBack: Bool { enabled && canReturn && LiquidGlass.isEnabled }
 
     public func body(content: Content) -> some View {
         content
@@ -291,13 +318,15 @@ public struct ScrollReturnButtonModifier: ViewModifier {
                     ToolbarItemGroup(placement: .topBarLeading) {
                         ScrollReturnBackButton()
                             .apolloGlassBarTint()
-                        ScrollReturnArrow(enabled: enabled)
+                        ScrollReturnArrow(owner: owner, enabled: enabled)
                     }
                 } else {
-                    ToolbarItem(placement: .topBarLeading) { ScrollReturnArrow(enabled: enabled) }
+                    ToolbarItem(placement: .topBarLeading) {
+                        ScrollReturnArrow(owner: owner, enabled: enabled)
+                    }
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: store.canReturn)
+            .animation(.easeInOut(duration: 0.2), value: canReturn)
     }
 }
 
@@ -321,16 +350,19 @@ struct ScrollReturnBackButton: View {
 /// has to put the arrow after it in its own toolbar.
 public struct ScrollReturnArrow: View {
     @ObservedObject private var store = ScrollReturnStore.shared
+    private let owner: ScrollReturnOwner
     private let enabled: Bool
 
-    public init(enabled: Bool = GeneralSettingsStore.load().scrollReturnButton) {
+    public init(owner: ScrollReturnOwner,
+                enabled: Bool = GeneralSettingsStore.load().scrollReturnButton) {
+        self.owner = owner
         self.enabled = enabled
     }
 
     public var body: some View {
-        if enabled && store.canReturn {
+        if enabled && store.canReturn(owner) {
             Button {
-                ScrollReturnStore.shared.performReturn()
+                ScrollReturnStore.shared.performReturn(owner)
             } label: {
                 Image(systemName: "arrow.uturn.down")
             }
@@ -343,16 +375,17 @@ public struct ScrollReturnArrow: View {
 
 public extension View {
     /// See `ScrollReturnButtonModifier`.
-    func apolloScrollReturnButton() -> some View {
-        modifier(ScrollReturnButtonModifier())
+    func apolloScrollReturnButton(owner: ScrollReturnOwner) -> some View {
+        modifier(ScrollReturnButtonModifier(owner: owner))
     }
 
     /// Adds tap-status-bar-again-to-return behaviour to the enclosing
     /// `List`/`ScrollView`. See `ScrollToTopDelegateProxy` for the two UIKit
-    /// constraints this works around.
-    func restoresPositionOnSecondScrollToTop() -> some View {
+    /// constraints this works around. The position it saves is offered to
+    /// the Return arrows given the same `owner`, and to no other screen's.
+    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner) -> some View {
         background(
-            ScrollToTopRestoreModifier()
+            ScrollToTopRestoreModifier(owner: owner)
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
         )
@@ -360,7 +393,7 @@ public extension View {
 }
 #else
 public extension View {
-    func apolloScrollReturnButton() -> some View { self }
-    func restoresPositionOnSecondScrollToTop() -> some View { self }
+    func apolloScrollReturnButton(owner: ScrollReturnOwner) -> some View { self }
+    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner) -> some View { self }
 }
 #endif

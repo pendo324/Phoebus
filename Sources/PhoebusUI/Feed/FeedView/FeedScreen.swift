@@ -22,6 +22,7 @@ public struct FeedScreen: View {
     var pageBoundaryPostIDs: Set<String> { listing.pageBoundaryPostIDs }
     var errorMessage: String? { listing.errorMessage }
     @State var sort: String
+    @State var returnOwner = ScrollReturnOwner()
     @State var topTimeframe = "day"
     /// Result of the "Download Video…" action, surfaced as an alert so a
     /// save success/failure isn't silent.
@@ -366,7 +367,7 @@ public struct FeedScreen: View {
             text: translateTarget.map { [$0.title, $0.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n") } ?? "")
         // Tapping the status bar a second time returns to where you were
         // reading.
-        .restoresPositionOnSecondScrollToTop()
+        .restoresPositionOnSecondScrollToTop(owner: returnOwner)
         .overlay(alignment: .bottomTrailing) {
             if markReadSettings.showHideReadButton, !posts.isEmpty {
                 HideReadPostsButton { hideReadPosts() }
@@ -530,7 +531,7 @@ public struct FeedScreen: View {
                     FeedBackButton()
                         .apolloGlassBarTint()
                 }
-                ScrollReturnArrow()
+                ScrollReturnArrow(owner: returnOwner)
             }
             if !jumpBarActive {
             // The feed toolbar shows two trailing icons: sort and

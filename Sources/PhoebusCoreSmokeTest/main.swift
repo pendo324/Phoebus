@@ -1405,6 +1405,7 @@ try await checkChatShowInMessagesFilterReborn()
 try await checkCenterTitleBetweenButtonsReborn3()
 
 try await checkReturnButtonReborn371()
+try await checkScrollReturnOffersPerScreen()
 
 try await checkAutomaticBackupsReborn371()
 

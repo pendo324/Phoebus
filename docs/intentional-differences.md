@@ -317,6 +317,10 @@ Apollo or Reborn, add an entry here.
   rather than the OAuth API, and each question, follow-ups included, starts a
   new conversation. Carousels, image and video cards, products and quote cards
   are not requested; if one arrives it shows as its text and links.
+- **Deleting your own comment asks first.** Delete in a comment's menu
+  shows a "Delete Comment?" alert. Apollo's strings hold no such prompt
+  for your own comment (only the moderator Comment Nuke asks), but a
+  delete cannot be undone and sat one tap from Edit.
 
 ## Profile
 

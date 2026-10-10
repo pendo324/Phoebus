@@ -222,6 +222,7 @@ extension PostRow {
                     HStack(spacing: 4) {
                         Text("by")
                         Text(post.author)
+                            .authorHighlight(postAuthorHighlight)
                             .contentShape(Rectangle())
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
                         if let authorFlair = post.authorFlairText, !authorFlair.isEmpty, generalSettings.showUserFlair {

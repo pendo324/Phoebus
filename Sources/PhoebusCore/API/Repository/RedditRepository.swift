@@ -283,10 +283,12 @@ public actor RedditRepository {
     /// every ban/mute/approve call in this file, differentiated by `type`.
     public func followUser(username: String) async throws {
         try await client.post(path: "/api/friend", parameters: ["name": username, "type": "friend"])
+        FollowedUsernames.setFollowed(username, followed: true)
     }
 
     public func unfollowUser(username: String) async throws {
         try await client.post(path: "/api/unfriend", parameters: ["name": username, "type": "friend"])
+        FollowedUsernames.setFollowed(username, followed: false)
     }
 
     /// Subscribes or unsubscribes from a subreddit.

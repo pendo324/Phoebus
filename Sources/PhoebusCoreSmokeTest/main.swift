@@ -268,6 +268,7 @@ try await checkSavedCategoryRenameDeleteApolloReborn()
 try await checkGeneralSettingsApolloSSettingsGeneralViewController()
 
 try await checkCommentAgeMode()
+try await checkAuthorHighlight()
 
 // --- Auto-collapse child comments (CommentTreeBuilder) ---
 let nestedCommentJSON = """

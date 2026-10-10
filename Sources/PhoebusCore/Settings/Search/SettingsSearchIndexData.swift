@@ -62,6 +62,8 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Show Jump Button", breadcrumb: "Settings → General", screen: .general, rowTitle: "Show Jump Button"),
         SettingsSearchEntry(title: "New Account Highlightenator", breadcrumb: "Settings → General", screen: .general, rowTitle: "New Account Highlightenator"),
         SettingsSearchEntry(title: "Show Edited Marker", breadcrumb: "Settings → General", screen: .general, rowTitle: "Show Edited Marker"),
+        SettingsSearchEntry(title: "Highlight My Username", breadcrumb: "Settings → General", screen: .general, rowTitle: "Highlight My Username"),
+        SettingsSearchEntry(title: "Highlight Followed Users", breadcrumb: "Settings → General", screen: .general, rowTitle: "Highlight Followed Users"),
         SettingsSearchEntry(title: "Always Use Reader Mode", breadcrumb: "Settings → General", screen: .general, rowTitle: "Always Use Reader Mode"),
         SettingsSearchEntry(title: "Show Comments Button", breadcrumb: "Settings → General", screen: .general, rowTitle: "Show Comments Button"),
         SettingsSearchEntry(title: "Video Deblurinator", breadcrumb: "Settings → General", screen: .general, rowTitle: "Video Deblurinator"),

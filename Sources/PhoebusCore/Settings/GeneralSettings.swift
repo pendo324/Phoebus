@@ -771,6 +771,12 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// What a comment's age counts from (`CommentAgeMode`). Apollo and
     /// Reborn have no such setting, so there is no stock key.
     public var commentAgeMode: CommentAgeMode
+    /// Your own username in the highlight colour (`AuthorHighlight`).
+    /// Apollo and Reborn have no such setting, so there is no stock key.
+    public var highlightOwnUsername: Bool
+    /// Users you follow in their own colour (`AuthorHighlight`). Also
+    /// Phoebus-only, with no stock key.
+    public var highlightFollowedUsers: Bool
 
     public static let `default` = GeneralSettings(
         autoCollapseChildComments: false,
@@ -867,7 +873,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         textPostThumbnailsEnabled: true,
         devvitInteractivePosts: false,
         devvitFeedWidgets: true,
-        commentAgeMode: .sincePosted
+        commentAgeMode: .sincePosted,
+        highlightOwnUsername: true,
+        highlightFollowedUsers: false
     )
 
     public init(
@@ -963,7 +971,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         textPostThumbnailsEnabled: Bool = true,
         devvitInteractivePosts: Bool = false,
         devvitFeedWidgets: Bool = true,
-        commentAgeMode: CommentAgeMode = .sincePosted
+        commentAgeMode: CommentAgeMode = .sincePosted,
+        highlightOwnUsername: Bool = true,
+        highlightFollowedUsers: Bool = false
     ) {
         self.autoCollapseChildComments = autoCollapseChildComments
         self.autoCollapsePinnedComments = autoCollapsePinnedComments
@@ -1058,6 +1068,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.devvitInteractivePosts = devvitInteractivePosts
         self.devvitFeedWidgets = devvitFeedWidgets
         self.commentAgeMode = commentAgeMode
+        self.highlightOwnUsername = highlightOwnUsername
+        self.highlightFollowedUsers = highlightFollowedUsers
     }
 
     /// Custom decode: every field falls back to `.default` when absent,
@@ -1186,6 +1198,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         devvitInteractivePosts = try container.decode(.devvitInteractivePosts, default: d, \.devvitInteractivePosts)
         devvitFeedWidgets = try container.decode(.devvitFeedWidgets, default: d, \.devvitFeedWidgets)
         commentAgeMode = try container.decode(.commentAgeMode, default: d, \.commentAgeMode)
+        highlightOwnUsername = try container.decode(.highlightOwnUsername, default: d, \.highlightOwnUsername)
+        highlightFollowedUsers = try container.decode(.highlightFollowedUsers, default: d, \.highlightFollowedUsers)
     }
 }
 

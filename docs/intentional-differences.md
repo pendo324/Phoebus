@@ -135,6 +135,13 @@ Apollo or Reborn, add an entry here.
   creation time. Neither the switch nor
   the age detail is in Apollo or Reborn; both are inspired by Continuum's
   edited-time display.
+- **Your own username and users you follow are highlighted.** In comment
+  headers, feed rows and the post header, your name is drawn in the
+  accent colour (General > Comments > Highlight My Username, on by
+  default) and users you follow (your Following list and Reddit
+  friends) in orange (Highlight Followed Users, off by default). Moderator and admin colours still win.
+  Neither Apollo nor Reborn has this; it is inspired by RedReader's own
+  username highlight and Continuum's followed-user marker.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

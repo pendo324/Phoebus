@@ -52,6 +52,8 @@ struct PostDetailHeader: View {
     /// still renders standalone in previews.
     var aiSummary: AISummaryController?
     @ObservedObject private var voteStore = VoteStateStore.shared
+    /// Recolours the author after a Follow/Unfollow (`AuthorHighlight`).
+    @ObservedObject private var followedRevision = FollowedUsernamesRevision.shared
     @Setting(GeneralSettings.self) private var general
     private var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
     @State private var showingVoteBreakdown = false
@@ -260,6 +262,7 @@ struct PostDetailHeader: View {
                                    size: Self.bylineAvatarSize)
                         Text(post.author)
                             .apolloFont(size: 15, weight: .semibold)
+                            .authorHighlight(AuthorHighlight.current(author: post.author, distinguished: post.distinguished, settings: general))
                             .lineLimit(1)
                             .minimumScaleFactor(bylineScale)
                     }

@@ -226,7 +226,7 @@ public enum CommentsThemeStore {
 }
 
 public enum ThemeStore {
-    private static let key = "com.pendo324.Phoebus.selectedThemeID"
+    static let key = "com.pendo324.Phoebus.selectedThemeID"
     private static let generatedKey = "com.pendo324.Phoebus.generatedThemes"
 
     /// Per-theme "Colourize Vote Arrows", stored by theme ID rather than
@@ -241,7 +241,8 @@ public enum ThemeStore {
     }
 
     public static func load() -> Theme {
-        guard let id = UserDefaults.standard.string(forKey: key),
+        // The theme choice can differ per account ("Separate Settings per Account").
+        guard let id = UserDefaults.standard.string(forKey: AccountSettingsScope.readKey(for: key)),
               var theme = allAvailableThemes().first(where: { $0.id == id }) else {
             return .defaultLight
         }
@@ -257,7 +258,7 @@ public enum ThemeStore {
     public static let didChangeNotification = Notification.Name("com.pendo324.Phoebus.themeDidChange")
 
     public static func save(_ theme: Theme) {
-        UserDefaults.standard.set(theme.id, forKey: key)
+        UserDefaults.standard.set(theme.id, forKey: AccountSettingsScope.writeKey(for: key))
         var accents = voteArrowsAccentMap()
         accents[theme.id] = theme.voteArrowsAccent
         UserDefaults.standard.set(accents, forKey: voteArrowsAccentKey)

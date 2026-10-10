@@ -10,25 +10,32 @@ public struct AccountsAPIKeysScreen: View {
     let accountManager: AccountManager
 
     @Setting(CustomAPISettingsStore.storage) private var settings
+    @Setting(AccountSettingsScope.enabledStorage) private var separateSettingsPerAccount
     @State private var isShowingWebSessionLogin = false
     @StateObject private var youTube = YouTubeAccount.shared
     @State private var isShowingYouTubeSignIn = false
     @State private var isShowingYouTubeImport = false
     @State private var isConfirmingYouTubeSignOut = false
+    @State private var isShowingGlobalDefaults = false
+    @State private var overridesToCopy: String?
+    @State private var isConfirmingReset = false
+    /// Re-renders the section when the account or editing layer changes.
+    @State private var scopeRevision = 0
 
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
     }
 
     public var body: some View {
-        List {
+        perAccountSettingsPresentations(List {
             apiKeysSection
             kagiSection
             signInSection
+            perAccountSettingsSection
             experimentalSection
             youTubeSection
             extrasSection
-        }
+        })
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
         .navigationTitle("Accounts & API Keys")
@@ -123,6 +130,100 @@ public struct AccountsAPIKeysScreen: View {
                 )
             }
         }
+    }
+
+    /// "Separate Settings per Account" (Phoebus-only): global defaults, plus
+    /// per account the settings changed while signed in to it.
+    private var perAccountSettingsSection: some View {
+        let _ = scopeRevision
+        let account = AccountSettingsScope.activeAccount
+        let otherAccounts = accountManager.accounts.map(\.username).filter { $0 != account }
+        let canCopy = account != nil && !otherAccounts.isEmpty
+        return Section {
+            SettingsDetailToggle("Separate Settings per Account",
+                                 detail: "Settings you change apply to the current account only. Other accounts keep the global defaults.",
+                                 isOn: $separateSettingsPerAccount.binding)
+                .accessibilityIdentifier("accounts.perAccountSettings")
+                .apolloSearchRow("Separate Settings per Account",
+                                 lastBeforeFooter: !separateSettingsPerAccount)
+            if separateSettingsPerAccount {
+                if AccountSettingsScope.isEditingGlobalDefaults {
+                    Text("Editing the global defaults.")
+                        .foregroundStyle(.secondary)
+                        .apolloPlainSettingsRowInsets(rule: false)
+                } else {
+                    Button("Edit Global Defaults") { isShowingGlobalDefaults = true }
+                        .accessibilityIdentifier("accounts.perAccountSettings.editGlobalDefaults")
+                        .apolloPlainSettingsRowInsets()
+                    Menu {
+                        ForEach(otherAccounts, id: \.self) { username in
+                            Button(username) { overridesToCopy = username }
+                                .accessibilityIdentifier("accounts.perAccountSettings.copyFrom.\(username)")
+                        }
+                    } label: {
+                        Text("Copy Overrides from…")
+                            // A Menu label keeps the primary colour when disabled.
+                            .foregroundStyle(canCopy ? Color.apolloAccent : Color.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .disabled(!canCopy)
+                    .accessibilityIdentifier("accounts.perAccountSettings.copyFrom")
+                    .apolloPlainSettingsRowInsets()
+                    Button("Reset This Account's Overrides", role: .destructive) { isConfirmingReset = true }
+                        .disabled(account == nil)
+                        .accessibilityIdentifier("accounts.perAccountSettings.reset")
+                        .apolloPlainSettingsRowInsets(rule: false)
+                }
+            }
+        } header: {
+            Text("Settings per Account")
+                .apolloSectionHeader()
+        } footer: {
+            Text(perAccountSettingsFooter(account: account))
+                .apolloSectionFooter()
+        }
+    }
+
+    /// The section's sheet and dialogs, hosted on the list: on a Section
+    /// they attach to its rows and close as soon as those rows change.
+    private func perAccountSettingsPresentations(_ content: some View) -> some View {
+        let account = AccountSettingsScope.activeAccount
+        return content
+            .onReceive(NotificationCenter.default.publisher(for: AccountSettingsScope.didChangeNotification)) { _ in
+                scopeRevision &+= 1
+            }
+            .sheet(isPresented: $isShowingGlobalDefaults) {
+                GlobalDefaultsSettingsSheet(accountManager: accountManager, isPresented: $isShowingGlobalDefaults)
+            }
+            .confirmationDialog("Copy \(overridesToCopy ?? "")'s settings to \(account ?? "")?",
+                                isPresented: Binding(get: { overridesToCopy != nil },
+                                                     set: { if !$0 { overridesToCopy = nil } }),
+                                titleVisibility: .visible) {
+                Button("Copy Overrides", role: .destructive) {
+                    if let source = overridesToCopy, let account {
+                        AccountSettingsOverrides.copy(from: source, to: account)
+                    }
+                    overridesToCopy = nil
+                }
+                .accessibilityIdentifier("accounts.perAccountSettings.copyFrom.confirm")
+            } message: {
+                Text("This account's own overrides are replaced.")
+            }
+            .confirmationDialog("Reset \(account ?? "")'s settings to the global defaults?",
+                                isPresented: $isConfirmingReset, titleVisibility: .visible) {
+                Button("Reset Overrides", role: .destructive) {
+                    if let account { AccountSettingsOverrides.removeAll(for: account) }
+                }
+                .accessibilityIdentifier("accounts.perAccountSettings.reset.confirm")
+            }
+    }
+
+    private func perAccountSettingsFooter(account: String?) -> String {
+        guard separateSettingsPerAccount else {
+            return "When on, each account keeps its own settings on top of the global defaults."
+        }
+        guard let account else { return "Signed out, Settings changes the global defaults." }
+        return "Changes in Settings now apply to \(account) only. A dot marks a row set for this account; long-press it to use the global default. API keys, passcode, backups and notifications stay global."
     }
 
     /// Experimental section; footer "Sign in to reddit.com instead of using API

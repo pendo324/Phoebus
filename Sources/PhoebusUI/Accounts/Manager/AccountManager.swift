@@ -23,6 +23,7 @@ public final class AccountManager: ObservableObject {
         self.store = store
         self.accounts = store.accounts
         self.activeIndex = store.activeIndex
+        AccountSettingsScope.setActiveAccount(store.activeAccount?.username)
         let client = Self.buildAuthClient(store: store, account: store.activeAccount)
         self.authClient = client
         self.repository = RedditRepository(client: RedditAPIClient(auth: client))
@@ -168,6 +169,8 @@ public final class AccountManager: ObservableObject {
     private func refreshFromStore() {
         accounts = store.accounts
         activeIndex = store.activeIndex
+        // "Separate Settings per Account": every setting re-reads for the new account.
+        AccountSettingsScope.setActiveAccount(store.activeAccount?.username)
         // Every account change funnels through here, so the caches are dropped
         // here. `SubredditListCache` is keyed by username, but a stale file for a
         // removed account would be served if it signed back in.

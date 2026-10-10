@@ -109,6 +109,12 @@ Never keep a `@State` copy of a stored setting and never save a whole
 value from the UI. `XStore.load()` is fine in actions, initializers and
 non-view code.
 
+With "Separate Settings per Account" on, a `SettingsStore` reads the
+active account's partial override (`<key>@<username>`) over the global
+value and writes changed fields there; a store holding credentials,
+device state or data belongs in `AccountSettingsOverrides.globalOnlyKeys`.
+See docs/components.md, "Separate Settings per Account".
+
 ## How to add things
 
 Full recipes are in [docs/components.md](docs/components.md), "Recipes".

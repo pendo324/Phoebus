@@ -953,3 +953,168 @@ import PhoebusCore
     source.removePersistentDomain(forName: "UserTagsBackupTest")
     target.removePersistentDomain(forName: "UserTagsRestoreTest")
 }
+
+// MARK: - Separate Settings per Account
+//
+// Global defaults plus per-account partial overrides under `<key>@<user>`,
+// merged field by field; with the switch off, one layer exactly as before.
+@MainActor func checkSeparateSettingsPerAccount() async throws {
+    let suite = "smoke.peraccount"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    defer {
+        AccountSettingsScope.setEditingGlobalDefaults(false, in: defaults)
+        AccountSettingsScope.setActiveAccount(nil, in: defaults)
+        defaults.removePersistentDomain(forName: suite)
+    }
+    struct Model: Codable, Equatable, Sendable {
+        enum Size: String, Codable, CaseIterable, Sendable { case small, large }
+        var a = 1, b = false, size = Size.small, name = "x"
+    }
+    let store = SettingsStore<Model>(key: "com.pendo324.Phoebus.smokePerAccount") { Model() }
+    let overrideKey = AccountSettingsOverrides.overrideKey(store.key, account: "Alice")
+    check("per-account: an override key is <key>@<lowercased account>",
+          overrideKey == "com.pendo324.Phoebus.smokePerAccount@alice")
+
+    // Off: one layer, byte for byte what a plain save writes.
+    AccountSettingsScope.setActiveAccount("alice", in: defaults)
+    store.update(in: defaults) { $0.a = 2 }
+    check("per-account off: a save writes the global key as plain JSON",
+          // Decoded rather than byte-compared: key order in JSONEncoder output isn't fixed on Linux.
+          (try? JSONDecoder().decode(Model.self, from: defaults.data(forKey: store.key) ?? Data())) == Model(a: 2))
+    check("per-account off: no override is written", defaults.object(forKey: overrideKey) == nil)
+    defaults.set(try! JSONSerialization.data(withJSONObject: ["b": true]), forKey: overrideKey)
+    check("per-account off: an existing override is ignored", store.load(from: defaults) == Model(a: 2))
+    check("per-account off: no account owns writes",
+          AccountSettingsScope.overridingAccount(for: store.key, in: defaults) == nil)
+    defaults.removeObject(forKey: overrideKey)
+
+    // On: writes route to the account's layer, one field at a time.
+    AccountSettingsScope.enabledStorage.save(true, to: defaults)
+    store.update(in: defaults) { $0.b = true }
+    check("per-account on: an edit writes only the changed field to the account",
+          AccountSettingsOverrides.overriddenFields(of: store.key, account: "alice", in: defaults) == ["b"])
+    check("per-account on: the global value is untouched",
+          store.loadIfPresent(from: defaults) == Model(a: 2))
+    check("per-account on: the account reads its override over the globals",
+          store.load(from: defaults) == Model(a: 2, b: true))
+    store.update(in: defaults) { $0.a = 2; $0.size = .large }
+    check("per-account on: re-setting a field to what it already reads writes nothing for it",
+          AccountSettingsOverrides.overriddenFields(of: store.key, account: "alice", in: defaults) == ["b", "size"])
+
+    // A global change shows through every field the account didn't override.
+    AccountSettingsScope.setEditingGlobalDefaults(true, in: defaults)
+    check("global defaults context: reads skip the account's layer", store.load(from: defaults) == Model(a: 2))
+    store.update(in: defaults) { $0.a = 7; $0.b = false; $0.name = "g" }
+    AccountSettingsScope.setEditingGlobalDefaults(false, in: defaults)
+    check("global defaults context: edits land in the global layer",
+          store.loadIfPresent(from: defaults) == Model(a: 7, b: false, name: "g"))
+    check("merge: global fields show through, overridden ones win",
+          store.load(from: defaults) == Model(a: 7, b: true, size: .large, name: "g"))
+
+    // Account switch, and signed out.
+    AccountSettingsScope.setActiveAccount("Bob", in: defaults)
+    check("account switch: another account reads the globals", store.load(from: defaults) == Model(a: 7, name: "g"))
+    store.update(in: defaults) { $0.name = "bob" }
+    AccountSettingsScope.setActiveAccount(nil, in: defaults)
+    check("signed out: reads the globals", store.load(from: defaults) == Model(a: 7, name: "g"))
+    store.update(in: defaults) { $0.a = 8 }
+    check("signed out: edits write the globals", store.loadIfPresent(from: defaults)?.a == 8)
+    AccountSettingsScope.setActiveAccount("alice", in: defaults)
+    check("account switch back: the first account's overrides return",
+          store.load(from: defaults) == Model(a: 8, b: true, size: .large, name: "g"))
+
+    // Switching re-announces every store so each @Setting re-reads.
+    let heard = NSLock.Protected<Set<String>>([])
+    let token = NotificationCenter.default.addObserver(forName: .apolloSettingsChanged, object: nil, queue: nil) { note in
+        if let key = note.object as? String { heard.set(heard.get().union([key])) }
+    }
+    AccountSettingsScope.setActiveAccount("bob", in: defaults)
+    check("account switch: every store announces a change", heard.get().contains(store.key))
+    NotificationCenter.default.removeObserver(token)
+    AccountSettingsScope.setActiveAccount("alice", in: defaults)
+
+    // Use Global Default drops one field.
+    AccountSettingsOverrides.removeField("size", of: store.key, account: "alice", in: defaults)
+    check("use global default: drops only that field",
+          AccountSettingsOverrides.overriddenFields(of: store.key, account: "alice", in: defaults) == ["b"])
+    check("use global default: the field reads the global value again", store.load(from: defaults).size == .small)
+
+    // Exclusions.
+    for key in ["Phoebus.appLock", "com.pendo324.Phoebus.customAPISettings",
+                "com.pendo324.Phoebus.apolloAISettings", "com.pendo324.Phoebus.translationSettings",
+                "com.pendo324.Phoebus.notificationBackendSettings", AccountSettingsScope.enabledKey,
+                PostRuleStore.storage.key, CommentFilterStore.storage.key, UserTags.store.key,
+                RecentlyVisitedStore.storage.key, SearchHistoryStore.storage.key] {
+        check("exclusions: \(key) stays global", AccountSettingsScope.overridingAccount(for: key, in: defaults) == nil)
+    }
+    let locked = SettingsStore<Model>(key: "Phoebus.appLock") { Model() }
+    locked.update(in: defaults) { $0.a = 3 }
+    check("exclusions: an excluded store writes its global key",
+          locked.loadIfPresent(from: defaults)?.a == 3
+          && defaults.object(forKey: AccountSettingsOverrides.overrideKey("Phoebus.appLock", account: "alice")) == nil)
+    let list = SettingsStore<[String]>(key: "com.pendo324.Phoebus.smokePerAccountList") { [] }
+    list.update(in: defaults) { $0 = ["a"] }
+    check("exclusions: a list (no fields) writes its global key", list.loadIfPresent(from: defaults) == ["a"])
+
+    // Plain-value settings (the theme choice).
+    let themeKey = "com.pendo324.Phoebus.selectedThemeID"
+    defaults.set("light", forKey: themeKey)
+    check("plain value: with no override the global key is read",
+          AccountSettingsScope.readKey(for: themeKey, in: defaults) == themeKey)
+    defaults.set("dark", forKey: AccountSettingsScope.writeKey(for: themeKey, in: defaults))
+    check("plain value: an account's choice is read from its key",
+          defaults.string(forKey: AccountSettingsScope.readKey(for: themeKey, in: defaults)) == "dark")
+    check("plain value: the global choice is untouched", defaults.string(forKey: themeKey) == "light")
+    // Re-applying the theme resets bar appearance, so it is only re-announced on a real change.
+    let themeNotes = NSLock.Protected<Int>(0)
+    let themeToken = NotificationCenter.default.addObserver(forName: ThemeStore.didChangeNotification, object: nil, queue: nil) { _ in
+        themeNotes.set(themeNotes.get() + 1)
+    }
+    AccountSettingsScope.setActiveAccount("bob", in: defaults)
+    check("theme: switching to an account with another theme re-announces it", themeNotes.get() == 1)
+    AccountSettingsScope.setEditingGlobalDefaults(true, in: defaults)
+    AccountSettingsScope.setEditingGlobalDefaults(false, in: defaults)
+    check("theme: a scope change that keeps the theme doesn't re-announce it", themeNotes.get() == 1)
+    NotificationCenter.default.removeObserver(themeToken)
+    AccountSettingsScope.setActiveAccount("alice", in: defaults)
+
+    // Copy and reset.
+    AccountSettingsOverrides.copy(from: "alice", to: "bob", in: defaults)
+    check("copy overrides: the destination mirrors the source",
+          Set(AccountSettingsOverrides.overrideKeys(for: "bob", in: defaults).map { $0.replacingOccurrences(of: "@bob", with: "") })
+          == Set(AccountSettingsOverrides.overrideKeys(for: "alice", in: defaults).map { $0.replacingOccurrences(of: "@alice", with: "") }))
+    AccountSettingsScope.setActiveAccount("bob", in: defaults)
+    check("copy overrides: the destination's own earlier override is gone", store.load(from: defaults).name == "g")
+    check("copy overrides: the destination reads the copied fields", store.load(from: defaults).b == true)
+    AccountSettingsOverrides.removeAll(for: "bob", in: defaults)
+    check("reset overrides: the account has none left",
+          AccountSettingsOverrides.overrideKeys(for: "bob", in: defaults).isEmpty)
+    check("reset overrides: the account reads the globals", store.load(from: defaults) == Model(a: 8, name: "g"))
+    check("reset overrides: other accounts keep theirs",
+          !AccountSettingsOverrides.overrideKeys(for: "alice", in: defaults).isEmpty)
+
+    // Backups carry the globals and every account's overrides.
+    let snapshot = SettingsDomainSnapshot.capture(from: defaults)
+    check("backup: an account's override is captured", snapshot[overrideKey] != nil)
+    check("backup: the switch is captured", snapshot[AccountSettingsScope.enabledKey] != nil)
+    let restoredSuite = "smoke.peraccount.restored"
+    let restored = UserDefaults(suiteName: restoredSuite)!
+    restored.removePersistentDomain(forName: restoredSuite)
+    let roundTripped = try JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(snapshot))
+    SettingsDomainSnapshot.restore(roundTripped, into: restored)
+    AccountSettingsScope.setActiveAccount("alice", in: restored)
+    check("backup: a restore brings back the account's merged values",
+          store.load(from: restored) == Model(a: 8, b: true, name: "g"))
+    check("backup: a restore brings back the globals", store.loadIfPresent(from: restored) == Model(a: 8, name: "g"))
+    restored.removePersistentDomain(forName: restoredSuite)
+
+    // A row finds the field its binding writes.
+    let model = Model()
+    check("row field: a Bool key path names its field", AccountSettingsOverrides.field(of: \Model.b, in: model) == "b")
+    check("row field: an Int key path names its field", AccountSettingsOverrides.field(of: \Model.a, in: model) == "a")
+    check("row field: an enum key path names its field", AccountSettingsOverrides.field(of: \Model.size, in: model) == "size")
+    check("row field: a String key path names its field", AccountSettingsOverrides.field(of: \Model.name, in: model) == "name")
+    check("row field: a real settings field resolves",
+          AccountSettingsOverrides.field(of: \GeneralSettings.jumpButtonPosition, in: .default) == "jumpButtonPosition")
+}

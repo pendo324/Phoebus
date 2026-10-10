@@ -765,6 +765,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Reborn "Show in Feed" sub-toggle (`UDKeyDevvitFeedWidgets`),
     /// visible only when the master switch above is on.
     public var devvitFeedWidgets: Bool
+    /// What a comment's age counts from (`CommentAgeMode`). Apollo and
+    /// Reborn have no such setting, so there is no stock key.
+    public var commentAgeMode: CommentAgeMode
 
     public static let `default` = GeneralSettings(
         autoCollapseChildComments: false,
@@ -860,7 +863,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         forwardSwipeForgetAfterScrolling: false,
         textPostThumbnailsEnabled: true,
         devvitInteractivePosts: false,
-        devvitFeedWidgets: true
+        devvitFeedWidgets: true,
+        commentAgeMode: .sincePosted
     )
 
     public init(
@@ -955,7 +959,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         forwardSwipeForgetAfterScrolling: Bool = false,
         textPostThumbnailsEnabled: Bool = true,
         devvitInteractivePosts: Bool = false,
-        devvitFeedWidgets: Bool = true
+        devvitFeedWidgets: Bool = true,
+        commentAgeMode: CommentAgeMode = .sincePosted
     ) {
         self.autoCollapseChildComments = autoCollapseChildComments
         self.autoCollapsePinnedComments = autoCollapsePinnedComments
@@ -1049,6 +1054,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.textPostThumbnailsEnabled = textPostThumbnailsEnabled
         self.devvitInteractivePosts = devvitInteractivePosts
         self.devvitFeedWidgets = devvitFeedWidgets
+        self.commentAgeMode = commentAgeMode
     }
 
     /// Custom decode: every field falls back to `.default` when absent,
@@ -1175,6 +1181,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         textPostThumbnailsEnabled = try container.decode(.textPostThumbnailsEnabled, default: d, \.textPostThumbnailsEnabled)
         devvitInteractivePosts = try container.decode(.devvitInteractivePosts, default: d, \.devvitInteractivePosts)
         devvitFeedWidgets = try container.decode(.devvitFeedWidgets, default: d, \.devvitFeedWidgets)
+        commentAgeMode = try container.decode(.commentAgeMode, default: d, \.commentAgeMode)
     }
 }
 

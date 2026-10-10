@@ -14,6 +14,9 @@ struct CommentRow: View {
     var isLinkedToComment: Bool = false
     /// See `CommentTreeScreen.isModerator`'s doc comment.
     var isModerator: Bool = false
+    /// The byline age under the Comment Age setting (`CommentAgeFormatter`);
+    /// nil shows the plain time since posting.
+    var ageLabel: String? = nil
     /// Reborn "Deleted Comments" archive recovery. Non-nil only when the
     /// body looks deleted, recovery is active and the archive had a usable
     /// copy. Renders the recovered body (or a tappable reason chip under
@@ -85,13 +88,14 @@ struct CommentRow: View {
         if general.tapToCollapseType.collapsesOnBodyTap { onToggleCollapse() }
     }
 
-    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, archivedComment: ArchivedComment? = nil, tapToReveal: Bool = false, isRevealed: Bool = false, onReveal: @escaping () -> Void = {}, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onEdited: @escaping (String) -> Void = { _ in }, onDeleted: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
+    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, ageLabel: String? = nil, archivedComment: ArchivedComment? = nil, tapToReveal: Bool = false, isRevealed: Bool = false, onReveal: @escaping () -> Void = {}, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onEdited: @escaping (String) -> Void = { _ in }, onDeleted: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
         self.node = node
         self.depthColors = depthColors
         self.repository = repository
         self.isNew = isNew
         self.isLinkedToComment = isLinkedToComment
         self.isModerator = isModerator
+        self.ageLabel = ageLabel
         self.archivedComment = archivedComment
         self.tapToReveal = tapToReveal
         self.onShareAsImage = onShareAsImage
@@ -443,7 +447,7 @@ struct CommentRow: View {
                         // detail icons (% upvoted, timestamp, edited pencil) reveal their
                         // detail on tap; `TimestampLabel` gives itself its own `contentShape`
                         // so the row's collapse gesture doesn't swallow it.
-                        TimestampLabel(node.comment.created)
+                        TimestampLabel(node.comment.created, text: ageLabel)
                             // 13pt regular in #61626A (tertiary), 16pt trailing inset, 11pt gap
                             // back to the "•••".
                             .apolloFont(size: 13)

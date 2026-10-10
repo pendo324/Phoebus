@@ -208,6 +208,12 @@ public struct GeneralSettingsScreen: View {
                 .apolloSearchRow("Jump Button Position")
             Toggle("New Account Highlightenator", isOn: $settings.highlightAccountAge)
                 .apolloSearchRow("New Account Highlightenator")
+            // Phoebus-only: what the byline age counts from.
+            ApolloSettingsPicker("Comment Age", selection: $settings.commentAgeMode,
+                                 options: CommentAgeMode.allCases.map { $0 },
+                                 display: { $0.displayName })
+                .accessibilityIdentifier("settings.general.commentAge")
+                .apolloSearchRow("Comment Age")
             ApolloSettingsPicker("Blocked Users", selection: $settings.hideBlockedUserComments,
                                  options: [false, true],
                                  display: { $0 ? "Hide" : "Collapse" })

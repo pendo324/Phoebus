@@ -7,10 +7,16 @@ import Foundation
 extension Date {
     public var apolloRelativeTime: String {
         let seconds = -timeIntervalSinceNow
-        guard seconds >= 0 else { return "now" }
-        switch seconds {
+        guard seconds >= 60 else { return "now" }
+        return Self.apolloCompactDuration(seconds)
+    }
+
+    /// The single-unit duration behind `apolloRelativeTime` ("45s", "3m",
+    /// "2h", "4d", "1mo", "2y"); negative intervals read as "0s".
+    public static func apolloCompactDuration(_ seconds: TimeInterval) -> String {
+        switch max(seconds, 0) {
         case ..<60:
-            return "now"
+            return "\(Int(max(seconds, 0)))s"
         case ..<3600:
             return "\(Int(seconds / 60))m"
         case ..<86400:

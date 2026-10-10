@@ -13,11 +13,15 @@ public struct TimestampLabel: View {
     /// Whether to draw the clock glyph before the age. The feed info row
     /// shows one; other callers (comment byline, chat) show the age bare.
     let showsIcon: Bool
+    /// Replaces the relative age (the comment byline's `CommentAgeMode`);
+    /// the tap still shows `date`.
+    let text: String?
     @State private var showingAbsolute = false
 
-    public init(_ date: Date, showsIcon: Bool = false) {
+    public init(_ date: Date, showsIcon: Bool = false, text: String? = nil) {
         self.date = date
         self.showsIcon = showsIcon
+        self.text = text
     }
 
     @ViewBuilder
@@ -27,10 +31,10 @@ public struct TimestampLabel: View {
             // own spacing does not honour.
             HStack(spacing: 4) {
                 StockIcon("posts-clock")
-                Text(date.apolloRelativeTime)
+                Text(text ?? date.apolloRelativeTime)
             }
         } else {
-            Text(date.apolloRelativeTime)
+            Text(text ?? date.apolloRelativeTime)
         }
     }
 

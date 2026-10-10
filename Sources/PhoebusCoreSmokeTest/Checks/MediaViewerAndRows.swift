@@ -1445,3 +1445,13 @@ extension NSLock {
         func get() -> T { lock.lock(); defer { lock.unlock() }; return value }
     }
 }
+
+// MARK: - Stickied Post banner only in its own subreddit
+@MainActor func checkStickiedPostBannerOnlyInItsSubreddit() async throws {
+    check("a stickied post shows the banner in its own subreddit's feed",
+          StickiedPostBanner.shows(isStickied: true, isAggregateFeed: false))
+    check("a stickied post shows no banner on Home, Popular, All or a multireddit",
+          !StickiedPostBanner.shows(isStickied: true, isAggregateFeed: true))
+    check("an ordinary post never shows the banner",
+          !StickiedPostBanner.shows(isStickied: false, isAggregateFeed: false))
+}

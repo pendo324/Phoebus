@@ -13,7 +13,7 @@ extension PostRow {
     /// row, not a separate stacked column.
     var largeThumbnailBody: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if post.stickied {
+            if showsStickiedBanner {
                 Label("Stickied Post", systemImage: "pin.fill")
                     .font(.caption2.bold())
                     .foregroundStyle(.green)

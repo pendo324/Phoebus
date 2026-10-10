@@ -565,6 +565,21 @@ public actor RedditRepository {
         return response.rules
     }
 
+    private var postRequirementsCache: [String: PostRequirements] = [:]
+
+    /// A subreddit's posting rules (`/api/v1/{subreddit}/post_requirements`),
+    /// cached for the session. Failures aren't cached.
+    public func fetchPostRequirements(subreddit: String) async throws -> PostRequirements {
+        let key = subreddit.lowercased()
+        if let cached = postRequirementsCache[key] { return cached }
+        // www.reddit.com answers this path only with `.json` (404 without it).
+        let suffix = await client.isUsingWebSession ? ".json" : ""
+        let data = try await client.get(path: "/api/v1/\(subreddit)/post_requirements\(suffix)")
+        let requirements = try JSONDecoder().decode(PostRequirements.self, from: data)
+        postRequirementsCache[key] = requirements
+        return requirements
+    }
+
     /// Submits a new post that crossposts an existing one into a
     /// different subreddit. `flairID` lets the user pick a flair in
     /// the destination subreddit for the new crosspost, same as a

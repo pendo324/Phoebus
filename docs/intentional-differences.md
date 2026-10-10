@@ -36,6 +36,16 @@ Apollo or Reborn, add an entry here.
   Reborn only had Reborn's comment insights. It needs a web session and
   offers the web sign-in without one.
 
+- **The post composer checks the subreddit's posting rules.** Phoebus
+  fetches the moderators' post requirements (title length and words,
+  required text, blocked domains, required flair, gallery limits) and
+  shows problems under the field as you write, plus the community's
+  guidelines in a collapsible note. Only clear-cut cases (title over the
+  maximum, missing required flair, text required or not allowed, a blocked
+  domain) disable Post; everything else is a warning, and Reddit's answer on
+  submit still wins. If the rules can't be fetched the composer behaves as
+  before. Neither Apollo nor Reborn has this.
+
 ## Media and link previews
 
 - **Link previews are one unified card pipeline.** Reborn's rich

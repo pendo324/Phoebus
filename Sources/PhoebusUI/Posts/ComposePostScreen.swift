@@ -33,6 +33,8 @@ public struct ComposePostScreen: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var subredditRules: [SubredditRule] = []
+    @State private var requirements: PostRequirements?
+    @State private var guidelinesExpanded = false
     @Environment(\.dismiss) private var dismiss
 
     struct MediaComposeImage: Identifiable {
@@ -97,6 +99,7 @@ public struct ComposePostScreen: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                requirementNotes(for: .title)
 
                 switch postType {
                 case .link:
@@ -104,10 +107,13 @@ public struct ComposePostScreen: View {
                         #if os(iOS)
                         .keyboardType(.URL)
                         #endif
+                    requirementNotes(for: .link)
                 case .text:
                     MarkdownComposerField(text: $selftextBody, placeholder: "Text (optional)", lineLimit: 5...10)
+                    requirementNotes(for: .body)
                 case .media:
                     mediaEditor
+                    requirementNotes(for: .gallery)
                 case .poll:
                     pollOptionsEditor
                     Stepper(pollDurationLabel, value: $pollDurationDays, in: PollComposeService.minDurationDays...PollComposeService.maxDurationDays)
@@ -118,6 +124,7 @@ public struct ComposePostScreen: View {
             // "Posting in {subreddit}. View Rules" line below the media picker.
             Section {
                 postingInRow
+                guidelinesRow
             }
 
             if !flairOptions.isEmpty {
@@ -128,6 +135,7 @@ public struct ComposePostScreen: View {
                             Text(option.text).tag(RedditFlairOption?.some(option))
                         }
                     }
+                    requirementNotes(for: .flair)
                 }
             }
 
@@ -167,6 +175,11 @@ public struct ComposePostScreen: View {
         .task {
             await loadFlairs()
             subredditRules = (try? await repository.fetchSubredditRules(name: subreddit)) ?? []
+        }
+        .task(id: subreddit) {
+            let fetched = try? await repository.fetchPostRequirements(subreddit: subreddit)
+            requirements = fetched
+            guidelinesExpanded = fetched?.guidelinesStartExpanded ?? false
         }
         .onChange(of: selectedPhotoItems) { _, newValue in
             Task {
@@ -276,7 +289,55 @@ public struct ComposePostScreen: View {
         .font(.caption)
     }
 
+    /// Problems with the draft against the subreddit's posting rules, if
+    /// they could be fetched. Only the blocking ones disable Post.
+    private var requirementProblems: [PostRequirementViolation] {
+        guard let requirements else { return [] }
+        let kind: PostDraft.Kind
+        switch postType {
+        case .text: kind = .text
+        case .link: kind = .link
+        case .poll: kind = .poll
+        case .media:
+            kind = selectedVideoData != nil ? .video : (selectedImages.count >= 2 ? .gallery : .image)
+        }
+        return requirements.violations(for: PostDraft(
+            kind: kind,
+            title: title,
+            body: selftextBody,
+            url: linkURL,
+            flairSelected: selectedFlair != nil,
+            galleryItemCount: selectedImages.count
+        ))
+        // With no flair to pick, a "flair required" rule can't be acted on here.
+        .filter { $0.field != .flair || !flairOptions.isEmpty }
+    }
+
+    @ViewBuilder
+    private func requirementNotes(for field: PostRequirementViolation.Field) -> some View {
+        ForEach(Array(requirementProblems.filter { $0.field == field }.enumerated()), id: \.offset) { _, problem in
+            Text(problem.message)
+                .font(.footnote)
+                .foregroundStyle(problem.isBlocking ? Color.red : Color.secondary)
+                .accessibilityIdentifier("compose.requirement.\(problem.isBlocking ? "blocking" : "warning")")
+        }
+    }
+
+    @ViewBuilder
+    private var guidelinesRow: some View {
+        if let guidelines = requirements?.guidelines {
+            DisclosureGroup("Posting guidelines", isExpanded: $guidelinesExpanded) {
+                Text(guidelines)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+            .accessibilityIdentifier("compose.guidelines")
+        }
+    }
+
     private var canSubmit: Bool {
+        guard !requirementProblems.contains(where: \.isBlocking) else { return false }
         guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         if postType == .media { return !selectedImages.isEmpty || selectedVideoData != nil }
         if postType == .poll {

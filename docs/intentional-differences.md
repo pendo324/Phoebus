@@ -30,6 +30,12 @@ Apollo or Reborn, add an entry here.
   comment also gets the OP mark and the flair Phoebus already has for
   you (the post's, or an earlier comment's), without a fetch.
 
+- **Your own posts have an Insights sheet.** ••• › Insights (feed and
+  comments view) shows views, the 48-hour views chart, top countries and
+  top comments from Reddit's author-only post stats page. Apollo and
+  Reborn only had Reborn's comment insights. It needs a web session and
+  offers the web sign-in without one.
+
 ## Media and link previews
 
 - **Link previews are one unified card pipeline.** Reborn's rich

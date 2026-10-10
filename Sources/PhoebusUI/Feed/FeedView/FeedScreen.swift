@@ -55,6 +55,7 @@ public struct FeedScreen: View {
     /// one on `PostDetailScreen`'s toolbar, so a post can be
     /// crossposted directly from a feed row.
     @State var crosspostTarget: RedditPost?
+    @State var insightsTargetPost: RedditPost?
     @Setting(GeneralSettingsStore.storage) var generalSettings
     /// Bumped by each `load()`; a response for an older one is dropped.
     /// Reborn "Show Page Endings" - see `pageBoundaryPostIDs`'s doc
@@ -635,6 +636,9 @@ public struct FeedScreen: View {
             ReportSheet(fullname: target.name, repository: repository) {
                 reportTarget = nil
             }
+        }
+        .sheet(item: $insightsTargetPost) { target in
+            PostInsightsSheet(post: target, repository: repository)
         }
         .sheet(item: $crosspostTarget) { target in
             NavigationStack {

@@ -239,6 +239,7 @@ flowchart LR
 | AI summaries | UI `AISummaryCardView`; Core `AISummaryCard`, `ApolloAIClient`, `OnDeviceSummarizer`, `AIModelCatalog`, `AIArticleDetector` | Apollo AI card, Tap to Summarize, provider/model catalogue, on-device summariser | |
 | Share as image | UI `ShareAsImageScreen`, `ShareCardView`; UI `ShareCardImageLoader`; Core `ShareCardFormatting` | Apollo's share card | |
 | Comment insights | UI `CommentVoteInsightsSheet`; Core `CommentVoteInsightsClient` | Reborn author-only insights | |
+| Post insights | UI `PostInsightsSheet` (Swift Charts); Core `PostInsights`, `PostInsightsParser`, `PostInsightsClient` | Phoebus-only: ••• › Insights on your own posts, from Reddit's `/poststats/` page over the web session | `post-insights` in the Action Menus catalogue |
 | Floating post tabs | UI `FloatingPostTabsManager`, `FloatingPostTabsOverlay`; Core `FloatingPostTabsSettings` | Reborn floating tabs | |
 | Misc | UI `RemindMeScreen`, `ReportSheet`, `SelectTextSheet`, `TranslatorScreen`, `TextFacesPickerScreen`, `AllSubredditCommentsScreen`; Core `RemindMeScheduler`, `TranslatorURLBuilder`, `MutedThreadsStore`, `FollowThreadActivity` | Remind Me (local notifications, not push), report, select text, translator, all-comments feed, muted threads, Follow Thread Live Activity | |
 

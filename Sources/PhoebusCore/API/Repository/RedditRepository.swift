@@ -479,6 +479,13 @@ public actor RedditRepository {
         )
     }
 
+    /// Insights for one of the signed-in user's own posts, over the same
+    /// web-feature session as comment insights.
+    public func fetchPostInsights(postID: String) async throws -> PostInsights {
+        guard let session = await webFeatureSession() else { throw PostInsightsError.requiresWebSession }
+        return try await PostInsightsClient.fetch(postID: postID, cookieHeader: session.cookieHeader)
+    }
+
     /// Whether a web session exists for the Insights/Polls features.
     public func hasWebFeatureSession() async -> Bool {
         await webFeatureSession() != nil

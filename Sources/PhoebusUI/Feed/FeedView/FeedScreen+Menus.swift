@@ -30,6 +30,7 @@ extension FeedScreen {
         if post.galleryImageURLs.count > 1 { ids.append("save-all-media") }
         ids += ["crosspost", "mute-notifications", "filter-subreddit"]
         if isModerator || post.author == signedInUsername { ids.append("post-flair") }
+        if PostInsightsParser.isEligible(author: post.author, currentUsername: signedInUsername) { ids.append("post-insights") }
         ids += ["media-download", "subscribe-actions"]
         return ids
     }
@@ -76,6 +77,8 @@ extension FeedScreen {
             } label: {
                 Label("Filter Subreddit", systemImage: "line.3.horizontal.decrease.circle")
             }
+        case "post-insights":
+            Button { insightsTargetPost = post } label: { Label("Insights", systemImage: "chart.bar") }
         case "post-flair":
             // Apollo's flair action: change a post's flair after posting.
             Button { flairTargetPost = post } label: { Label("Set Flair", systemImage: "tag") }

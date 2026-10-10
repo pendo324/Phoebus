@@ -171,6 +171,19 @@ public enum CommentVoteInsightsClient {
         return String(s[range])
     }
 
+    /// Cookie-authenticated GET of a server-rendered reddit.com page (the
+    /// comment and post stats pages). `nil` when the request fails or the
+    /// body isn't text.
+    public static func fetchPageHTML(url: URL, cookieHeader: String, session: URLSession = .shared) async -> String? {
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.httpShouldHandleCookies = false
+        request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        // Reddit serves the modern, label-bearing markup to a desktop UA.
+        request.setValue(BrowserUserAgent.desktopSafari, forHTTPHeaderField: "User-Agent")
+        guard let (data, _) = try? await session.data(for: request) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
     /// Cache lifetime (120s).
     public static let cacheLifetime: TimeInterval = 120
 
@@ -185,14 +198,8 @@ public enum CommentVoteInsightsClient {
         if let entry = cache[commentID], Date().timeIntervalSince(entry.at) < cacheLifetime {
             return entry.outcome
         }
-        guard let url = statsURL(commentID: commentID) else { return .blocked }
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-        request.httpShouldHandleCookies = false
-        request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
-        // Reddit serves the modern, label-bearing markup to a desktop UA.
-        request.setValue(BrowserUserAgent.desktopSafari, forHTTPHeaderField: "User-Agent")
-        guard let (data, _) = try? await session.data(for: request),
-              let html = String(data: data, encoding: .utf8) else { return .blocked }
+        guard let url = statsURL(commentID: commentID),
+              let html = await fetchPageHTML(url: url, cookieHeader: cookieHeader, session: session) else { return .blocked }
         let outcome: Outcome
         if let insight = parse(html: html) {
             outcome = .insight(insight)

@@ -765,6 +765,38 @@ public actor RedditRepository {
         try await client.getListing(path: "/user/\(username)/saved", after: after, limit: limit)
     }
 
+    /// Walks Saved for "Check for Missing": up to the listing's ceiling,
+    /// 100 at a time, stopping early once every wanted fullname is seen.
+    public func walkSavedListing(username: String, wanted: Set<String>) async throws
+        -> (present: Set<String>, complete: Bool) {
+        var present = Set<String>()
+        var count = 0
+        var after: String?
+        repeat {
+            let listing = try await fetchSavedItems(username: username, after: after, limit: 100)
+            let names = listing.fullnames
+            count += names.count
+            present.formUnion(names)
+            after = listing.data.after.flatMap { $0.isEmpty ? nil : $0 }
+            if wanted.isSubset(of: present) { return (present, true) }
+            if names.isEmpty { break }
+        } while after != nil && count < LocalSavedPolicy.listingCeiling
+        return (present, LocalSavedPolicy.isListingComplete(after: after, itemCount: count))
+    }
+
+    /// Reddit's current copies of these posts and comments (`/api/info`),
+    /// 100 per request. Ones Reddit no longer returns are absent.
+    public func fetchInfoItems(fullnames: [String]) async throws -> [String: ProfileItem] {
+        var result: [String: ProfileItem] = [:]
+        for start in stride(from: 0, to: fullnames.count, by: 100) {
+            let batch = fullnames[start..<min(start + 100, fullnames.count)]
+            let listing = try await client.getListing(path: "/api/info",
+                                                      parameters: ["id": batch.joined(separator: ",")], limit: 100)
+            for item in listing.profileItems() { result[item.id] = item }
+        }
+        return result
+    }
+
     /// The signed-in user's hidden posts (`/user/<me>/hidden`), for Reborn's
     /// own-profile browser.
     public func fetchUserHidden(username: String, after: String? = nil, limit: Int = 25) async throws -> RedditListing {

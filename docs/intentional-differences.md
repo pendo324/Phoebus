@@ -112,6 +112,14 @@ Apollo or Reborn, add an entry here.
   lookup once and fills the gaps; Arctic Shift's copy wins where both
   have one. Reborn uses Arctic Shift only; the fallback is inspired by
   Continuum's removed comment recovery.
+- **Saved items are kept locally.** Every save made in Phoebus keeps a
+  small snapshot (title or comment text, subreddit, author, link). When
+  Saved has been paged to its end, or after "Check for Missing", items
+  Reddit no longer lists move to Saved > Kept Locally with a Removed,
+  Deleted, Unavailable or Not in Saved badge; a gone comment's body comes
+  back from Arctic Shift. "Keep Local Copies of Saved Items" in Settings >
+  General turns it off. Neither Apollo nor Reborn has this; it is
+  inspired by Continuum's Local Saved.
 
 ## Media and link previews
 

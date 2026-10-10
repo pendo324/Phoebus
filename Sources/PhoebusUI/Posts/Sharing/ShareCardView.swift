@@ -15,6 +15,8 @@ public struct ShareCardView: View {
         /// Draws images linked in the shared comments inline, as the
         /// comment tree does.
         public var includeCommentImages = true
+        /// "Hide Post Scores" / "Hide Comment Scores" carry over to the card.
+        public var voteCounts = VoteCountSettings.default
 
         public init() {}
     }
@@ -189,7 +191,9 @@ public struct ShareCardView: View {
             .font(.system(size: 11))
 
             HStack(spacing: 8) {
-                statistic("arrow.up", ShareCardFormatting.abbreviated(post.score))
+                if !options.voteCounts.hidePostScores {
+                    statistic("arrow.up", ShareCardFormatting.abbreviated(post.score))
+                }
                 statistic("bubble.right", ShareCardFormatting.abbreviated(post.numComments))
                 statistic("clock", ShareCardFormatting.compactAge(since: post.created))
                 if let awards = post.totalAwardsReceived, awards > 0 {
@@ -219,12 +223,14 @@ public struct ShareCardView: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(secondaryColor)
                 }
-                HStack(spacing: 2) {
-                    Image(systemName: "arrow.up")
-                    Text(ShareCardFormatting.abbreviated(comment.score))
+                if !options.voteCounts.hideCommentScores {
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.up")
+                        Text(ShareCardFormatting.abbreviated(comment.score))
+                    }
+                    .font(.system(size: 11))
+                    .foregroundStyle(secondaryColor)
                 }
-                .font(.system(size: 11))
-                .foregroundStyle(secondaryColor)
                 Spacer()
                 Text(ShareCardFormatting.compactAge(since: comment.created))
                     .font(.system(size: 11))

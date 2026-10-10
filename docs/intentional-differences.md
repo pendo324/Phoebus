@@ -142,6 +142,14 @@ Apollo or Reborn, add an entry here.
   friends) in orange (Highlight Followed Users, off by default). Moderator and admin colours still win.
   Neither Apollo nor Reborn has this; it is inspired by RedReader's own
   username highlight and Continuum's followed-user marker.
+- **Scores can be hidden.** "Hide Post Scores" (Appearance > Other) and
+  "Hide Comment Scores" (General > Comments), both off by default, drop
+  the number from feed rows, the post header, comment headers, profile
+  comments, the media viewer, crosspost cards and Share as Image. The
+  vote arrows and their voted colours stay, and the post header keeps
+  its "% Upvoted", which does not give the score away; the approximate
+  upvote/downvote totals go with the score. Neither Apollo nor Reborn
+  has this; it is inspired by Continuum's "Hide the number of votes".
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

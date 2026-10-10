@@ -8,6 +8,7 @@ import WebKit
 /// toggle, picker or stepper, grouped by behaviour.
 public struct GeneralSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var settings
+    @Setting(VoteCountSettings.self) private var voteCounts
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -223,6 +224,9 @@ public struct GeneralSettingsScreen: View {
             Toggle("Highlight Followed Users", isOn: $settings.highlightFollowedUsers)
                 .accessibilityIdentifier("settings.general.highlightFollowedUsers")
                 .apolloSearchRow("Highlight Followed Users")
+            Toggle("Hide Comment Scores", isOn: $voteCounts.hideCommentScores)
+                .apolloSearchRow("Hide Comment Scores")
+                .accessibilityIdentifier("general.hideCommentScores")
             ApolloSettingsPicker("Blocked Users", selection: $settings.hideBlockedUserComments,
                                  options: [false, true],
                                  display: { $0 ? "Hide" : "Collapse" })

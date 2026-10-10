@@ -1197,6 +1197,51 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("VoteBreakdownCalculator rejects a negative score even with a high ratio", VoteBreakdownCalculator.breakdown(score: -10, upvoteRatio: 0.9) == nil)
 }
 
+// --- Hide Post Scores / Hide Comment Scores (Phoebus-only, inspired by Continuum) ---
+@MainActor func checkHideVoteCounts() async throws {
+    let shown = VoteCountSettings.default
+    check("scores are shown by default", !shown.hidePostScores && !shown.hideCommentScores)
+    check("a shown post score is abbreviated as rows draw it", shown.postScoreText(10_900) == "10.9K")
+    check("a shown comment score is abbreviated", shown.commentScoreText(1_234, scoreHidden: false) == 1_234.apolloAbbreviated)
+    check("Reddit's own hidden comment score stays an em dash", shown.commentScoreText(5, scoreHidden: true) == "\u{2014}")
+    check("the vote estimate shows while post scores do", shown.showsPostVoteEstimate)
+
+    let posts = VoteCountSettings(hidePostScores: true)
+    check("Hide Post Scores drops the post number", posts.postScoreText(10_900) == nil)
+    check("Hide Post Scores leaves comment scores", posts.commentScoreText(3, scoreHidden: false) == "3")
+    check("Hide Post Scores also drops the upvote/downvote estimate", !posts.showsPostVoteEstimate)
+
+    let comments = VoteCountSettings(hideCommentScores: true)
+    check("Hide Comment Scores drops the comment number", comments.commentScoreText(3, scoreHidden: false) == nil)
+    check("Hide Comment Scores drops the em dash too", comments.commentScoreText(3, scoreHidden: true) == nil)
+    check("Hide Comment Scores leaves post scores", comments.postScoreText(42) == "42" && comments.showsPostVoteEstimate)
+
+    let decodedEmpty = try JSONDecoder().decode(VoteCountSettings.self, from: Data("{}".utf8))
+    check("an empty blob decodes to the defaults", decodedEmpty == .default)
+    let both = VoteCountSettings(hidePostScores: true, hideCommentScores: true)
+    let roundTripped = try JSONDecoder().decode(VoteCountSettings.self, from: JSONEncoder().encode(both))
+    check("vote count settings survive a JSON round trip", roundTripped == both)
+
+    let suite = "VoteCountSettingsBackupTest"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    VoteCountStore.storage.save(both, to: defaults)
+    check("vote count settings are in settings backups",
+          SettingsDomainSnapshot.isBackedUp("com.pendo324.Phoebus.voteCountSettings"))
+    let snapshot = try JSONDecoder().decode([String: JSONValue].self,
+                                            from: JSONEncoder().encode(SettingsDomainSnapshot.capture(from: defaults)))
+    let restoreSuite = "VoteCountSettingsRestoreTest"
+    let restored = UserDefaults(suiteName: restoreSuite)!
+    restored.removePersistentDomain(forName: restoreSuite)
+    SettingsDomainSnapshot.restore(snapshot, into: restored)
+    check("vote count settings round-trip through a backup", VoteCountStore.storage.load(from: restored) == both)
+
+    let now = Date(timeIntervalSince1970: 1_000_000)
+    let spoken = AccessibilitySummary.post(title: "t", subreddit: "s", author: "a", score: 77, comments: 2,
+                                           created: now, scoreHidden: true, now: now)
+    check("a hidden post score is not spoken", !spoken.contains("point") && spoken.contains("2 comments"))
+}
+
 // --- Random NSFW subreddit + Hide Feed Descriptions (Apollo-Reborn features) ---
 @MainActor func checkRandomNSFWSubredditHideFeedDescriptions() async throws {
     check("default general settings show feed descriptions (hideFeedDescriptions is false)", !GeneralSettings.default.hideFeedDescriptions)

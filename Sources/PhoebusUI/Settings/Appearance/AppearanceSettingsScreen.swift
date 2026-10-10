@@ -12,6 +12,7 @@ import PhoebusCore
 public struct AppearanceSettingsScreen: View {
     @Setting(AppearanceSettingsStore.storage) private var settings
     @Setting(GeneralSettingsStore.storage) private var generalSettings
+    @Setting(VoteCountSettings.self) private var voteCounts
 
     public init() {}
 
@@ -155,6 +156,9 @@ public struct AppearanceSettingsScreen: View {
             Section {
                 Toggle("Show Awards", isOn: $generalSettings.showAwards)
                     .apolloSearchRow("Show Awards")
+                Toggle("Hide Post Scores", isOn: $voteCounts.hidePostScores)
+                    .apolloSearchRow("Hide Post Scores")
+                    .accessibilityIdentifier("appearance.hidePostScores")
             } header: {
                 Text("Other")
                     .apolloSectionHeader()

@@ -22,6 +22,7 @@ struct CrosspostCardView: View {
     var style: Style = .card
     let repository: RedditRepository
 
+    @Setting(VoteCountSettings.self) private var voteCounts
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var apolloTheme
 
@@ -107,7 +108,7 @@ struct CrosspostCardView: View {
     private var stats: some View {
         HStack(spacing: 4) {
             StockIcon("posts-points")
-            Text(parent.score.apolloAbbreviated)
+            Text(voteCounts.postScoreText(parent.score) ?? "")
                 .padding(.trailing, 5)
             StockIcon("posts-comments")
             Text(parent.numComments.apolloAbbreviated)

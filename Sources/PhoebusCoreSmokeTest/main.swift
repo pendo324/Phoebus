@@ -367,6 +367,8 @@ try await checkShareIncludesTitleDeadToggleFix()
 
 try await checkVoteBreakdownCalculatorApolloRebornFeature()
 
+try await checkHideVoteCounts()
+
 try await checkRandomNSFWSubredditHideFeedDescriptions()
 
 try await checkThemeUnlockedFeature()

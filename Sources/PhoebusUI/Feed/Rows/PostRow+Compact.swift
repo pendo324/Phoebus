@@ -351,7 +351,9 @@ extension PostRow {
             // `arrow.up`, with a 4pt icon->number gap.
             HStack(spacing: 4) {
                 StockIcon("posts-points")
-                Text(displayScore.apolloAbbreviated)
+                if let score = voteCounts.postScoreText(displayScore) {
+                    Text(score)
+                }
             }
                 .infoRowStat(.score)
                 .contentShape(Rectangle())
@@ -361,7 +363,8 @@ extension PostRow {
                 })
                 .onLongPressGesture(minimumDuration: 0.35, perform: infoRowScoreLongPressed)
                 .popover(isPresented: $showingInfoRowDetail) {
-                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio)
+                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio,
+                                      showsEstimate: voteCounts.showsPostVoteEstimate)
                         .padding()
                         .presentationCompactAdaptation(.popover)
                 }

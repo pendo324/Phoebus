@@ -29,6 +29,7 @@ public enum MediaPagerItem: Identifiable, Equatable {
 public struct MediaPagerScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
     @Setting(PictureInPictureSettings.self) private var pictureInPictureSettings
+    @Setting(VoteCountSettings.self) private var voteCounts
     let items: [MediaPagerItem]
     let startIndex: Int
     /// Post context for the vote chrome: Apollo's media viewer has
@@ -302,11 +303,13 @@ public struct MediaPagerScreen: View {
                             .accessibilityLabel("Upvote")
                         }
                         .accessibilityIdentifier("mediaPager.upvote")
-                        Text(displayScore.apolloAbbreviated)
-                            .font(.system(size: 17))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .accessibilityIdentifier("mediaPager.score")
+                        if let score = voteCounts.postScoreText(displayScore) {
+                            Text(score)
+                                .font(.system(size: 17))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .accessibilityIdentifier("mediaPager.score")
+                        }
                         Button {
                             Task { await vote(direction: voteState == false ? 0 : -1) }
                         } label: {

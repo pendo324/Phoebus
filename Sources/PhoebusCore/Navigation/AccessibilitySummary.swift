@@ -11,7 +11,7 @@ public enum AccessibilitySummary {
                             comments: Int, created: Date, flair: String? = nil,
                             domain: String? = nil, nsfw: Bool = false, spoiler: Bool = false,
                             stickied: Bool = false, saved: Bool = false, vote: Bool? = nil,
-                            now: Date = Date()) -> String {
+                            scoreHidden: Bool = false, now: Date = Date()) -> String {
         var parts: [String] = []
         if stickied { parts.append("Pinned") }
         if nsfw { parts.append("NSFW") }
@@ -20,7 +20,7 @@ public enum AccessibilitySummary {
         if let flair, !flair.isEmpty { parts.append(flair) }
         if let domain, !domain.isEmpty { parts.append("link to \(domain)") }
         parts.append("in \(subreddit) by \(author)")
-        parts.append(points(score))
+        if !scoreHidden { parts.append(points(score)) }
         parts.append(count(comments, "comment"))
         parts.append(age(created, now: now))
         if let vote { parts.append(vote ? "Upvoted" : "Downvoted") }

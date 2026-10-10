@@ -8,6 +8,9 @@ import PhoebusCore
 struct VoteBreakdownView: View {
     let score: Int
     let upvoteRatio: Double?
+    /// Off under "Hide Post Scores": the totals give the score away, so only
+    /// the "% Upvoted" shows.
+    var showsEstimate = true
 
     private var displayedPercent: Int? {
         guard let upvoteRatio else { return nil }
@@ -21,7 +24,13 @@ struct VoteBreakdownView: View {
                 Text("\(percent)% Upvoted")
                     .font(.headline)
             }
-            if let breakdown = VoteBreakdownCalculator.breakdown(score: score, upvoteRatio: upvoteRatio) {
+            if !showsEstimate {
+                if let percent {
+                    Text("~\(percent):\(100 - percent) upvote to downvote ratio")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let breakdown = VoteBreakdownCalculator.breakdown(score: score, upvoteRatio: upvoteRatio) {
                 Label("~\(breakdown.upvotes) upvotes", systemImage: "arrow.up")
                     .foregroundStyle(.orange)
                 Label("~\(breakdown.downvotes) downvotes", systemImage: "arrow.down")

@@ -104,6 +104,8 @@ struct PostRow: View {
     @Setting(LinkPreviewSettings.self) var linkPreviewSettings
     @Setting(TagFilterSettings.self) var tagFilters
     @Setting(MatureMediaPreference.storage) var matureMediaPrefs
+    /// "Hide Post Scores": the info row keeps its arrow, without the number.
+    @Setting(VoteCountSettings.self) var voteCounts
 
     /// Real Info Row tap action for the score
     /// (`UDKeyInfoRowTapUpvote`): tapping the score itself upvotes,
@@ -119,7 +121,8 @@ struct PostRow: View {
     func infoRowScoreLongPressed() {
         // With the magnifier on, holding the row raises it instead.
         guard !infoRowSettings.magnifierOnHold,
-              infoRowSettings.popupMode || infoRowSettings.overlayMode else { return }
+              infoRowSettings.popupMode || infoRowSettings.overlayMode,
+              voteCounts.showsPostVoteEstimate || post.upvoteRatio != nil else { return }
         showingInfoRowDetail = true
     }
 
@@ -324,7 +327,8 @@ struct PostRow: View {
             score: displayScore, comments: post.numComments, created: post.created,
             flair: generalSettings.showPostFlair ? post.linkFlairText : nil,
             domain: titleDomain, nsfw: post.over18, spoiler: post.spoiler,
-            stickied: showsStickiedBanner, saved: isSaved, vote: voteState)
+            stickied: showsStickiedBanner, saved: isSaved, vote: voteState,
+            scoreHidden: voteCounts.hidePostScores)
     }
 
     /// Only in the post's own subreddit feed (`StickiedPostBanner`).

@@ -61,6 +61,8 @@ struct CommentRow: View {
     }
 
     private var displayScore: Int { node.comment.score + voteStore.scoreDelta(for: node.comment.name) }
+    /// "Hide Comment Scores": the header keeps its arrow, without the number.
+    @Setting(VoteCountSettings.self) private var voteCounts
     private var isSaved: Bool { voteStore.isSaved(node.comment.name, serverValue: node.comment.saved) }
     @State private var showingReport = false
     @State private var showingModNotes = false
@@ -252,7 +254,7 @@ struct CommentRow: View {
         CommentAccessibility(
             label: AccessibilitySummary.comment(
                 author: node.comment.author, body: node.comment.body, score: displayScore,
-                scoreHidden: node.comment.scoreHidden, created: node.comment.created,
+                scoreHidden: node.comment.scoreHidden || voteCounts.hideCommentScores, created: node.comment.created,
                 isOP: node.comment.isSubmitter == true, collapsed: node.isCollapsed,
                 hiddenReplies: node.isCollapsed ? Self.descendantCount(node) : 0, vote: voteState),
             author: node.comment.author, voteState: voteState, isSaved: isSaved,
@@ -387,8 +389,10 @@ struct CommentRow: View {
                             }
                             // Reddit hides a new comment's score for a while; Apollo draws an em
                             // dash.
-                            Text(node.comment.scoreHidden ? "\u{2014}" : displayScore.apolloAbbreviated)
-                                .apolloFont(size: 13)
+                            if let score = voteCounts.commentScoreText(displayScore, scoreHidden: node.comment.scoreHidden) {
+                                Text(score)
+                                    .apolloFont(size: 13)
+                            }
                         }
                         .foregroundStyle(voteState == true ? Color.orange
                                          : (voteState == false ? Color.blue : Color.apolloIdleVoteArrow))

@@ -403,6 +403,12 @@ struct PostRow: View {
     static let largeCardWidth: Double = 430
 
     var resolvedThumbnailURL: URL? {
+        Self.thumbnailURL(for: post, displayStyle: displayStyle,
+                          textPostThumbnails: generalSettings.textPostThumbnailsEnabled)
+    }
+
+    /// The image a row draws for `post`; also what the feed prefetches.
+    static func thumbnailURL(for post: RedditPost, displayStyle: PostDisplayStyle, textPostThumbnails: Bool) -> URL? {
         // A crosspost shows its chip/card, not the original's thumbnail.
         guard post.crosspostParent == nil else { return nil }
         // Prefer Reddit's pre-resized preview over its thumbnail:
@@ -422,7 +428,7 @@ struct PostRow: View {
         if !post.over18, !post.spoiler, let preview = post.previewImageURL(displayWidth: 80) {
             return preview
         }
-        guard generalSettings.textPostThumbnailsEnabled else { return nil }
+        guard textPostThumbnails else { return nil }
         return post.derivedSelfPostThumbnailURL
     }
 

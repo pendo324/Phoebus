@@ -4,9 +4,10 @@ import UIKit
 import PhoebusCore
 
 /// The Search tab field's magnifier becomes the engine picker (Reborn #1260,
-/// #1305): a tap or hold offers "Search With: Reddit / Google / Kagi", a small
-/// chevron beside it says it's a menu, and Google and Kagi modes show a plain
-/// capital G or K in the magnifier's colour. The field is SwiftUI's
+/// #1305): a tap or hold offers "Search With: Reddit / Google / Kagi / Reddit
+/// Answers", a small chevron beside it says it's a menu, and Google and Kagi
+/// modes show a plain capital G or K in the magnifier's colour (Reddit Answers
+/// a sparkling magnifier). The field is SwiftUI's
 /// `.searchable`, so the probe finds its `UISearchBar` through the screen's
 /// navigation item and swaps the field's left view.
 struct SearchEngineMagnifier: UIViewRepresentable {
@@ -72,12 +73,12 @@ struct SearchEngineMagnifier: UIViewRepresentable {
             } else {
                 // Magnifier plus chevron, drawn as one image.
                 config.attributedTitle = nil
-                config.image = Self.magnifierWithChevron()
+                config.image = Self.magnifierWithChevron(symbol: engine == .answers ? "sparkle.magnifyingglass" : "magnifyingglass")
             }
             self.configuration = config
             accessibilityLabel = "Search With"
             accessibilityValue = engine.title
-            accessibilityHint = "Choose whether to search with Reddit, Google or Kagi."
+            accessibilityHint = "Choose whether to search with Reddit, Google, Kagi or Reddit Answers."
             accessibilityIdentifier = "search.engine"
             showsMenuAsPrimaryAction = true
             menu = UIMenu(title: "Search With", children: SearchEngine.allCases.map { option in
@@ -86,6 +87,7 @@ struct SearchEngineMagnifier: UIViewRepresentable {
                 case .reddit: symbol = "magnifyingglass"
                 case .google: symbol = "g.circle"
                 case .kagi: symbol = "k.circle"
+                case .answers: symbol = "sparkles"
                 }
                 let action = UIAction(title: option.title, image: UIImage(systemName: symbol)) { _ in
                     onPick(option)
@@ -97,8 +99,8 @@ struct SearchEngineMagnifier: UIViewRepresentable {
             sizeToFit()
         }
 
-        private static func magnifierWithChevron() -> UIImage? {
-            let glass = UIImage(systemName: "magnifyingglass", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium))
+        private static func magnifierWithChevron(symbol: String) -> UIImage? {
+            let glass = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium))
             let chevron = UIImage(systemName: "chevron.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 8, weight: .bold))
             guard let glass, let chevron else { return glass }
             let size = CGSize(width: glass.size.width + 3 + chevron.size.width, height: max(glass.size.height, chevron.size.height))

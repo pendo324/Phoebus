@@ -2,32 +2,38 @@ import Foundation
 
 /// The Search tab's engine, picked from the search field's magnifier and
 /// remembered, with no setting (Reborn #1260, `UDKeySearchEngine`:
-/// 0 = Reddit, Apollo's own search; 1 = Google; 2 = Kagi, Reborn #1305).
+/// 0 = Reddit, Apollo's own search; 1 = Google; 2 = Kagi, Reborn #1305;
+/// 3 = Reddit Answers, Phoebus-only).
 public enum SearchEngine: Int, Sendable, CaseIterable {
     case reddit = 0
     case google = 1
     case kagi = 2
+    case answers = 3
 
     public static let key = "SearchEngine"
 
     /// Kagi reads back as Reddit while no Session Link is saved (removed in
-    /// Settings, or a restore without it).
+    /// Settings, or a restore without it); Reddit Answers while the active
+    /// account has no reddit.com web session.
     public static var current: SearchEngine {
         get {
             let stored = SearchEngine(rawValue: UserDefaults.standard.integer(forKey: key)) ?? .reddit
-            return stored == .kagi && !KagiSession.hasToken ? .reddit : stored
+            if stored == .kagi && !KagiSession.hasToken { return .reddit }
+            if stored == .answers && !RedditAnswers.hasWebSession { return .reddit }
+            return stored
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
     }
 
     /// Google and Kagi: the engines whose results the Search tab lists itself.
-    public var isExternal: Bool { self != .reddit }
+    public var isExternal: Bool { self == .google || self == .kagi }
 
     public var title: String {
         switch self {
         case .reddit: return "Reddit"
         case .google: return "Google"
         case .kagi: return "Kagi"
+        case .answers: return "Reddit Answers"
         }
     }
 
@@ -38,18 +44,26 @@ public enum SearchEngine: Int, Sendable, CaseIterable {
         case .reddit: return "Posts, subreddits and users"
         case .google: return "Reddit threads, found with Google"
         case .kagi: return KagiSession.hasToken ? "Reddit threads, found with Kagi" : "Needs your Session Link"
+        case .answers: return RedditAnswers.hasWebSession ? "Ask a question, answered from Reddit" : "Needs a reddit.com sign-in"
         }
     }
 
-    /// The search field's prompt in an external mode; nil for Reddit.
-    public var placeholder: String? { isExternal ? "Search Reddit with \(title)" : nil }
+    /// The search field's prompt in a non-Reddit mode; nil for Reddit.
+    public var placeholder: String? {
+        switch self {
+        case .reddit: return nil
+        case .google, .kagi: return "Search Reddit with \(title)"
+        case .answers: return "Ask Reddit Answers"
+        }
+    }
 
-    /// The engine's autocomplete endpoint; nil for Reddit.
+    /// The engine's autocomplete endpoint; nil for Reddit and Reddit Answers.
     public func suggestionsURL(for query: String) -> URL? {
         switch self {
         case .reddit: return nil
         case .google: return GoogleSearch.suggestionsURL(for: query)
         case .kagi: return KagiSearch.suggestionsURL(for: query)
+        case .answers: return nil
         }
     }
 }

@@ -1,0 +1,8 @@
+id: 1
+event: userQuota
+data: {"queriesRemaining":0,"timeUntilResetSeconds":125}
+
+id: 2
+event: error
+data: {"code":"QUOTA_EXCEEDED","message":"Daily limit reached"}
+

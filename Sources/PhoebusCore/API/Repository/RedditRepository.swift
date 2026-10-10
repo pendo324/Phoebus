@@ -778,6 +778,26 @@ public actor RedditRepository {
         return GoogleSearchRedditInfo.parse(data, for: results)
     }
 
+    /// The web session Reddit Answers mints its token with.
+    public func answersWebSession() async -> WebSessionCredential? {
+        await webFeatureSession()
+    }
+
+    /// The posts, comments and communities an answer cites, read from
+    /// `/api/info` in batches of 100, keyed by fullname. A failed batch leaves
+    /// its ids out.
+    public func fetchAnswerSources(ids: [String]) async -> [String: RedditAnswerSourceInfo] {
+        var unique: [String] = []
+        for id in ids where !unique.contains(id) { unique.append(id) }
+        var result: [String: RedditAnswerSourceInfo] = [:]
+        for start in stride(from: 0, to: unique.count, by: 100) {
+            let batch = unique[start..<min(start + 100, unique.count)]
+            guard let data = try? await client.get(path: "/api/info", parameters: ["id": batch.joined(separator: ",")]) else { continue }
+            result.merge(RedditAnswerSourceInfo.parse(data)) { _, new in new }
+        }
+        return result
+    }
+
     /// The bodies of the given comments (`t1_` fullnames), for the inbox's
     /// “replied to your comment” quote. Missing ones are left out.
     public func fetchCommentBodies(fullnames: [String]) async -> [String: String] {

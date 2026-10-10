@@ -203,7 +203,7 @@ import PhoebusCore
         UserDefaults.standard.removeObject(forKey: SearchEngine.key)
 
         check("kagi: Kagi is the third engine, external, with its own title and field prompt",
-              SearchEngine.allCases == [.reddit, .google, .kagi] && SearchEngine.kagi.rawValue == 2
+              SearchEngine.allCases == [.reddit, .google, .kagi, .answers] && SearchEngine.kagi.rawValue == 2
                 && SearchEngine.kagi.isExternal && SearchEngine.google.isExternal && !SearchEngine.reddit.isExternal
                 && SearchEngine.kagi.title == "Kagi" && SearchEngine.kagi.placeholder == "Search Reddit with Kagi"
                 && SearchEngine.google.placeholder == "Search Reddit with Google" && SearchEngine.reddit.placeholder == nil)

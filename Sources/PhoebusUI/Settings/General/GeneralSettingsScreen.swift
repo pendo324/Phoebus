@@ -374,7 +374,7 @@ enum CacheClearing {
     static func clearAppCache() async {
         URLCache.shared.removeAllCachedResponses()
         await ImageCache.shared.removeAll()
-        await DownsampleCache.shared.removeAll()
+        DecodedImageCache.shared.removeAll()
         await AvatarCache.shared.clear()
         await LinkPreviewCache.shared.clear()
         let temp = FileManager.default.temporaryDirectory

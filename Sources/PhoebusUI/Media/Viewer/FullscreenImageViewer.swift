@@ -70,10 +70,10 @@ public struct FullscreenImageViewer: View {
         if liveTextEnabled, #available(iOS 16.0, *) {
             LiveTextImageView(url: url)
         } else {
-            CachedAsyncImage(url: url)
+            CachedAsyncImage(url: url, downsampleTarget: .none)
         }
         #else
-        CachedAsyncImage(url: url)
+        CachedAsyncImage(url: url, downsampleTarget: .none)
         #endif
     }
 

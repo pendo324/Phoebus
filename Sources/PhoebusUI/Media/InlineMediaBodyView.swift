@@ -169,7 +169,14 @@ private struct InlineImageView: View {
     @State private var failed = false
     @State private var showingFullscreen = false
 
+    /// This view's image, or one decoded earlier for this URL, so a comment
+    /// scrolled back into view draws it on its first frame.
+    private var shownImage: PlatformImage? {
+        image ?? DecodedImageCache.shared.image(for: ImgurClient.proxiedImageURL(for: url), target: .screenWidth)
+    }
+
     var body: some View {
+        let image = shownImage
         let ratio = image.map { $0.aspectRatio } ?? InlineMediaRatioCache.ratio(for: url) ?? 9.0 / 16.0
         InlineMediaBoxLayout(ratio: ratio, size: settings.size, alignment: settings.alignment) {
             Group {
@@ -189,12 +196,14 @@ private struct InlineImageView: View {
     }
 
     private func load() async {
-        guard image == nil else { return }
+        guard shownImage == nil else { return }
         guard let bytes = await MediaBytes.data(for: url) else {
             if !Task.isCancelled { failed = true }
             return
         }
-        guard let decoded = PlatformImage(data: bytes) else {
+        guard let decoded = await PlatformImage.displayReady(
+            bytes, for: ImgurClient.proxiedImageURL(for: url), target: .screenWidth,
+            screenPixelWidth: CachedAsyncImage.screenPixelWidth) else {
             failed = true
             return
         }

@@ -330,41 +330,16 @@ public struct FeedScreen: View {
                     .accessibilityIdentifier("feed.pageEnding.\(post.id)")
                 }
             }
-            // Footer spinner while the next page loads, so the feed visibly
-            // continues.
-            if isLoadingMore {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
-                .accessibilityIdentifier("feed.loadingMore")
-            }
-            // The manual continuation Apollo shows when Infinite
-            // Scrolling is off. See
-            // `FeedPaginationPolicy.shouldOfferManualNextPage`.
-            if FeedPaginationPolicy.shouldOfferManualNextPage(
-                infiniteScrollingEnabled: generalSettings.infiniteScrollingEnabled,
-                reachedEnd: reachedEnd,
-                isLoadingMore: isLoadingMore,
-                isLoading: isLoading,
-                loadedCount: posts.count
-            ) {
-                Button {
+            // The next-page spinner, or Apollo's manual "Load Page" when
+            // Infinite Scrolling is off. Its own view, watching only the
+            // paging state, so a page starting to load doesn't redraw the feed.
+            // Present while another page can come, so the spinner has a row.
+            if !reachedEnd, !posts.isEmpty, !isLoading {
+                FeedPagingFooter(paging: listing.paging,
+                                 infiniteScrollingEnabled: generalSettings.infiniteScrollingEnabled,
+                                 reachedEnd: reachedEnd, isLoading: isLoading, loadedCount: posts.count) {
                     Task { await loadMore() }
-                } label: {
-                    HStack(spacing: 6) {
-                        Spacer()
-                        Text("Load Page \(FeedPaginationPolicy.nextPageNumber(loadedCount: posts.count))")
-                        Image(systemName: "chevron.down")
-                        Spacer()
-                    }
-                    .font(.subheadline.weight(.medium))
                 }
-                .disabled(isLoadingMore)
-                .accessibilityHint("Double tap to load next page")
-                .accessibilityIdentifier("feed.loadNextPage")
                 .listRowSeparator(.hidden)
             }
             // End-of-feed cell (see `ReachedEndCopy`). Rendered when
@@ -786,6 +761,7 @@ public struct FeedScreen: View {
             onTranslateTap: { translateTarget = post },
             moreMenu: { AnyView(postContextMenu(for: post)) }
         )
+        .equatable()
         .contentShape(Rectangle())
         .onTapGesture {
             // Releasing the info-row magnifier isn't a tap on the row.
@@ -1026,5 +1002,48 @@ private struct FeedBackButton: View {
         }
         .accessibilityLabel("Subreddits")
         .accessibilityIdentifier("feed.backToSubreddits")
+    }
+}
+
+/// `FeedScreen`'s last row: the spinner while the next page loads, or the
+/// manual continuation Apollo shows when Infinite Scrolling is off. See
+/// `FeedPaginationPolicy.shouldOfferManualNextPage`.
+private struct FeedPagingFooter: View {
+    @ObservedObject var paging: FeedPagingState
+    let infiniteScrollingEnabled: Bool
+    let reachedEnd: Bool
+    let isLoading: Bool
+    let loadedCount: Int
+    let loadMore: () -> Void
+
+    var body: some View {
+        if paging.isLoadingMore {
+            HStack {
+                Spacer()
+                ProgressView()
+                Spacer()
+            }
+            .accessibilityIdentifier("feed.loadingMore")
+        } else if FeedPaginationPolicy.shouldOfferManualNextPage(
+            infiniteScrollingEnabled: infiniteScrollingEnabled,
+            reachedEnd: reachedEnd,
+            isLoadingMore: paging.isLoadingMore,
+            isLoading: isLoading,
+            loadedCount: loadedCount
+        ) {
+            Button(action: loadMore) {
+                HStack(spacing: 6) {
+                    Spacer()
+                    Text("Load Page \(FeedPaginationPolicy.nextPageNumber(loadedCount: loadedCount))")
+                    Image(systemName: "chevron.down")
+                    Spacer()
+                }
+                .font(.subheadline.weight(.medium))
+            }
+            .accessibilityHint("Double tap to load next page")
+            .accessibilityIdentifier("feed.loadNextPage")
+        } else {
+            Color.clear
+        }
     }
 }

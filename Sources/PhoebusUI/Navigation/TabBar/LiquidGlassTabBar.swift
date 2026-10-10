@@ -70,7 +70,6 @@ public struct LiquidGlassTabBar: View {
     /// this pill rather than stacking above it. See
     /// `GlassSearchCoordinator`.
     @StateObject private var search = GlassSearchCoordinator()
-    @StateObject private var scrollPolicy = TabBarScrollPolicy()
 
     public var body: some View {
         // A real system tab bar: iOS 26's `tabBarMinimizeBehavior` gives
@@ -103,40 +102,30 @@ public struct LiquidGlassTabBar: View {
     @ViewBuilder
     private var nativeTabView: some View {
         if #available(iOS 26.0, *) {
-            TabView(selection: selectionProxy) {
-                // Written out one `Tab` per tab, not `ForEach(tabs)`:
-                // `TabView`'s builder resolves `Tab` declarations statically,
-                // and a `ForEach` installs a `UITabBar` with no item views.
-                // `SwiftUI.Tab` is spelled out fully since it is not a `View`
-                // and this type's own nested `Tab` shadows it.
-                SwiftUI.Tab(value: tabs[0].id) { tabs[0].content() }
-                    label: { tabLabel(for: tabs[0]) }
-                    .badge(tabs[0].badge.map { Text($0) })
-                SwiftUI.Tab(value: tabs[1].id) { tabs[1].content() }
-                    label: { tabLabel(for: tabs[1]) }
-                    .badge(tabs[1].badge.map { Text($0) })
-                SwiftUI.Tab(value: tabs[2].id) { tabs[2].content() }
-                    label: { tabLabel(for: tabs[2]) }
-                    .badge(tabs[2].badge.map { Text($0) })
-                SwiftUI.Tab(value: tabs[3].id) { tabs[3].content() }
-                    label: { tabLabel(for: tabs[3]) }
-                    .badge(tabs[3].badge.map { Text($0) })
-                SwiftUI.Tab(value: tabs[4].id) { tabs[4].content() }
-                    label: { tabLabel(for: tabs[4]) }
-                    .badge(tabs[4].badge.map { Text($0) })
+            TabBarScrollHost(hideBarsOnScroll: hideBarsOnScroll, classic: classicScrollBehavior, hideStyle: hideStyle) {
+                TabView(selection: selectionProxy) {
+                    // Written out one `Tab` per tab, not `ForEach(tabs)`:
+                    // `TabView`'s builder resolves `Tab` declarations statically,
+                    // and a `ForEach` installs a `UITabBar` with no item views.
+                    // `SwiftUI.Tab` is spelled out fully since it is not a `View`
+                    // and this type's own nested `Tab` shadows it.
+                    SwiftUI.Tab(value: tabs[0].id) { tabs[0].content() }
+                        label: { tabLabel(for: tabs[0]) }
+                        .badge(tabs[0].badge.map { Text($0) })
+                    SwiftUI.Tab(value: tabs[1].id) { tabs[1].content() }
+                        label: { tabLabel(for: tabs[1]) }
+                        .badge(tabs[1].badge.map { Text($0) })
+                    SwiftUI.Tab(value: tabs[2].id) { tabs[2].content() }
+                        label: { tabLabel(for: tabs[2]) }
+                        .badge(tabs[2].badge.map { Text($0) })
+                    SwiftUI.Tab(value: tabs[3].id) { tabs[3].content() }
+                        label: { tabLabel(for: tabs[3]) }
+                        .badge(tabs[3].badge.map { Text($0) })
+                    SwiftUI.Tab(value: tabs[4].id) { tabs[4].content() }
+                        label: { tabLabel(for: tabs[4]) }
+                        .badge(tabs[4].badge.map { Text($0) })
+                }
             }
-            // UIKit's own minimize-on-scroll, matching Apollo's
-            // default. `.onScrollDown`; `.never` when Hide Bars on
-            // Scroll is off. Left/Right use UIKit's own minimize;
-            // Fade/Down keep it off and animate the whole bar instead.
-            .tabBarMinimizeBehavior(hideBarsOnScroll && hideStyle <= 1 && !scrollPolicy.holdExpanded
-                                    ? .onScrollDown : .never)
-            .onAppear { scrollPolicy.classic = classicScrollBehavior }
-            // Turned off while collapsed: bring everything back now.
-            .onChange(of: hideBarsOnScroll) { _, on in
-                if !on { NotificationCenter.default.post(name: .apolloBarsShouldShow, object: nil) }
-            }
-            .onChange(of: classicScrollBehavior) { _, classic in scrollPolicy.classic = classic }
             .background(TabBarHideStyleProbe(style: hideBarsOnScroll ? hideStyle : 0)
                 .frame(width: 0, height: 0))
         } else {
@@ -175,6 +164,41 @@ public struct LiquidGlassTabBar: View {
 }
 
 
+
+/// Owns the tab bar's scroll policy. A `holdExpanded` flip, once or twice a
+/// gesture, then redraws only this wrapper and the minimize behavior: its
+/// content is built by the parent, so no tab's screens are evaluated again.
+@available(iOS 26.0, *)
+private struct TabBarScrollHost<Content: View>: View {
+    let hideBarsOnScroll: Bool
+    let classic: Bool
+    let hideStyle: Int
+    let content: Content
+    @StateObject private var policy = TabBarScrollPolicy()
+
+    init(hideBarsOnScroll: Bool, classic: Bool, hideStyle: Int, @ViewBuilder content: () -> Content) {
+        self.hideBarsOnScroll = hideBarsOnScroll
+        self.classic = classic
+        self.hideStyle = hideStyle
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            // UIKit's own minimize-on-scroll, matching Apollo's
+            // default. `.onScrollDown`; `.never` when Hide Bars on
+            // Scroll is off. Left/Right use UIKit's own minimize;
+            // Fade/Down keep it off and animate the whole bar instead.
+            .tabBarMinimizeBehavior(hideBarsOnScroll && hideStyle <= 1 && !policy.holdExpanded
+                                    ? .onScrollDown : .never)
+            .onAppear { policy.classic = classic }
+            // Turned off while collapsed: bring everything back now.
+            .onChange(of: hideBarsOnScroll) { _, on in
+                if !on { NotificationCenter.default.post(name: .apolloBarsShouldShow, object: nil) }
+            }
+            .onChange(of: classic) { _, classic in policy.classic = classic }
+    }
+}
 
 /// Re-fires `.onAppear` for a tab whose content is kept alive but
 /// hidden (see the call site). SwiftUI only sends `onAppear` when a

@@ -78,20 +78,14 @@ public enum ReadPostStore {
     public static func saveSettings(_ settings: MarkReadSettings) { settingsStorage.save(settings) }
 
     public static func isRead(_ fullname: String) -> Bool {
-        readIDs().contains(fullname)
+        readIDs.contains(fullname)
     }
 
     public static func markRead(_ fullname: String) {
         guard loadSettings().markReadOnOpen else { return }
-        var ids = readIDs()
-        ids.insert(fullname)
-        // Trim oldest-inserted entries once over the cap. Sets have no insertion
-        // order, so this approximates by total count rather than true LRU, which
-        // is acceptable for a local read-tracking cache.
-        if ids.count > maxTracked {
-            ids = Set(ids.sorted().suffix(maxTracked))
+        if readIDs.insert(fullname, cap: maxTracked) {
+            UserDefaults.standard.set(readIDs.ordered, forKey: readIDsKey)
         }
-        UserDefaults.standard.set(Array(ids), forKey: readIDsKey)
         NotificationCenter.default.post(name: .apolloReadPostsChanged, object: fullname)
     }
 
@@ -100,21 +94,21 @@ public enum ReadPostStore {
     /// "mark read on open" setting: it restores history, it does not
     /// record a new read.
     public static func importRead(_ fullnames: [String]) {
-        var ids = readIDs()
-        ids.formUnion(fullnames)
-        if ids.count > maxTracked {
-            ids = Set(ids.sorted().suffix(maxTracked))
-        }
-        UserDefaults.standard.set(Array(ids), forKey: readIDsKey)
+        var changed = false
+        for fullname in fullnames where readIDs.insert(fullname, cap: maxTracked) { changed = true }
+        if changed { UserDefaults.standard.set(readIDs.ordered, forKey: readIDsKey) }
     }
 
     public static func clearAll() {
+        readIDs.reset()
         UserDefaults.standard.removeObject(forKey: readIDsKey)
     }
 
-    private static func readIDs() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: readIDsKey) ?? [])
-    }
+    /// Only this store writes the key, so it is read from defaults once.
+    /// Rows ask on every appearance, and Mark Read on Scroll writes every
+    /// time a row leaves the top: rebuilding a set of thousands each time
+    /// stalled the scroll.
+    private static let readIDs = ReadIDs { UserDefaults.standard.stringArray(forKey: readIDsKey) ?? [] }
 
     /// Applies hide-read filtering to a listing.
     ///
@@ -142,7 +136,58 @@ public enum ReadPostStore {
     /// The read posts among `posts`, which the Hide Read button and
     /// Auto Hide hide.
     public static func readPosts(in posts: [RedditPost]) -> [RedditPost] {
-        let ids = readIDs()
-        return posts.filter { ids.contains($0.name) }
+        posts.filter { readIDs.contains($0.name) }
+    }
+}
+
+/// The read fullnames, oldest first, so the cap drops the oldest.
+private final class ReadIDs: @unchecked Sendable {
+    private let lock = NSLock()
+    private let load: @Sendable () -> [String]
+    private var isLoaded = false
+    private var list: [String] = []
+    private var set: Set<String> = []
+
+    init(load: @escaping @Sendable () -> [String]) {
+        self.load = load
+    }
+
+    var ordered: [String] {
+        lock.lock(); defer { lock.unlock() }
+        loadIfNeeded()
+        return list
+    }
+
+    func contains(_ fullname: String) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        loadIfNeeded()
+        return set.contains(fullname)
+    }
+
+    /// False when it was already there.
+    func insert(_ fullname: String, cap: Int) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        loadIfNeeded()
+        guard set.insert(fullname).inserted else { return false }
+        list.append(fullname)
+        if list.count > cap {
+            let dropped = list.count - cap
+            set.subtract(list.prefix(dropped))
+            list.removeFirst(dropped)
+        }
+        return true
+    }
+
+    func reset() {
+        lock.lock(); defer { lock.unlock() }
+        isLoaded = true
+        list = []
+        set = []
+    }
+
+    private func loadIfNeeded() {
+        guard !isLoaded else { return }
+        isLoaded = true
+        list = load().filter { set.insert($0).inserted }
     }
 }

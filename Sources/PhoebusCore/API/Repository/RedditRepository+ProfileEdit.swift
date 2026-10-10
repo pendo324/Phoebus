@@ -73,4 +73,21 @@ extension RedditRepository {
     public func removeProfileSocialLinks(ids: [String]) async throws -> [ProfileSocialLink] {
         try await ProfileSocialLinksService.remove(ids: ids, session: socialLinksSession())
     }
+
+    // MARK: Profile Visibility
+
+    private func visibilitySession() async throws -> WebSessionCredential {
+        guard let session = await webFeatureSession() else { throw ProfileVisibilityError.requiresWebSession }
+        return session
+    }
+
+    /// Sends what the profile shows: the whole set, as reddit.com does.
+    public func saveProfilePrivacy(_ input: ProfileVisibility.PrivacyInput) async throws {
+        try await ProfileVisibilityService.save(input, session: visibilitySession())
+    }
+
+    /// Sends whether your follower count shows on your profile.
+    public func saveProfileFollowerCount(shown: Bool) async throws {
+        try await ProfileVisibilityService.saveFollowerCount(shown: shown, session: visibilitySession())
+    }
 }

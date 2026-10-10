@@ -1535,6 +1535,8 @@ try await checkNativeEditProfile()
 
 try await checkNativeEditProfileSocialLinks()
 
+try await checkProfileVisibility()
+
 try await checkProfileAvatarWebPage()
 
 // Last: it prints the pass/fail verdict and exits.

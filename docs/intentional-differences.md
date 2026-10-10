@@ -144,6 +144,17 @@ Apollo or Reborn, add an entry here.
   `site_admin` answers HTTP 500 to a longer title. "Allow People to Follow
   You" is the account preference `enable_followers` (`/api/v1/me/prefs`),
   because `site_admin` accepts but ignores `accept_followers`.
+- **Profile Visibility is edited in Edit Profile.** Reborn has nothing for
+  it (the website's "Curate your profile" is reached through Edit
+  Profile's web page). Phoebus stages "Content and activity" (Show all,
+  Customize with a choice of the communities you are active in, Hide all),
+  NSFW and Followers in Edit Profile and applies them on Save. They go
+  through reddit.com's web GraphQL (`UpdateProfilePrivacyPreferencesV2`,
+  and `UpdateAccountPreferences` for the follower count) and are read from
+  the settings page, so they need the same web sign-in as social links;
+  without one the section offers it. The mutation's `isShowTopSubreddits`
+  is always sent true, as the website does: its separate "communities
+  shown" switch is not on the page any more.
 - **The avatar is changed on reddit.com, signed in.** The Avatar row opens
   reddit.com's profile settings (where a photo or Reddit's avatar builder
   can be chosen) instead of uploading a photo natively. The page is an

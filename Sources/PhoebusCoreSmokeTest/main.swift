@@ -810,6 +810,8 @@ try await checkRecentlyVisited()
 
 checkCrosspostSuggestions()
 
+try await checkQuarantineOptIn()
+
 try await checkOpenInAppDedicatedAppLink()
 
 try await checkThemeGalleryTokenCompilerApolloReborn()

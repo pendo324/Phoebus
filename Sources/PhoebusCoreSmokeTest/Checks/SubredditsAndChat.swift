@@ -908,3 +908,42 @@ import PhoebusCore
     check("an unedited message looks up only its own id",
           chatEdited.first { $0.id == "$keep" }?.reactionEventIDs == ["$keep"])
 }
+
+// MARK: - Quarantine opt-in
+//
+// A quarantined subreddit's 403 carries Reddit's own warning; opting in goes
+// through `/api/quarantine_option`.
+@MainActor func checkQuarantineOptIn() async throws {
+    let body = """
+    {"reason": "quarantined", "quarantine_message": "This community is quarantined. &gt; Read [the policy](https://www.reddit.com/r/help) first.", "message": "Forbidden", "error": 403}
+    """
+    let notice = QuarantineNotice(error: RedditAPIError.httpError(status: 403, body: body))
+    check("A quarantined 403 is recognised", notice != nil)
+    check("...and carries Reddit's warning with its entities unescaped",
+          notice?.message == "This community is quarantined. > Read [the policy](https://www.reddit.com/r/help) first.")
+    check("A quarantined 403 without a warning still counts, with no message",
+          QuarantineNotice(status: 403, body: #"{"reason": "quarantined"}"#) == QuarantineNotice(message: nil))
+    check("A blank warning reads as none",
+          QuarantineNotice(status: 403, body: #"{"reason": "quarantined", "quarantine_message": "  "}"#)?.message == nil)
+    check("A private subreddit's 403 isn't a quarantine",
+          QuarantineNotice(status: 403, body: #"{"reason": "private", "message": "Forbidden"}"#) == nil)
+    check("Nor is an HTML 403 page",
+          QuarantineNotice(status: 403, body: "<body>quarantined</body>") == nil)
+    check("Nor a non-403 status",
+          QuarantineNotice(status: 404, body: #"{"reason": "quarantined"}"#) == nil)
+    check("Nor a non-HTTP error", QuarantineNotice(error: RedditAPIError.notAuthenticated) == nil)
+
+    check("Opting in posts accept=true with the subreddit's name",
+          QuarantineNotice.optionParameters(subreddit: "SomeSub", accept: true)
+            == ["accept": "true", "sr_name": "SomeSub"])
+    check("Opting out posts accept=false",
+          QuarantineNotice.optionParameters(subreddit: "SomeSub", accept: false)["accept"] == "false")
+
+    let about = #"{"name": "t5_abc", "display_name": "SomeSub", "title": "Some", "quarantine": true}"#
+    let sub = try JSONDecoder.reddit.decode(RedditSubreddit.self, from: Data(about.utf8))
+    check("RedditSubreddit decodes Reddit's quarantine flag", sub.quarantine == true)
+    let round = try JSONDecoder.reddit.decode(RedditSubreddit.self, from: JSONEncoder().encode(sub))
+    check("...and keeps it through the disk cache's round trip", round.quarantine == true)
+    let plain = try JSONDecoder.reddit.decode(RedditSubreddit.self, from: Data(#"{"name": "t5_x", "display_name": "x", "title": "x"}"#.utf8))
+    check("...and leaves it nil when absent", plain.quarantine == nil)
+}

@@ -331,6 +331,13 @@ public actor RedditRepository {
         await Self.announce(SubscriptionChange(name: subredditName, subscribed: subscribe))
     }
 
+    /// Opts the account in to (or back out of) a quarantined subreddit; see
+    /// `QuarantineNotice`.
+    public func setQuarantineOptIn(subredditName: String, optIn: Bool) async throws {
+        try await client.post(path: "/api/quarantine_option",
+                              parameters: QuarantineNotice.optionParameters(subreddit: subredditName, accept: optIn))
+    }
+
     @discardableResult
     public func submitComment(parentFullname: String, text: String) async throws -> Data {
         let data = try await client.post(path: "/api/comment", parameters: [

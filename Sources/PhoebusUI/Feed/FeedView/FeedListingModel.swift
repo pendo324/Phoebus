@@ -43,6 +43,8 @@ final class FeedListingModel: ObservableObject {
     /// by `load` so a fresh listing carries no stale boundaries.
     @Published var pageBoundaryPostIDs: Set<String> = []
     @Published var errorMessage: String?
+    /// Set when the failure was a quarantined subreddit, for "View Anyway".
+    @Published var quarantine: QuarantineNotice?
 
     private var generation = 0
     /// Posts the user just submitted here, which a reload puts back while
@@ -60,6 +62,7 @@ final class FeedListingModel: ObservableObject {
         let current = generation
         // A failure shown from an earlier attempt goes as this one starts.
         errorMessage = nil
+        quarantine = nil
         isLoading = true
         // A stale `after` from a previous sort/listing must not carry over.
         afterToken = nil
@@ -80,6 +83,7 @@ final class FeedListingModel: ObservableObject {
         } catch {
             guard current == generation else { return }
             errorMessage = errorText(error)
+            quarantine = QuarantineNotice(error: error)
         }
     }
 

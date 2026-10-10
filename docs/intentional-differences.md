@@ -71,6 +71,13 @@ Apollo or Reborn, add an entry here.
   signed-in only) list below it, de-duplicated and without the source
   subreddit or user profiles; tapping one fills the field. The Reddit
   list is fetched once per launch and is simply absent if it fails.
+- **A quarantined subreddit can be opted in to.** Under Apollo's
+  "quarantined" message, Phoebus shows Reddit's own warning and, when
+  signed in, a "View Anyway" button that opts the account in after a
+  confirmation and reloads the feed or thread. Once opted in, the
+  subreddit's ••• menu has "Leave Quarantine" to opt back out. Neither
+  Apollo nor Reborn offers this; it is inspired by Continuum's
+  quarantine opt-in.
 
 ## Media and link previews
 

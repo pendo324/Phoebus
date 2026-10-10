@@ -32,6 +32,8 @@ final class CommentTreeStore: ObservableObject {
     /// served synchronously and must not flash a spinner.
     @Published var isLoadingComments = false
     @Published var errorMessage: String?
+    /// Set when the thread's subreddit is quarantined, for "View Anyway".
+    @Published var quarantine: QuarantineNotice?
     @Published var newCommentIDs: Set<String> = []
     /// Trailing "N more comments" stub at the root level (a sibling of
     /// the top-level comments, not nested under any of them).
@@ -301,6 +303,7 @@ final class CommentTreeStore: ObservableObject {
                 OwnPostChanges.shared.observeCommentCount(fullname: "t3_\(postID)", count: total)
             }
             errorMessage = nil
+            quarantine = nil
             if sort == "live" {
                 liveBaselineIDs = Set(allIDs)
                 liveNewCount = 0
@@ -309,7 +312,9 @@ final class CommentTreeStore: ObservableObject {
                 stopLivePolling()
             }
         } catch {
-            errorMessage = UserFacingError.message(for: error)
+            quarantine = QuarantineNotice(error: error)
+            errorMessage = quarantine == nil ? UserFacingError.message(for: error)
+                : FeedErrorCopy.quarantined(subreddit: subreddit)
         }
     }
 

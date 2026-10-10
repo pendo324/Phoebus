@@ -251,7 +251,14 @@ struct CommentTreeContent: View {
     var body: some View {
         Group {
             if let errorMessage = store.errorMessage {
-                Text(errorMessage).foregroundStyle(.red)
+                Text(errorMessage).foregroundStyle(store.quarantine == nil ? Color.red : Color.secondary)
+            }
+            if let quarantine = store.quarantine {
+                QuarantineOptInView(subreddit: subreddit, notice: quarantine, repository: repository) {
+                    await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository, force: true)
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
             // The comment list's own loading and empty states, drawn as list cells
             // rather than an overlay.

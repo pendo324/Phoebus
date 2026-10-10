@@ -1882,3 +1882,84 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("saved thread positions survive a backup round trip",
           ThreadPositionStore.load(from: restored) == ThreadPositionStore.load(from: defaults))
 }
+
+// --- Resume Where I Left Off (resumeSettings / resumeState) ---
+@MainActor func checkResumeWhereLeftOff() async throws {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let saved = ResumeSnapshot(savedAt: now.addingTimeInterval(-60), account: "Reader", tab: 0,
+                               feed: .subreddit("pics"), sort: "hot", topPostID: "p3",
+                               openPost: .init(id: "p9", subreddit: "pics"))
+    check("resuming is off by default", !ResumeSettings.default.resumeWhereLeftOff)
+    check("a recent snapshot for the same account is restored",
+          ResumePolicy.snapshotToRestore(saved, enabled: true, account: "reader", now: now, openedFromLink: false) == saved)
+    check("nothing is restored while the setting is off",
+          ResumePolicy.snapshotToRestore(saved, enabled: false, account: "Reader", now: now, openedFromLink: false) == nil)
+    check("a link, widget, notification or quick action launch wins over resuming",
+          ResumePolicy.snapshotToRestore(saved, enabled: true, account: "Reader", now: now, openedFromLink: true) == nil)
+    check("another account's snapshot is not restored",
+          ResumePolicy.snapshotToRestore(saved, enabled: true, account: "other", now: now, openedFromLink: false) == nil)
+    check("a signed-out launch restores nothing",
+          ResumePolicy.snapshotToRestore(saved, enabled: true, account: nil, now: now, openedFromLink: false) == nil)
+    var stale = saved
+    stale.savedAt = now.addingTimeInterval(-ResumePolicy.maxAge - 1)
+    check("a snapshot older than a day is not restored",
+          ResumePolicy.snapshotToRestore(stale, enabled: true, account: "Reader", now: now, openedFromLink: false) == nil)
+    var future = saved
+    future.savedAt = now.addingTimeInterval(3600)
+    check("a snapshot from the future (clock change) is not restored",
+          ResumePolicy.snapshotToRestore(future, enabled: true, account: "Reader", now: now, openedFromLink: false) == nil)
+
+    check("a missing post is looked for on the next page",
+          ResumePolicy.shouldLoadMore(toFind: "p3", loadedIDs: ["p1", "p2"], pagesLoaded: 1, reachedEnd: false))
+    check("no more than three pages are fetched looking for it",
+          !ResumePolicy.shouldLoadMore(toFind: "p3", loadedIDs: ["p1", "p2"], pagesLoaded: 3, reachedEnd: false))
+    check("paging stops at the end of the feed",
+          !ResumePolicy.shouldLoadMore(toFind: "p3", loadedIDs: ["p1"], pagesLoaded: 1, reachedEnd: true))
+    check("paging stops once the post is loaded",
+          !ResumePolicy.shouldLoadMore(toFind: "p3", loadedIDs: ["p1", "p3"], pagesLoaded: 1, reachedEnd: false))
+    check("the saved post is scrolled to in the same sort",
+          ResumePolicy.scrollTarget(for: saved, feedSort: "hot", loadedIDs: ["p1", "p2", "p3"]) == "p3")
+    check("a feed reopening under another sort stays at its top",
+          ResumePolicy.scrollTarget(for: saved, feedSort: "new", loadedIDs: ["p1", "p2", "p3"]) == nil)
+    check("a post not loaded is given up on",
+          ResumePolicy.scrollTarget(for: saved, feedSort: "hot", loadedIDs: ["p1", "p2"]) == nil)
+    check("a feed left at its first post needs no scroll",
+          ResumePolicy.scrollTarget(for: saved, feedSort: "hot", loadedIDs: ["p3", "p4"]) == nil)
+    check("Home is the empty subreddit",
+          ResumePolicy.feedDestination(subreddit: "", multiredditPath: nil, multiredditName: nil) == .home)
+    check("r/all, r/popular and r/mod are their pseudo-feeds",
+          ResumePolicy.feedDestination(subreddit: "All", multiredditPath: nil, multiredditName: nil) == .all
+          && ResumePolicy.feedDestination(subreddit: "popular", multiredditPath: nil, multiredditName: nil) == .popular
+          && ResumePolicy.feedDestination(subreddit: "mod", multiredditPath: nil, multiredditName: nil) == .moderator)
+    check("a multireddit is kept by path and name",
+          ResumePolicy.feedDestination(subreddit: "", multiredditPath: "/user/a/m/b", multiredditName: "b")
+            == .multireddit(path: "/user/a/m/b", name: "b"))
+    check("a subreddit keeps its name",
+          ResumePolicy.feedDestination(subreddit: "pics", multiredditPath: nil, multiredditName: nil) == .subreddit("pics"))
+
+    let suite = "phoebus.smoke.resume"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    ResumeStore.record(saved, defaults: defaults)
+    check("nothing is saved while the setting is off", ResumeStore.load(from: defaults) == nil)
+    ResumeSettingsStore.storage.save(ResumeSettings(resumeWhereLeftOff: true), to: defaults)
+    ResumeStore.record(saved, defaults: defaults)
+    check("a saved place reads back", ResumeStore.load(from: defaults) == saved)
+    var later = saved
+    later.savedAt = now
+    ResumeStore.record(later, defaults: defaults)
+    check("an unchanged place is not rewritten by the periodic save", ResumeStore.load(from: defaults)?.savedAt == saved.savedAt)
+    ResumeStore.record(later, force: true, defaults: defaults)
+    check("backgrounding refreshes an unchanged place's age", ResumeStore.load(from: defaults)?.savedAt == now)
+
+    let snapshot = SettingsDomainSnapshot.capture(from: defaults)
+    let decoded = try JSONDecoder().decode([String: JSONValue].self, from: try JSONEncoder().encode(snapshot))
+    let restoreSuite = "phoebus.smoke.resumeRestore"
+    let restored = UserDefaults(suiteName: restoreSuite)!
+    restored.removePersistentDomain(forName: restoreSuite)
+    SettingsDomainSnapshot.restore(decoded, into: restored)
+    check("the setting survives a backup round trip", ResumeSettingsStore.storage.load(from: restored).resumeWhereLeftOff)
+    check("the saved place is left out of backups", ResumeStore.load(from: restored) == nil)
+    ResumeStore.clear(defaults: defaults)
+    check("clearing forgets the saved place", ResumeStore.load(from: defaults) == nil)
+}

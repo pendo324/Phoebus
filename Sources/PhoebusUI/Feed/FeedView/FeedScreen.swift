@@ -123,6 +123,9 @@ public struct FeedScreen: View {
     @State var highlightPosts: [RedditPost] = []
     /// Rows on screen, for Mark Read on Scroll.
     @State var scrollPastTracker = ScrollPastTracker()
+    /// "Resume Where I Left Off", for feeds on the Posts tab.
+    @State var feedResume = FeedResumeContext()
+    @Environment(\.resumeTracksFeeds) var resumeTracksFeeds
     /// Full-mode scrape results, which supplement the REST cards.
     @State var scrapedHighlights: [ScrapedHighlight] = []
     @State var highlightsWebFetch: CommunityHighlightsWebFetch?
@@ -241,8 +244,7 @@ public struct FeedScreen: View {
         }
     }
 
-    @ViewBuilder
-    var feedBody: some View {
+    private var feedList: some View {
         // Apollo's feed is a plain, edge-to-edge list with thin
         // hairline separators, not SwiftUI's default
         // `.insetGrouped`-style List which draws each row in a card.
@@ -338,6 +340,8 @@ public struct FeedScreen: View {
                     // near the end of the loaded page, since a List
                     // only materializes rows actually scrolled into view.
                     .onAppear { loadMoreIfNeeded(currentPost: post) }
+                    .threadRowMarker(post.id, tracker: feedResume.tracker,
+                                     enabled: resumeTracksFeeds && feedResume.tracksRows)
                     // No separator above the first row: a `List` draws
                     // one on both edges of every row, but Apollo's feed
                     // has the first post begin flush under the chrome.
@@ -383,6 +387,15 @@ public struct FeedScreen: View {
                 )
                 .listRowSeparator(.hidden)
             }
+        }
+    }
+
+    @ViewBuilder
+    var feedBody: some View {
+        // The reader is only for "Resume Where I Left Off"'s restore.
+        ScrollViewReader { proxy in
+            feedList
+                .onAppear { feedResume.scrollProxy = proxy }
         }
         .listStyle(.plain)
         // Reserve room for the floating Liquid Glass tab bar so the
@@ -763,6 +776,14 @@ public struct FeedScreen: View {
                 await loadCommunityHighlights()
             }
             storeSnapshot()
+            // After the header and highlights, which would push it down.
+            await restoreResumedPlace()
+        }
+        .onAppear { registerForResume() }
+        .onDisappear { feedResume.noteTopPost() }
+        .onChange(of: sort) { _, newSort in feedResume.sort = newSort }
+        .onChange(of: selectedPost?.id) { _, _ in
+            feedResume.openPost = selectedPost.map { .init(id: $0.id, subreddit: $0.subreddit) }
         }
         .refreshable {
             async let highlights: Void = loadCommunityHighlights(force: true)

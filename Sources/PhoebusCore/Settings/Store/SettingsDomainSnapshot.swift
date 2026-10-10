@@ -47,6 +47,7 @@ public enum SettingsDomainSnapshot {
         // Where the user happened to be last, restoring which would
         // yank a different device to an unrelated feed.
         "com.pendo324.Phoebus.lastViewedFeedDestination",
+        "com.pendo324.Phoebus.resumeState",
         // Automatic-backup run state: folder permission, install
         // identity and last-run state must not transfer between devices.
         "com.pendo324.Phoebus.automaticBackupLast",

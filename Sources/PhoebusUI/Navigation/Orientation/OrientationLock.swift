@@ -132,6 +132,11 @@ public final class ApolloAppDelegate: NSObject, UIApplicationDelegate {
         if let item = options.shortcutItem, let action = QuickAction.parse(shortcutType: item.type) {
             MainActor.assumeIsolated { QuickActionRouter.shared.pending = action }
         }
+        // A launch with somewhere to go isn't resumed.
+        if !options.urlContexts.isEmpty || !options.userActivities.isEmpty
+            || options.shortcutItem != nil || options.notificationResponse != nil {
+            MainActor.assumeIsolated { ResumeCoordinator.shared.launchedFromLink = true }
+        }
         let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
         config.delegateClass = ApolloSceneDelegate.self
         return config

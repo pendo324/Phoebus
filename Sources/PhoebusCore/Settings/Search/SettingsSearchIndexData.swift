@@ -76,6 +76,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Loop Videos with Audio", breadcrumb: "Settings → General", screen: .general, rowTitle: "Loop Videos with Audio"),
         SettingsSearchEntry(title: "Live Text Analyzer", breadcrumb: "Settings → General", screen: .general, rowTitle: "Live Text Analyzer"),
         SettingsSearchEntry(title: "Unify Modmail in Inbox", breadcrumb: "Settings → General", screen: .general, rowTitle: "Unify Modmail in Inbox"),
+        SettingsSearchEntry(title: "Resume Where I Left Off", breadcrumb: "Settings → General", screen: .general, rowTitle: "Resume Where I Left Off"),
         SettingsSearchEntry(title: "Share old.reddit Links", breadcrumb: "Settings → General", screen: .general, rowTitle: "Share old.reddit Links"),
         SettingsSearchEntry(title: "No Subscribed in All/Popular", breadcrumb: "Settings → General", screen: .general, rowTitle: "No Subscribed in All/Popular"),
         SettingsSearchEntry(title: "Allow Save Categories", breadcrumb: "Settings → General", screen: .general, rowTitle: "Allow Save Categories"),

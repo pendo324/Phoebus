@@ -29,7 +29,8 @@ public enum RedditMarkdown {
     private final class RenderCache: @unchecked Sendable {
         private let lock = NSLock()
         private var entries: [String: AttributedString] = [:]
-        private static let limit = 400
+        /// A large thread's bodies fit, so scrolling back up never re-parses.
+        private static let limit = 3000
 
         func value(for key: String) -> AttributedString? {
             lock.lock(); defer { lock.unlock() }

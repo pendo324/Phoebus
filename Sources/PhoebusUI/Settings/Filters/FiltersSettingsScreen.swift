@@ -22,6 +22,7 @@ public struct FiltersSettingsScreen: View {
     @Setting(PostRuleStore.storage) private var ruleList
     @Setting(BlockedUsersStore.storage) private var blockedStore
     private var blockedCount: Int { _ = blockedStore; return BlockedUsersStore.names().count }
+    @Setting(UserTags.self) private var userTags
 
     public init() {}
 
@@ -30,7 +31,8 @@ public struct FiltersSettingsScreen: View {
             // Three sections with all-caps headers ("FILTERED SUBREDDITS" /
             // "FILTERED KEYWORDS" / "BLOCKED USERS"), each with its own footer.
             // Order: Filtered Keywords (+ "Add Keyword"), Filtered Subreddits
-            // (+ "Add Subreddit"), an untitled "Blocked Users (N) ›", then Reborn's
+            // (+ "Add Subreddit"), an untitled "Blocked Users (N) ›" (Phoebus's
+            // "User Tags ›" follows it), then Reborn's
             // spliced Subreddit-Specific Filters (+ "Add Subreddit...") and Filter
             // Subreddits by Name (+ "Add Word...") sections. Reborn's third
             // appended section, "Tag Filters", also lives here, not in the
@@ -39,6 +41,7 @@ public struct FiltersSettingsScreen: View {
             subredditsSection
             blockedUsersSection
             commentFiltersSection
+            userTagsSection
             AuthorDomainFiltersSection(filters: $filters)
             subredditSpecificSection
             filterByNameSection
@@ -170,6 +173,26 @@ public struct FiltersSettingsScreen: View {
         } footer: {
             Text("Hide or collapse comments by score, words or author.")
                 .apolloSectionFooter()
+        }
+    }
+
+    /// Phoebus-only user tags, next to the other per-user list.
+    private var userTagsSection: some View {
+        Section {
+            SettingsLink {
+                UserTagsSettingsScreen()
+            } label: {
+                HStack {
+                    Text("User Tags")
+                    Spacer()
+                    Text("\(userTags.byUser.count)").foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("filters.userTags")
+            .apolloSearchRow("User Tags", lastBeforeFooter: true)
+        } footer: {
+            Text("Your own labels on users, shown after their names.")
+                    .apolloSectionFooter()
         }
     }
 

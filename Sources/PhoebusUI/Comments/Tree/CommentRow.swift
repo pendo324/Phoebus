@@ -68,6 +68,7 @@ struct CommentRow: View {
     @State private var showingModNotes = false
     @State private var showingTranslator = false
     @State private var showingAward = false
+    @State private var showingTagEditor = false
     @State private var isOwnComment = false
     /// Author-only "Comment Insights" (see the context menu item).
     @State private var showingInsights = false
@@ -141,7 +142,9 @@ struct CommentRow: View {
         if isOwnComment && !isDeleted { ids += ["edit", "delete", "vote-insights"] }
         ids += ["share", "copy-link", "copy-text"]
         if onShareAsImage != nil { ids.append("share-image") }
-        ids += ["copy-username", "translate", "award", "report", "mute-notifications"]
+        ids.append("copy-username")
+        if displayAuthor != "[deleted]" { ids.append("tag-user") }
+        ids += ["translate", "award", "report", "mute-notifications"]
         return ids
     }
 
@@ -196,6 +199,9 @@ struct CommentRow: View {
             Button { PasteboardHelper.copy(node.comment.author) } label: {
                 Label("Copy Username", systemImage: "doc.on.doc")
             }
+        case "tag-user":
+            // Phoebus-only user tags (`UserTags`).
+            UserTagMenuItem(username: displayAuthor) { showingTagEditor = true }
         case "translate":
             Button { showingTranslator = true } label: { Label("Translate", systemImage: "character.bubble") }
         case "award":
@@ -328,6 +334,7 @@ struct CommentRow: View {
                         .contentShape(Rectangle())
                         .onTapGesture(perform: onAuthorTapped)
                         .accessibilityIdentifier("comment.authorLabel.\(node.id)")
+                    UserTagPill(username: displayAuthor)
                     }
                     // "OP" badge next to the post's own author's comments.
                     if node.comment.isSubmitter == true {
@@ -600,6 +607,7 @@ struct CommentRow: View {
                 showingAward = false
             }
         }
+        .userTagEditor(isPresented: $showingTagEditor, username: displayAuthor)
         .task { await checkOwnership() }
         // The row keeps its identity across refreshes, so its local copies
         // follow the comment when a newer version arrives (edit, live update,

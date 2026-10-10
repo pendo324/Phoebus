@@ -187,6 +187,11 @@ extension FeedScreen {
             } label: {
                 Label("Copy Username", systemImage: "doc.on.doc")
             }
+            // Phoebus-only user tags (`UserTags`).
+            if post.author != "[deleted]" {
+                UserTagMenuItem(username: post.author) { tagTarget = UserTagTarget(username: post.author) }
+                    .accessibilityIdentifier("feed.postMenu.tagUser")
+            }
         case "report":
             Button(role: .destructive) { reportTarget = post } label: { Label("Report", systemImage: "flag") }
         case "mod-approve":

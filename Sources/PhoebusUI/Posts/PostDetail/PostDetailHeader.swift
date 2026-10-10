@@ -64,6 +64,7 @@ struct PostDetailHeader: View {
     @State private var editedText: String
     @State private var isOwnPost = false
     @State private var isDeleted = false
+    @State private var showingTagEditor = false
     /// The body as last saved from the editor, shown until the post
     /// is reloaded (the post passed in still has the old text).
     @State private var savedEdit: String?
@@ -109,6 +110,7 @@ struct PostDetailHeader: View {
                 .padding(.top, mediaLeads ? 12 : 19)
                 .padding(.bottom, 12.7)
         }
+        .userTagEditor(isPresented: $showingTagEditor, username: post.author)
         .task { await checkOwnership() }
     }
 
@@ -276,7 +278,11 @@ struct PostDetailHeader: View {
                     } label: {
                         Label("Copy Username", systemImage: "doc.on.doc")
                     }
+                    if post.author != "[deleted]" {
+                        UserTagMenuItem(username: post.author) { showingTagEditor = true }
+                    }
                 }
+                UserTagPill(username: post.author)
                 // "User Flair" toggle (Settings > Appearance > Flair).
                 if general.showUserFlair, let authorFlair = post.authorFlairText, !authorFlair.isEmpty {
                     // One line: a long flair truncates rather than

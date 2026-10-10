@@ -196,6 +196,16 @@ Apollo or Reborn, add an entry here.
   parents) are never filtered, score bounds ignore hidden
   scores and pinned comments, negative bounds work, and a collapsed
   comment says why it was filtered.
+- **User tags are a Phoebus addition.** "Tag User…" in a profile's,
+  comment's, feed post's or inbox item's ••• menu and the post header's
+  author menu ("Edit Tag…" once the user has one) puts your
+  own short label (up to 24 characters) and colour on a user, shown as a
+  pill after their name in comments, feed rows, the post header, their
+  profile and the inbox. Settings → Filters & Blocks → User Tags lists,
+  edits and deletes them. Tags stay on the device (never sent to Reddit),
+  match usernames case-insensitively and are included in backups.
+  Neither Apollo nor Reborn has this; it is inspired by Continuum's user
+  tags.
 - **There is no What's New screen, no FLEX debugging and no debug rows
   in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
   setting is not imported from backups.

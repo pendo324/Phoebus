@@ -51,6 +51,7 @@ public struct FeedScreen: View {
     @Setting(SwipeActionStore.storage(for: .posts)) private var swipeSettings
     @Setting(ReadPostStore.settingsStorage) var markReadSettings
     @State var reportTarget: RedditPost?
+    @State var tagTarget: UserTagTarget?
     /// Apollo's row context menu "Crosspost" action, separate from the
     /// one on `PostDetailScreen`'s toolbar, so a post can be
     /// crossposted directly from a feed row.
@@ -682,6 +683,7 @@ public struct FeedScreen: View {
                 }
             }
         }
+        .userTagEditor(target: $tagTarget)
         .sheet(item: $reportTarget) { target in
             ReportSheet(fullname: target.name, repository: repository) {
                 reportTarget = nil

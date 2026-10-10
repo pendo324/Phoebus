@@ -134,6 +134,7 @@ extension PostRow {
                             .contentShape(Rectangle())
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
                             .accessibilityIdentifier("feed.postRow.authorLabel")
+                        UserTagPill(username: post.author)
                     }
 
                     // The author's flair chip goes with the author's name: with Usernames
@@ -229,6 +230,7 @@ extension PostRow {
                 .authorHighlight(postAuthorHighlight)
                 .lineLimit(1)
                 .truncationMode(.tail)
+            UserTagPill(username: post.author)
             if post.authorCakeday == true {
                 Text("🎂").accessibilityLabel("Cake day")
             }

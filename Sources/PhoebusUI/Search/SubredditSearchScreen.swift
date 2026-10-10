@@ -6,6 +6,8 @@ public struct SubredditSearchScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
     @State private var query = ""
     @State private var results: [RedditSubreddit] = []
+    @State private var userResults: [UserSearchResult] = []
+    @State private var showsAllUsers = false
     @State private var errorMessage: String?
     let repository: RedditRepository
     let onSelect: (RedditSubreddit) -> Void
@@ -279,13 +281,18 @@ public struct SubredditSearchScreen: View {
                     }
                 }
             }
-            ForEach(results) { subreddit in
-                Button {
-                    onSelect(subreddit)
-                } label: {
-                    SubredditRow(subreddit: subreddit, repository: repository)
+            // Phoebus addition: matching accounts above the subreddits, both under headers.
+            if !query.isEmpty, !userResults.isEmpty {
+                usersSection
+                if !results.isEmpty {
+                    Section {
+                        subredditRows
+                    } header: {
+                        Text("Subreddits").textCase(.uppercase)
+                    }
                 }
-                .buttonStyle(.plain)
+            } else {
+                subredditRows
             }
         }
         // Not the bottom glass bar: this is the Search tab's root, a discovery landing
@@ -293,9 +300,54 @@ public struct SubredditSearchScreen: View {
         // (`.searchable` on `body`). The Reddit prompt is verbatim.
     }
 
-    /// A Google, Kagi or Reddit Answers entry reruns on its engine; a Reddit
-    /// one pushes its post search.
+    private var subredditRows: some View {
+        ForEach(results) { subreddit in
+            Button {
+                onSelect(subreddit)
+            } label: {
+                SubredditRow(subreddit: subreddit, repository: repository)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// The first few accounts, so subreddits stay in view; "More Users"
+    /// lists the rest.
+    private var usersSection: some View {
+        Section {
+            ForEach(showsAllUsers ? userResults : Array(userResults.prefix(Self.collapsedUserCount))) { user in
+                Button {
+                    openUser(user.name)
+                } label: {
+                    UserSearchRow(user: user)
+                }
+                .buttonStyle(.plain)
+                .disabled(user.isSuspended)
+                .accessibilityIdentifier("search.user.row.\(user.name)")
+            }
+            if !showsAllUsers, userResults.count > Self.collapsedUserCount {
+                Button("More Users") { showsAllUsers = true }
+                    .accessibilityIdentifier("search.users.more")
+            }
+        } header: {
+            Text("Users").textCase(.uppercase)
+        }
+    }
+
+    private static let collapsedUserCount = 3
+
+    private func openUser(_ name: String) {
+        SearchHistoryStore.record(user: name)
+        onOpenTarget(.user(name))
+    }
+
+    /// A Google, Kagi or Reddit Answers entry reruns on its engine, a user
+    /// entry opens the profile, and a Reddit one pushes its post search.
     private func runRecent(_ entry: RecentSearch) {
+        if entry.kind == .user {
+            onOpenTarget(.user(entry.query))
+            return
+        }
         guard entry.searchEngine != .reddit else {
             postSearch = PostSearchRequest(query: entry.query, subreddit: entry.subreddit)
             return
@@ -396,25 +448,40 @@ public struct SubredditSearchScreen: View {
     private func search(_ text: String) async {
         guard !text.isEmpty else {
             results = []
+            userResults = []
             return
         }
         // Debounced, and only the answer for what is still typed lands, so a slow answer
         // for "ap" cannot replace the results for "apple".
         try? await Task.sleep(nanoseconds: 250_000_000)
         guard text == query else { return }
+        async let users = Self.searchUsers(text, repository: repository)
         do {
             let data = try await repository.searchSubreddits(query: text)
             let listing = try await RedditListing.decodedInBackground(from: data)
             let subreddits = await listing.childrenInBackground(RedditSubreddit.self)
-            guard text == query else { return }
-            errorMessage = nil
-            // "Filter Subreddits by Name" covers search too, as in Reborn.
-            let rules = PostFilterStore.load()
-            results = subreddits.filter { !rules.hidesSubredditName($0.displayName) }
+            if text == query {
+                errorMessage = nil
+                // "Filter Subreddits by Name" covers search too, as in Reborn.
+                let rules = PostFilterStore.load()
+                results = subreddits.filter { !rules.hidesSubredditName($0.displayName) }
+            }
         } catch {
-            guard text == query else { return }
-            errorMessage = UserFacingError.message(for: error)
+            if text == query { errorMessage = UserFacingError.message(for: error) }
         }
+        let found = await users
+        guard text == query else { return }
+        if found.map(\.id) != userResults.map(\.id) { showsAllUsers = false }
+        userResults = found
+    }
+
+    /// Best-effort, like trending: a failed user search leaves the
+    /// section out rather than showing a second error. Blocked users
+    /// never appear.
+    private static func searchUsers(_ text: String, repository: RedditRepository) async -> [UserSearchResult] {
+        let name = UserSearch.normalizedQuery(text)
+        guard !name.isEmpty, let found = try? await repository.searchUsers(query: name) else { return [] }
+        return UserSearch.visible(found, blocked: BlockedUsersStore.lowercasedNames())
     }
 }
 
@@ -460,6 +527,39 @@ struct SubredditRow: View {
         } catch {
             isSubscribed = !target
         }
+    }
+}
+
+/// A user-search result: avatar, name, karma and account age. Suspended
+/// accounts are greyed out.
+private struct UserSearchRow: View {
+    let user: UserSearchResult
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Group {
+                if let url = user.iconURL {
+                    CachedAsyncImage(url: url, contentMode: .fill)
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 36, height: 36)
+            .background(Color.gray.opacity(0.15))
+            .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text("u/\(user.name)").font(.headline).lineLimit(1)
+                Text(UserSearch.subtitle(for: user)).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            if !user.isSuspended {
+                ApolloSettingsChevron()
+            }
+        }
+        .opacity(user.isSuspended ? 0.45 : 1)
+        .contentShape(Rectangle())
     }
 }
 

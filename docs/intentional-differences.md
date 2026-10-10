@@ -217,6 +217,12 @@ Apollo or Reborn, add an entry here.
   Apollo or Reborn; it is inspired by Continuum's recent searches. "Save
   Search History" (on) and Clear Search History sit in Subreddits →
   Search.
+- **Search finds users.** While typing on the Search tab, a Users
+  section above the subreddits lists matching accounts (an exact
+  username first) with avatar, karma and account age; tapping one opens
+  the profile and adds it to recent searches. Blocked users are left out
+  and suspended accounts are greyed. Neither Apollo nor Reborn searches
+  accounts; this is inspired by Continuum's user search.
 - **There is no Memechine Learning setting.** Apollo's General > Other
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.

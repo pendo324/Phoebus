@@ -42,8 +42,12 @@ struct RecentSearchesSection: View {
                     Button {
                         onRun(entry)
                     } label: {
-                        SearchHistoryRow(title: entry.query, systemImage: "clock.arrow.circlepath",
-                                         subtitle: entry.searchEngine == .reddit ? nil : entry.searchEngine.title)
+                        if entry.kind == .user {
+                            SearchHistoryRow(title: "u/\(entry.query)", systemImage: "person.crop.circle")
+                        } else {
+                            SearchHistoryRow(title: entry.query, systemImage: "clock.arrow.circlepath",
+                                             subtitle: entry.searchEngine == .reddit ? nil : entry.searchEngine.title)
+                        }
                     }
                     .swipeActions(edge: .trailing) {
                         Button("Delete", role: .destructive) { SearchHistoryStore.remove(entry) }

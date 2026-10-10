@@ -1177,6 +1177,64 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("removing a saved search", SearchHistoryStore.lists().saved.isEmpty)
 }
 
+// --- User search (Phoebus addition) ---
+@MainActor func checkUserSearch() async throws {
+    let listing = Data("""
+    {"kind": "Listing", "data": {"after": null, "children": [
+      {"kind": "t2", "data": {"name": "spez", "icon_img": "https://styles.redditmedia.com/a.png?w=256&amp;s=1",
+        "link_karma": 150000, "comment_karma": 750000, "created_utc": 1118030400.0,
+        "subreddit": {"public_description": "Reddit CEO"}}},
+      {"kind": "t2", "data": {"name": "spez_fan", "icon_img": "", "snoovatar_img": "https://i.redd.it/snoo.png",
+        "link_karma": 12, "comment_karma": 30, "created_utc": 1700000000}},
+      {"kind": "t2", "data": {"name": "gone_account", "is_suspended": true}},
+      {"kind": "t5", "data": {"display_name": "spez"}}
+    ]}}
+    """.utf8)
+    let users = try UserSearch.parse(listing)
+    check("user search keeps only t2 accounts, in order", users.map(\.name) == ["spez", "spez_fan", "gone_account"])
+    check("a user's karma adds link and comment karma", users.first?.karma == 900_000)
+    check("an escaped avatar URL is unescaped",
+          users.first?.iconURL?.absoluteString == "https://styles.redditmedia.com/a.png?w=256&s=1")
+    check("an empty icon falls back to the snoovatar", users[1].iconURL?.absoluteString == "https://i.redd.it/snoo.png")
+    check("a suspended account parses with only its name", users[2].isSuspended && users[2].created == nil)
+    check("an empty user search ({}) parses as no accounts", (try? UserSearch.parse(Data("{}".utf8)))?.isEmpty == true)
+
+    let now = Date(timeIntervalSince1970: 1_118_030_400 + 86400 * 365 * 21 + 86400 * 10)
+    check("a user row reads karma and account age", UserSearch.subtitle(for: users[0], now: now) == "900k karma \u{00B7} 21y")
+    check("a suspended user row says so", UserSearch.subtitle(for: users[2]) == "Suspended")
+
+    check("u/ and /u/ prefixes are dropped from the query",
+          UserSearch.normalizedQuery(" u/spez ") == "spez" && UserSearch.normalizedQuery("/u/Spez") == "Spez")
+    check("usernames are 3-20 letters, digits, _ or -",
+          UserSearch.isPossibleUsername("spez") && UserSearch.isPossibleUsername("a-b_c")
+              && !UserSearch.isPossibleUsername("ab") && !UserSearch.isPossibleUsername("two words"))
+
+    let about = Data(#"{"kind": "t2", "data": {"name": "Spez", "link_karma": 1, "comment_karma": 2}}"#.utf8)
+    let exact = UserSearch.parseAccount(about)
+    check("an exact lookup parses /user/name/about", exact?.name == "Spez")
+    check("the exact account goes first without a duplicate",
+          UserSearch.merging(exact: exact, into: users).map(\.name) == ["Spez", "spez_fan", "gone_account"])
+    check("blocked users are left out of user search",
+          UserSearch.visible(users, blocked: ["spez_fan"]).map(\.name) == ["spez", "gone_account"])
+
+    let savedCurrent = FavoriteSubredditsAccountContext.currentUsernameProvider
+    let savedHistory = SearchHistoryStore.storage.load()
+    defer {
+        FavoriteSubredditsAccountContext.currentUsernameProvider = savedCurrent
+        SearchHistoryStore.storage.save(savedHistory)
+    }
+    SearchHistoryStore.storage.save([:])
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokeone" }
+    SearchHistoryStore.record(query: "spez")
+    SearchHistoryStore.record(user: "spez")
+    let recent = SearchHistoryStore.lists().recent(subreddit: "")
+    check("an opened user is its own recent entry beside the same post query",
+          recent.map(\.kind) == [.user, .posts])
+    let legacy = try? JSONDecoder().decode(RecentSearch.self,
+                                           from: Data(#"{"query":"x","subreddit":"","engine":0,"searchedAt":0}"#.utf8))
+    check("a recent search saved before user search reads as a post search", legacy?.kind == .posts)
+}
+
 // --- Tag Filters (Apollo-Reborn feature) ---
 // Shape: enabled/nsfw/spoiler flags and `{nsfw, spoiler}` per-subreddit
 // overrides (no three-way mode per tag, blur-titles switch or single-bool

@@ -326,8 +326,17 @@ struct PostDetailHeader: View {
                     Text(ShareCardFormatting.compactAge(since: post.created))
                 }
                 .modifier(InfoRowDetailTap(popup: infoRow.popupMode, overlay: infoRow.overlayMode, edge: .leading) { condensed in
-                    InfoRowAgeDetail.lines(created: post.created, condensed: condensed)
+                    let lines = InfoRowAgeDetail.lines(created: post.created, condensed: condensed)
+                    return (lines.title, EditedMarker.appendingTimestamp(showsEdited ? post.edited : nil, to: lines.message))
                 })
+                // Apollo's edited pencil after the age, explained on tap like its neighbours.
+                if showsEdited, let edited = post.edited {
+                    EditedIndicator(edited: edited, showsDetailOnTap: !infoRow.popupMode && !infoRow.overlayMode)
+                        .modifier(InfoRowDetailTap(popup: infoRow.popupMode, overlay: infoRow.overlayMode, edge: .leading) { condensed in
+                            EditedMarker.lines(edited, condensed: condensed)
+                        })
+                        .accessibilityIdentifier("postDetail.edited")
+                }
                 Spacer(minLength: 0)
             }
             .apolloFont(size: 13)
@@ -445,6 +454,8 @@ struct PostDetailHeader: View {
         }
     }
 
+
+    private var showsEdited: Bool { EditedMarker.isShown(post.edited, enabled: general.showEditedMarker) }
 
     /// The post/link summary card. Placement follows
     /// `ApolloAIInsertPostSummary`: below the inline link-preview

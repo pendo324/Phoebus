@@ -460,7 +460,7 @@ extension RedditPost {
     /// `==` only compares ids. This also compares every field a row draws
     /// that can change for the same post (a refresh, an edit, a mod action).
     func drawsSame(as other: RedditPost) -> Bool {
-        id == other.id && title == other.title && selftext == other.selftext
+        id == other.id && title == other.title && selftext == other.selftext && edited == other.edited
             && score == other.score && upvoteRatio == other.upvoteRatio
             && numComments == other.numComments && likes == other.likes && saved == other.saved
             && stickied == other.stickied && locked == other.locked && distinguished == other.distinguished

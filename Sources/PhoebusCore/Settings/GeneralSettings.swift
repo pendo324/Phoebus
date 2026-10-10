@@ -561,6 +561,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real key: `HighlightAccountAge` ("New Account Highlight") —
     /// visually flags comments/posts from very new Reddit accounts.
     public var highlightAccountAge: Bool
+    /// "Show Edited Marker": Apollo's pencil on edited comments and posts,
+    /// always on in Apollo; Apollo has no key, so this switch is Phoebus's.
+    public var showEditedMarker: Bool = true
     /// Real key: `TapToCollapseEnabledType` ("Tap to Collapse…").
     public var tapToCollapseType: TapToCollapseType
     /// Real key: `IgnoreSuggestedSort` — ignores a subreddit
@@ -1114,6 +1117,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         hideBlockedUserComments = try container.decode(.hideBlockedUserComments, default: d, \.hideBlockedUserComments)
         memechineLearningEnabled = try container.decode(.memechineLearningEnabled, default: d, \.memechineLearningEnabled)
         highlightAccountAge = try container.decode(.highlightAccountAge, default: d, \.highlightAccountAge)
+        showEditedMarker = try container.decode(.showEditedMarker, default: d, \.showEditedMarker)
         tapToCollapseType = try container.decode(.tapToCollapseType, default: d, \.tapToCollapseType)
         ignoreSuggestedSort = try container.decode(.ignoreSuggestedSort, default: d, \.ignoreSuggestedSort)
         rememberCommentsSortPerSubreddit = try container.decode(.rememberCommentsSortPerSubreddit, default: d, \.rememberCommentsSortPerSubreddit)

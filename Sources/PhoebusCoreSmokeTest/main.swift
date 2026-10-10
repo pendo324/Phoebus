@@ -257,6 +257,8 @@ try await checkSwipeActionSettingsApolloSSettingsGesturesViewController()
 
 try await checkContentFiltersApolloSSettingsFiltersViewController()
 
+try await checkPostRules()
+
 try await checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController()
 
 try await checkGalleryPostsApolloSMediaPageViewController()

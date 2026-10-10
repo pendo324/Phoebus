@@ -277,6 +277,130 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
     check("ContentFilter round-trips through Codable", decodedFilter.value == subredditFilter.value && decodedFilter.kind == subredditFilter.kind)
 }
 
+// --- Post Rules (Phoebus-only numeric/tag/title-regex filters) ---
+@MainActor func checkPostRules() async throws {
+    func rulePost(_ id: String, title: String = "A cat photo", author: String = "someone", score: Int = 100,
+                  comments: Int = 10, awards: Int? = nil, nsfw: Bool = false, spoiler: Bool = false,
+                  stickied: Bool = false) -> RedditPost {
+        var json = #"{"id":"\#(id)","name":"t3_\#(id)","title":"\#(title)","author":"\#(author)","subreddit":"pics","permalink":"/r/pics/comments/\#(id)/","score":\#(score),"num_comments":\#(comments),"created_utc":0,"is_self":false,"over_18":\#(nsfw),"spoiler":\#(spoiler),"stickied":\#(stickied),"saved":false"#
+        if let awards { json += #","total_awards_received":\#(awards)"# }
+        return try! JSONDecoder.reddit.decode(RedditPost.self, from: Data((json + "}").utf8))
+    }
+    func kept(_ posts: [RedditPost], _ rule: PostRule, feed: PostRuleFeed = .home, username: String? = nil) -> [String] {
+        PostRuleStore.apply(posts, rules: [rule], feed: feed, username: username).map(\.id)
+    }
+    let scored = [rulePost("low", score: 999), rulePost("edge", score: 1000), rulePost("high", score: 1001)]
+    check("Post Rules: minimum score is inclusive",
+          kept(scored, PostRule(minScore: 1000)) == ["edge", "high"])
+    check("Post Rules: maximum score is inclusive",
+          kept(scored, PostRule(maxScore: 1000)) == ["low", "edge"])
+    check("Post Rules: a negative minimum score keeps downvoted posts above it",
+          kept([rulePost("neg", score: -5), rulePost("worse", score: -20)], PostRule(minScore: -10)) == ["neg"])
+    let commented = [rulePost("c5", comments: 5), rulePost("c10", comments: 10), rulePost("c50", comments: 50)]
+    check("Post Rules: comment bounds are inclusive at both ends",
+          kept(commented, PostRule(minComments: 10, maxComments: 50)) == ["c10", "c50"])
+    let awarded = [rulePost("none"), rulePost("two", awards: 2), rulePost("nine", awards: 9)]
+    check("Post Rules: awards count a missing total as zero",
+          kept(awarded, PostRule(minAwards: 1, maxAwards: 5)) == ["two"]
+              && kept(awarded, PostRule(maxAwards: 0)) == ["none"])
+    let tagged = [rulePost("plain"), rulePost("nsfw", nsfw: true), rulePost("spoil", spoiler: true)]
+    check("Post Rules: NSFW Only keeps only NSFW posts",
+          kept(tagged, PostRule(onlyNSFW: true)) == ["nsfw"])
+    check("Post Rules: Spoiler Only keeps only spoiler posts",
+          kept(tagged, PostRule(onlySpoiler: true)) == ["spoil"])
+    check("Post Rules: NSFW Only with Spoiler Only keeps either",
+          kept(tagged, PostRule(onlyNSFW: true, onlySpoiler: true)) == ["nsfw", "spoil"])
+    let titled = [rulePost("cat", title: "My CAT sleeping"), rulePost("dog", title: "Dog at the beach"),
+                  rulePost("q", title: "Question 42")]
+    check("Post Rules: hide-titles regex is case-insensitive",
+          kept(titled, PostRule(titleExcludesRegex: "\\bcat\\b")) == ["dog", "q"])
+    check("Post Rules: only-titles regex keeps matches",
+          kept(titled, PostRule(titleRequiresRegex: "\\d+$")) == ["q"])
+    check("Post Rules: an invalid regex is ignored, not hiding everything",
+          kept(titled, PostRule(titleExcludesRegex: "(unclosed")).count == 3
+              && kept(titled, PostRule(titleRequiresRegex: "[")).count == 3)
+    check("Post Rules: the editor flags an invalid regex and accepts an empty one",
+          !PostRule.isValidTitleRegex("(unclosed") && PostRule.isValidTitleRegex("") && PostRule.isValidTitleRegex("^\\[OC\\]"))
+    check("Post Rules: a rule with no conditions hides nothing",
+          kept(scored, PostRule()).count == 3)
+    check("Post Rules: a disabled rule hides nothing",
+          kept(scored, PostRule(isEnabled: false, minScore: 5000)).count == 3)
+    check("Post Rules: any one rule hiding a post hides it",
+          PostRuleStore.apply(scored, rules: [PostRule(minScore: 1000), PostRule(maxScore: 1000)],
+                              feed: .home, username: nil).map(\.id) == ["edge"])
+    check("Post Rules: stickied posts are exempt",
+          kept([rulePost("pin", score: 1, stickied: true), rulePost("x", score: 1)], PostRule(minScore: 1000)) == ["pin"])
+    check("Post Rules: the signed-in user's own posts are exempt (case-insensitively)",
+          kept([rulePost("mine", author: "Me", score: 1), rulePost("x", score: 1)], PostRule(minScore: 1000),
+               username: "me") == ["mine"])
+
+    // Scope.
+    let picsOnly = PostRule(minScore: 1000, feeds: ["r/pics"])
+    check("Post Rules: a subreddit-scoped rule applies on that subreddit (case-insensitively)",
+          kept(scored, picsOnly, feed: PostRuleFeed(subreddit: "Pics", multiredditPath: nil)) == ["edge", "high"])
+    check("Post Rules: a subreddit-scoped rule does not apply on Home or another subreddit",
+          kept(scored, picsOnly, feed: .home).count == 3
+              && kept(scored, picsOnly, feed: PostRuleFeed(subreddit: "funny", multiredditPath: nil)).count == 3)
+    check("Post Rules: an unscoped rule applies everywhere",
+          [PostRuleFeed.home, .popular, .all, .subreddit("x"), .multireddit("y")].allSatisfy { PostRule(minScore: 1).applies(to: $0) })
+    check("Post Rules: feed screens map to Home, Popular, All, subreddits and multireddits",
+          PostRuleFeed(subreddit: "", multiredditPath: nil) == .home
+              && PostRuleFeed(subreddit: "Popular", multiredditPath: nil) == .popular
+              && PostRuleFeed(subreddit: "all", multiredditPath: nil) == .all
+              && PostRuleFeed(subreddit: "home", multiredditPath: nil) == .subreddit("home")
+              && PostRuleFeed(subreddit: "", multiredditPath: "/user/bob/m/Tech/") == .multireddit("tech"))
+    check("Post Rules: feed tokens round-trip",
+          [PostRuleFeed.home, .popular, .all, .subreddit("pics"), .multireddit("tech")].allSatisfy { PostRuleFeed(token: $0.token) == $0 }
+              && PostRuleFeed(token: "nonsense") == nil && PostRuleFeed(token: "R/Pics") == .subreddit("pics"))
+    check("Post Rules: a multireddit-scoped rule applies only there",
+          PostRule(minScore: 1, feeds: ["m/tech"]).applies(to: .multireddit("tech"))
+              && !PostRule(minScore: 1, feeds: ["m/tech"]).applies(to: .subreddit("tech")))
+
+    // Pipeline.
+    let piped = FeedFilterPipeline.apply(scored, .init(isAggregateFeed: false, postRuleFeed: .subreddit("pics")),
+                                         postRules: [picsOnly])
+    check("Post Rules run in the feed filter pipeline", piped.map(\.id) == ["edge", "high"])
+    check("the feed pipeline skips Post Rules without a feed (other listings)",
+          FeedFilterPipeline.apply(scored, .init(isAggregateFeed: false), postRules: [picsOnly]).count == 3)
+    check("a page the filters empty is skipped while there is a next page, up to the cap",
+          FeedPaginationPolicy.shouldSkipFilteredPage(keptCount: 0, hasNextPage: true, pagesFetched: 1)
+              && !FeedPaginationPolicy.shouldSkipFilteredPage(keptCount: 1, hasNextPage: true, pagesFetched: 1)
+              && !FeedPaginationPolicy.shouldSkipFilteredPage(keptCount: 0, hasNextPage: false, pagesFetched: 1)
+              && !FeedPaginationPolicy.shouldSkipFilteredPage(keptCount: 0, hasNextPage: true,
+                                                              pagesFetched: FeedPaginationPolicy.maxFilteredPagesSkipped + 1))
+
+    // Editor helpers.
+    check("Post Rules: bounds parse digits, a leading minus only where allowed, empty as no limit",
+          PostRule.parseBound("1,000", allowsNegative: false) == 1000
+              && PostRule.parseBound("-50", allowsNegative: true) == -50
+              && PostRule.parseBound("-50", allowsNegative: false) == 50
+              && PostRule.parseBound("", allowsNegative: true) == nil
+              && PostRule.parseBound("-", allowsNegative: true) == nil)
+    check("Post Rules: a minimum above its maximum is flagged",
+          PostRule(minScore: 10, maxScore: 5).hasInvertedRange && !PostRule(minScore: 5, maxScore: 5).hasInvertedRange)
+
+    // Persistence: tolerant decoding and a backup round trip.
+    let handWritten = #"[{"minScore":1000,"feeds":["r/pics"]}]"#
+    let decoded = try? JSONDecoder().decode([PostRule].self, from: Data(handWritten.utf8))
+    check("Post Rules: a hand-written rule decodes with defaults",
+          decoded?.first?.minScore == 1000 && decoded?.first?.isEnabled == true
+              && decoded?.first?.feeds == ["r/pics"] && decoded?.first?.onlyNSFW == false)
+    let suite = UserDefaults(suiteName: "phoebus.smoke.postRules")!
+    suite.removePersistentDomain(forName: "phoebus.smoke.postRules")
+    let saved = [PostRule(name: "Big pics", minScore: 1000, maxComments: 500, onlySpoiler: true,
+                          titleExcludesRegex: "^\\[meta\\]", feeds: ["r/pics", "home"])]
+    PostRuleStore.storage.save(saved, to: suite)
+    check("Post Rules are in settings backups", SettingsDomainSnapshot.isBackedUp(PostRuleStore.storage.key))
+    let snapshot = SettingsDomainSnapshot.capture(from: suite)
+    let roundTripped = try! JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(snapshot))
+    let restored = UserDefaults(suiteName: "phoebus.smoke.postRulesRestore")!
+    restored.removePersistentDomain(forName: "phoebus.smoke.postRulesRestore")
+    SettingsDomainSnapshot.restore(roundTripped, into: restored)
+    check("Post Rules survive a backup round trip", PostRuleStore.storage.load(from: restored) == saved)
+    suite.removePersistentDomain(forName: "phoebus.smoke.postRules")
+    restored.removePersistentDomain(forName: "phoebus.smoke.postRulesRestore")
+}
+
 // --- Mark read / hide read posts ---
 @MainActor func checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController() async throws {
     let readSettingsDefault = MarkReadSettings.default

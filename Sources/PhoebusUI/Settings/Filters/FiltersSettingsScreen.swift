@@ -19,6 +19,7 @@ public struct FiltersSettingsScreen: View {
     /// Tag Filters is a section of this screen, not a root row; see
     /// `tagFiltersSection`.
     @Setting(TagFilterStore.storage) private var tagFilters
+    @Setting(PostRuleStore.storage) private var ruleList
     @Setting(BlockedUsersStore.storage) private var blockedStore
     private var blockedCount: Int { _ = blockedStore; return BlockedUsersStore.names().count }
 
@@ -41,6 +42,8 @@ public struct FiltersSettingsScreen: View {
             AuthorDomainFiltersSection(filters: $filters)
             subredditSpecificSection
             filterByNameSection
+            // Phoebus-only Post Rules (score, comments, tags, title regex).
+            postRulesSection
             tagFiltersSection
         }
         .apolloSettingsSearchScroll()
@@ -71,6 +74,26 @@ public struct FiltersSettingsScreen: View {
         }
         .alert(item: $resImportAlert) { alert in
             Alert(title: Text(alert.title), message: Text(alert.message), dismissButton: .default(Text("OK")))
+        }
+    }
+
+    /// Phoebus's own Post Rules (`PostRule`), beside the other post filters.
+    private var postRulesSection: some View {
+        Section {
+            SettingsLink {
+                PostRulesScreen()
+            } label: {
+                HStack {
+                    Text("Post Rules")
+                    Spacer()
+                    Text("\(ruleList.filter(\.isEnabled).count)").foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("filters.postRules")
+            .apolloSearchRow("Post Rules", lastBeforeFooter: true)
+        } footer: {
+            Text("Hide posts by score, comments or awards, show only NSFW or spoiler posts, or match titles with a regular expression, in every feed or chosen ones.")
+                .apolloSectionFooter()
         }
     }
 

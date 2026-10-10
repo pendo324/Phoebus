@@ -143,8 +143,20 @@ extension FeedScreen {
         for item in above { _ = await ContentActions.hide(item, repository: repository) }
     }
 
+    /// Fetches the images of the next few rows while this one shows, so
+    /// they scroll in drawn.
+    func prefetchImages(after index: Int) {
+        let style = effectivePostDisplayStyle
+        let textThumbnails = generalSettings.textPostThumbnailsEnabled
+        let upcoming = posts.dropFirst(index + 1).prefix(6).compactMap {
+            PostRow.thumbnailURL(for: $0, displayStyle: style, textPostThumbnails: textThumbnails)
+        }
+        ImagePrefetcher.shared.prefetch(Array(upcoming))
+    }
+
     func loadMoreIfNeeded(currentPost post: RedditPost) {
         guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        prefetchImages(after: index)
         // Doomscrolling guard (`infiniteScrollingEnabled`, key
         // `DoomscrollDefeater3`): off stops scroll-triggered continuation;
         // pull-to-refresh and sort changes still work. The decision lives in

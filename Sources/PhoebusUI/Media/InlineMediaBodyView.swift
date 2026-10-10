@@ -646,4 +646,14 @@ enum CommentBodyWarmUp {
             LongBodyText.warm(text)
         }
     }
+
+    /// The still images a body draws inline, in order: what to prefetch.
+    nonisolated static func imageURLs(body: String, mediaMetadata: [String: GalleryMediaItem]?,
+                                      inlineMediaEnabled: Bool) -> [URL] {
+        guard inlineMediaEnabled else { return [] }
+        return InlineMediaBodyMemo.resolved(body, isEnabled: true, mediaMetadata: mediaMetadata).attachments.compactMap {
+            if case .media(.image(let url)) = $0 { return url }
+            return nil
+        }
+    }
 }

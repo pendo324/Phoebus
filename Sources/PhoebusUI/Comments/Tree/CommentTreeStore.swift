@@ -184,15 +184,43 @@ final class CommentTreeStore: ObservableObject {
     /// order, so rows scrolling in draw from the caches. A new tree replaces
     /// the previous warm-up; replies added to the tree warm alongside it.
     func warmBodies(_ nodes: [CommentTreeNode], replacingTree: Bool = true) {
-        let comments = nodes.flatMap { $0.flattenedAll() }.map { (body: $0.comment.body, mediaMetadata: $0.comment.mediaMetadata) }
+        let flat = nodes.flatMap { $0.flattenedAll() }
+        let comments = flat.map { (body: $0.comment.body, mediaMetadata: $0.comment.mediaMetadata) }
+        let ids = flat.map(\.id)
         let inlineEnabled = InlineMediaSettingsStore.load().enabled
-        let task = Task.detached(priority: .utility) {
+        let task = Task.detached(priority: .utility) { [weak self] in
             CommentBodyWarmUp.warm(comments, inlineMediaEnabled: inlineEnabled)
+            guard replacingTree, !Task.isCancelled else { return }
+            let images = comments.map {
+                CommentBodyWarmUp.imageURLs(body: $0.body, mediaMetadata: $0.mediaMetadata, inlineMediaEnabled: inlineEnabled)
+            }
+            await MainActor.run { self?.setImageQueue(ids: ids, images: images) }
         }
         guard replacingTree else { return }
         warmUpTask?.cancel()
         warmUpTask = task
     }
+
+    /// The thread's comments in reading order with the inline images each
+    /// draws, for prefetching ahead of the scroll.
+    private var imageQueue: [[URL]] = []
+    private var imageQueueIndex: [String: Int] = [:]
+
+    private func setImageQueue(ids: [String], images: [[URL]]) {
+        imageQueue = images
+        imageQueueIndex = Dictionary(ids.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    /// A comment row came into view: fetch the images of the next few
+    /// comments below it.
+    func prefetchImages(after id: String) {
+        guard let index = imageQueueIndex[id] else { return }
+        let upcoming = imageQueue[(index + 1)..<min(index + 1 + Self.prefetchAhead, imageQueue.count)].flatMap { $0 }
+        guard !upcoming.isEmpty else { return }
+        ImagePrefetcher.shared.prefetch(upcoming)
+    }
+
+    private static let prefetchAhead = 10
 
     func fetch(subreddit: String, postID: String, sort: String, repository: RedditRepository, force: Bool = false) async {
         let key = "\(postID)-\(sort)"

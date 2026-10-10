@@ -300,6 +300,7 @@ struct CommentTreeContent: View {
                             onShareAsImage: shareAsImageAction(for: node.comment)
                         )
                         .onAppear {
+                            store.prefetchImages(after: node.id)
                             // See `CommentTreeStore.visibleTopLevelRootID`: only depth-0 comments update
                             // this, since the floating collapse button targets a whole top-level thread.
                             if node.depth == 0 {

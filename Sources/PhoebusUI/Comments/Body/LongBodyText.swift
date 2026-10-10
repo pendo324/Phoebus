@@ -23,6 +23,17 @@ public struct LongBodyText: View {
     /// failure appears.
     private static let splitThreshold = 800
 
+    /// Renders `text`'s markdown the way `body` will, into
+    /// `RedditMarkdown`'s cache. Any thread.
+    nonisolated static func warm(_ text: String) {
+        guard !text.isEmpty else { return }
+        if text.count < splitThreshold {
+            _ = RedditMarkdown.render(text)
+        } else {
+            for paragraph in BodyParagraphs.split(text) { _ = RedditMarkdown.render(paragraph) }
+        }
+    }
+
     public var body: some View {
         // A collapsed body (`lineLimit` set) must stay ONE `Text`:
         // splitting it would apply the limit to each paragraph

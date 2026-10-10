@@ -108,16 +108,23 @@ public struct BulkTranslatedText: View {
     }
 
     /// The dominant language of `text` as a lowercase base code ("it").
+    /// Asked on every render of every body while skip languages are set,
+    /// so each text is recognised once.
     static func dominantLanguage(of text: String) -> String? {
         #if canImport(NaturalLanguage)
+        if let known = languageCache[text] { return known }
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
-        guard let language = recognizer.dominantLanguage else { return nil }
-        return language.rawValue.split(separator: "-").first.map { String($0).lowercased() }
+        let code = recognizer.dominantLanguage.flatMap { $0.rawValue.split(separator: "-").first.map { String($0).lowercased() } }
+        if languageCache.count >= 2000 { languageCache.removeAll(keepingCapacity: true) }
+        languageCache[text] = .some(code)
+        return code
         #else
         return nil
         #endif
     }
+
+    private static var languageCache: [String: String?] = [:]
 
     static func languageName(of text: String) -> String? {
         guard let code = dominantLanguage(of: text) else { return nil }

@@ -574,23 +574,35 @@ enum InlineBodyAttachment: Equatable {
 
 /// The text and media an inline body resolves to, computed once per body
 /// rather than on every render: detection runs a regex over the whole
-/// body, and a vote or a settings change re-renders every row.
-@MainActor
-private enum InlineMediaBodyMemo {
+/// body, and a vote or a settings change re-renders every row. Thread-safe,
+/// so a thread's bodies can be worked out in the background before their
+/// rows scroll in (`CommentBodyWarmUp`).
+enum InlineMediaBodyMemo {
     private struct Key: Hashable {
         let body: String
         let isEnabled: Bool
         let imageURLs: [String: String]
     }
-    private static var entries: [Key: (text: String, attachments: [InlineBodyAttachment])] = [:]
-    private static let limit = 500
+    private nonisolated(unsafe) static var entries: [Key: (text: String, attachments: [InlineBodyAttachment])] = [:]
+    private static let lock = NSLock()
+    private static let limit = 3000
 
+    @MainActor
     static func layout(_ body: String, isEnabled: Bool,
                        mediaMetadata: [String: GalleryMediaItem]?) -> (text: String, attachments: [InlineBodyAttachment]) {
+        InlineMediaRatioCache.seed(RedditMediaTokens.ratios(from: mediaMetadata))
+        return resolved(body, isEnabled: isEnabled, mediaMetadata: mediaMetadata)
+    }
+
+    /// `layout` without seeding the shape table, for any thread.
+    nonisolated static func resolved(_ body: String, isEnabled: Bool,
+                                     mediaMetadata: [String: GalleryMediaItem]?) -> (text: String, attachments: [InlineBodyAttachment]) {
         let imageURLs = RedditMediaTokens.imageURLs(from: mediaMetadata)
         let key = Key(body: body, isEnabled: isEnabled, imageURLs: imageURLs)
-        if let hit = entries[key] { return hit }
-        InlineMediaRatioCache.seed(RedditMediaTokens.ratios(from: mediaMetadata))
+        lock.lock()
+        let hit = entries[key]
+        lock.unlock()
+        if let hit { return hit }
         let expanded = RedditMediaTokens.expand(body, imageURLs: imageURLs)
         let media = isEnabled ? InlineMediaDetector.detect(in: body, imageURLs: imageURLs) : []
         // A line that is only a drawn image/GIF (a bare link or Reddit's
@@ -613,8 +625,25 @@ private enum InlineMediaBodyMemo {
         for kind in media where !attachments.contains(.media(kind)) {
             attachments.append(.media(kind))
         }
+        lock.lock()
         if entries.count >= limit { entries.removeAll(keepingCapacity: true) }
         entries[key] = (text, attachments)
+        lock.unlock()
         return (text, attachments)
+    }
+}
+
+/// Works out a thread's comment bodies ahead of their rows: the media
+/// layout above and the markdown `LongBodyText` will draw, so a row
+/// scrolling in finds both cached instead of parsing on the main thread.
+enum CommentBodyWarmUp {
+    nonisolated static func warm(_ comments: [(body: String, mediaMetadata: [String: GalleryMediaItem]?)],
+                                 inlineMediaEnabled: Bool) {
+        for comment in comments {
+            if Task.isCancelled { return }
+            let text = InlineMediaBodyMemo.resolved(comment.body, isEnabled: inlineMediaEnabled,
+                                                    mediaMetadata: comment.mediaMetadata).text
+            LongBodyText.warm(text)
+        }
     }
 }

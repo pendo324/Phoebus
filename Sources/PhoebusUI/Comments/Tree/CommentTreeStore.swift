@@ -178,6 +178,22 @@ final class CommentTreeStore: ObservableObject {
     /// Fetches once per unique (postID, sort) unless `force` is set
     /// (used after posting a reply, when `roots` must be refreshed
     /// even though the key hasn't changed).
+    private var warmUpTask: Task<Void, Never>?
+
+    /// Parses the bodies' markdown and media in the background, in reading
+    /// order, so rows scrolling in draw from the caches. A new tree replaces
+    /// the previous warm-up; replies added to the tree warm alongside it.
+    func warmBodies(_ nodes: [CommentTreeNode], replacingTree: Bool = true) {
+        let comments = nodes.flatMap { $0.flattenedAll() }.map { (body: $0.comment.body, mediaMetadata: $0.comment.mediaMetadata) }
+        let inlineEnabled = InlineMediaSettingsStore.load().enabled
+        let task = Task.detached(priority: .utility) {
+            CommentBodyWarmUp.warm(comments, inlineMediaEnabled: inlineEnabled)
+        }
+        guard replacingTree else { return }
+        warmUpTask?.cancel()
+        warmUpTask = task
+    }
+
     func fetch(subreddit: String, postID: String, sort: String, repository: RedditRepository, force: Bool = false) async {
         let key = "\(postID)-\(sort)"
         if !force, key == lastKey, !roots.isEmpty {
@@ -223,8 +239,17 @@ final class CommentTreeStore: ObservableObject {
                 errorMessage = "Unexpected response shape"
                 return
             }
+            // The first screenful is parsed before it shows, off this thread,
+            // so the opening frames don't parse markdown; the rest follows.
+            let opening = built.roots.flatMap { $0.flattenedAll() }.prefix(16)
+                .map { (body: $0.comment.body, mediaMetadata: $0.comment.mediaMetadata) }
+            let inlineEnabled = InlineMediaSettingsStore.load().enabled
+            await Task.detached(priority: .userInitiated) {
+                CommentBodyWarmUp.warm(Array(opening), inlineMediaEnabled: inlineEnabled)
+            }.value
             roots = built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
             rootMoreStub = built.moreStub
+            warmBodies(roots)
             Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub)
             if GeneralSettingsStore.load().showUserProfilePictures {
                 // Every author's picture in one request per 100 (#1220).
@@ -452,9 +477,10 @@ final class CommentTreeStore: ObservableObject {
                 roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: []) }
                 return
             }
+            let visible = revealed.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
+            warmBodies(visible, replacingTree: false)
             roots = roots.map {
-                $0.resolvingMoreStub(stubID: stub.id,
-                                     with: revealed.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments))
+                $0.resolvingMoreStub(stubID: stub.id, with: visible)
             }
         } catch {
             errorMessage = UserFacingError.message(for: error)

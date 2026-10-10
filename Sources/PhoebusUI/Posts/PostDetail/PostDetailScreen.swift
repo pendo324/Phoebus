@@ -250,7 +250,8 @@ public struct PostDetailScreen: View {
         .navigationDestination(item: $jumpDestination) { destination in
                 switch destination {
                 case .user(let username):
-                    UserProfileScreen(username: username, repository: repository)
+                    UserProfileScreen(username: username, repository: repository,
+                                      community: post.subredditID.map { .init(name: post.subreddit, id: $0) })
                 case .subreddit(let name):
                     FeedScreen(subreddit: name, repository: repository)
                 }

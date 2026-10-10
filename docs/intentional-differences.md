@@ -94,6 +94,12 @@ Apollo or Reborn, add an entry here.
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.
 
+- **A community author's profile shows their achievements there.** Opening
+  an author from a post or comment thread shows "Achievements in r/<sub>"
+  (e.g. Elder), fetched once per user and subreddit when the profile opens.
+  It needs a web session and is hidden without one; Apollo and Reborn have
+  no such section.
+
 ## Crash reports
 
 - **Crash reports are reviewed and exported by you.** The review screen

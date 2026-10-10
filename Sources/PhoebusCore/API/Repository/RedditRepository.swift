@@ -491,6 +491,15 @@ public actor RedditRepository {
         await webFeatureSession() != nil
     }
 
+    /// A user's achievements in one community, or nil without a web session
+    /// (Shreddit GraphQL needs the cookie transport).
+    public func fetchCommunityAchievements(username: String, subredditID: String,
+                                           subreddit: String?) async throws -> CommunityAchievements? {
+        guard let session = await webFeatureSession() else { return nil }
+        return try await CommunityAchievementsService.fetch(
+            username: username, subredditID: subredditID, subreddit: subreddit, session: session)
+    }
+
     public func votePoll(postFullname: String, optionID: String) async throws {
         guard let session = await webFeatureSession() else {
             throw PollVoteService.VoteError.requiresWebSession

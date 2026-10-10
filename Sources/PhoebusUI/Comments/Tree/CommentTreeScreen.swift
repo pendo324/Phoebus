@@ -139,7 +139,8 @@ public struct CommentTreeScreen: View {
             // Unwinds with the rest of the Posts tab on a tab re-tap.
             .apolloPopsOnTabReselection(item: $jumpUser)
             .navigationDestination(item: $jumpUser) { username in
-                UserProfileScreen(username: username, repository: repository)
+                UserProfileScreen(username: username, repository: repository,
+                                  community: post?.subredditID.map { .init(name: subreddit, id: $0) })
             }
             .apolloTracksForwardNavigation($jumpUser)
             .apolloOpensRedditTargetsHere()

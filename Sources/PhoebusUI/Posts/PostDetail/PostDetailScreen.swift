@@ -15,6 +15,8 @@ public struct PostDetailScreen: View {
     @State private var isSubmitting = false
     @State private var submitError: String?
     @State private var showingCrosspost = false
+    @State private var showingOtherDiscussions = false
+    @Setting(OtherDiscussionsSettings.self) private var otherDiscussionsSettings
     @State private var showingRemindMe = false
     @State private var showingReport = false
     @State private var showingModNotes = false
@@ -257,6 +259,10 @@ public struct PostDetailScreen: View {
                     FeedScreen(subreddit: name, repository: repository)
                 }
             }
+            .navigationDestination(isPresented: $showingOtherDiscussions) {
+                OtherDiscussionsScreen(post: post, repository: repository)
+            }
+            .apolloTracksForwardNavigation($showingOtherDiscussions)
             .listStyle(.plain)
             // Comment rows size to their content: Apollo's "N more
             // replies" row is 39pt and a collapsed comment 48pt, both
@@ -436,6 +442,18 @@ public struct PostDetailScreen: View {
     /// pushed the Swift type-checker past its budget.
     @ViewBuilder
     private func header(scrollProxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 0) {
+            postHeader(scrollProxy: scrollProxy)
+            if OtherDiscussions.showsCountRow(count: commentStore.postDuplicateCount, post: post,
+                                              settings: otherDiscussionsSettings),
+               let count = commentStore.postDuplicateCount {
+                OtherDiscussionsRow(count: count) { showingOtherDiscussions = true }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func postHeader(scrollProxy: ScrollViewProxy) -> some View {
         PostDetailHeader(
             post: post,
             repository: repository,
@@ -629,7 +647,9 @@ extension PostDetailScreen {
     private var postDetailMenuIDs: [String] {
         var ids = isModerator ? ["moderator"] : []
         ids += ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children",
-                   "select-text", "share", "share-image", "crosspost", "find", "award", "copy-link", "remind-me"]
+                   "select-text", "share", "share-image", "crosspost"]
+        if OtherDiscussions.isAvailable(for: post) { ids.append("other-discussions") }
+        ids += ["find", "award", "copy-link", "remind-me"]
         if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
         if aiSettings.summariesEnabled { ids.append("summarize") }
         if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
@@ -786,6 +806,11 @@ extension PostDetailScreen {
             Button { showingCrosspost = true } label: {
                 Label("Crosspost", systemImage: "arrowshape.turn.up.right")
             }
+        case "other-discussions":
+            Button { showingOtherDiscussions = true } label: {
+                Label("Other Discussions", systemImage: "bubble.left.and.bubble.right")
+            }
+            .accessibilityIdentifier("postDetail.menu.otherDiscussions")
         case "find":
             Button { showingFindInComments = true } label: {
                 Label("Find in Comments", systemImage: "magnifyingglass")

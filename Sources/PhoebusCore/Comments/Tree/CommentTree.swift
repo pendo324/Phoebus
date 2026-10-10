@@ -538,6 +538,8 @@ public struct CommentsResponse: Sendable {
     public let roots: [CommentTreeNode]
     public let moreStub: MoreStub?
     public let postCommentCount: Int?
+    /// The post's `num_duplicates`, for the Other Discussions row.
+    public let postDuplicateCount: Int?
 }
 
 extension CommentTreeBuilder {
@@ -556,13 +558,16 @@ extension CommentTreeBuilder {
         let built = buildRoots(from: values, postFullname: "t3_\(postID)", autoCollapse: autoCollapse,
                                autoCollapsePinned: autoCollapsePinned, autoCollapseAutoModerator: autoCollapseAutoModerator)
         var count: Int?
+        var duplicateCount: Int?
         if let postListing = json.first as? [String: Any],
            let postData = postListing["data"] as? [String: Any],
            let postChildren = postData["children"] as? [[String: Any]],
            let first = postChildren.first?["data"] as? [String: Any] {
             count = first["num_comments"] as? Int
+            duplicateCount = first["num_duplicates"] as? Int
         }
-        return CommentsResponse(roots: built.roots, moreStub: built.moreStub, postCommentCount: count)
+        return CommentsResponse(roots: built.roots, moreStub: built.moreStub, postCommentCount: count,
+                                postDuplicateCount: duplicateCount)
     }
 
     /// `parseCommentsResponse` off the calling actor: the comment screen

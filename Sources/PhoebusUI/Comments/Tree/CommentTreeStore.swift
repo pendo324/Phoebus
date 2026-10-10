@@ -36,6 +36,8 @@ final class CommentTreeStore: ObservableObject {
     /// Trailing "N more comments" stub at the root level (a sibling of
     /// the top-level comments, not nested under any of them).
     @Published var rootMoreStub: MoreStub?
+    /// The post's other discussions as the comments response reports them.
+    @Published var postDuplicateCount: Int?
     /// IDs of "more" stubs currently being resolved, so the UI can
     /// show a spinner in place of the tappable row.
     @Published var resolvingStubIDs: Set<String> = []
@@ -243,6 +245,7 @@ final class CommentTreeStore: ObservableObject {
             lastSort = sort
             roots = cached.roots
             rootMoreStub = cached.moreStub
+            postDuplicateCount = cached.duplicateCount
             errorMessage = nil
             // Refresh the entry's age on use, so a post the user keeps
             // returning to stays cached rather than falling off the window.
@@ -278,7 +281,8 @@ final class CommentTreeStore: ObservableObject {
             roots = built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
             rootMoreStub = built.moreStub
             warmBodies(roots)
-            Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub)
+            postDuplicateCount = built.postDuplicateCount
+            Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub, duplicateCount: built.postDuplicateCount)
             if GeneralSettingsStore.load().showUserProfilePictures {
                 // Every author's picture in one request per 100 (#1220).
                 let authors = roots.flatMap { $0.flattenedAll() }.compactMap { node in
@@ -544,36 +548,37 @@ final class RecentCommentTreeCache {
     private struct Entry {
         let roots: [CommentTreeNode]
         let moreStub: MoreStub?
+        let duplicateCount: Int?
         let storedAt: Date
     }
 
     private var entries: [String: Entry] = [:]
 
-    func value(for key: String) -> (roots: [CommentTreeNode], moreStub: MoreStub?)? {
+    func value(for key: String) -> (roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?)? {
         guard let entry = entries[key] else { return nil }
         guard RecentEntryPolicy.isFresh(age: Date().timeIntervalSince(entry.storedAt)) else {
             entries[key] = nil
             return nil
         }
-        return (entry.roots, entry.moreStub)
+        return (entry.roots, entry.moreStub, entry.duplicateCount)
     }
 
     /// Resets an entry's age, so a post the user keeps returning to
     /// stays cached for as long as they keep returning to it.
     func touch(key: String) {
         guard let entry = entries[key] else { return }
-        entries[key] = Entry(roots: entry.roots, moreStub: entry.moreStub, storedAt: Date())
+        entries[key] = Entry(roots: entry.roots, moreStub: entry.moreStub, duplicateCount: entry.duplicateCount, storedAt: Date())
     }
 
     /// Applies a change to every cached tree, leaving their ages alone.
     func edit(_ transform: ([CommentTreeNode]) -> [CommentTreeNode]) {
         for (key, entry) in entries {
-            entries[key] = Entry(roots: transform(entry.roots), moreStub: entry.moreStub, storedAt: entry.storedAt)
+            entries[key] = Entry(roots: transform(entry.roots), moreStub: entry.moreStub, duplicateCount: entry.duplicateCount, storedAt: entry.storedAt)
         }
     }
 
-    func store(key: String, roots: [CommentTreeNode], moreStub: MoreStub?) {
-        entries[key] = Entry(roots: roots, moreStub: moreStub, storedAt: Date())
+    func store(key: String, roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?) {
+        entries[key] = Entry(roots: roots, moreStub: moreStub, duplicateCount: duplicateCount, storedAt: Date())
         let now = Date()
         let ages = entries.mapValues { now.timeIntervalSince($0.storedAt) }
         for key in RecentEntryPolicy.keysToEvict(agesByKey: ages) {

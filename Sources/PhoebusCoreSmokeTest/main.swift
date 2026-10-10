@@ -995,6 +995,7 @@ try await checkPrivateMessageThreads()
 try await checkKagiSearch()
 
 try await checkRedditAnswers()
+try await checkOtherDiscussions()
 
 // MARK: - Native modmail over a web session
 //

@@ -10,6 +10,7 @@ public struct GeneralSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var settings
     @Setting(VoteCountSettings.self) private var voteCounts
     @Setting(VideoPlaybackSettingsStore.storage) private var playback
+    @Setting(OtherDiscussionsSettings.self) private var otherDiscussions
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -232,6 +233,9 @@ public struct GeneralSettingsScreen: View {
                                  options: [false, true],
                                  display: { $0 ? "Hide" : "Collapse" })
                 .apolloSearchRow("Blocked Users")
+            Toggle("Show Other Discussions", isOn: $otherDiscussions.showCountRow)
+                .accessibilityIdentifier("settings.general.showOtherDiscussions")
+                .apolloSearchRow("Show Other Discussions")
         } header: {
             Text("Comments")
                 .apolloSectionHeader()

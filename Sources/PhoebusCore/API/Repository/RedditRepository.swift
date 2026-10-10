@@ -707,12 +707,14 @@ public actor RedditRepository {
     /// Full-text post search, either site-wide (empty `subreddit`) or
     /// scoped to one subreddit (`restrict_sr=1`), matching Reddit's
     /// own search UI options.
-    public func searchPosts(query: String, subreddit: String? = nil, sort: String = "relevance", limit: Int = 25) async throws -> RedditListing {
+    public func searchPosts(query: String, subreddit: String? = nil, sort: String = "relevance",
+                            time: String? = nil, limit: Int = 25) async throws -> RedditListing {
         let path = if let subreddit, !subreddit.isEmpty { "/r/\(subreddit)/search" } else { "/search" }
         var parameters = ["q": query, "sort": sort, "limit": String(limit)]
         if let subreddit, !subreddit.isEmpty {
             parameters["restrict_sr"] = "1"
         }
+        if let time { parameters["t"] = time }
         return try await client.getListing(path: path, parameters: parameters)
     }
 

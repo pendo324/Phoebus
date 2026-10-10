@@ -209,6 +209,14 @@ Apollo or Reborn, add an entry here.
 - **There is no What's New screen, no FLEX debugging and no debug rows
   in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
   setting is not imported from backups.
+- **Search keeps a history and saved searches.** Recent queries show
+  under the search field (all of Reddit on the Search tab, one subreddit
+  in a feed's search), and a results screen's star saves the query with
+  its scope, sort and time. Return on the Search tab, or its "Search
+  Posts" row, opens a post search across Reddit. None of this is in
+  Apollo or Reborn; it is inspired by Continuum's recent searches. "Save
+  Search History" (on) and Clear Search History sit in Subreddits →
+  Search.
 - **There is no Memechine Learning setting.** Apollo's General > Other
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.

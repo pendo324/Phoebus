@@ -1075,6 +1075,108 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("TrendingSubredditTitleParser returns empty for a title with no r/ mentions", TrendingSubredditTitleParser.parseSubredditNames(fromTitle: "No subreddits here").isEmpty)
 }
 
+// --- Search history and saved searches (Phoebus addition) ---
+@MainActor func checkSearchHistoryAndSavedSearches() async throws {
+    let savedCurrent = FavoriteSubredditsAccountContext.currentUsernameProvider
+    let savedHistory = SearchHistoryStore.storage.load()
+    let savedSettings = SearchHistorySettingsStore.load()
+    defer {
+        FavoriteSubredditsAccountContext.currentUsernameProvider = savedCurrent
+        SearchHistoryStore.storage.save(savedHistory)
+        SearchHistorySettingsStore.storage.save(savedSettings)
+    }
+    SearchHistoryStore.storage.save([:])
+    SearchHistorySettingsStore.storage.save(.default)
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "SmokeOne" }
+
+    check("Save Search History defaults on", SearchHistorySettings.default.saveHistory)
+    let legacy = try? JSONDecoder().decode(SearchHistorySettings.self, from: Data("{}".utf8))
+    check("search history settings without fields decode to the defaults", legacy == .default)
+    let older = try? JSONDecoder().decode(SearchHistorySettings.self,
+                                          from: Data(#"{"saveHistory":false,"showTrendingSearches":true}"#.utf8))
+    check("an older blob with the removed trending field still decodes", older?.saveHistory == false)
+
+    let t0 = Date(timeIntervalSince1970: 1_000)
+    SearchHistoryStore.record(query: "swift", at: t0)
+    SearchHistoryStore.record(query: "  rust  ", at: t0.addingTimeInterval(1))
+    SearchHistoryStore.record(query: "SWIFT", at: t0.addingTimeInterval(2))
+    SearchHistoryStore.record(query: "   ")
+    let siteWide = SearchHistoryStore.lists().recent(subreddit: "")
+    check("recent searches are newest first and de-duplicated case-insensitively",
+          siteWide.map(\.query) == ["SWIFT", "rust"])
+    SearchHistoryStore.record(query: "swift", subreddit: "iOSProgramming")
+    SearchHistoryStore.record(query: "swift", engine: .google)
+    let lists = SearchHistoryStore.lists()
+    check("a subreddit's recent searches are kept apart from all of Reddit",
+          lists.recent(subreddit: "iosprogramming").map(\.query) == ["swift"]
+              && lists.recent(subreddit: "").count == 3)
+    check("the same query on Google is its own entry",
+          lists.recent(subreddit: "").first?.searchEngine == .google)
+    SearchHistoryStore.record(query: "swift", subreddit: "iOSProgramming", engine: .kagi)
+    check("a Kagi search is recorded site-wide, as its own entry",
+          SearchHistoryStore.lists().recent(subreddit: "").first?.searchEngine == .kagi
+              && SearchHistoryStore.lists().recent(subreddit: "iosprogramming").count == 1)
+    if let kagi = SearchHistoryStore.lists().recent(subreddit: "").first { SearchHistoryStore.remove(kagi) }
+
+    let many = (0..<40).reduce([RecentSearch]()) { list, i in
+        SearchHistoryStore.inserting(RecentSearch(query: "q\(i)"), into: list)
+    }
+    check("recent searches are capped at 30, dropping the oldest",
+          many.count == SearchHistoryStore.recentLimit && many.first?.query == "q39" && many.last?.query == "q10")
+
+    SearchHistoryStore.remove(lists.recent(subreddit: "")[1])
+    check("removing a recent search removes only that one",
+          SearchHistoryStore.lists().recent(subreddit: "").map(\.query) == ["swift", "rust"])
+
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smoketwo" }
+    check("another account starts with no search history",
+          SearchHistoryStore.lists().recent.isEmpty)
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokeone" }
+    check("the account key is case-insensitive",
+          SearchHistoryStore.lists().recent.count == 3)
+
+    let top = SavedSearch(query: "eclipse", subreddit: "pics", sort: "top", time: "week")
+    SearchHistoryStore.save(top)
+    SearchHistoryStore.save(SavedSearch(query: "Eclipse", subreddit: "PICS", sort: "top", time: "week"))
+    check("saving the same query, scope, sort and time twice keeps one",
+          SearchHistoryStore.lists().saved.count == 1 && SearchHistoryStore.isSaved(top))
+    check("a different time range is a different saved search",
+          !SearchHistoryStore.isSaved(SavedSearch(query: "eclipse", subreddit: "pics", sort: "top", time: "day")))
+    check("a sort without a time range drops the time",
+          SavedSearch(query: "x", sort: "new", time: "week").time == nil)
+
+    SearchHistorySettingsStore.storage.update { $0.saveHistory = false }
+    SearchHistoryStore.record(query: "private")
+    check("nothing is recorded with Save Search History off",
+          !SearchHistoryStore.lists().recent.contains { $0.query == "private" })
+    SearchHistorySettingsStore.storage.update { $0.saveHistory = true }
+
+    // Backups: both keys are in the snapshot and survive the JSON round trip.
+    check("search history and its settings are backed up",
+          SettingsDomainSnapshot.isBackedUp(SearchHistoryStore.storage.key)
+              && SettingsDomainSnapshot.isBackedUp(SearchHistorySettingsStore.storage.key))
+    let before = SearchHistoryStore.storage.load()
+    let snapshot = SettingsDomainSnapshot.capture()
+    let encoded = try JSONEncoder().encode(snapshot)
+    let decoded = try JSONDecoder().decode([String: JSONValue].self, from: encoded)
+    let target = UserDefaults(suiteName: "SearchHistoryRestore")!
+    target.removePersistentDomain(forName: "SearchHistoryRestore")
+    SettingsDomainSnapshot.restore(decoded, into: target)
+    check("search history round-trips through a backup",
+          SearchHistoryStore.storage.load(from: target) == before
+              && SearchHistoryStore.storage.load(from: target)["smokeone"]?.saved.first?.time == "week")
+    target.removePersistentDomain(forName: "SearchHistoryRestore")
+
+    SearchHistoryStore.clearRecent(subreddit: "iOSProgramming")
+    check("Clear in a feed's search clears only that subreddit",
+          SearchHistoryStore.lists().recent.map(\.subreddit) == ["", ""])
+    SearchHistoryStore.clearAllRecent()
+    check("Clear Search History removes recents but keeps saved searches",
+          SearchHistoryStore.lists().recent.isEmpty && SearchHistoryStore.lists().saved.count == 1)
+    SearchHistoryStore.unsave(top)
+    check("removing a saved search", SearchHistoryStore.lists().saved.isEmpty)
+}
+
 // --- Tag Filters (Apollo-Reborn feature) ---
 // Shape: enabled/nsfw/spoiler flags and `{nsfw, spoiler}` per-subreddit
 // overrides (no three-way mode per tag, blur-titles switch or single-bool

@@ -32,6 +32,8 @@ public struct SubredditSearchScreen: View {
     @State private var showsKagiLinkSheet = false
     /// Reddit Answers picked with no reddit.com web session: asks for a sign-in first.
     @State private var showsAnswersSignIn = false
+    /// A post search pushed from history or Return.
+    @State private var postSearch: PostSearchRequest?
 
     public init(repository: RedditRepository, onSelect: @escaping (RedditSubreddit) -> Void,
                 onOpenTarget: @escaping (RedditURLTarget) -> Void = { _ in },
@@ -71,8 +73,22 @@ public struct SubredditSearchScreen: View {
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: engine.placeholder ?? "Search Posts, Subreddits, Users")
         .onSubmit(of: .search) {
-            if engine.isExternal || engine == .answers { externalQuery = query }
+            if engine.isExternal || engine == .answers {
+                externalQuery = query
+            } else if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                postSearch = PostSearchRequest(query: query)
+            }
         }
+        .onChange(of: externalQuery) { _, newValue in
+            guard !newValue.isEmpty, engine != .reddit else { return }
+            SearchHistoryStore.record(query: newValue, engine: engine)
+        }
+        .navigationDestination(item: $postSearch) { request in
+            PostSearchScreen(subreddit: request.subreddit, repository: repository, initialQuery: request.query,
+                             initialSort: request.sort, initialTime: request.time)
+        }
+        .apolloTracksForwardNavigation($postSearch)
+        .apolloPopsOnTabReselection(tab: 3, item: $postSearch)
         .onChange(of: query) { _, newValue in
             if engine.isExternal {
                 Task { await loadSuggestions(newValue) }
@@ -197,7 +213,18 @@ public struct SubredditSearchScreen: View {
             if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red)
             }
+            if !query.isEmpty {
+                // Phoebus addition: Return, or this row, searches posts across Reddit.
+                Button {
+                    postSearch = PostSearchRequest(query: query)
+                } label: {
+                    Label("Search Posts for \u{201C}\(query)\u{201D}", systemImage: "magnifyingglass")
+                }
+                .accessibilityIdentifier("search.searchPosts")
+            }
             if query.isEmpty {
+                RecentSearchesSection(subreddit: "", onRun: runRecent)
+                SavedSearchesSection(subreddit: nil) { postSearch = PostSearchRequest($0) }
                 // Order matches Apollo's Search tab: TRENDING SUBREDDITS first under its own
                 // uppercase header, bare names behind a trend-line glyph; the two Random rows
                 // follow in a separate, header-less section. Recently Visited (Phoebus-only)
@@ -264,6 +291,19 @@ public struct SubredditSearchScreen: View {
         // Not the bottom glass bar: this is the Search tab's root, a discovery landing
         // page (Random Subreddit, Trending), so the field is pinned at the top
         // (`.searchable` on `body`). The Reddit prompt is verbatim.
+    }
+
+    /// A Google, Kagi or Reddit Answers entry reruns on its engine; a Reddit
+    /// one pushes its post search.
+    private func runRecent(_ entry: RecentSearch) {
+        guard entry.searchEngine != .reddit else {
+            postSearch = PostSearchRequest(query: entry.query, subreddit: entry.subreddit)
+            return
+        }
+        engine = entry.searchEngine
+        SearchEngine.current = entry.searchEngine
+        query = entry.query
+        externalQuery = entry.query
     }
 
     @Setting(CustomSubredditSourceStore.storage) private var sources

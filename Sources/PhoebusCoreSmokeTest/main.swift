@@ -577,6 +577,8 @@ checkLinkCardLimitVisibility()
 
 try await checkDeletedCommentsClassifierArchivedComment()
 
+try await checkRemovedContentRecovery()
+
 try await checkApolloRebornHubSettings()
 
 try await checkDeadToggleFixesGeneralSettingsScreenScope()

@@ -1,0 +1,28 @@
+{
+  "kq1ccc3": {
+    "id": "kq1ccc3",
+    "author": "example_other",
+    "body": "Recovered by the second archive.",
+    "score": 5,
+    "link_id": "t3_1qx0bb2",
+    "parent_id": "t3_1qx0bb2",
+    "created_utc": 1790000500
+  },
+  "kq1ddd4": {
+    "author": "example_third",
+    "body": "Keyed only by its id.",
+    "score": 2
+  },
+  "kq1fff6": {
+    "id": "kq1fff6",
+    "author": "example_fourth",
+    "body": "[removed]",
+    "score": 1
+  },
+  "kq1aaa1": {
+    "id": "kq1aaa1",
+    "author": "example_commenter",
+    "body": "A different copy that must not override the first archive.",
+    "score": 12
+  }
+}

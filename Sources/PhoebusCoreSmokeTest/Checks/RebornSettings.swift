@@ -72,6 +72,86 @@ import PhoebusCore
     check("ArchivedComment stores its fields unchanged", archivedComment.fullname == "t1_abc123" && archivedComment.body == "the real recovered text" && archivedComment.score == 42 && archivedComment.reason == .moderatorRemoved)
 }
 
+// MARK: - Recover removed posts / archive fallbacks
+@MainActor func checkRemovedContentRecovery() async throws {
+    func load(_ name: String) -> Data {
+        (try? Data(contentsOf: URL(fileURLWithPath: "Tests/Fixtures/\(name)"))) ?? Data()
+    }
+    typealias C = RemovedPostClassifier
+    check("[removed] and [deleted] are removal placeholders", C.isPlaceholder("[removed]") && C.isPlaceholder(" [Deleted] "))
+    check("Reddit's removal sentences are placeholders",
+          C.isPlaceholder("[ Removed by moderator ]") && C.isPlaceholder("[ Removed by Reddit on account of violating the content policy. ]"))
+    check("ordinary text is not a placeholder", !C.isPlaceholder("removed my old post") && !C.isPlaceholder(nil))
+    check("a [removed] body marks a post removed",
+          C.isRemoved(title: "Title", selftext: "[removed]", author: "someone", removedByCategory: nil))
+    check("removed_by_category alone marks a post removed",
+          C.isRemoved(title: "Title", selftext: "", author: "someone", removedByCategory: "moderator"))
+    check("a deleted author marks a post removed",
+          C.isRemoved(title: "Title", selftext: "Body", author: "[deleted]", removedByCategory: nil))
+    check("an intact post is not removed",
+          !C.isRemoved(title: "Title", selftext: "Body", author: "someone", removedByCategory: nil))
+    check("a deleted-by-author category reads as user deleted",
+          C.reason(selftext: "[deleted]", author: "[deleted]", removedByCategory: "deleted") == .userDeleted)
+    check("a moderator removal reads as removed by mod",
+          C.reason(selftext: "[removed]", author: "someone", removedByCategory: "moderator") == .moderatorRemoved)
+
+    check("Always recovers posts automatically", RemovedPostRecoveryTrigger(mode: .alwaysShow) == .automatic)
+    check("Passive offers Show Original Post", RemovedPostRecoveryTrigger(mode: .passive) == .onTap)
+    check("Off never recovers posts", RemovedPostRecoveryTrigger(mode: .off) == .none)
+
+    let linkPost = try ArcticShiftClient.parsePost(load("arctic-shift-posts-ids.json"), postID: "1qx0aa1")
+    check("the archived link post decodes", linkPost != nil)
+    check("its destination URL is recovered", linkPost?.url?.absoluteString == "https://example.com/news/article-123")
+    check("its title and author are recovered",
+          linkPost?.title == "An example link post that was later removed" && linkPost?.author == "example_poster")
+    check("an empty selftext is no body", linkPost?.body == nil)
+    let otherID = try ArcticShiftClient.parsePost(load("arctic-shift-posts-ids.json"), postID: "zzzzzz")
+    check("a record for another id is ignored", otherID == nil)
+
+    let selfPost = try ArcticShiftClient.parsePost(load("arctic-shift-posts-ids-self.json"), postID: "1qx0bb2")
+    check("the archived self post keeps its markdown body", selfPost?.body?.hasPrefix("The original **body**") == true)
+    check("a self post's own permalink is not a link", selfPost?.url == nil)
+
+    let soleLinkJSON = Data(#"{"data":[{"id":"p1","title":"T","is_self":false,"selftext":"[https://example.org/a](https://example.org/a)","url":"https://www.reddit.com/r/x/comments/p1/t/"}],"error":null}"#.utf8)
+    let soleLink = try ArcticShiftClient.parsePost(soleLinkJSON, postID: "p1")
+    check("a link post whose body is only its link becomes a link", soleLink?.url?.absoluteString == "https://example.org/a" && soleLink?.body == nil)
+    let scrubbedJSON = Data(#"{"data":[{"id":"p2","title":"[ Removed by moderator ]","is_self":true,"selftext":"[removed]","author":"[deleted]"}],"error":null}"#.utf8)
+    let scrubbed = try ArcticShiftClient.parsePost(scrubbedJSON, postID: "p2")
+    check("an archive copy made after removal recovers nothing", scrubbed == nil)
+    let throttled = Data(#"{"data":null,"error":"Timeout. Maybe slow down a bit"}"#.utf8)
+    check("the archive's throttle envelope throws rather than reading as empty",
+          (try? ArcticShiftClient.parsePost(throttled, postID: "p1")) == nil
+          && (try? ArcticShiftClient.parseComments(throttled)) == nil)
+
+    if let selfPost {
+        let display = RecoveredPostDisplay(archived: selfPost, liveTitle: "An example question", liveBody: "[removed]",
+                                           liveURL: "https://www.reddit.com/r/examplesub/comments/1qx0bb2/an_example_question/",
+                                           liveAuthor: "[deleted]")
+        check("an unchanged title is not repeated", display?.title == nil)
+        check("the recovered body and author are shown", display?.body != nil && display?.author == "example_writer")
+        check("an archive copy identical to the live post shows nothing",
+              RecoveredPostDisplay(archived: selfPost, liveTitle: selfPost.title ?? "", liveBody: selfPost.body,
+                                   liveURL: nil, liveAuthor: "example_writer") == nil)
+    }
+
+    let byID = try ArcticShiftClient.parseComments(load("arctic-shift-comments-ids.json"))
+    check("comments by id are keyed by fullname", byID["t1_kq1aaa1"]?.body == "The archived text of a removed comment.")
+    check("a comment archived without its author keeps the body", byID["t1_kq1bbb2"]?.author == nil && byID["t1_kq1bbb2"]?.reason == .userDeleted)
+    check("a comment archived as [removed] is not a recovery", byID["t1_kq1ccc3"] == nil)
+
+    let reveddit = try RevedditClient.parseThreadComments(load("reveddit-thread-comments.json"))
+    check("Reveddit thread comments decode by fullname", reveddit["t1_kq1ccc3"]?.body == "Recovered by the second archive.")
+    check("Reveddit records without an id take their key", reveddit["t1_kq1ddd4"]?.body == "Keyed only by its id.")
+    check("a Reveddit [removed] body is not a recovery", reveddit["t1_kq1fff6"] == nil)
+
+    let deleted = ["t1_kq1aaa1", "t1_kq1bbb2", "t1_kq1ccc3", "t1_kq1eee5"]
+    check("only comments the first archive lacks go to the fallback",
+          DeletedCommentsFallback.missing(deleted: deleted, archive: byID) == ["t1_kq1ccc3", "t1_kq1eee5"])
+    let merged = DeletedCommentsFallback.merged(primary: byID, fallback: reveddit)
+    check("the fallback fills a gap", merged["t1_kq1ccc3"]?.body == "Recovered by the second archive.")
+    check("Arctic Shift's copy wins over Reveddit's", merged["t1_kq1aaa1"]?.body == "The archived text of a removed comment.")
+}
+
 // MARK: - Apollo Reborn hub settings
 
 // "Live Interactive Posts" / "Show in Feed" Devvit switches

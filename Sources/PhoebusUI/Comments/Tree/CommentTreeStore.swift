@@ -43,7 +43,19 @@ final class CommentTreeStore: ObservableObject {
     /// currently-scrolled-past top-level thread without scrolling back up.
     /// Tracks which top-level (depth-0) comment is the most recent one
     /// scrolled into view, updated by each top-level row's `.onAppear`.
-    @Published var visibleTopLevelRootID: String?
+    /// Not published: every top-level row scrolling in sets it, and
+    /// publishing re-ran the whole comment list mid-scroll. With the live
+    /// sort it settles `isAtLiveEdge` itself, which publishes only when
+    /// that changes.
+    var visibleTopLevelRootID: String? {
+        didSet {
+            guard tracksLiveEdge else { return }
+            let atEdge = visibleTopLevelRootID == nil || visibleTopLevelRootID == roots.first?.id
+            if atEdge != isAtLiveEdge { isAtLiveEdge = atEdge }
+        }
+    }
+    /// The live sort is showing ("At the live edge" follows the rows).
+    var tracksLiveEdge = false
     /// Top-level comments currently on screen, for the jump button's
     /// "next comment below the one you're reading". Not published: it
     /// is only read when the button is tapped.

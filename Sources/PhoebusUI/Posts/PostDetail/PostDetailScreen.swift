@@ -190,12 +190,7 @@ public struct PostDetailScreen: View {
             }
             // Same FOLLOW/READ approximation as `CommentTreeScreen`;
             // SwiftUI's `List` has no CADisplayLink-based edge detector.
-            .onChange(of: commentStore.visibleTopLevelRootID) { _, newValue in
-                guard commentSort == "live" else { return }
-                // Split deliberately: as one expression the type-checker times out.
-                let firstRootID: String? = commentStore.roots.first?.id
-                commentStore.isAtLiveEdge = (newValue == nil) || (newValue == firstRootID)
-            }
+            .onChange(of: commentSort, initial: true) { _, sort in commentStore.tracksLiveEdge = sort == "live" }
             // Pinned under the nav bar so it stays put while chevrons scroll the thread.
             .safeAreaInset(edge: .top, spacing: 0) {
                 if showingFindInComments {

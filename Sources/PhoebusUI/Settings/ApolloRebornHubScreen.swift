@@ -317,7 +317,7 @@ public struct ApolloRebornHubScreen: View {
                     await LinkPreviewCache.shared.clear()
                     // The in-memory copies too, so nothing stale redraws.
                     await ImageCache.shared.removeAll()
-                    await DownsampleCache.shared.removeAll()
+                    DecodedImageCache.shared.removeAll()
                     await SubredditIconCache.shared.removeAll()
                     await AccountAgeCache.shared.removeAll()
                     URLCache.shared.removeAllCachedResponses()

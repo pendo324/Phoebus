@@ -653,10 +653,10 @@ private struct MediaPagerPageView: View {
             // for a view that reports no intrinsic size.
             LiveTextImageView(url: url)
         } else {
-            CachedAsyncImage(url: url)
+            CachedAsyncImage(url: url, downsampleTarget: .none)
         }
         #else
-        CachedAsyncImage(url: url)
+        CachedAsyncImage(url: url, downsampleTarget: .none)
         #endif
     }
 

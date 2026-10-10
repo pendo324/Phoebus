@@ -109,10 +109,7 @@ public struct CommentTreeScreen: View {
             // each top-level row's `.onAppear`), since SwiftUI's `List` doesn't expose
             // scroll offset: whether the first comment is in view is the same FOLLOW/READ
             // signal, pinned to the newest vs. reading further down.
-            .onChange(of: store.visibleTopLevelRootID) { _, newValue in
-                guard sort == "live" else { return }
-                store.isAtLiveEdge = (newValue == nil) || (newValue == store.roots.first?.id)
-            }
+            .onChange(of: sort, initial: true) { _, sort in store.tracksLiveEdge = sort == "live" }
             .safeAreaInset(edge: .top) {
                 if sort == "live", store.liveNewCount > 0 {
                     Button {

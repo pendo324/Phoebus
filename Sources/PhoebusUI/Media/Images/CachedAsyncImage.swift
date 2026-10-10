@@ -53,8 +53,13 @@ enum MemoryWarningPurge {
 /// Downsampling via `CGImageSourceCreateThumbnailAtIndex` keeps one shared
 /// cache, network path and Imgur-proxy rewrite.
 public enum ImageDownsampleTarget: Equatable, Sendable {
-    /// No downsampling: decode and display at native resolution.
+    /// No downsampling: decode and display at native resolution. For the
+    /// zoomable viewers.
     case none
+    /// No wider than the screen: what inline media can show. The default,
+    /// so a 12-megapixel photo in a comment isn't decoded and drawn in full
+    /// while the list scrolls.
+    case screenWidth
     /// Downsample so the image's longer side is approximately this
     /// many points, at the given scale.
     case pixelWidth(CGFloat, scale: CGFloat)
@@ -62,10 +67,25 @@ public enum ImageDownsampleTarget: Equatable, Sendable {
     /// Gallery View's grid rung target.
     public static let galleryTile = ImageDownsampleTarget.pixelWidth(640, scale: 2)
 
-    var maxPixelSize: CGFloat? {
+    /// The longest side to decode at, for an image of `pixelSize`; nil
+    /// decodes at full size.
+    func maxPixelSize(for pixelSize: CGSize, screenPixelWidth: CGFloat) -> CGFloat? {
         switch self {
-        case .none: return nil
-        case .pixelWidth(let width, let scale): return width * scale
+        case .none:
+            return nil
+        case .screenWidth:
+            guard pixelSize.width > screenPixelWidth, pixelSize.width > 0 else { return nil }
+            return (max(pixelSize.width, pixelSize.height) * screenPixelWidth / pixelSize.width).rounded(.up)
+        case .pixelWidth(let width, let scale):
+            return width * scale
+        }
+    }
+
+    var cacheKey: String {
+        switch self {
+        case .none: return "full"
+        case .screenWidth: return "screen"
+        case .pixelWidth(let width, let scale): return "\(Int(width * scale))"
         }
     }
 }
@@ -87,15 +107,24 @@ public struct CachedAsyncImage: View {
     /// resolution).
     private let downsampleTarget: ImageDownsampleTarget
 
-    public init(url: URL?, contentMode: ContentMode = .fit, downsampleTarget: ImageDownsampleTarget = .none) {
+    public init(url: URL?, contentMode: ContentMode = .fit, downsampleTarget: ImageDownsampleTarget = .screenWidth) {
         self.url = url
         self.contentMode = contentMode
         self.downsampleTarget = downsampleTarget
     }
 
+    /// The image to draw now: this view's own, or one already decoded for a
+    /// row that scrolled away and back, so it comes back at its size on the
+    /// first frame instead of as a placeholder that then resizes the row.
+    private var shownImage: PlatformImage? {
+        if let image, loadedURL == url { return image }
+        guard let url else { return nil }
+        return DecodedImageCache.shared.image(for: ImgurClient.proxiedImageURL(for: url), target: downsampleTarget)
+    }
+
     public var body: some View {
         Group {
-            if let image, loadedURL == url {
+            if let image = shownImage {
                 image.swiftUIImage
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
@@ -122,7 +151,7 @@ public struct CachedAsyncImage: View {
             image = nil; failed = true; loadedURL = nil
             return
         }
-        let result = await Self.fetch(url, downsampleTarget: downsampleTarget)
+        let result = await Self.fetch(url, downsampleTarget: downsampleTarget, screenPixelWidth: Self.screenPixelWidth)
         // A cancelled load (the row scrolled away mid-fetch) is not a
         // failure: leave it loading so the next appearance retries.
         guard !Task.isCancelled, let result else { return }
@@ -135,15 +164,23 @@ public struct CachedAsyncImage: View {
 
     private struct LoadFailed: Error {}
 
+    /// The screen's width in pixels, for `ImageDownsampleTarget.screenWidth`.
+    static var screenPixelWidth: CGFloat {
+        #if canImport(UIKit)
+        UIScreen.main.nativeBounds.width
+        #else
+        2048
+        #endif
+    }
+
     /// Fetches (or reads from cache) and decodes off the main actor.
     /// Nil means cancelled.
-    private nonisolated static func fetch(_ url: URL, downsampleTarget: ImageDownsampleTarget) async -> Result<PlatformImage, LoadFailed>? {
+    private nonisolated static func fetch(_ url: URL, downsampleTarget: ImageDownsampleTarget,
+                                          screenPixelWidth: CGFloat) async -> Result<PlatformImage, LoadFailed>? {
         // Reborn's Imgur proxy workaround is applied here, in the shared loader
         // every Imgur direct-image URL goes through.
         let effectiveURL = ImgurClient.proxiedImageURL(for: url)
-        let maxPixelSize = downsampleTarget.maxPixelSize
-        if let maxPixelSize,
-           let cached = await DownsampleCache.shared.image(for: effectiveURL, maxPixelSize: maxPixelSize) {
+        if let cached = DecodedImageCache.shared.image(for: effectiveURL, target: downsampleTarget) {
             return .success(cached)
         }
         var bytes = await ImageCache.shared.data(for: effectiveURL)
@@ -168,47 +205,64 @@ public struct CachedAsyncImage: View {
                 return .failure(LoadFailed())
             }
         }
-        guard let bytes else { return .failure(LoadFailed()) }
-        if let maxPixelSize,
-           let downsampled = PlatformImage(data: bytes, downsampledToMaxPixelSize: maxPixelSize) {
-            await DownsampleCache.shared.store(downsampled, for: effectiveURL, maxPixelSize: maxPixelSize)
-            return .success(downsampled)
-        }
-        guard let decoded = PlatformImage(data: bytes) else { return .failure(LoadFailed()) }
-        return .success(await decoded.preparedForDisplay())
+        guard let bytes,
+              let decoded = await PlatformImage.displayReady(bytes, for: effectiveURL, target: downsampleTarget,
+                                                            screenPixelWidth: screenPixelWidth)
+        else { return .failure(LoadFailed()) }
+        return .success(decoded)
     }
 }
 
-/// Caches decoded downsampled images, separate from `ImageCache`'s raw
-/// bytes: a gallery grid revisits the same tile constantly, and re-running
-/// ImageIO's downsampler each time would waste CPU.
+extension PlatformImage {
+    /// Decodes `bytes` at `target`'s size, ready to draw, and keeps the
+    /// result in `DecodedImageCache` under `url`. Off the main actor: a full
+    /// decode of a camera photo takes long enough to drop frames.
+    nonisolated static func displayReady(_ bytes: Data, for url: URL, target: ImageDownsampleTarget,
+                                         screenPixelWidth: CGFloat) async -> PlatformImage? {
+        let image: PlatformImage
+        if let maxPixelSize = target.maxPixelSize(for: pixelSize(of: bytes), screenPixelWidth: screenPixelWidth),
+           let downsampled = PlatformImage(data: bytes, downsampledToMaxPixelSize: maxPixelSize) {
+            image = downsampled
+        } else {
+            guard let decoded = PlatformImage(data: bytes) else { return nil }
+            image = await decoded.preparedForDisplay()
+        }
+        DecodedImageCache.shared.store(image, for: url, target: target)
+        return image
+    }
+}
+
+/// Decoded images, ready to draw, separate from `ImageCache`'s raw bytes:
+/// re-decoding each time a row scrolls back wastes CPU and shows a
+/// placeholder first, which resizes the row mid-scroll. `NSCache` is
+/// thread-safe, so a view reads it synchronously while it draws.
 ///
 /// Costed by decoded bytes (width × height × 4 at the image's scale) and
 /// emptied on a memory warning, like `ImageCache`.
-actor DownsampleCache {
-    static let shared = DownsampleCache()
-    static let byteBudget = 48 * 1024 * 1024
+final class DecodedImageCache: @unchecked Sendable {
+    static let shared = DecodedImageCache()
+    static let byteBudget = 96 * 1024 * 1024
     private final class Entry { let image: PlatformImage; init(_ image: PlatformImage) { self.image = image } }
     private let cache: NSCache<NSString, Entry> = {
         let cache = NSCache<NSString, Entry>()
-        cache.totalCostLimit = DownsampleCache.byteBudget
+        cache.totalCostLimit = DecodedImageCache.byteBudget
         return cache
     }()
 
     init() {
-        MemoryWarningPurge.register { [weak self] in await self?.removeAll() }
+        MemoryWarningPurge.register { [weak self] in self?.removeAll() }
     }
 
-    private func key(_ url: URL, _ maxPixelSize: CGFloat) -> NSString {
-        "\(url.absoluteString)#\(Int(maxPixelSize))" as NSString
+    private func key(_ url: URL, _ target: ImageDownsampleTarget) -> NSString {
+        "\(url.absoluteString)#\(target.cacheKey)" as NSString
     }
 
-    func image(for url: URL, maxPixelSize: CGFloat) -> PlatformImage? {
-        cache.object(forKey: key(url, maxPixelSize))?.image
+    func image(for url: URL, target: ImageDownsampleTarget) -> PlatformImage? {
+        cache.object(forKey: key(url, target))?.image
     }
 
-    func store(_ image: PlatformImage, for url: URL, maxPixelSize: CGFloat) {
-        cache.setObject(Entry(image), forKey: key(url, maxPixelSize), cost: image.decodedByteCount)
+    func store(_ image: PlatformImage, for url: URL, target: ImageDownsampleTarget) {
+        cache.setObject(Entry(image), forKey: key(url, target), cost: image.decodedByteCount)
     }
 
     func removeAll() { cache.removeAllObjects() }
@@ -220,7 +274,7 @@ struct PlatformImage: @unchecked Sendable {
     #if canImport(UIKit)
     let uiImage: UIImage
 
-    /// What the decoded bitmap costs in memory, for `DownsampleCache`.
+    /// What the decoded bitmap costs in memory, for `DecodedImageCache`.
     var decodedByteCount: Int {
         let scale = uiImage.scale
         return Int(uiImage.size.width * scale * uiImage.size.height * scale * 4)
@@ -252,6 +306,16 @@ struct PlatformImage: @unchecked Sendable {
         uiImage = UIImage(cgImage: cgImage)
     }
     var swiftUIImage: Image { Image(uiImage: uiImage) }
+    /// The encoded image's pixel size, read from its header without decoding.
+    static func pixelSize(of data: Data) -> CGSize {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else { return .zero }
+        // Orientations 5–8 are rotated a quarter turn.
+        let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
+        return orientation >= 5 ? CGSize(width: height, height: width) : CGSize(width: width, height: height)
+    }
     /// Height / width.
     var aspectRatio: CGFloat {
         uiImage.size.width > 0 ? uiImage.size.height / uiImage.size.width : 1
@@ -279,6 +343,7 @@ struct PlatformImage: @unchecked Sendable {
         nsImage = NSImage(cgImage: cgImage, size: .zero)
     }
     var swiftUIImage: Image { Image(nsImage: nsImage) }
+    static func pixelSize(of data: Data) -> CGSize { .zero }
     /// Height / width.
     var aspectRatio: CGFloat {
         nsImage.size.width > 0 ? nsImage.size.height / nsImage.size.width : 1

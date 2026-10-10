@@ -304,6 +304,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Inline Media Size", breadcrumb: "Settings → Apollo Reborn → Media → Inline Media", screen: .inlineMedia, rowTitle: "Inline Media Size"),
         SettingsSearchEntry(title: "Separate Followed Users", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Sections", screen: .subredditSections, rowTitle: "Separate Followed Users"),
         SettingsSearchEntry(title: "Hide Multireddit Descriptions", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Sections", screen: .subredditSections, rowTitle: "Hide Multireddit Descriptions"),
+        SettingsSearchEntry(title: "Show Recently Visited", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Sections", screen: .subredditSections, rowTitle: "Show Recently Visited"),
         SettingsSearchEntry(title: "Subreddit List Enhancements", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Sections", screen: .subredditSections, rowTitle: "Subreddit List Enhancements"),
         SettingsSearchEntry(title: "Modern Subreddit Dividers", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Sections", screen: .subredditSections, rowTitle: "Modern Subreddit Dividers"),
         SettingsSearchEntry(title: "Banner", breadcrumb: "Settings → Apollo Reborn → Subreddits → Subreddit Layout", screen: .subredditLayout, rowTitle: "Banner"),

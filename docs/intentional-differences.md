@@ -56,6 +56,14 @@ Apollo or Reborn, add an entry here.
   General > Comments > Show Other Discussions hides it. Neither Apollo nor
   Reborn has this; it is inspired by Continuum's Other Discussions. A
   Phoebus addition.
+- **Recently Visited lists the subreddits, profiles and multireddits you
+  open.** Neither Apollo nor Reborn has it; it is inspired by
+  Continuum's history. It shows under the feed shortcuts in the
+  Subreddits list and on the Search tab before you type, newest first,
+  collapsed to five with Show All, with swipe to remove and Clear. Home,
+  Popular, All and Moderator are not recorded. Each account keeps its
+  own list of up to 50 (signed out has its own), the list is included in
+  backups, and "Show Recently Visited" in Subreddit Sections hides it.
 
 ## Media and link previews
 

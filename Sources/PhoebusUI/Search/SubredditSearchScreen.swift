@@ -11,6 +11,8 @@ public struct SubredditSearchScreen: View {
     let onSelect: (RedditSubreddit) -> Void
     /// Opens a Reddit page on this tab's stack (a Google or Kagi result).
     let onOpenTarget: (RedditURLTarget) -> Void
+    /// Opens a recently visited multireddit by path and name.
+    let onOpenMultireddit: (String, String) -> Void
     /// "Search With" (Reborn #1260, #1305): Reddit is Apollo's own search;
     /// Google and Kagi list Reddit threads they found, searched on Return;
     /// Reddit Answers (Phoebus-only) answers the question asked on Return.
@@ -32,10 +34,12 @@ public struct SubredditSearchScreen: View {
     @State private var showsAnswersSignIn = false
 
     public init(repository: RedditRepository, onSelect: @escaping (RedditSubreddit) -> Void,
-                onOpenTarget: @escaping (RedditURLTarget) -> Void = { _ in }) {
+                onOpenTarget: @escaping (RedditURLTarget) -> Void = { _ in },
+                onOpenMultireddit: @escaping (String, String) -> Void = { _, _ in }) {
         self.repository = repository
         self.onSelect = onSelect
         self.onOpenTarget = onOpenTarget
+        self.onOpenMultireddit = onOpenMultireddit
     }
 
     private var showsExternal: Bool { engine.isExternal && !query.isEmpty }
@@ -196,7 +200,14 @@ public struct SubredditSearchScreen: View {
             if query.isEmpty {
                 // Order matches Apollo's Search tab: TRENDING SUBREDDITS first under its own
                 // uppercase header, bare names behind a trend-line glyph; the two Random rows
-                // follow in a separate, header-less section.
+                // follow in a separate, header-less section. Recently Visited (Phoebus-only)
+                // goes above them all.
+                RecentlyVisitedSection(entries: recentlyVisitedEntries, area: "search",
+                                       onOpen: openRecentlyVisited) {
+                    Text("Recently Visited").textCase(.uppercase)
+                } row: { entry in
+                    SearchLandingRow(title: entry.title, systemImage: entry.systemImage)
+                }
                 if !trendingNames.isEmpty {
                     Section {
                         ForEach(trendingNames, id: \.self) { name in
@@ -256,6 +267,25 @@ public struct SubredditSearchScreen: View {
     }
 
     @Setting(CustomSubredditSourceStore.storage) private var sources
+    @Setting(SubredditSectionsSettingsStore.storage) private var sectionsSettings
+    @Setting(RecentlyVisitedStore.storage) private var recentlyVisited
+
+    /// Hidden with the Subreddits list's section by "Show Recently Visited".
+    private var recentlyVisitedEntries: [RecentlyVisitedEntry] {
+        guard sectionsSettings.showRecentlyVisited else { return [] }
+        return recentlyVisited[RecentlyVisitedStore.bucket(for: FavoriteSubredditsAccountContext.currentUsernameProvider())] ?? []
+    }
+
+    private func openRecentlyVisited(_ entry: RecentlyVisitedEntry) {
+        switch entry.kind {
+        case .subreddit:
+            if let subreddit = RedditSubreddit.named(entry.name) { onSelect(subreddit) }
+        case .user:
+            onOpenTarget(.user(entry.name))
+        case .multireddit:
+            onOpenMultireddit(entry.path ?? entry.name, entry.name)
+        }
+    }
     private var showsRandomNSFW: Bool { sources.showRandNSFWInSearch }
     @State private var isLoadingRandom = false
     @State private var trendingNames: [String] = []

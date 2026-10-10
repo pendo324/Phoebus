@@ -201,7 +201,21 @@ public struct FeedScreen: View {
     }
 
     public var body: some View {
-        crashTrackedBody.onAppear { CrashRecorder.record(.openedFeed) }
+        crashTrackedBody.onAppear {
+            CrashRecorder.record(.openedFeed)
+            recordRecentlyVisited()
+        }
+    }
+
+    /// Recently Visited (Phoebus-only): every route into a feed lands here,
+    /// so one call covers list rows, search, deep links and the jump bar.
+    private func recordRecentlyVisited() {
+        if let multiredditPath {
+            RecentlyVisitedStore.recordMultireddit(path: multiredditPath,
+                                                   name: multiredditDisplayName ?? multiredditPath)
+        } else {
+            RecentlyVisitedStore.recordSubreddit(subreddit)
+        }
     }
 
     @ViewBuilder private var crashTrackedBody: some View {

@@ -25,6 +25,10 @@ public struct SubredditSectionsSettingsScreen: View {
                 Toggle("Hide Multireddit Descriptions", isOn: hideMultiredditDescriptionsBinding)
                     .apolloSearchRow("Hide Multireddit Descriptions")
                     .accessibilityIdentifier("subredditSections.hideMultiredditDescriptions")
+                // Phoebus-only: also hides the Search tab's list.
+                Toggle("Show Recently Visited", isOn: $settings.showRecentlyVisited)
+                    .apolloSearchRow("Show Recently Visited")
+                    .accessibilityIdentifier("subredditSections.showRecentlyVisited")
                 // Rows 3 and 4 both default on, as in Apollo's Subreddits list. Enhancements
                 // drives the preview's accent band headers and letter avatars; Modern Dividers
                 // picks the rule style, and its row is hidden while Enhancements is off.

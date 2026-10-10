@@ -41,6 +41,9 @@ public struct SubredditSectionsSettings: Codable, Sendable, Equatable {
     public var subredditListEnhancements: Bool
     /// Reborn's Modern Dividers switch, default on.
     public var modernSubredditDividers: Bool
+    /// The Recently Visited section under the feed shortcuts, default on.
+    /// Phoebus-only; Apollo never had one.
+    public var showRecentlyVisited: Bool
 
     /// Modern bands collapse to the classic grey band whenever Enhancements
     /// is off, regardless of the dividers switch.
@@ -62,13 +65,15 @@ public struct SubredditSectionsSettings: Codable, Sendable, Equatable {
         separateFollowedUsers: Bool,
         hideMultiredditDescriptions: Bool,
         subredditListEnhancements: Bool = true,
-        modernSubredditDividers: Bool = true
+        modernSubredditDividers: Bool = true,
+        showRecentlyVisited: Bool = true
     ) {
         self.order = order
         self.separateFollowedUsers = separateFollowedUsers
         self.hideMultiredditDescriptions = hideMultiredditDescriptions
         self.subredditListEnhancements = subredditListEnhancements
         self.modernSubredditDividers = modernSubredditDividers
+        self.showRecentlyVisited = showRecentlyVisited
     }
 
     public init(from decoder: Decoder) throws {
@@ -80,6 +85,7 @@ public struct SubredditSectionsSettings: Codable, Sendable, Equatable {
         // to on, not `false`.
         subredditListEnhancements = (try? container.decodeIfPresent(Bool.self, forKey: .subredditListEnhancements)) ?? true
         modernSubredditDividers = (try? container.decodeIfPresent(Bool.self, forKey: .modernSubredditDividers)) ?? true
+        showRecentlyVisited = (try? container.decodeIfPresent(Bool.self, forKey: .showRecentlyVisited)) ?? true
     }
 
     /// Sanitizes `order` into a complete, duplicate-free token list: valid

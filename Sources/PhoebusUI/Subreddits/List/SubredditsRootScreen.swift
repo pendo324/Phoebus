@@ -77,6 +77,7 @@ public struct SubredditsRootScreen: View {
     /// Reborn's Edit-mode multireddit editor.
     @State private var editingMultireddit: EditingMultireddit?
     @State private var newMultiredditName = ""
+    @State private var pendingMultiredditDeletion: RedditMultireddit?
     @State private var addSubredditName = ""
     /// "MODERATOR" section on the Subreddits root: subreddits the
     /// user moderates are broken out from the rest of the list.
@@ -445,6 +446,18 @@ public struct SubredditsRootScreen: View {
                 }
             }
         }
+        .confirmationDialog(
+            "Delete \(pendingMultiredditDeletion?.displayName ?? "Multireddit")?",
+            isPresented: $pendingMultiredditDeletion.isPresent(),
+            titleVisibility: .visible
+        ) {
+            if let multi = pendingMultiredditDeletion {
+                Button("Delete Multireddit", role: .destructive) {
+                    Task { await deleteMultireddit(multi) }
+                }
+                .accessibilityIdentifier("subreddits.multireddit.confirmDelete")
+            }
+        }
         .alert("Create Multireddit", isPresented: $showingCreateMultireddit) {
             TextField("Multireddit name", text: $newMultiredditName)
             Button("Create") {
@@ -650,6 +663,15 @@ public struct SubredditsRootScreen: View {
                                         customIcon: multiredditCustomIcon(multi.path))
                             }
                             .accessibilityIdentifier("subreddits.multireddit.\(multi.displayName)")
+                            // Apollo's row context menu "Delete Multireddit".
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    pendingMultiredditDeletion = multi
+                                } label: {
+                                    Label("Delete Multireddit", systemImage: "trash")
+                                }
+                                .accessibilityIdentifier("subreddits.multireddit.delete")
+                            }
                             // The expand control is a trailing column, not something that trails the text, so
                             // every row lines up regardless of subtitle length. It has the star column's
                             // width, so the two share one trailing gutter. Height is left to the row, since a
@@ -1179,6 +1201,17 @@ public struct SubredditsRootScreen: View {
             await load()
         } catch {
             ApolloToast.showError("Couldn't Create Multireddit", detail: UserFacingError.text(for: error))
+        }
+    }
+
+    private func deleteMultireddit(_ multi: RedditMultireddit) async {
+        do {
+            try await repository.deleteMultireddit(path: multi.path)
+            multireddits.removeAll { $0.path == multi.path }
+            await SubscribedSubredditsCache.shared.invalidate()
+            await load()
+        } catch {
+            ApolloToast.showError("Couldn't Delete Multireddit", detail: UserFacingError.text(for: error))
         }
     }
 

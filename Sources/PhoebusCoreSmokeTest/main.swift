@@ -666,6 +666,8 @@ try await checkApolloReborn370Parity3()
 
 try await checkExpandedMultiredditsStockApollo()
 
+try await checkMultiredditCopy()
+
 try await checkApolloReborn370Parity4()
 
 try await checkApolloReborn370Parity5()

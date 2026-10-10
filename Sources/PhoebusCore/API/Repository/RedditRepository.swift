@@ -456,6 +456,20 @@ public actor RedditRepository {
         try await client.delete(path: "/api/multi\(multiPath)/r/\(subreddit)")
     }
 
+    /// Copies someone else's multireddit to `destinationPath` on the signed-in
+    /// account (`POST /api/multi/copy`), returning the copy when the response
+    /// decodes. See `MultiredditCopy`.
+    public func copyMultireddit(sourcePath: String, destinationPath: String, displayName: String) async throws -> RedditMultireddit? {
+        let data = try await client.post(path: "/api/multi/copy", parameters: MultiredditCopy.parameters(
+            sourcePath: sourcePath, destinationPath: destinationPath, displayName: displayName))
+        return MultiredditCopy.copiedMultireddit(from: data)
+    }
+
+    /// Apollo's "Delete Multireddit" (`DELETE /api/multi/<multipath>`).
+    public func deleteMultireddit(path: String) async throws {
+        try await client.delete(path: "/api/multi\(path)")
+    }
+
     /// Fetches another user's *public* multireddits (their own
     /// private ones are only visible via `/api/multi/mine`).
     public func fetchPublicMultireddits(username: String) async throws -> [RedditMultireddit] {

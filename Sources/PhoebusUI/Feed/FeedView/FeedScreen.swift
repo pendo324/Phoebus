@@ -96,6 +96,9 @@ public struct FeedScreen: View {
     @State var showingSidebarSheet = false
     /// Feed-level "•••" rows.
     @State var editingMultireddit: EditingMultireddit?
+    @State var showingCopyMultireddit = false
+    @State var copiedMultireddit: CopiedMultireddit?
+    @State var openedCopiedMultireddit: CopiedMultireddit?
     @State var sharingFeedURL: ShareableURL?
     @State var showingAddToMultireddit = false
     @State var showingModeratorsSheet = false
@@ -639,6 +642,31 @@ public struct FeedScreen: View {
                 // until the next cold start.
                 Task { await SubscribedSubredditsCache.shared.invalidate() }
             }
+        }
+        .sheet(isPresented: $showingCopyMultireddit) {
+            if let multiredditPath, let username = FavoriteSubredditsAccountContext.currentUsernameProvider() {
+                CopyMultiredditSheet(sourcePath: multiredditPath, sourceDisplayName: multiredditDisplayName ?? "",
+                                     username: username, repository: repository) {
+                    showingCopyMultireddit = false
+                } onCopied: { copy in
+                    showingCopyMultireddit = false
+                    copiedMultireddit = copy
+                }
+            }
+        }
+        .alert("Copied to My Multireddits", isPresented: Binding(
+            get: { copiedMultireddit != nil },
+            set: { if !$0 { copiedMultireddit = nil } }
+        ), presenting: copiedMultireddit) { copy in
+            Button("Open") { openedCopiedMultireddit = copy }
+                .accessibilityIdentifier("copyMultireddit.open")
+            Button("OK", role: .cancel) {}
+        } message: { copy in
+            Text("\"\(copy.displayName)\" is now in your Multireddits.")
+        }
+        .apolloTracksForwardNavigation($openedCopiedMultireddit)
+        .navigationDestination(item: $openedCopiedMultireddit) { copy in
+            FeedScreen(multiredditPath: copy.path, displayName: copy.displayName, repository: repository)
         }
         .sheet(item: $sharingFeedURL) { shareable in
             ActivityShareSheet(items: [shareable.url.absoluteString])

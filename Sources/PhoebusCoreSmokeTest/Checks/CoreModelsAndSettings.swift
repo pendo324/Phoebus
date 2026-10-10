@@ -59,6 +59,15 @@ import PhoebusCore
 
     let subredditURL = URL(string: "https://reddit.com/r/swift")!
     check("parses subreddit URL", RedditURLTarget.parse(subredditURL) == .subreddit("swift"))
+    check("a post on a user's profile opens the post, in u_<name>",
+          RedditURLTarget.parse(URL(string: "https://www.reddit.com/user/someone/comments/abc12/a_title/")!)
+            == .post(subreddit: "u_someone", id: "abc12"))
+    check("a comment on a user's profile post opens that comment",
+          RedditURLTarget.parse(URL(string: "https://www.reddit.com/u/someone/comments/abc12/a_title/def34/")!)
+            == .comment(subreddit: "u_someone", postID: "abc12", commentID: "def34"))
+    check("a plain profile link still opens the profile",
+          RedditURLTarget.parse(URL(string: "https://www.reddit.com/user/someone/comments/")!) == .user("someone")
+            && RedditURLTarget.parse(URL(string: "https://www.reddit.com/user/someone/")!) == .user("someone"))
 
     let userURL = URL(string: "https://www.reddit.com/u/someuser")!
     check("parses user URL", RedditURLTarget.parse(userURL) == .user("someuser"))

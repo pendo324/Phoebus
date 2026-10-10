@@ -1504,6 +1504,7 @@ try await checkRebornBackupArchive()
 try await checkScrollPastTracker()
 try await checkMarkdownFormatting()
 try await checkStandardIconPacks()
+try await checkModNotes()
 
 try await checkDeletedCommentRecoveryMustNotReplace()
 

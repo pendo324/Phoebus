@@ -17,6 +17,7 @@ public struct PostDetailScreen: View {
     @State private var showingCrosspost = false
     @State private var showingRemindMe = false
     @State private var showingReport = false
+    @State private var showingModNotes = false
     @State private var showingShareAsImage = false
     /// Whether the signed-in user wrote this post (gates Insights).
     @State private var isOwnPost = false
@@ -417,6 +418,9 @@ public struct PostDetailScreen: View {
                 showingAward = false
             }
         }
+        .sheet(isPresented: $showingModNotes) {
+            ModNotesSheet(subreddit: post.subreddit, user: post.author, repository: repository, attachTo: post.name)
+        }
         .sheet(isPresented: $showingReport) {
             ReportSheet(fullname: post.name, repository: repository) {
                 showingReport = false
@@ -638,7 +642,7 @@ extension PostDetailScreen {
     private var moderatorPostMenu: some View {
         Menu {
             ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam", "mod-distinguish",
-                                                   "mod-sticky", "mod-lock"], for: .moderatorPost), id: \.self) { id in
+                                                   "mod-sticky", "mod-lock", "mod-notes"], for: .moderatorPost), id: \.self) { id in
                 moderatorPostRow(id)
             }
         } label: { Label("Moderator", systemImage: "shield") }
@@ -687,6 +691,11 @@ extension PostDetailScreen {
                 }
             } label: {
                 Label(locked ? "Unlock Comments" : "Lock Comments", systemImage: locked ? "lock.open" : "lock")
+            }
+        case "mod-notes":
+            if post.author != "[deleted]" {
+                Button { showingModNotes = true } label: { Label("Mod Notes", systemImage: "note.text") }
+                    .accessibilityIdentifier("postDetail.menu.modNotes")
             }
         default:
             EmptyView()

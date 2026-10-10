@@ -516,3 +516,59 @@ extension RedditRepository {
         try await client.post(path: "/api/mod/conversations/\(conversationID)/unmute", parameters: [:])
     }
 }
+
+// MARK: - Mod notes
+
+extension RedditRepository {
+    /// One page of a user's mod notes in a subreddit, newest first.
+    /// Pass the previous page's `nextCursor` as `before` for the next page.
+    public func fetchModNotes(subreddit: String, user: String, filter: ModNoteFilter = .all,
+                              before: String? = nil) async throws -> ModNotePage {
+        let data = try await modNoteRequest {
+            try await client.get(path: "/api/mod/notes", parameters: ModNoteRequest.listParameters(
+                subreddit: subreddit, user: user, filter: filter, before: before))
+        }
+        return try JSONDecoder().decode(ModNotePage.self, from: data)
+    }
+
+    /// Adds a note, optionally attached to a post or comment fullname.
+    @discardableResult
+    public func addModNote(subreddit: String, user: String, note: String, label: ModNoteLabel?,
+                           redditID: String? = nil) async throws -> ModNote? {
+        let parameters = try ModNoteRequest.createParameters(subreddit: subreddit, user: user, note: note,
+                                                             label: label, redditID: redditID)
+        let data = try await modNoteRequest { try await client.post(path: "/api/mod/notes", parameters: parameters) }
+        return ModNoteRequest.decodeCreated(data)
+    }
+
+    public func deleteModNote(subreddit: String, user: String, noteID: String) async throws {
+        _ = try await modNoteRequest {
+            try await client.delete(path: "/api/mod/notes", parameters: ModNoteRequest.deleteParameters(
+                subreddit: subreddit, user: user, noteID: noteID))
+        }
+    }
+
+    /// Where a note's linked post or comment opens in the app. A comment
+    /// fullname carries no post id, so it is looked up for its permalink.
+    public func modNoteTarget(redditID: String, subreddit: String) async -> RedditURLTarget? {
+        if redditID.hasPrefix("t3_") {
+            return .post(subreddit: subreddit, id: String(redditID.dropFirst(3)))
+        }
+        guard redditID.hasPrefix("t1_"),
+              let data = try? await client.get(path: "/api/info", parameters: ["id": redditID]),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let children = (object["data"] as? [String: Any])?["children"] as? [[String: Any]],
+              let permalink = (children.first?["data"] as? [String: Any])?["permalink"] as? String,
+              let url = URL(string: "https://www.reddit.com" + permalink) else { return nil }
+        return RedditURLTarget.parse(url)
+    }
+
+    /// Reddit answers 403 when the token lacks the `modnote` scope.
+    private func modNoteRequest(_ send: () async throws -> Data) async throws -> Data {
+        do {
+            return try await send()
+        } catch RedditAPIError.httpError(let status, _) where status == 403 {
+            throw ModNoteError.missingScope
+        }
+    }
+}

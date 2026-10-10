@@ -58,6 +58,7 @@ struct CommentRow: View {
     private var displayScore: Int { node.comment.score + voteStore.scoreDelta(for: node.comment.name) }
     private var isSaved: Bool { voteStore.isSaved(node.comment.name, serverValue: node.comment.saved) }
     @State private var showingReport = false
+    @State private var showingModNotes = false
     @State private var showingTranslator = false
     @State private var showingAward = false
     @State private var isOwnComment = false
@@ -136,7 +137,7 @@ struct CommentRow: View {
         return ids
     }
 
-    private let moderatorMenuIDs = ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky"]
+    private let moderatorMenuIDs = ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky", "mod-notes"]
 
     @ViewBuilder
     private func commentMenuRow(_ id: String) -> some View {
@@ -230,6 +231,11 @@ struct CommentRow: View {
                     isStickied.toggle()
                 }
             } label: { Label(isStickied ? "Unsticky" : "Sticky", systemImage: "pin") }
+        case "mod-notes":
+            if node.comment.subreddit != nil, node.comment.author != "[deleted]" {
+                Button { showingModNotes = true } label: { Label("Mod Notes", systemImage: "note.text") }
+                    .accessibilityIdentifier("comment.menu.modNotes")
+            }
         default:
             EmptyView()
         }
@@ -546,6 +552,10 @@ struct CommentRow: View {
         )
         .contextMenu { actionMenu }
         .modifier(accessibility)
+        .sheet(isPresented: $showingModNotes) {
+            ModNotesSheet(subreddit: node.comment.subreddit ?? "", user: node.comment.author,
+                          repository: repository, attachTo: node.comment.name)
+        }
         .sheet(isPresented: $showingReport) {
             ReportSheet(fullname: node.comment.name, repository: repository) {
                 showingReport = false

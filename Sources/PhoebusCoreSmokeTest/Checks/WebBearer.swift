@@ -36,6 +36,8 @@ private func anonymousJWT() -> String {
             .allSatisfy { R.needsBearer(path: "/api/v1/swift/\($0)") })
     check("ban, invite, unban and accepting an invite go to the bearer",
           ["friend", "unfriend", "accept_moderator_invite"].allSatisfy { R.needsBearer(path: "/r/swift/api/\($0)") })
+    check("mod notes and their recent list use the web bearer",
+          R.needsBearer(path: "/api/mod/notes?subreddit=a&user=b") && R.needsBearer(path: "/api/mod/notes/recent"))
     check("new modmail's mute and unmute go to the bearer",
           R.needsBearer(path: "/api/mod/conversations/abc/mute")
             && R.needsBearer(path: "/api/mod/conversations/abc/unmute")

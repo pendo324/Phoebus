@@ -18,6 +18,7 @@ public struct ModeratorUsersScreen: View {
     @State private var users: [ModeratorListedUser] = []
     @State private var errorMessage: String?
     @State private var showingAddSheet = false
+    @State private var notesUser: ModeratorListedUser?
 
     public init(subreddit: String, repository: RedditRepository, kind: UserListKind = .banned) {
         self.subreddit = subreddit
@@ -50,6 +51,11 @@ public struct ModeratorUsersScreen: View {
                             Task { await remove(user) }
                         }
                     }
+                    .swipeActions(edge: .leading) {
+                        Button("Notes") { notesUser = user }
+                            .tint(.indigo)
+                            .accessibilityIdentifier("modUsers.notes")
+                    }
                 }
             }
         }
@@ -72,6 +78,9 @@ public struct ModeratorUsersScreen: View {
                     Task { await load() }
                 }
             }
+        }
+        .sheet(item: $notesUser) { user in
+            ModNotesSheet(subreddit: subreddit, user: user.name, repository: repository)
         }
         .task(id: selectedTab) { await load() }
     }

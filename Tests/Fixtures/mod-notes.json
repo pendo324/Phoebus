@@ -1,0 +1,49 @@
+{
+  "mod_notes": [
+    {
+      "id": "ModNote_aaa111",
+      "created_at": 1760000000,
+      "type": "NOTE",
+      "subreddit": "testsub",
+      "user": "someuser",
+      "operator": "modone",
+      "cursor": "cur1",
+      "user_note_data": {"note": "Keeps reposting the megathread", "label": "SPAM_WATCH", "reddit_id": "t3_abc123"},
+      "mod_action_data": {"action": null, "reddit_id": null, "details": null, "description": null}
+    },
+    {
+      "id": "ModNote_bbb222",
+      "created_at": 1759990000,
+      "type": "NOTE",
+      "subreddit": "testsub",
+      "user": "someuser",
+      "operator": "modtwo",
+      "cursor": "cur2",
+      "user_note_data": {"note": "Good bug report", "label": "HELPFUL_USER", "reddit_id": "t1_def456"},
+      "mod_action_data": {}
+    },
+    {
+      "id": "ModNote_ccc333",
+      "created_at": 1759980000,
+      "type": "REMOVAL",
+      "subreddit": "testsub",
+      "user": "someuser",
+      "operator": "AutoModerator",
+      "cursor": "cur3",
+      "user_note_data": {"note": null, "label": null, "reddit_id": null},
+      "mod_action_data": {"action": "removelink", "reddit_id": "t3_zzz999", "details": "remove", "description": "Rule 2"}
+    },
+    {
+      "id": "ModNote_ddd444",
+      "created_at": 1759970000,
+      "type": "SOMETHING_NEW",
+      "subreddit": "testsub",
+      "user": "someuser",
+      "operator": "modone",
+      "cursor": "cur4"
+    }
+  ],
+  "start_cursor": "cur1",
+  "end_cursor": "cur4",
+  "has_next_page": true
+}

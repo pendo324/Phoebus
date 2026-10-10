@@ -24,7 +24,7 @@ public enum RedditOAuthConfig {
     public nonisolated(unsafe) static var clientSecret = ""
     public static let authorizeURL = "https://ssl.reddit.com/api/v1/authorize.compact"
     public static let accessTokenURL = "https://www.reddit.com/api/v1/access_token"
-    public static let scope = "identity edit flair history modconfig modflair modlog modposts modwiki mysubreddits privatemessages read report save submit subscribe vote wikiedit wikiread"
+    public static let scope = "identity edit flair history modconfig modflair modlog modnote modposts modwiki mysubreddits privatemessages read report save submit subscribe vote wikiedit wikiread"
 }
 
 public struct RedditCredential: Codable, Sendable, Equatable {

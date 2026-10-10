@@ -39,7 +39,7 @@ extension PostRow {
                         Text(SubredditCapitalization.display(post.subreddit))
                             // 15pt semibold, heavier than the 15pt
                             // regular title.
-                            .apolloFont(size: 15, weight: .semibold)
+                            .apolloFont(size: 15, weight: .semibold, role: .postMeta)
                             .foregroundStyle(Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: themeColors))
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -61,7 +61,7 @@ extension PostRow {
                 // lines wrong). `TitleFlairLayout` measures the
                 // title's last line with TextKit so the capsule
                 // follows the final glyph when it fits, else wraps under it.
-                TitleFlairLayout(titleString: titleMeasureString, fontSize: titleFontSize, bold: appearanceSettings.boldPostTitles, gap: 4, lineSpacing: 3) {
+                TitleFlairLayout(titleString: titleMeasureString, fontSize: titleFontSize, bold: appearanceSettings.boldPostTitles, family: textScale.resolvedFamily(for: .postTitle), gap: 4, lineSpacing: 3) {
                     titleText
                         .fixedSize(horizontal: false, vertical: true)
                     // "Post Flair" toggle (Settings > Appearance > Flair).
@@ -172,7 +172,7 @@ extension PostRow {
                 .lineLimit(1)
                 .fixedSize(horizontal: false, vertical: true)
                 // 13pt regular #94969C.
-                .apolloFont(size: 13)
+                .apolloFont(size: 13, role: .postMeta)
                 .foregroundStyle(Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: themeColors))
                 // 11pt from the title block to the info row's glyph tops.
                 .padding(.top, 4)
@@ -397,7 +397,7 @@ extension PostRow {
                 // "+ N" pill, 13pt #3165A6 on #071420, 16pt tall.
                 if newCommentCount > 0 {
                     Text("+ \(newCommentCount.apolloAbbreviated)")
-                        .apolloFont(size: 13)
+                        .apolloFont(size: 13, role: .postMeta)
                         .foregroundStyle(Color(hex: "3165A6"))
                         .padding(.horizontal, 4)
                         .frame(height: 16)

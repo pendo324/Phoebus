@@ -140,6 +140,7 @@ struct LinkPreviewCardContent: View {
     let cardColorHex: String?
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.apolloTextScale) private var textScale
 
     var body: some View {
         Group {
@@ -154,6 +155,11 @@ struct LinkPreviewCardContent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(palette.background)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    /// Reborn's fixed card sizes, scaled by the Link Previews size and font only.
+    private func cardFont(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        textScale.font(size, weight: weight, role: .linkCard)
     }
 
     private var palette: LinkCardPalette { LinkCardPalette(cardColorHex: cardColorHex, colorScheme: colorScheme) }
@@ -189,19 +195,19 @@ struct LinkPreviewCardContent: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(siteName)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(cardFont(11, .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                 if let title {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(cardFont(15, .semibold))
                         .foregroundStyle(palette.primary)
                         .lineLimit(2)
                 }
                 let lines = LinkPreviewRules.compactDescriptionLines(titleLength: title?.count ?? 0)
                 if lines > 0, let description = preview.description {
                     Text(description)
-                        .font(.system(size: 13))
+                        .font(cardFont(13))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(lines)
                 }
@@ -231,19 +237,19 @@ struct LinkPreviewCardContent: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 4) {
                 Text(siteName)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(cardFont(11, .semibold))
                     .foregroundStyle(palette.secondary)
                     .lineLimit(1)
                 if let title {
                     Text(title)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(cardFont(17, .semibold))
                         .foregroundStyle(palette.primary)
                         .lineLimit(2)
                 }
                 if LinkPreviewRules.fullDescriptionLines(titleLength: title?.count ?? 0) > 0,
                    let description = preview.description {
                     Text(description)
-                        .font(.system(size: 13))
+                        .font(cardFont(13))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                 }
@@ -261,18 +267,18 @@ struct LinkPreviewCardContent: View {
             avatar(preview.avatarURL ?? preview.imageURL, size: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(preview.authorName ?? title ?? handle)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(cardFont(15, .semibold))
                     .foregroundStyle(palette.primary)
                     .lineLimit(1)
                 if !handle.isEmpty {
                     Text(handle)
-                        .font(.system(size: 12))
+                        .font(cardFont(12))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(1)
                 }
                 if let about = preview.description, about != handle {
                     Text(about)
-                        .font(.system(size: 13))
+                        .font(cardFont(13))
                         .foregroundStyle(palette.secondary)
                         .lineLimit(2)
                 }
@@ -300,20 +306,20 @@ struct LinkPreviewCardContent: View {
                 HStack(spacing: 6) {
                     avatar(preview.avatarURL, size: 20)
                     Text(preview.authorName ?? preview.authorHandle ?? siteName)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(cardFont(15, .semibold))
                         .foregroundStyle(palette.primary)
                         .lineLimit(1)
                         .layoutPriority(1)
                     if preview.authorName != nil, let handle = preview.authorHandle {
                         Text(handle)
-                            .font(.system(size: 13))
+                            .font(cardFont(13))
                             .foregroundStyle(palette.secondary)
                             .lineLimit(1)
                     }
                 }
                 if let postBody {
                     Text(postBody)
-                        .font(.system(size: 13))
+                        .font(cardFont(13))
                         .foregroundStyle(palette.primary)
                         .lineLimit(3)
                 }
@@ -342,12 +348,12 @@ struct LinkPreviewCardContent: View {
                     avatar(preview.avatarURL, size: 36)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(preview.authorName ?? preview.authorHandle ?? siteName)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(cardFont(15, .semibold))
                             .foregroundStyle(palette.primary)
                             .lineLimit(1)
                         if let handle = preview.authorHandle {
                             Text(handle)
-                                .font(.system(size: 13))
+                                .font(cardFont(13))
                                 .foregroundStyle(palette.secondary)
                                 .lineLimit(1)
                         }
@@ -355,7 +361,7 @@ struct LinkPreviewCardContent: View {
                 }
                 if let postBody {
                     Text(postBody)
-                        .font(.system(size: 15))
+                        .font(cardFont(15))
                         .foregroundStyle(palette.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

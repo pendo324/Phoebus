@@ -1,4 +1,5 @@
 import SwiftUI
+import PhoebusCore
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -18,11 +19,15 @@ struct ScaledSystemFont: ViewModifier {
     let weight: Font.Weight
     let textStyle: Font.TextStyle
     let monospacedDigit: Bool
+    var role: TextRole = .other
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.apolloTextScale) private var textScale
 
     func body(content: Content) -> some View {
-        let font = Font.system(size: Self.scaled(size, style: textStyle, for: dynamicTypeSize), weight: weight)
-        return content.font(monospacedDigit ? font.monospacedDigit() : font)
+        let font = textScale.font(Self.scaled(size, style: textStyle, for: dynamicTypeSize), weight: weight, role: role)
+        return content
+            .font(monospacedDigit ? font.monospacedDigit() : font)
+            .environment(\.apolloMarkdownCodeScale, textScale.scale(for: role))
     }
 
     static func scaled(_ size: CGFloat, style: Font.TextStyle, for dynamicType: DynamicTypeSize) -> CGFloat {
@@ -37,11 +42,90 @@ struct ScaledSystemFont: ViewModifier {
 }
 
 extension View {
-    /// `.font(.system(size:weight:))` that scales with Dynamic Type.
+    /// `.font(.system(size:weight:))` that scales with Dynamic Type, then by
+    /// the role's size and family from Text Sizes & Fonts.
     func apolloFont(size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body,
-                    monospacedDigit: Bool = false) -> some View {
-        modifier(ScaledSystemFont(size: size, weight: weight, textStyle: style, monospacedDigit: monospacedDigit))
+                    monospacedDigit: Bool = false, role: TextRole = .other) -> some View {
+        modifier(ScaledSystemFont(size: size, weight: weight, textStyle: style, monospacedDigit: monospacedDigit,
+                                  role: role))
     }
+}
+
+private struct ApolloTextScaleKey: EnvironmentKey {
+    static let defaultValue = TextScaleSettings.default
+}
+
+extension EnvironmentValues {
+    /// Text Sizes & Fonts, injected once at the root by `apolloTextScale()`
+    /// so rows read it like `dynamicTypeSize` instead of observing the store.
+    var apolloTextScale: TextScaleSettings {
+        get { self[ApolloTextScaleKey.self] }
+        set { self[ApolloTextScaleKey.self] = newValue }
+    }
+
+    /// The enclosing `apolloFont` role's scale, for markdown code runs,
+    /// whose fixed 14pt font the view's font can't reach.
+    var apolloMarkdownCodeScale: Double {
+        get { self[ApolloMarkdownCodeScaleKey.self] }
+        set { self[ApolloMarkdownCodeScaleKey.self] = newValue }
+    }
+}
+
+private struct ApolloMarkdownCodeScaleKey: EnvironmentKey {
+    static let defaultValue: Double = 1
+}
+
+extension TextFontFamily {
+    var fontDesign: Font.Design {
+        switch self {
+        case .system: return .default
+        case .rounded: return .rounded
+        case .serif: return .serif
+        case .monospaced: return .monospaced
+        }
+    }
+
+    #if canImport(UIKit)
+    var uiFontDesign: UIFontDescriptor.SystemDesign {
+        switch self {
+        case .system: return .default
+        case .rounded: return .rounded
+        case .serif: return .serif
+        case .monospaced: return .monospaced
+        }
+    }
+    #endif
+}
+
+extension TextScaleSettings {
+    /// The role's size for a Dynamic Type scaled `size`.
+    func pointSize(_ size: CGFloat, role: TextRole) -> CGFloat {
+        CGFloat(pointSize(Double(size), role: role))
+    }
+
+    func fontDesign(for role: TextRole) -> Font.Design? {
+        resolvedFamily(for: role)?.fontDesign
+    }
+
+    /// `Font.system(size:weight:)` for the role; identical to it at the defaults.
+    func font(_ size: CGFloat, weight: Font.Weight, role: TextRole) -> Font {
+        Font.system(size: pointSize(size, role: role), weight: weight, design: fontDesign(for: role))
+    }
+}
+
+/// Puts Text Sizes & Fonts into the environment for `apolloFont`. Families
+/// are set per role on the font itself, never with `.fontDesign`, which
+/// would override every role's own family beneath it.
+struct ApolloTextScaleEnvironment: ViewModifier {
+    @Setting(TextScaleSettings.self) private var settings
+
+    func body(content: Content) -> some View {
+        content.environment(\.apolloTextScale, settings)
+    }
+}
+
+extension View {
+    public func apolloTextScale() -> some View { modifier(ApolloTextScaleEnvironment()) }
 }
 
 #if canImport(UIKit)

@@ -9,6 +9,7 @@ struct PostDetailHeader: View {
     @Environment(\.apolloTheme) private var apolloTheme
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.apolloTextScale) private var textScale
 
     private var actionTint: Color { apolloTheme.color(.accent) ?? .accentColor }
 
@@ -122,10 +123,11 @@ struct PostDetailHeader: View {
             // than truncating it. Measured at the same Dynamic Type size the `Text` draws at,
             // or the flair lands on words at larger text sizes.
             TitleFlairLayout(titleString: translatedTitle ?? post.title,
-                             fontSize: ScaledSystemFont.scaled(20, style: .body, for: dynamicTypeSize),
-                             bold: true, gap: 6, lineSpacing: 3) {
+                             fontSize: textScale.pointSize(ScaledSystemFont.scaled(20, style: .body, for: dynamicTypeSize),
+                                                           role: .openedPostTitle),
+                             bold: true, family: textScale.resolvedFamily(for: .openedPostTitle), gap: 6, lineSpacing: 3) {
                 Text(translatedTitle ?? post.title)
-                    .apolloFont(size: 20, weight: .semibold)
+                    .apolloFont(size: 20, weight: .semibold, role: .openedPostTitle)
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.apolloPrimaryText(
                         colorScheme: colorScheme, themeColors: apolloTheme))
@@ -174,7 +176,7 @@ struct PostDetailHeader: View {
                     // Collapsing the body hides it entirely, not a truncated line budget.
                     if !selfTextCollapsed {
                         InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
-                            .apolloFont(size: Self.bodyFontSize)
+                            .apolloFont(size: Self.bodyFontSize, role: .postBody)
                             .foregroundStyle(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))
                             .onTapGesture { selfTextCollapsed.toggle() }
@@ -200,7 +202,7 @@ struct PostDetailHeader: View {
                     // Collapsing the body hides it entirely, not a truncated line budget.
                     if !selfTextCollapsed {
                         InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
-                            .apolloFont(size: Self.bodyFontSize)
+                            .apolloFont(size: Self.bodyFontSize, role: .postBody)
                             .foregroundStyle(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))
                             .onTapGesture { selfTextCollapsed.toggle() }
@@ -228,7 +230,7 @@ struct PostDetailHeader: View {
                             isHidden: PostMediaView.contentWarning(for: post) != nil,
                             lineLimit: nil
                         ) { selfTextCollapsed.toggle() }
-                        .apolloFont(size: Self.bodyFontSize)
+                        .apolloFont(size: Self.bodyFontSize, role: .postBody)
                         .foregroundStyle(Color.apolloPrimaryText(
                             colorScheme: colorScheme, themeColors: apolloTheme))
                     }

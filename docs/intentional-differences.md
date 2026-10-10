@@ -280,6 +280,14 @@ Apollo or Reborn, add an entry here.
   its "% Upvoted", which does not give the score away; the approximate
   upvote/downvote totals go with the score. Neither Apollo nor Reborn
   has this; it is inspired by Continuum's "Hide the number of votes".
+- **Text Sizes & Fonts** (Settings > Appearance) sets a size for post
+  titles, post details, the opened post's title, post text, comment
+  headers, comment text and link previews on top of the app-wide Text
+  Size, and a built-in font family (System, Rounded, Serif, Monospaced)
+  for titles, content and the interface (post details, comment headers and
+  link previews; other screens keep the system font). Neither Apollo nor Reborn has
+  this; it is inspired by Continuum's and RedReader's font settings. At
+  its defaults every font is unchanged.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

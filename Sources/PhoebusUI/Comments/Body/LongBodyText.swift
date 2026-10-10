@@ -12,6 +12,7 @@ import PhoebusCore
 public struct LongBodyText: View {
     let text: String
     let lineLimit: Int?
+    @Environment(\.apolloMarkdownCodeScale) private var codeScale
 
     public init(_ text: String, lineLimit: Int? = nil) {
         self.text = text
@@ -39,16 +40,16 @@ public struct LongBodyText: View {
         // splitting it would apply the limit to each paragraph
         // separately and show N times as many lines as asked for.
         if let lineLimit {
-            Text(RedditMarkdown.render(text)).lineLimit(lineLimit)
+            Text(RedditMarkdown.render(text, codeScale: codeScale)).lineLimit(lineLimit)
         } else if text.count < Self.splitThreshold {
             // Its full height, so a list row never squeezes it to its
             // first lines when something below it grows.
-            Text(RedditMarkdown.render(text))
+            Text(RedditMarkdown.render(text, codeScale: codeScale))
                 .fixedSize(horizontal: false, vertical: true)
         } else {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(BodyParagraphs.split(text).enumerated()), id: \.offset) { _, paragraph in
-                    Text(RedditMarkdown.render(paragraph))
+                    Text(RedditMarkdown.render(paragraph, codeScale: codeScale))
                         // Each paragraph takes its full height; without
                         // this, a list row squeezes some to one "..." line.
                         .fixedSize(horizontal: false, vertical: true)

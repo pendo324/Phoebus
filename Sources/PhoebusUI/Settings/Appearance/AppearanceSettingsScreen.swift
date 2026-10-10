@@ -49,6 +49,13 @@ public struct AppearanceSettingsScreen: View {
                 }
                 .disabled(settings.useSystemTextSize)
                 .apolloCardRowFill()
+                SettingsLink {
+                    TextSizesAndFontsScreen()
+                } label: {
+                    Text("Text Sizes & Fonts")
+                }
+                .apolloSearchRow("Text Sizes & Fonts")
+                .accessibilityIdentifier("appearance.textSizesAndFonts")
             } header: {
                 Text("Text Size")
                     .apolloSectionHeader()

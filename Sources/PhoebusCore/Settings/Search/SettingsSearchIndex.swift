@@ -35,6 +35,8 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case markRead
     case appIcon
     case appearance
+    /// `Settings → Appearance → Text Sizes & Fonts`.
+    case textSizes
     case theme
     case about
     case notifications

@@ -41,6 +41,10 @@ public struct CommentTreeScreen: View {
     /// top. `nil` for a normal thread opening.
     public var focusedCommentID: String?
     @State private var hasScrolledToFocusedComment = false
+    /// "Remember Thread Position"; see `PostDetailScreen`.
+    @State private var hasRestoredThreadPosition = false
+    @State private var showingBackToTop = false
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(subreddit: String, postID: String, repository: RedditRepository, focusedCommentID: String? = nil) {
         self.subreddit = subreddit
@@ -88,6 +92,7 @@ public struct CommentTreeScreen: View {
             // Land on the linked comment, at the top. `scrollTo` resolves against the
             // realized row, so waiting for the tree to arrive is enough.
             .onChange(of: store.roots.count) { _, _ in
+                restoreThreadPosition(scrollProxy: scrollProxy)
                 guard let focusedCommentID, !hasScrolledToFocusedComment, !store.roots.isEmpty else { return }
                 hasScrolledToFocusedComment = true
                 withAnimation { scrollProxy.scrollTo(store.rowID(focusedCommentID), anchor: .top) }
@@ -111,7 +116,19 @@ public struct CommentTreeScreen: View {
             // mode (Passive mode's fetch is triggered by the "..." menu shortcut below,
             // once the user opts a thread in).
             .task { await store.fetchArchivedCommentsIfNeeded(postID: postID) }
-            .onDisappear { store.stopLivePolling() }
+            .onAppear { store.startThreadPositionAutosave() }
+            .onDisappear {
+                store.stopLivePolling()
+                store.stopThreadPositionAutosave()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { store.saveThreadPosition() }
+            }
+            .threadPositionBackToTop(isPresented: $showingBackToTop,
+                                     accessibilityIdentifier: "commentTree.threadPosition.backToTop") {
+                guard let firstID = store.roots.first?.id else { return }
+                withAnimation { scrollProxy.scrollTo(store.rowID(firstID), anchor: .top) }
+            }
             // "At the live edge" is approximated from `visibleTopLevelRootID` (updated by
             // each top-level row's `.onAppear`), since SwiftUI's `List` doesn't expose
             // scroll offset: whether the first comment is in view is the same FOLLOW/READ
@@ -202,6 +219,16 @@ public struct CommentTreeScreen: View {
                 }
             }
         }
+    }
+
+    /// Lands on the saved comment the first time the comments load, unless
+    /// a linked comment is being opened.
+    private func restoreThreadPosition(scrollProxy: ScrollViewProxy) {
+        guard !hasRestoredThreadPosition, !store.roots.isEmpty else { return }
+        hasRestoredThreadPosition = true
+        guard let target = store.threadPositionRestoreTarget(focusedCommentID: focusedCommentID) else { return }
+        store.restoreThreadPosition(to: target) { scrollProxy.scrollTo($0, anchor: .top) }
+        showingBackToTop = true
     }
 }
 
@@ -320,6 +347,7 @@ struct CommentTreeContent: View {
                             onDeleted: { store.commentDeleted(id: node.id) },
                             onShareAsImage: shareAsImageAction(for: node.comment)
                         )
+                        .threadRowMarker(node.id, tracker: store.threadScroll, enabled: store.tracksThreadPosition)
                         .onAppear {
                             store.prefetchImages(after: node.id)
                             // See `CommentTreeStore.visibleTopLevelRootID`: only depth-0 comments update

@@ -288,6 +288,13 @@ Apollo or Reborn, add an entry here.
   link previews; other screens keep the system font). Neither Apollo nor Reborn has
   this; it is inspired by Continuum's and RedReader's font settings. At
   its defaults every font is unchanged.
+- **Threads can remember where you were.** With General > Comments >
+  Remember Thread Position on (off by default), leaving a thread saves the
+  topmost comment on screen, and reopening it scrolls back there with a
+  brief "Back to Top" pill. The last 20 threads are kept (Threads to
+  Remember). A comment link opens at its comment instead, and Live sort
+  never restores. Neither Apollo nor Reborn has this; it is inspired by
+  Continuum's comment thread continuity.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

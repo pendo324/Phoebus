@@ -12,6 +12,7 @@ public struct GeneralSettingsScreen: View {
     @Setting(VideoPlaybackSettingsStore.storage) private var playback
     @Setting(OtherDiscussionsSettings.self) private var otherDiscussions
     @Setting(LocalSavedSettings.self) private var localSaved
+    @Setting(ThreadPositionSettings.self) private var threadPosition
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -210,6 +211,16 @@ public struct GeneralSettingsScreen: View {
                                  options: JumpButtonPosition.allCases.map { $0 },
                                  display: { $0.displayName })
                 .apolloSearchRow("Jump Button Position")
+            // Phoebus-only: reopening a thread returns to the comment you'd reached.
+            Toggle("Remember Thread Position", isOn: $threadPosition.rememberThreadPosition)
+                .accessibilityIdentifier("settings.general.rememberThreadPosition")
+                .apolloSearchRow("Remember Thread Position")
+            if threadPosition.rememberThreadPosition {
+                ApolloSettingsPicker("Threads to Remember", selection: $threadPosition.capacity,
+                                     options: ThreadPositionSettings.capacityOptions,
+                                     display: { "\($0)" })
+                    .apolloSearchRow("Threads to Remember")
+            }
             Toggle("New Account Highlightenator", isOn: $settings.highlightAccountAge)
                 .apolloSearchRow("New Account Highlightenator")
             // Phoebus-only: what the byline age counts from.

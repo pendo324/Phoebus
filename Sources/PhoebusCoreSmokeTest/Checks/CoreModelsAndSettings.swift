@@ -1753,3 +1753,132 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("the row's setting survives a settings backup", OtherDiscussionsSettingsStore.load().showCountRow == false)
     OtherDiscussionsSettingsStore.save(.default)
 }
+
+// --- Remember Thread Position (threadPositionSettings / threadPositions) ---
+@MainActor func checkThreadPositionMemory() async throws {
+    // a > (b > c, d), e
+    let c = CommentTreeNode(comment: makeComment(id: "c"), depth: 2)
+    let b = CommentTreeNode(comment: makeComment(id: "b"), depth: 1, children: [c])
+    let d = CommentTreeNode(comment: makeComment(id: "d"), depth: 1)
+    let a = CommentTreeNode(comment: makeComment(id: "a"), depth: 0, children: [b, d])
+    let e = CommentTreeNode(comment: makeComment(id: "e"), depth: 0)
+    let roots = [a, e]
+
+    check("topmost visible row follows reading order, not set order",
+          TopVisibleRowPolicy.topmost(order: ["a", "b", "c", "d"], onScreen: ["d", "c"]) == "c")
+    check("no rows on screen means no top row",
+          TopVisibleRowPolicy.topmost(order: ["a"], onScreen: []) == nil)
+
+    // Under a 100pt navigation bar, an 800pt-tall screen.
+    let viewport = ListViewport(top: 100, bottom: 800)
+    check("a row kept alive above the viewport is not visible",
+          !TopVisibleRowPolicy.isVisible(minY: -300, maxY: 40, in: viewport))
+    check("a row under the navigation bar is not visible",
+          !TopVisibleRowPolicy.isVisible(minY: 20, maxY: 100, in: viewport))
+    check("a sliver below the navigation bar does not count",
+          !TopVisibleRowPolicy.isVisible(minY: 20, maxY: 105, in: viewport))
+    check("a row straddling the top edge is visible",
+          TopVisibleRowPolicy.isVisible(minY: 60, maxY: 180, in: viewport))
+    check("a 65pt row with 13pt showing below the bar does not count as the top row",
+          !TopVisibleRowPolicy.isVisible(minY: 48, maxY: 113, in: viewport))
+    check("a short 30pt row counts once half of it shows",
+          TopVisibleRowPolicy.isVisible(minY: 85, maxY: 115, in: viewport))
+    check("a row realized below the viewport is not visible",
+          !TopVisibleRowPolicy.isVisible(minY: 820, maxY: 900, in: viewport))
+    check("nothing is visible before the list is measured",
+          !TopVisibleRowPolicy.isVisible(minY: 0, maxY: 50, in: ListViewport(top: 0, bottom: 0)))
+    check("restore steps down toward a target below the realized rows",
+          ScrollRestorePolicy.step(targetIndex: 40, realizedIndices: [10, 11, 12]) == .down)
+    check("restore steps up toward a target above the realized rows",
+          ScrollRestorePolicy.step(targetIndex: 2, realizedIndices: [10, 11, 12]) == .up)
+    check("restore stops stepping when the target lies among the realized rows",
+          ScrollRestorePolicy.step(targetIndex: 11, realizedIndices: [10, 12]) == nil)
+    check("restore stops when no tracked row is on screen",
+          ScrollRestorePolicy.step(targetIndex: 5, realizedIndices: []) == nil)
+    // Scrolled to offset 1900 under a 100pt bar, 900pt tall, 50pt home indicator.
+    let area = ListViewport.visibleArea(contentOffsetY: 1900, boundsHeight: 900, insetTop: 100, insetBottom: 50)
+    check("the visible area starts below the bar at the content offset",
+          area == ListViewport(top: 2000, bottom: 2750))
+    check("a cell under the bar (content 1880-1990) is not on screen",
+          !TopVisibleRowPolicy.isVisible(minY: 1880, maxY: 1990, in: area))
+    check("a cell straddling the bar (content 1950-2050) is on screen",
+          TopVisibleRowPolicy.isVisible(minY: 1950, maxY: 2050, in: area))
+    check("a cell above the offset (content 400-600) is not on screen",
+          !TopVisibleRowPolicy.isVisible(minY: 400, maxY: 600, in: area))
+    let aligned = ScrollRestorePolicy.offset(aligningRowTop: 5000, insetTop: 100)
+    check("aligning a row puts its top exactly at the top of the visible area",
+          ListViewport.visibleArea(contentOffsetY: aligned, boundsHeight: 900, insetTop: 100, insetBottom: 50).top == 5000)
+    check("restore offsets stay within the content",
+          ScrollRestorePolicy.clamped(5000, min: -100, max: 3000) == 3000
+            && ScrollRestorePolicy.clamped(-400, min: -100, max: 3000) == -100)
+
+    check("ancestor path is top-level first", ThreadPositionPolicy.ancestorPath(to: "c", in: roots) == ["a", "b"])
+    check("a top-level comment has no ancestors", ThreadPositionPolicy.ancestorPath(to: "e", in: roots) == [])
+    check("an unloaded comment has no path", ThreadPositionPolicy.ancestorPath(to: "zz", in: roots) == nil)
+
+    let saved = ThreadPositionPolicy.position(postID: "p1", roots: roots, onScreen: ["c", "d"], atTop: false)
+    check("leaving mid-thread saves the topmost comment and its ancestors",
+          saved == ThreadPosition(postID: "p1", commentID: "c", ancestorIDs: ["a", "b"]))
+    check("leaving at the top saves nothing (forgets the thread)",
+          ThreadPositionPolicy.position(postID: "p1", roots: roots, onScreen: ["a"], atTop: true) == nil)
+
+    let target = ThreadPosition(postID: "p1", commentID: "c", ancestorIDs: ["a", "b"])
+    check("reopening lands on the saved comment when it is shown",
+          ThreadPositionPolicy.restoreTarget(for: target, roots: roots) == "c")
+    check("a saved comment under a collapsed parent lands on that parent (left collapsed)",
+          ThreadPositionPolicy.restoreTarget(for: target, roots: [a.togglingCollapse(id: "b"), e]) == "b")
+    let underMore = ThreadPosition(postID: "p1", commentID: "gone", ancestorIDs: ["a", "missing"])
+    check("a saved comment not loaded (under more replies) falls back to its nearest loaded ancestor",
+          ThreadPositionPolicy.restoreTarget(for: underMore, roots: roots) == "a")
+    check("a thread with none of the path loaded does not scroll",
+          ThreadPositionPolicy.restoreTarget(for: ThreadPosition(postID: "p1", commentID: "x", ancestorIDs: ["y"]), roots: roots) == nil)
+
+    check("restoring is off by default", !ThreadPositionSettings.default.rememberThreadPosition)
+    check("20 threads are remembered by default", ThreadPositionSettings.default.capacity == 20)
+    check("restores when enabled on a plain open",
+          ThreadPositionPolicy.shouldRestore(enabled: true, focusedCommentID: nil, sort: "confidence"))
+    check("a linked comment wins over the saved position",
+          !ThreadPositionPolicy.shouldRestore(enabled: true, focusedCommentID: "c", sort: "confidence"))
+    check("live sort never restores",
+          !ThreadPositionPolicy.shouldRestore(enabled: true, focusedCommentID: nil, sort: "live"))
+    check("disabled never restores",
+          !ThreadPositionPolicy.shouldRestore(enabled: false, focusedCommentID: nil, sort: "confidence"))
+
+    let list = RememberedPositions<ThreadPosition>()
+        .recording(ThreadPosition(postID: "p1", commentID: "c1", ancestorIDs: []), capacity: 2)
+        .recording(ThreadPosition(postID: "p2", commentID: "c2", ancestorIDs: []), capacity: 2)
+        .recording(ThreadPosition(postID: "p1", commentID: "c1b", ancestorIDs: []), capacity: 2)
+        .recording(ThreadPosition(postID: "p3", commentID: "c3", ancestorIDs: []), capacity: 2)
+    check("positions are capped, evicting the least recently saved",
+          list.entries.map(\.postID) == ["p3", "p1"])
+    check("re-saving a thread replaces its position and refreshes it",
+          list.entry(for: "p1")?.commentID == "c1b")
+    check("removing forgets one thread", list.removing(key: "p3").entries.map(\.postID) == ["p1"])
+
+    let suite = "phoebus.smoke.threadPosition"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    ThreadPositionStore.record(target, postID: "p1", defaults: defaults)
+    check("nothing is saved while the setting is off", ThreadPositionStore.load(from: defaults).entries.isEmpty)
+    ThreadPositionSettingsStore.storage.save(ThreadPositionSettings(rememberThreadPosition: true, capacity: 2), to: defaults)
+    ThreadPositionStore.record(target, postID: "p1", defaults: defaults)
+    ThreadPositionStore.record(ThreadPosition(postID: "p2", commentID: "x", ancestorIDs: []), postID: "p2", defaults: defaults)
+    ThreadPositionStore.record(ThreadPosition(postID: "p3", commentID: "y", ancestorIDs: []), postID: "p3", defaults: defaults)
+    check("the stored list honours the capacity setting",
+          ThreadPositionStore.load(from: defaults).entries.map(\.postID) == ["p3", "p2"])
+    ThreadPositionStore.record(nil, postID: "p3", defaults: defaults)
+    check("returning to the top forgets the thread", ThreadPositionStore.position(postID: "p3", defaults: defaults) == nil)
+    check("a saved position reads back", ThreadPositionStore.position(postID: "p2", defaults: defaults)?.commentID == "x")
+
+    // Settings backup round trip, through JSON as an export is.
+    let snapshot = SettingsDomainSnapshot.capture(from: defaults)
+    let decoded = try JSONDecoder().decode([String: JSONValue].self, from: try JSONEncoder().encode(snapshot))
+    let restoreSuite = "phoebus.smoke.threadPositionRestore"
+    let restored = UserDefaults(suiteName: restoreSuite)!
+    restored.removePersistentDomain(forName: restoreSuite)
+    SettingsDomainSnapshot.restore(decoded, into: restored)
+    check("the setting and capacity survive a backup round trip",
+          ThreadPositionSettingsStore.storage.load(from: restored) == ThreadPositionSettings(rememberThreadPosition: true, capacity: 2))
+    check("saved thread positions survive a backup round trip",
+          ThreadPositionStore.load(from: restored) == ThreadPositionStore.load(from: defaults))
+}

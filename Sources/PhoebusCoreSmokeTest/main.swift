@@ -808,6 +808,8 @@ try await checkSubredditSectionsEnhancementsModernDividers()
 
 try await checkRecentlyVisited()
 
+checkCrosspostSuggestions()
+
 try await checkOpenInAppDedicatedAppLink()
 
 try await checkThemeGalleryTokenCompilerApolloReborn()

@@ -105,6 +105,35 @@ import PhoebusCore
     check("settings saved before Show Recently Visited existed decode it as on", legacy.showRecentlyVisited)
 }
 
+// MARK: - Crosspost subreddit suggestions (Phoebus-only)
+
+@MainActor func checkCrosspostSuggestions() {
+    let fixture = Data(#"["pics", "u_alice", "EarthPorn", "itookapicture", "Apple"]"#.utf8)
+    let crosspostable = CrosspostSuggestions.parseCrosspostable(fixture)
+    check("the crosspostable list parses as an array of names",
+          crosspostable == ["pics", "u_alice", "EarthPorn", "itookapicture", "Apple"])
+    let signedOut = Data(#"{"json": {"errors": [["USER_REQUIRED", "Please log in to do that.", null]]}}"#.utf8)
+    check("a signed-out error response parses as no suggestions",
+          CrosspostSuggestions.parseCrosspostable(signedOut).isEmpty)
+    check("malformed data parses as no suggestions",
+          CrosspostSuggestions.parseCrosspostable(Data("<html>".utf8)).isEmpty)
+
+    let recent = [
+        RecentlyVisitedEntry(kind: .subreddit, name: "apple"),
+        RecentlyVisitedEntry(kind: .user, name: "spez"),
+        RecentlyVisitedEntry(kind: .subreddit, name: "Pics"),
+        RecentlyVisitedEntry(kind: .multireddit, name: "tech", path: "/user/alice/m/tech"),
+        RecentlyVisitedEntry(kind: .subreddit, name: "swift"),
+    ]
+    let suggestions = CrosspostSuggestions.make(recentlyVisited: recent, crosspostable: crosspostable, source: "pics")
+    check("recently visited lists only subreddits, without the source subreddit",
+          suggestions.recentlyVisited == ["apple", "swift"])
+    check("suggested drops the source, user profiles and recently visited names, case-insensitively",
+          suggestions.suggested == ["EarthPorn", "itookapicture"])
+    check("no history and no crosspostable list makes no suggestions",
+          CrosspostSuggestions.make(recentlyVisited: [], crosspostable: [], source: "pics").isEmpty)
+}
+
 // MARK: - Open in App / dedicated-app link routing
 
 // Host matching accepts subdomains of a claimed host.

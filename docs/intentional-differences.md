@@ -64,6 +64,13 @@ Apollo or Reborn, add an entry here.
   Popular, All and Moderator are not recorded. Each account keeps its
   own list of up to 50 (signed out has its own), the list is included in
   backups, and "Show Recently Visited" in Subreddit Sections hides it.
+- **The crosspost composer suggests destinations.** Neither Apollo nor
+  Reborn has it; it is inspired by Continuum's crosspost screen. While
+  the subreddit field is empty, recently visited subreddits and the
+  subreddits Reddit offers for crossposting (`/api/crosspostable_subreddits`,
+  signed-in only) list below it, de-duplicated and without the source
+  subreddit or user profiles; tapping one fills the field. The Reddit
+  list is fetched once per launch and is simply absent if it fails.
 
 ## Media and link previews
 

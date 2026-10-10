@@ -365,6 +365,8 @@ struct MutedVideoPlayerView: View {
                 if controlsVisible, drawsOwnChrome {
                     VideoInlineSpeedMenu(speed: playbackSpeed) { speed in
                         playbackSpeed = speed
+                        // Kept through pauses and loop restarts.
+                        player.defaultRate = speed
                         if player.timeControlStatus == .playing {
                             player.rate = speed
                         }
@@ -405,6 +407,7 @@ struct MutedVideoPlayerView: View {
                 // once its lookup lands.
                 onPlayerReady?(player, url)
                 isShowing = true
+                playbackSpeed = player.defaultRate
                 VideoPlayerCache.shared.show(url: url, holder: holderID)
                 applyInitialMuteState()
                 isMutedForBadge = player.isMuted
@@ -485,7 +488,8 @@ struct MutedVideoPlayerView: View {
     }
 
     private func startHoldForSpeed() {
-        holdForSpeed.start(AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed)
+        holdForSpeed.start(AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed,
+                           restoreRate: Double(player.defaultRate))
     }
 
     private func endHoldForSpeed() {
@@ -496,7 +500,8 @@ struct MutedVideoPlayerView: View {
     /// touches (see `VideoHoldForSpeed`).
     private func holdForSpeedGesture(width: CGFloat) -> some Gesture {
         holdForSpeed.gesture(width: width, isEnabled: enablesHoldForSpeed && holdSpeedSettings.isEnabled,
-                             transport: AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed)
+                             transport: AVPlayerTransport.shared(for: player), speed: holdSpeedSettings.holdSpeed,
+                             restoreRate: Double(player.defaultRate))
     }
 
     /// Routes one tap on the video surface, in UIKit coordinates.
@@ -685,7 +690,8 @@ struct MutedVideoPlayerView: View {
 
     /// "Loop Videos With Audio": Apollo's default is silent
     /// GIF-equivalent videos loop, videos with audio play once, and
-    /// this setting extends looping to audible videos too.
+    /// this setting extends looping to audible videos too. Phoebus's
+    /// Loop Videos switch turns all of it off.
     /// `player.isMuted` is read fresh at the moment playback ends
     /// since the user's own toggle can change it mid-playback.
     private func configureLooping() {
@@ -695,12 +701,14 @@ struct MutedVideoPlayerView: View {
             queue: .main
         ) { [self] _ in
             MainActor.assumeIsolated {
-                // A video without sound always loops; one with an audio
-                // track loops only under Loop Videos with Audio.
+                // Under Loop Videos, a video without sound always loops; one
+                // with an audio track loops only under Loop Videos with Audio.
                 // Streams whose tracks aren't known fall back to the mute state.
                 let tracks = player.currentItem?.tracks.compactMap(\.assetTrack) ?? []
                 let hasAudio = tracks.isEmpty ? !player.isMuted : tracks.contains { $0.mediaType == .audio }
-                guard !hasAudio || generalSettings.loopVideosWithAudio else { return }
+                guard VideoPlaybackPolicy.loops(hasAudio: hasAudio,
+                                                loopVideos: VideoPlaybackSettingsStore.load().loopVideos,
+                                                loopVideosWithAudio: generalSettings.loopVideosWithAudio) else { return }
                 // While the floating card presents this player, its Loop
                 // Videos setting decides.
                 guard !FloatingPiPController.shared.suppressesInlineLoop(for: player) else { return }

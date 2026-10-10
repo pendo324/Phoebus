@@ -1077,3 +1077,86 @@ import PhoebusCore
           YouTubeEmbed.captionSelectors.allSatisfy { script.contains($0) && !captionsWantedScript.contains($0) })
     check("the frame script leaves captions alone when they are wanted", captionsWantedScript.contains("captionsWanted = true"))
 }
+
+// MARK: - Video playback options
+//
+// Default Playback Speed, Loop Videos and Seek Interval (Phoebus-only,
+// inspired by Continuum): defaults keep today's behaviour, Loop Videos
+// gates Apollo's loop rule, hold-for-speed returns to the default speed,
+// and the store survives a settings backup.
+@MainActor func checkVideoPlaybackOptions() async throws {
+    do {
+        let d = VideoPlaybackSettings.default
+        check("default playback speed defaults to 1x", d.defaultSpeed == 1 && d.effectiveSpeed == 1)
+        check("Loop Videos defaults on", d.loopVideos)
+        check("seek interval defaults to Apollo's 15 s", d.seekInterval == 15 && d.effectiveSeekInterval == 15)
+        check("default speeds run 0.5x to 2x in order",
+              VideoPlaybackSettings.availableSpeeds == [0.5, 0.75, 1, 1.25, 1.5, 2])
+        check("every default speed is in the player's speed menu",
+              VideoPlaybackSettings.availableSpeeds.allSatisfy(VideoPlaybackSpeeds.all.contains))
+        check("seek intervals are 5/10/15/30 s", VideoPlaybackSettings.seekIntervals == [5, 10, 15, 30])
+
+        check("an offered speed is used as is",
+              VideoPlaybackSettings(defaultSpeed: 1.5).effectiveSpeed == 1.5)
+        check("an unoffered speed falls back to 1x",
+              VideoPlaybackSettings(defaultSpeed: 0).effectiveSpeed == 1
+                && VideoPlaybackSettings(defaultSpeed: 10).effectiveSpeed == 1)
+        check("an offered interval is used as is",
+              VideoPlaybackSettings(seekInterval: 30).effectiveSeekInterval == 30)
+        check("an unoffered interval falls back to 15 s",
+              VideoPlaybackSettings(seekInterval: 7).effectiveSeekInterval == 15)
+
+        check("skip symbols name the interval",
+              VideoPlaybackSettings.seekSymbol(10, forward: true) == "goforward.10"
+                && VideoPlaybackSettings.seekSymbol(5, forward: false) == "gobackward.5")
+        check("skip labels name the interval",
+              VideoPlaybackSettings.seekLabel(15, forward: false) == "Back 15 Seconds"
+                && VideoPlaybackSettings.seekLabel(30, forward: true) == "Forward 30 Seconds")
+        check("speed titles read 0.75×, 1×, 2×",
+              VideoPlaybackSettings.speedTitle(0.75) == "0.75\u{00D7}"
+                && VideoPlaybackSettings.speedTitle(1) == "1\u{00D7}"
+                && VideoPlaybackSettings.speedTitle(2) == "2\u{00D7}")
+
+        // Loop Videos on keeps Apollo's rule exactly.
+        check("Loop Videos on: a silent clip loops",
+              VideoPlaybackPolicy.loops(hasAudio: false, loopVideos: true, loopVideosWithAudio: false))
+        check("Loop Videos on: audio loops only under Loop Videos with Audio",
+              VideoPlaybackPolicy.loops(hasAudio: true, loopVideos: true, loopVideosWithAudio: true)
+                && !VideoPlaybackPolicy.loops(hasAudio: true, loopVideos: true, loopVideosWithAudio: false))
+        check("Loop Videos off: nothing loops",
+              ![(false, false), (false, true), (true, false), (true, true)].contains { hasAudio, withAudio in
+                  VideoPlaybackPolicy.loops(hasAudio: hasAudio, loopVideos: false, loopVideosWithAudio: withAudio)
+              })
+
+        check("releasing a hold resumes the rate it interrupted",
+              VideoPlaybackPolicy.rateAfterHold(rateBeforeHold: 1.25, defaultRate: 1.5) == 1.25)
+        check("releasing a hold on a paused video plays at the default speed, not 1x",
+              VideoPlaybackPolicy.rateAfterHold(rateBeforeHold: 0, defaultRate: 1.5) == 1.5)
+
+        // Old or partial JSON keeps the other fields.
+        let partial = try? JSONDecoder().decode(VideoPlaybackSettings.self,
+                                                from: Data(#"{"seekInterval":5}"#.utf8))
+        check("partial playback JSON keeps the other defaults",
+              partial == VideoPlaybackSettings(defaultSpeed: 1, loopVideos: true, seekInterval: 5))
+        let wrongType = try? JSONDecoder().decode(VideoPlaybackSettings.self,
+                                                  from: Data(#"{"defaultSpeed":"fast","loopVideos":false}"#.utf8))
+        check("an unreadable playback field falls back alone",
+              wrongType == VideoPlaybackSettings(defaultSpeed: 1, loopVideos: false, seekInterval: 15))
+
+        // Backed up with the rest of the domain.
+        let source = UserDefaults(suiteName: "phoebus.smoke.videoPlayback.source")!
+        let target = UserDefaults(suiteName: "phoebus.smoke.videoPlayback.target")!
+        VideoPlaybackSettingsStore.storage.reset(in: source)
+        VideoPlaybackSettingsStore.storage.reset(in: target)
+        let custom = VideoPlaybackSettings(defaultSpeed: 1.25, loopVideos: false, seekInterval: 30)
+        VideoPlaybackSettingsStore.storage.save(custom, to: source)
+        let snapshot = SettingsDomainSnapshot.capture(from: source)
+        let json = try JSONEncoder().encode(snapshot)
+        let decoded = try JSONDecoder().decode([String: JSONValue].self, from: json)
+        SettingsDomainSnapshot.restore(decoded, into: target)
+        check("video playback settings round-trip through a backup",
+              VideoPlaybackSettingsStore.storage.load(from: target) == custom)
+        VideoPlaybackSettingsStore.storage.reset(in: source)
+        VideoPlaybackSettingsStore.storage.reset(in: target)
+    }
+}

@@ -9,6 +9,7 @@ import WebKit
 public struct GeneralSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var settings
     @Setting(VoteCountSettings.self) private var voteCounts
+    @Setting(VideoPlaybackSettingsStore.storage) private var playback
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -273,7 +274,9 @@ public struct GeneralSettingsScreen: View {
                 .apolloSearchRow("Show Controls When Opened")
             Toggle("Save to “Phoebus” Album", isOn: $settings.saveToApolloAlbum)
                 .apolloSearchRow("Save to Phoebus Album")
+            // Only meaningful under Phoebus's Loop Videos (Media → Playback).
             Toggle("Loop Videos with Audio", isOn: $settings.loopVideosWithAudio)
+                .disabled(!playback.loopVideos)
                 .apolloSearchRow("Loop Videos with Audio")
             Toggle("Live Text Analyzer", isOn: $settings.liveTextAnalyzer)
                 .apolloSearchRow("Live Text Analyzer")

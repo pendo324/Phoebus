@@ -318,12 +318,13 @@ public struct GalleryImageViewerScreen: View {
             onHoldForSpeed: { holding in
                 guard let player = currentPlayer, VideoHoldSpeedStore.load().isEnabled else { return }
                 if holding {
-                    holdSpeedRestoreRate = player.rate == 0 ? 1 : player.rate
+                    holdSpeedRestoreRate = player.rate
                     player.rate = VideoHoldSpeedStore.load().holdSpeed
                     Haptics.selection()
                     withAnimation(.easeInOut(duration: 0.15)) { holdingForSpeed = true }
                 } else {
-                    player.rate = holdSpeedRestoreRate
+                    player.rate = VideoPlaybackPolicy.rateAfterHold(rateBeforeHold: holdSpeedRestoreRate,
+                                                                    defaultRate: player.defaultRate)
                     withAnimation(.easeInOut(duration: 0.15)) { holdingForSpeed = false }
                 }
             },
@@ -1181,12 +1182,13 @@ private struct GalleryVideoTransportBar: View {
 
     /// Owned by the screen, so a rebuild of this view cannot reset it.
     @ObservedObject var clock: GalleryTransportClock
+    @Setting(VideoPlaybackSettingsStore.storage) private var playback
 
     private static let buttonSize: CGFloat = 36
     private static let buttonGap: CGFloat = 2
     private static let edgePadding: CGFloat = 8
     private static let timeWidth: CGFloat = 44
-    private static let skipSeconds: Double = 15
+    private var seekSeconds: Int { playback.effectiveSeekInterval }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -1215,21 +1217,21 @@ private struct GalleryVideoTransportBar: View {
             .accessibilityIdentifier("galleryViewer.playPause")
             .padding(.trailing, Self.buttonGap)
 
-            Button { skip(by: -Self.skipSeconds) } label: {
-                Image(systemName: "gobackward.15")
+            Button { skip(by: -Double(seekSeconds)) } label: {
+                Image(systemName: VideoPlaybackSettings.seekSymbol(seekSeconds, forward: false))
                     .foregroundStyle(.white)
                     .frame(width: Self.buttonSize, height: Self.buttonSize)
-                .accessibilityLabel("Back 15 Seconds")
+                .accessibilityLabel(VideoPlaybackSettings.seekLabel(seekSeconds, forward: false))
             }
             .disabled(player == nil)
             .accessibilityIdentifier("galleryViewer.back15")
             .padding(.trailing, Self.buttonGap)
 
-            Button { skip(by: Self.skipSeconds) } label: {
-                Image(systemName: "goforward.15")
+            Button { skip(by: Double(seekSeconds)) } label: {
+                Image(systemName: VideoPlaybackSettings.seekSymbol(seekSeconds, forward: true))
                     .foregroundStyle(.white)
                     .frame(width: Self.buttonSize, height: Self.buttonSize)
-                .accessibilityLabel("Forward 15 Seconds")
+                .accessibilityLabel(VideoPlaybackSettings.seekLabel(seekSeconds, forward: true))
             }
             .disabled(player == nil)
             .accessibilityIdentifier("galleryViewer.forward15")

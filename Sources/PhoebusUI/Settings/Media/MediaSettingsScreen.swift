@@ -9,6 +9,7 @@ public struct MediaSettingsScreen: View {
     @Setting(GalleryAutoplaySettings.self) private var galleryAutoplaySettings
     @Setting(GeneralSettingsStore.storage) private var settings
     @Setting(VideoHoldSpeedStore.storage) private var holdSpeed
+    @Setting(VideoPlaybackSettingsStore.storage) private var playback
     @Setting(InlineMediaSettingsStore.storage) private var inlineMedia
     @Setting(CustomAPISettingsStore.storage) private var customAPI
     /// Reborn refuses an upload host without its API key.
@@ -90,7 +91,8 @@ public struct MediaSettingsScreen: View {
 
     /// Playback row order: Preferred GIF Fallback Format, Unmute Videos in Feed,
     /// Unmute Videos in Comments, Hold for Video Speed, Hold Speed (shown only while
-    /// the switch above it is on).
+    /// the switch above it is on), then Phoebus's Default Playback Speed, Loop Videos
+    /// and Seek Interval.
     private var playbackSection: some View {
         Section {
             ApolloSettingsPicker("Preferred GIF Fallback Format", selection: $settings.preferredGIFFallbackFormat,
@@ -111,13 +113,24 @@ public struct MediaSettingsScreen: View {
                 ApolloSettingsPicker("Hold Speed", selection: $holdSpeed.holdSpeed,
                                  options: Array(VideoHoldSpeedSettings.availableSpeeds),
                                  display: { $0 == $0.rounded() ? "\(Int($0))x" : "\($0)x" })
-                    .apolloSearchRow("Hold Speed", lastBeforeFooter: true)
+                    .apolloSearchRow("Hold Speed")
             }
+            ApolloSettingsPicker("Default Playback Speed", selection: $playback.defaultSpeed,
+                                 options: VideoPlaybackSettings.availableSpeeds,
+                                 display: { VideoPlaybackSettings.speedTitle($0) })
+                    .apolloSearchRow("Default Playback Speed")
+            Toggle("Loop Videos", isOn: $playback.loopVideos)
+                    .accessibilityIdentifier("media.loopVideos")
+                    .apolloSearchRow("Loop Videos")
+            ApolloSettingsPicker("Seek Interval", selection: $playback.seekInterval,
+                                 options: VideoPlaybackSettings.seekIntervals,
+                                 display: { VideoPlaybackSettings.seekTitle($0) })
+                    .apolloSearchRow("Seek Interval", lastBeforeFooter: true)
         } header: {
             Text("Playback")
                 .apolloSectionHeader()
         } footer: {
-            Text("Unmute Videos in Feed: Never keeps feed videos silent, Always plays every one with sound, and Remember follows the last video you muted or unmuted yourself. Only one feed video plays sound at a time. Hold for Video Speed: press and hold the right side of a fullscreen video to play it at the chosen speed.")
+            Text("Unmute Videos in Feed: Never keeps feed videos silent, Always plays every one with sound, and Remember follows the last video you muted or unmuted yourself. Only one feed video plays sound at a time. Hold for Video Speed: press and hold the right side of a fullscreen video to play it at the chosen speed.\n\nDefault Playback Speed: every video starts at this speed; releasing Hold for Video Speed returns to it. Loop Videos: turn off to stop every video at its end, including silent ones; while on, videos with sound loop only under Settings → General → Loop Videos with Audio. Seek Interval: how far the fullscreen viewer's skip buttons jump.")
                     .apolloSectionFooter()
         }
     }

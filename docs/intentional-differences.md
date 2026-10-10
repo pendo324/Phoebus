@@ -109,6 +109,18 @@ Apollo or Reborn, add an entry here.
   so the swipe is held and "Discard Changes?" is shown instead. Phoebus's
   own design (`docs/gestures.md`, "Unsaved changes"); the back button and
   the inline Cancel are not guarded.
+- **Video playback options.** Media → Playback adds Default Playback
+  Speed (0.5x to 2x, default 1x), Loop Videos (default on) and Seek
+  Interval (5, 10, 15 or 30 seconds, default Apollo's 15). Neither Apollo
+  nor Reborn has them; they are inspired by Continuum's video settings.
+  Every video starts at the default speed, hold-for-speed returns to it,
+  and a speed picked from a player's menu now lasts through pauses and
+  loops. Loop Videos off stops every video at its end, silent clips
+  included; while it is on, Apollo's rule is unchanged (silent clips loop,
+  videos with sound loop under Loop Videos with Audio, which is greyed out
+  while Loop Videos is off). Seek Interval moves the fullscreen viewer's
+  and the gallery viewer's skip buttons; the in-app PiP card keeps
+  Reborn's own Skip Amount and loop setting.
 
 ## Settings and interface
 

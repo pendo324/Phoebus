@@ -16,6 +16,118 @@ import PhoebusCore
     check("filteringBlockedAuthors is case-insensitive", tree.filteringBlockedAuthors(["A3"]).count == 1)
 }
 
+// --- Comment Filters (Phoebus's own; commentFilters) ---
+private func makeFilterComment(id: String, author: String = "someone", body: String = "hello",
+                               score: Int = 10, scoreHidden: Bool = false, stickied: Bool = false) -> RedditComment {
+    let json = """
+    {"id":"\(id)","name":"t1_\(id)","author":"\(author)","body":"\(body)","score":\(score),
+     "created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,
+     "score_hidden":\(scoreHidden),"stickied":\(stickied)}
+    """.data(using: .utf8)!
+    return try! JSONDecoder.reddit.decode(RedditComment.self, from: json)
+}
+
+@MainActor func checkCommentFilters() async throws {
+    func verdict(_ comment: RedditComment, _ filters: [CommentFilter], subreddit: String = "AskReddit",
+                 own: String? = "me", focused: String? = nil) -> CommentFilterVerdict {
+        CommentFilterPolicy.verdict(for: comment, subreddit: subreddit, ownUsername: own,
+                                    focusedCommentID: focused, filters: filters)
+    }
+    let minFive = CommentFilter(name: "Low", minScore: 5)
+    check("comment filter: score below the minimum collapses with its reason",
+          verdict(makeFilterComment(id: "a", score: 4), [minFive]) == .collapse(reason: "Filtered: score below 5"))
+    check("comment filter: score at the minimum is shown",
+          verdict(makeFilterComment(id: "a", score: 5), [minFive]) == .show)
+    let maxHundred = CommentFilter(name: "High", maxScore: 100, displayMode: .hide)
+    check("comment filter: score above the maximum hides",
+          verdict(makeFilterComment(id: "a", score: 101), [maxHundred]) == .hide)
+    check("comment filter: score at the maximum is shown",
+          verdict(makeFilterComment(id: "a", score: 100), [maxHundred]) == .show)
+    check("comment filter: negative minimum works",
+          verdict(makeFilterComment(id: "a", score: -6), [CommentFilter(name: "Neg", minScore: -5)]) != .show)
+    check("comment filter: a hidden score is never filtered by score",
+          verdict(makeFilterComment(id: "a", score: 1, scoreHidden: true), [minFive]) == .show)
+    check("comment filter: a pinned comment is not filtered by score",
+          verdict(makeFilterComment(id: "a", score: 1, stickied: true), [minFive]) == .show)
+
+    let words = CommentFilter(name: "Words", excludedWords: ["Spoil"])
+    check("comment filter: words match case-insensitively as substrings",
+          verdict(makeFilterComment(id: "a", body: "Huge SPOILER ahead"), [words]) == .collapse(reason: "Filtered: contains \u{201c}spoil\u{201d}"))
+    check("comment filter: a body without the word is shown",
+          verdict(makeFilterComment(id: "a", body: "nothing here"), [words]) == .show)
+    let pinnedWord = makeFilterComment(id: "a", body: "spoilers", stickied: true)
+    check("comment filter: words still apply to pinned comments", verdict(pinnedWord, [words]) != .show)
+
+    let users = CommentFilter(name: "Users", excludedUsers: [CommentFilter.normalizedUsername(" u/AutoModerator ")], displayMode: .hide)
+    check("comment filter: user list strips u/", users.excludedUsers == ["AutoModerator"])
+    check("comment filter: users match case-insensitively",
+          verdict(makeFilterComment(id: "a", author: "automoderator"), [users]) == .hide)
+    check("comment filter: other users are shown",
+          verdict(makeFilterComment(id: "a", author: "someone"), [users]) == .show)
+
+    let scoped = CommentFilter(name: "Scoped", minScore: 5, subreddits: [CommentFilter.normalizedSubreddit("/r/AskReddit")])
+    check("comment filter: subreddit scope normalises r/ and case", scoped.subreddits == ["askreddit"])
+    check("comment filter: applies in its subreddit, any case",
+          verdict(makeFilterComment(id: "a", score: 1), [scoped], subreddit: "AskReddit") != .show)
+    check("comment filter: does not apply in another subreddit",
+          verdict(makeFilterComment(id: "a", score: 1), [scoped], subreddit: "swift") == .show)
+    check("comment filter: an empty scope applies everywhere", minFive.applies(in: "anything"))
+
+    check("comment filter: your own comment is never filtered",
+          verdict(makeFilterComment(id: "a", author: "Me", score: -50), [minFive], own: "me") == .show)
+    check("comment filter: the focused comment is never filtered (id)",
+          verdict(makeFilterComment(id: "a", score: -50), [minFive], focused: "a") == .show)
+    check("comment filter: the focused comment is never filtered (fullname)",
+          verdict(makeFilterComment(id: "a", score: -50), [minFive], focused: "t1_a") == .show)
+    check("comment filter: Hide wins over Collapse",
+          verdict(makeFilterComment(id: "a", author: "AutoModerator", score: 1), [minFive, users]) == .hide)
+
+    // Tree: hide drops the subtree, collapse keeps replies and still filters them.
+    let lowReply = CommentTreeNode(comment: makeFilterComment(id: "r1", score: 1), depth: 1)
+    let goodReply = CommentTreeNode(comment: makeFilterComment(id: "r2", score: 50), depth: 1)
+    let lowRoot = CommentTreeNode(comment: makeFilterComment(id: "p1", score: 1), depth: 0, children: [goodReply])
+    let goodRoot = CommentTreeNode(comment: makeFilterComment(id: "p2", score: 50), depth: 0, children: [lowReply])
+    let forest = [lowRoot, goodRoot]
+    let collapsed = forest.applyingCommentFilters([minFive], subreddit: "x", ownUsername: nil, focusedCommentID: nil)
+    check("comment filter tree: collapse starts the comment collapsed with its reason",
+          collapsed[0].isCollapsed && collapsed[0].filterReason == "Filtered: score below 5")
+    check("comment filter tree: a collapsed comment keeps its replies", collapsed[0].children.map(\.id) == ["r2"])
+    check("comment filter tree: nested replies are filtered too",
+          collapsed[1].children[0].isCollapsed && !collapsed[1].isCollapsed)
+    var hideMin = minFive
+    hideMin.displayMode = .hide
+    let hidden = forest.applyingCommentFilters([hideMin], subreddit: "x", ownUsername: nil, focusedCommentID: nil)
+    check("comment filter tree: hide removes the comment with its replies",
+          hidden.map(\.id) == ["p2"] && hidden[0].children.isEmpty)
+    let focusedTree = forest.applyingCommentFilters([hideMin], subreddit: "x", ownUsername: nil, focusedCommentID: "r2")
+    check("comment filter tree: a focused comment's ancestors are kept",
+          focusedTree.first?.id == "p1" && focusedTree.first?.children.map(\.id) == ["r2"])
+    check("comment filter tree: no filters is a no-op",
+          forest.applyingCommentFilters([], subreddit: "x", ownUsername: nil, focusedCommentID: nil) == forest)
+
+    // Persistence and backups.
+    let full = CommentFilter(name: "All", minScore: 5, maxScore: 1000, excludedWords: ["a"],
+                             excludedUsers: ["b"], displayMode: .hide, subreddits: ["c"])
+    let decoded = try? JSONDecoder().decode([CommentFilter].self, from: JSONEncoder().encode([full]))
+    check("comment filter: round-trips through Codable", decoded == [full])
+    let sparse = try? JSONDecoder().decode(CommentFilter.self, from: Data(#"{"name":"Old"}"#.utf8))
+    check("comment filter: decoding tolerates missing fields",
+          sparse?.name == "Old" && sparse?.displayMode == .collapse && sparse?.minScore == nil && sparse?.subreddits == [])
+    check("comment filters are in settings backups",
+          SettingsDomainSnapshot.isBackedUp(CommentFilterStore.storage.key))
+    let defaults = UserDefaults(suiteName: "CommentFilterBackupTest")!
+    defaults.removePersistentDomain(forName: "CommentFilterBackupTest")
+    CommentFilterStore.storage.save([full], to: defaults)
+    let snapshot = try! JSONDecoder().decode([String: JSONValue].self,
+                                             from: JSONEncoder().encode(SettingsDomainSnapshot.capture(from: defaults)))
+    let restored = UserDefaults(suiteName: "CommentFilterBackupRestore")!
+    restored.removePersistentDomain(forName: "CommentFilterBackupRestore")
+    SettingsDomainSnapshot.restore(snapshot, into: restored)
+    check("comment filters survive a backup round trip", CommentFilterStore.storage.load(from: restored) == [full])
+    defaults.removePersistentDomain(forName: "CommentFilterBackupTest")
+    restored.removePersistentDomain(forName: "CommentFilterBackupRestore")
+}
+
 // --- Collapse / flatten logic ---
 @MainActor func checkCollapseFlattenLogic() async throws {
     let leaf = CommentTreeNode(comment: makeComment(id: "child"), depth: 1)

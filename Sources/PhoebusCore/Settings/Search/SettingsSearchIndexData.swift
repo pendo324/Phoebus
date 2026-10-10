@@ -112,6 +112,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Filter Type", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Filter Type"),
         SettingsSearchEntry(title: "Add Subreddit", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Subreddit"),
         SettingsSearchEntry(title: "Add Keyword", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Keyword"),
+        SettingsSearchEntry(title: "Comment Filters", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Comment Filters"),
         SettingsSearchEntry(title: "Add Subreddit...", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Subreddit..."),
         SettingsSearchEntry(title: "Add Word...", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Word..."),
         SettingsSearchEntry(title: "Per-Subreddit Overrides", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Per-Subreddit Overrides"),

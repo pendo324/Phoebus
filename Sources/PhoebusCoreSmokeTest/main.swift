@@ -147,6 +147,8 @@ check("tree[1] has no children", tree[1].children.isEmpty)
 
 try await checkHideBlockedUserCommentsDeadToggle()
 
+try await checkCommentFilters()
+
 try await checkCollapseFlattenLogic()
 
 // --- "more" comment continuation stubs: threads show "N more replies" rows,

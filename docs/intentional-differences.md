@@ -175,6 +175,15 @@ Apollo or Reborn, add an entry here.
 
 - **Header Style has an "Automatic" option** that follows the system.
   This is a Phoebus addition.
+- **Comment Filters is a Phoebus addition.** Settings → Filters & Blocks →
+  Comment Filters holds named filters that hide or collapse comments by
+  score range, words in the body or author, everywhere or in chosen
+  subreddits. Neither Apollo nor Reborn has it; it is inspired by
+  Continuum's comment filters and RedReader's minimum comment score
+  setting. Your own comments and a comment opened from a link (with its
+  parents) are never filtered, score bounds ignore hidden
+  scores and pinned comments, negative bounds work, and a collapsed
+  comment says why it was filtered.
 - **There is no What's New screen, no FLEX debugging and no debug rows
   in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
   setting is not imported from backups.

@@ -734,6 +734,11 @@ public struct FeedScreen: View {
         .onReceive(NotificationCenter.default.publisher(for: .apolloSubscriptionsChanged)) { note in
             applySubscriptionChange(note)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .apolloPostMarkChanged)) { note in
+            guard let change = PostMarkChange(note),
+                  let index = posts.firstIndex(where: { $0.name == change.fullname }) else { return }
+            change.apply(to: &posts[index])
+        }
 
     }
 

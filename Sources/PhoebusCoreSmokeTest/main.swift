@@ -1557,5 +1557,7 @@ try await checkProfileVisibility()
 
 try await checkProfileAvatarWebPage()
 
+try await checkMarkNSFWAndSpoiler()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

@@ -16,8 +16,7 @@ extension FeedScreen {
         }
         if isModerator {
             Divider()
-            ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam", "mod-distinguish",
-                                                   "mod-sticky", "mod-lock"], for: .moderatorPost), id: \.self) { id in
+            ForEach(ActionMenuLayoutStore.arrange(feedModeratorMenuIDs(for: post), for: .moderatorPost), id: \.self) { id in
                 feedPostMenuRow(id, post: post)
             }
         }
@@ -29,10 +28,19 @@ extension FeedScreen {
         var ids = ["save", "hide", "share", "copy-link"]
         if post.galleryImageURLs.count > 1 { ids.append("save-all-media") }
         ids += ["crosspost", "mute-notifications", "filter-subreddit"]
+        ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
+                                          signedInUsername: signedInUsername, isModerator: isModerator)
         if isModerator || post.author == signedInUsername { ids.append("post-flair") }
         if PostInsightsParser.isEligible(author: post.author, currentUsername: signedInUsername) { ids.append("post-insights") }
         ids += ["media-download", "subscribe-actions"]
         return ids
+    }
+
+    func feedModeratorMenuIDs(for post: RedditPost) -> [String] {
+        ["mod-approve", "mod-remove", "mod-spam"]
+            + PostMarkMenuPolicy.menuIDs(in: .moderatorMenu, author: post.author,
+                                         signedInUsername: signedInUsername, isModerator: isModerator)
+            + ["mod-distinguish", "mod-sticky", "mod-lock"]
     }
 
     @ViewBuilder
@@ -79,6 +87,10 @@ extension FeedScreen {
             }
         case "post-insights":
             Button { insightsTargetPost = post } label: { Label("Insights", systemImage: "chart.bar") }
+        case "nsfw", "spoiler":
+            if let mark = PostMark(rawValue: id) {
+                PostMarkMenuButton(mark: mark, post: post, repository: repository, identifierPrefix: "feed.postMenu")
+            }
         case "post-flair":
             // Apollo's flair action: change a post's flair after posting.
             Button { flairTargetPost = post } label: { Label("Set Flair", systemImage: "tag") }

@@ -539,11 +539,11 @@ public actor RedditRepository {
     /// Creates a new native poll post. Requires the web/cookie-session
     /// transport, same constraint as voting.
     @discardableResult
-    public func submitPoll(subreddit: String, title: String, options: [String], durationDays: Int, flairID: String? = nil, flairText: String? = nil) async throws -> URL {
+    public func submitPoll(subreddit: String, title: String, options: [String], durationDays: Int, flairID: String? = nil, flairText: String? = nil, marks: PostSubmitMarks = PostSubmitMarks()) async throws -> URL {
         guard let session = await webFeatureSession() else {
             throw PollComposeService.ComposeError.requiresWebSession
         }
-        return try await PollComposeService.submit(subreddit: subreddit, title: title, options: options, durationDays: durationDays, flairID: flairID, flairText: flairText, session: session)
+        return try await PollComposeService.submit(subreddit: subreddit, title: title, options: options, durationDays: durationDays, flairID: flairID, flairText: flairText, marks: marks, session: session)
     }
 
     /// Under a cookie-authed web session `/api/v1/me` is rewritten to
@@ -976,24 +976,31 @@ public actor RedditRepository {
     }
 
     @discardableResult
-    public func submitPost(subreddit: String, title: String, selftext: String?, url: String?, flairID: String?) async throws -> Data {
+    public func submitPost(subreddit: String, title: String, selftext: String?, url: String?, flairID: String?, marks: PostSubmitMarks = PostSubmitMarks()) async throws -> Data {
         var params: [String: String] = [
             "sr": subreddit,
             "title": title,
             "kind": url != nil ? "link" : "self",
             "api_type": "json",
-        ]
+        ].merging(marks.formParameters) { current, _ in current }
         if let selftext { params["text"] = selftext }
         if let url { params["url"] = url }
         if let flairID { params["flair_id"] = flairID }
         return try await postChecked("/api/submit", params)
     }
 
+    /// Mark NSFW / Mark Spoiler and their undos on a post (its author's or
+    /// a moderator's). No body comes back.
+    @discardableResult
+    public func setMark(_ mark: PostMark, on fullname: String, marked: Bool) async throws -> Data {
+        try await client.post(path: mark.path(marking: marked), parameters: ["id": fullname])
+    }
+
     /// Uploads image/video data through Reddit's own media pipeline and
     /// submits it as an image post (Reborn's "Native Reddit media upload
     /// support"): a lease-then-upload flow rather than a third-party host.
     @discardableResult
-    public func submitImagePost(subreddit: String, title: String, fileData: Data, filename: String, mimeType: String, kind: RedditMediaKind, flairID: String?) async throws -> Data {
+    public func submitImagePost(subreddit: String, title: String, fileData: Data, filename: String, mimeType: String, kind: RedditMediaKind, flairID: String?, marks: PostSubmitMarks = PostSubmitMarks()) async throws -> Data {
         let lease = try await RedditMediaUploadClient.requestUploadLease(kind: kind, filename: filename, mimeType: mimeType, client: client)
         try await RedditMediaUploadClient.upload(fileData: fileData, filename: filename, mimeType: mimeType, lease: lease)
         var params: [String: String] = [
@@ -1002,7 +1009,7 @@ public actor RedditRepository {
             "kind": "image",
             "url": lease.assetURL,
             "api_type": "json",
-        ]
+        ].merging(marks.formParameters) { current, _ in current }
         if let flairID { params["flair_id"] = flairID }
         return try await postChecked("/api/submit", params)
     }
@@ -1013,7 +1020,7 @@ public actor RedditRepository {
     /// `video_poster_url=<poster asset URL>` all three set, unlike an
     /// image post which needs no separate poster.
     @discardableResult
-    public func submitVideoPost(subreddit: String, title: String, videoData: Data, videoFilename: String, videoMimeType: String, posterData: Data, flairID: String?) async throws -> Data {
+    public func submitVideoPost(subreddit: String, title: String, videoData: Data, videoFilename: String, videoMimeType: String, posterData: Data, flairID: String?, marks: PostSubmitMarks = PostSubmitMarks()) async throws -> Data {
         let videoLease = try await RedditMediaUploadClient.requestUploadLease(kind: .video, filename: videoFilename, mimeType: videoMimeType, client: client)
         try await RedditMediaUploadClient.upload(fileData: videoData, filename: videoFilename, mimeType: videoMimeType, lease: videoLease)
         let posterLease = try await RedditMediaUploadClient.requestUploadLease(kind: .image, filename: "poster.jpg", mimeType: "image/jpeg", client: client)
@@ -1026,7 +1033,7 @@ public actor RedditRepository {
             "video_poster_url": posterLease.assetURL,
             "api_type": "json",
             "validate_on_submit": "false",
-        ]
+        ].merging(marks.formParameters) { current, _ in current }
         if let flairID { params["flair_id"] = flairID }
         return try await postChecked("/api/submit", params)
     }
@@ -1037,7 +1044,7 @@ public actor RedditRepository {
     /// "outbound_url": ""}`, where `media_id` is the lease response's
     /// `asset_id` (NOT the S3 key or asset URL).
     @discardableResult
-    public func submitGalleryPost(subreddit: String, title: String, images: [(data: Data, filename: String, mimeType: String)], flairID: String?) async throws -> Data {
+    public func submitGalleryPost(subreddit: String, title: String, images: [(data: Data, filename: String, mimeType: String)], flairID: String?, marks: PostSubmitMarks = PostSubmitMarks()) async throws -> Data {
         var mediaIDs: [String] = []
         for image in images {
             let lease = try await RedditMediaUploadClient.requestUploadLease(kind: .image, filename: image.filename, mimeType: image.mimeType, client: client)
@@ -1051,11 +1058,11 @@ public actor RedditRepository {
         var payload: [String: Any] = [
             "api_type": "json",
             "items": items,
-            "nsfw": false,
+            "nsfw": marks.nsfw,
             "resubmit": true,
             "sendreplies": true,
             "show_error_list": true,
-            "spoiler": false,
+            "spoiler": marks.spoiler,
             "sr": subreddit,
             "title": title,
             "validate_on_submit": false,

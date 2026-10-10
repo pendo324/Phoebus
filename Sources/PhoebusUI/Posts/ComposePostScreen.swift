@@ -35,6 +35,7 @@ public struct ComposePostScreen: View {
     @State private var subredditRules: [SubredditRule] = []
     @State private var requirements: PostRequirements?
     @State private var guidelinesExpanded = false
+    @State private var marks = PostSubmitMarks()
     @Environment(\.dismiss) private var dismiss
 
     struct MediaComposeImage: Identifiable {
@@ -137,6 +138,14 @@ public struct ComposePostScreen: View {
                     }
                     requirementNotes(for: .flair)
                 }
+            }
+
+            // Sent with every post type, as Reddit's own submit form does.
+            Section {
+                Toggle("NSFW", isOn: $marks.nsfw)
+                    .accessibilityIdentifier("compose.nsfwToggle")
+                Toggle("Spoiler", isOn: $marks.spoiler)
+                    .accessibilityIdentifier("compose.spoilerToggle")
             }
 
             Section {
@@ -399,7 +408,8 @@ public struct ComposePostScreen: View {
                         videoFilename: "upload.mp4",
                         videoMimeType: "video/mp4",
                         posterData: posterData,
-                        flairID: selectedFlair?.id
+                        flairID: selectedFlair?.id,
+                        marks: marks
                     )
                 } else if selectedImages.count == 1 {
                     try await submitSingleImage(selectedImages[0].data)
@@ -408,7 +418,8 @@ public struct ComposePostScreen: View {
                         subreddit: subreddit,
                         title: title,
                         images: selectedImages.map { (data: $0.data, filename: "upload.jpg", mimeType: "image/jpeg") },
-                        flairID: selectedFlair?.id
+                        flairID: selectedFlair?.id,
+                        marks: marks
                     )
                 } else {
                     return
@@ -420,7 +431,8 @@ public struct ComposePostScreen: View {
                     options: pollOptionTexts,
                     durationDays: pollDurationDays,
                     flairID: selectedFlair?.id,
-                    flairText: selectedFlair?.text
+                    flairText: selectedFlair?.text,
+                    marks: marks
                 )
             default:
                 let response = try await repository.submitPost(
@@ -428,7 +440,8 @@ public struct ComposePostScreen: View {
                     title: title,
                     selftext: postType == .link ? nil : (selftextBody.isEmpty ? nil : selftextBody),
                     url: postType == .link ? linkURL : nil,
-                    flairID: selectedFlair?.id
+                    flairID: selectedFlair?.id,
+                    marks: marks
                 )
                 submittedFullname = SubmittedPostResponse.fullname(from: response)
             }
@@ -452,14 +465,15 @@ public struct ComposePostScreen: View {
                 filename: "upload.jpg",
                 mimeType: "image/jpeg",
                 kind: .image,
-                flairID: selectedFlair?.id
+                flairID: selectedFlair?.id,
+                marks: marks
             )
         case .imgur:
             let image = try await ImgurClient.uploadImage(data: data)
-            try await repository.submitPost(subreddit: subreddit, title: title, selftext: nil, url: image.link, flairID: selectedFlair?.id)
+            try await repository.submitPost(subreddit: subreddit, title: title, selftext: nil, url: image.link, flairID: selectedFlair?.id, marks: marks)
         case .imgChest:
             let image = try await ImgChestClient.uploadImage(data: data)
-            try await repository.submitPost(subreddit: subreddit, title: title, selftext: nil, url: image.link, flairID: selectedFlair?.id)
+            try await repository.submitPost(subreddit: subreddit, title: title, selftext: nil, url: image.link, flairID: selectedFlair?.id, marks: marks)
         }
     }
 

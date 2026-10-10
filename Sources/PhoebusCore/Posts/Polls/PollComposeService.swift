@@ -50,6 +50,7 @@ public enum PollComposeService {
         durationDays: Int,
         flairID: String? = nil,
         flairText: String? = nil,
+        marks: PostSubmitMarks = PostSubmitMarks(),
         session: WebSessionCredential
     ) async throws -> URL {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -69,6 +70,7 @@ public enum PollComposeService {
             "resubmit": true,
             "sendreplies": true
         ]
+        body.merge(marks.jsonParameters) { current, _ in current }
         if let flairID, !flairID.isEmpty { body["flair_id"] = flairID }
         if let flairText, !flairText.isEmpty { body["flair_text"] = flairText }
 

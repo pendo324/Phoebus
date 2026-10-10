@@ -28,8 +28,8 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     public var numComments: Int
     public let created: Date
     public let isSelf: Bool
-    public let over18: Bool
-    public let spoiler: Bool
+    public var over18: Bool
+    public var spoiler: Bool
     public var stickied: Bool
     public let saved: Bool
     public let likes: Bool?              // true = upvoted, false = downvoted, nil = none

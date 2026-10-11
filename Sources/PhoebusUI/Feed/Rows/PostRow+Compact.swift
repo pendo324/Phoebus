@@ -302,6 +302,11 @@ extension PostRow {
             }
     }
 
+    /// The post's edit time when Show Edited Marker draws it.
+    var shownEdited: RedditEditedTime? {
+        EditedMarker.isShown(post.edited, enabled: generalSettings.showEditedMarker) ? post.edited : nil
+    }
+
     /// What releasing the magnifier on a stat does; a stat whose Info Row
     /// action is off does nothing, as Reborn's.
     func activateInfoRowStat(_ stat: InfoRowStat) {
@@ -320,7 +325,7 @@ extension PostRow {
     func showAgeDetail() {
         if infoRowSettings.overlayMode {
             let lines = InfoRowAgeDetail.lines(created: post.created, condensed: true)
-            let card = AgeDetail(title: lines.title, message: lines.message)
+            let card = AgeDetail(title: lines.title, message: EditedMarker.appendingTimestamp(shownEdited, to: lines.message))
             withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) { ageOverlay = card }
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1.6))
@@ -329,7 +334,7 @@ extension PostRow {
             }
         } else if infoRowSettings.popupMode {
             let lines = InfoRowAgeDetail.lines(created: post.created)
-            ageDetail = AgeDetail(title: lines.title, message: lines.message)
+            ageDetail = AgeDetail(title: lines.title, message: EditedMarker.appendingTimestamp(shownEdited, to: lines.message))
         }
     }
 
@@ -405,7 +410,7 @@ extension PostRow {
                 )
                 .accessibilityIdentifier("feed.postRow.commentsLabel")
                 .infoRowStat(.comments)
-            TimestampLabel(post.created, showsIcon: true)
+            TimestampLabel(post.created, showsIcon: true, edited: shownEdited)
                 .infoRowStat(.age)
                 // Info Row Overlay: the card sits just above the age.
                 .overlay(alignment: .top) {
@@ -427,6 +432,14 @@ extension PostRow {
                     showAgeDetail()
                 },
                                      including: infoRowSettings.popupMode || infoRowSettings.overlayMode ? .all : .subviews)
+            // Apollo's edited pencil after the age (`PostInfoNode.editedButtonNode`).
+            if let edited = shownEdited {
+                EditedIndicator(edited: edited, showsDetailOnTap: !infoRowSettings.popupMode && !infoRowSettings.overlayMode)
+                    .modifier(InfoRowDetailTap(popup: infoRowSettings.popupMode, overlay: infoRowSettings.overlayMode) { condensed in
+                        EditedMarker.lines(edited, condensed: condensed)
+                    })
+                    .accessibilityIdentifier("feed.postRow.edited")
+            }
             // Info Row "Translation" marker: the 🌐 marker
             // beside a post's stats. Tapping it translates the
             // title/body via the translator sheet. Appears

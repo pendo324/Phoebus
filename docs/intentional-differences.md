@@ -126,6 +126,15 @@ Apollo or Reborn, add an entry here.
   it replies to ("2m later", top-level comments count from the post).
   Tapping the age still shows the exact time. Neither Apollo nor Reborn
   has this; it is inspired by RedReader's comment age setting.
+- **The edited marker can be turned off, and the age names the edit
+  time.** Apollo always drew a pencil beside an edited comment's score
+  and after an edited post's age, in feeds and post detail. Phoebus
+  keeps that pencil (an SF Symbol, since Apollo's glyph isn't bundled)
+  behind General > Comments > "Show Edited Marker", default on, and
+  tapping a comment's or post's age also shows "Edited <time>" under the
+  creation time. Neither the switch nor
+  the age detail is in Apollo or Reborn; both are inspired by Continuum's
+  edited-time display.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

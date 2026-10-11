@@ -16,12 +16,15 @@ public struct TimestampLabel: View {
     /// Replaces the relative age (the comment byline's `CommentAgeMode`);
     /// the tap still shows `date`.
     let text: String?
+    /// Adds "Edited <time>" under the creation time (Show Edited Marker).
+    let edited: RedditEditedTime?
     @State private var showingAbsolute = false
 
-    public init(_ date: Date, showsIcon: Bool = false, text: String? = nil) {
+    public init(_ date: Date, showsIcon: Bool = false, text: String? = nil, edited: RedditEditedTime? = nil) {
         self.date = date
         self.showsIcon = showsIcon
         self.text = text
+        self.edited = edited
     }
 
     @ViewBuilder
@@ -44,7 +47,7 @@ public struct TimestampLabel: View {
             .alert("Created", isPresented: $showingAbsolute) {
                 Button("OK") {}
             } message: {
-                Text(date.formatted(date: .abbreviated, time: .shortened))
+                Text(EditedMarker.appendingTimestamp(edited, to: date.formatted(date: .abbreviated, time: .shortened)) ?? "")
             }
     }
 }

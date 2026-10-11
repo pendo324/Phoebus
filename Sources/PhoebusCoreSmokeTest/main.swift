@@ -297,6 +297,8 @@ try await checkRecentlyReadPostsApolloRebornFeature()
 
 try await checkAuthorFlairAwardCountApolloS()
 
+try await checkEditedMarker()
+
 try await checkSubredditTrafficDecodingApolloSSubredditTrafficViewController()
 
 // --- Modmail conversation subreddit name ---

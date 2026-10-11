@@ -214,6 +214,9 @@ public struct GeneralSettingsScreen: View {
                                  display: { $0.displayName })
                 .accessibilityIdentifier("settings.general.commentAge")
                 .apolloSearchRow("Comment Age")
+            Toggle("Show Edited Marker", isOn: $settings.showEditedMarker)
+                .accessibilityIdentifier("general.showEditedMarker")
+                .apolloSearchRow("Show Edited Marker")
             ApolloSettingsPicker("Blocked Users", selection: $settings.hideBlockedUserComments,
                                  options: [false, true],
                                  display: { $0 ? "Hide" : "Collapse" })

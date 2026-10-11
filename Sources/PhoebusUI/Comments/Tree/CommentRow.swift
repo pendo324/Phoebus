@@ -395,6 +395,12 @@ struct CommentRow: View {
                             .foregroundStyle(Color(hex: ApolloPalette.moderatorGreenHex))
                             .accessibilityLabel("Locked")
                     }
+                    // Apollo's edited pencil (Show Edited Marker); a tap names the edit time.
+                    if EditedMarker.isShown(node.comment.edited, enabled: general.showEditedMarker), let edited = node.comment.edited {
+                        EditedIndicator(edited: edited)
+                            .foregroundStyle(Color.apolloTertiaryText(colorScheme: colorScheme, themeColors: themeColors))
+                            .accessibilityIdentifier("comment.edited.\(node.id)")
+                    }
                     // Expanded rows end with "••• <age>"; collapsed rows end with a badge
                     // holding the hidden-descendant count and a separate chevron, dropping
                     // the age. The empty band between score and trailing cluster collapses
@@ -447,7 +453,8 @@ struct CommentRow: View {
                         // detail icons (% upvoted, timestamp, edited pencil) reveal their
                         // detail on tap; `TimestampLabel` gives itself its own `contentShape`
                         // so the row's collapse gesture doesn't swallow it.
-                        TimestampLabel(node.comment.created, text: ageLabel)
+                        TimestampLabel(node.comment.created, text: ageLabel,
+                                       edited: general.showEditedMarker ? node.comment.edited : nil)
                             // 13pt regular in #61626A (tertiary), 16pt trailing inset, 11pt gap
                             // back to the "•••".
                             .apolloFont(size: 13)

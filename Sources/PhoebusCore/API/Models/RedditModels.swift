@@ -77,6 +77,8 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     /// "gallery", "animated_gif", "link", "self"...). `AIArticleDetector`
     /// needs it as the cheapest signal that a link post is media.
     public let postHint: String?
+    /// Reddit's `edited`: when the self text was last edited.
+    public var edited: RedditEditedTime? = nil
     public let suggestedSortRaw: String?
     public var suggestedSort: String? {
         guard let suggestedSortRaw, suggestedSortRaw != "null" else { return nil }
@@ -111,6 +113,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
         case locked
         case suggestedSortRaw = "suggested_sort"
         case postHint = "post_hint"
+        case edited
     }
 
     /// Resolves this post's gallery images in display order, unescaping
@@ -477,6 +480,8 @@ public struct RedditComment: Decodable, Sendable, Identifiable {
     public let mediaMetadata: [String: GalleryMediaItem]?
     /// The author's `t2_` id, for the batched avatar lookup.
     public let authorFullname: String?
+    /// Same as `RedditPost.edited`.
+    public var edited: RedditEditedTime? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, author, body, score, saved, likes, depth, stickied, subreddit
@@ -498,6 +503,7 @@ public struct RedditComment: Decodable, Sendable, Identifiable {
         case authorCakeday = "author_cakeday"
         case locked
         case authorFlairRichtext = "author_flair_richtext"
+        case edited
     }
 }
 

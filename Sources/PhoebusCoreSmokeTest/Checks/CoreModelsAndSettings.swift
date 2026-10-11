@@ -463,6 +463,68 @@ import PhoebusCore
     check("posts without author flair decode nil", post.authorFlairText == nil)
 }
 
+// --- Edited marker (Apollo's edited pencil) ---
+@MainActor func checkEditedMarker() async throws {
+    func commentEdited(_ raw: String) -> RedditEditedTime? {
+        let json = """
+        {"id":"e1","name":"t1_e1","author":"u","body":"b","score":0,"created_utc":1700000000,
+         "parent_id":"t3_x","link_id":"t3_x","saved":false,"score_hidden":false,"stickied":false,
+         "edited":\(raw)}
+        """.data(using: .utf8)!
+        return (try? JSONDecoder.reddit.decode(RedditComment.self, from: json))?.edited
+    }
+    check("edited false decodes as unedited", commentEdited("false") == RedditEditedTime(isEdited: false))
+    check("an edited Unix time decodes to its date",
+          commentEdited("1700003600")?.date == Date(timeIntervalSince1970: 1700003600))
+    check("a fractional edited time decodes", commentEdited("1700003600.5")?.date == Date(timeIntervalSince1970: 1700003600.5))
+    check("a bare edited true is edited with no time",
+          commentEdited("true") == RedditEditedTime(isEdited: true) && commentEdited("true")?.date == nil)
+    check("an unexpected edited shape still decodes the comment", commentEdited("{\"x\":1}")?.isEdited == false)
+    check("edited null decodes as absent", commentEdited("null") == nil)
+    check("a comment without edited decodes it nil", makeComment(id: "plain").edited == nil)
+    check("a post without edited decodes it nil", post.edited == nil)
+
+    let editedPostJSON = """
+    {"id":"ep","name":"t3_ep","title":"t","author":"u","subreddit":"test","permalink":"/r/test/comments/ep/",
+     "score":1,"num_comments":0,"created_utc":1700000000,"is_self":true,"over_18":false,"spoiler":false,
+     "stickied":false,"saved":false,"edited":1700007200.0}
+    """.data(using: .utf8)!
+    let editedPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: editedPostJSON)
+    check("a post decodes its edited time", editedPost.edited?.date == Date(timeIntervalSince1970: 1700007200))
+    let cachedPost = try! JSONDecoder.reddit.decode(RedditPost.self, from: try! JSONEncoder.reddit.encode(editedPost))
+    check("a post's edited time survives the cache round-trip", cachedPost.edited == editedPost.edited)
+    let cachedUnedited = try! JSONDecoder.reddit.decode(
+        RedditEditedTime.self, from: try! JSONEncoder().encode(RedditEditedTime(isEdited: false)))
+    check("an unedited value round-trips as false", cachedUnedited == RedditEditedTime(isEdited: false))
+
+    let utc = TimeZone(identifier: "UTC")!
+    let enUS = Locale(identifier: "en_US")
+    let editedAt = RedditEditedTime(isEdited: true, date: Date(timeIntervalSince1970: 1700007200))
+    check("the marker shows for an edited thing", EditedMarker.isShown(editedAt, enabled: true))
+    check("the marker hides when Show Edited Marker is off", !EditedMarker.isShown(editedAt, enabled: false))
+    check("the marker hides for an unedited thing", !EditedMarker.isShown(RedditEditedTime(isEdited: false), enabled: true))
+    check("the marker hides when edited is absent", !EditedMarker.isShown(nil, enabled: true))
+    let lines = EditedMarker.lines(editedAt, now: Date(timeIntervalSince1970: 1700007200 + 2 * 3600), timeZone: utc, locale: enUS)
+    check("the edited detail title gives the compact age", lines.title == "Edited 2h Ago")
+    check("the edited detail names the exact time", lines.message?.hasPrefix("Edited on November 15, 2023") == true)
+    check("a just-made edit reads Just now",
+          EditedMarker.lines(editedAt, now: Date(timeIntervalSince1970: 1700007230)).title == "Edited Just now")
+    check("an edit with no time reads plain Edited", EditedMarker.lines(RedditEditedTime(isEdited: true)).title == "Edited")
+    check("the age's tap adds the edit time under the creation time",
+          EditedMarker.appendingTimestamp(editedAt, to: "Created line", timeZone: utc, locale: enUS)?
+            .hasPrefix("Created line\nEdited Nov 15, 2023") == true)
+    check("the age's tap is unchanged for an unedited thing",
+          EditedMarker.appendingTimestamp(RedditEditedTime(isEdited: false), to: "Created line") == "Created line")
+    check("Show Edited Marker defaults on", GeneralSettings.default.showEditedMarker)
+    let saved = GeneralSettingsStore.load()
+    var off = saved
+    off.showEditedMarker = false
+    GeneralSettingsStore.save(off)
+    let backup = try! BackupBundle.decode(from: try! BackupBundle.captureCurrent().encoded())
+    check("Show Edited Marker round-trips through a settings backup", backup.generalSettings.showEditedMarker == false)
+    GeneralSettingsStore.save(saved)
+}
+
 // --- Subreddit traffic decoding ---
 @MainActor func checkSubredditTrafficDecodingApolloSSubredditTrafficViewController() async throws {
     let trafficJSON = """

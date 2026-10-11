@@ -37,6 +37,18 @@ public enum RedditURLTarget: Hashable, Sendable {
             return .post(subreddit: components[rIndex + 1], id: components[rIndex + 3])
         }
 
+        // /user/<name>/comments/<id>[/<slug>/<comment>]: a post on a user's
+        // profile, whose subreddit is `u_<name>`.
+        if let uIndex = components.firstIndex(where: { $0 == "u" || $0 == "user" }),
+           components.count > uIndex + 3, components[uIndex + 2] == "comments" {
+            let subreddit = "u_" + components[uIndex + 1]
+            if components.count > uIndex + 5, !components[uIndex + 5].isEmpty {
+                return .comment(subreddit: subreddit, postID: components[uIndex + 3],
+                                commentID: components[uIndex + 5])
+            }
+            return .post(subreddit: subreddit, id: components[uIndex + 3])
+        }
+
         // /comments/<id>[/<slug>/<comment>], the subreddit-less form
         // Reddit's share button produces.
         if components.first == "comments", components.count > 1 {

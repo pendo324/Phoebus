@@ -148,6 +148,16 @@ Apollo or Reborn, add an entry here.
   and the gallery viewer's skip buttons; the in-app PiP card keeps
   Reborn's own Skip Amount and loop setting.
 
+## Posting
+
+- **The post composer has NSFW and Spoiler switches for every post
+  type** (text, link, media and poll), sent with the submission. Neither
+  Apollo nor Reborn offers them when posting; they are inspired by
+  Continuum's submit screens. Apollo's own Mark NSFW / Mark Spoiler
+  actions are also wired up: on your own posts they sit in the post's
+  ••• menus (feed and comments), and on other people's posts in a
+  subreddit you moderate in the Moderator menu, so they never show twice.
+
 ## Settings and interface
 
 - **Header Style has an "Automatic" option** that follows the system.

@@ -1183,3 +1183,47 @@ import PhoebusCore
     check("an empty edit of an empty post is not",
           !UnsavedTextEdit.hasChanges(original: "", edited: "  \n"))
 }
+
+// MARK: - Mark NSFW / Spoiler
+@MainActor func checkMarkNSFWAndSpoiler() async throws {
+    check("your own post gets Mark NSFW / Spoiler in its ••• menu",
+          PostMarkMenuPolicy.placement(author: "Me", signedInUsername: "me", isModerator: false) == .postMenu)
+    check("...still there, not in the Moderator menu, where you moderate",
+          PostMarkMenuPolicy.placement(author: "me", signedInUsername: "me", isModerator: true) == .postMenu)
+    check("someone else's post in a subreddit you moderate gets them in the Moderator menu",
+          PostMarkMenuPolicy.placement(author: "other", signedInUsername: "me", isModerator: true) == .moderatorMenu)
+    check("someone else's post elsewhere gets neither",
+          PostMarkMenuPolicy.placement(author: "other", signedInUsername: "me", isModerator: false) == nil)
+    check("signed out, an empty username matches no author",
+          PostMarkMenuPolicy.placement(author: "", signedInUsername: "", isModerator: false) == nil
+          && PostMarkMenuPolicy.placement(author: "x", signedInUsername: nil, isModerator: false) == nil)
+    check("the rows use the Action Menus catalogue's ids, in its order",
+          PostMarkMenuPolicy.menuIDs(in: .postMenu, author: "me", signedInUsername: "me", isModerator: false) == ["nsfw", "spoiler"]
+          && PostMarkMenuPolicy.menuIDs(in: .moderatorMenu, author: "me", signedInUsername: "me", isModerator: true).isEmpty
+          && PostMark.allCases.allSatisfy { ActionMenuCatalog.item($0.rawValue, in: .post) != nil
+              && ActionMenuCatalog.item($0.rawValue, in: .postDetail) != nil
+              && ActionMenuCatalog.item($0.rawValue, in: .moderatorPost) != nil })
+    check("each mark and undo has its own endpoint",
+          [PostMark.nsfw.path(marking: true), PostMark.nsfw.path(marking: false),
+           PostMark.spoiler.path(marking: true), PostMark.spoiler.path(marking: false)]
+          == ["/api/marknsfw", "/api/unmarknsfw", "/api/spoiler", "/api/unspoiler"])
+    check("the row says what it will do",
+          PostMark.nsfw.title(marking: true) == "Mark NSFW" && PostMark.spoiler.title(marking: false) == "Unmark Spoiler")
+
+    let json = Data(#"{"id":"m1","name":"t3_m1","title":"t","author":"me","subreddit":"s","permalink":"/r/s/comments/m1/","score":1,"num_comments":0,"created_utc":0,"is_self":true,"over_18":false,"spoiler":false,"stickied":false,"saved":false}"#.utf8)
+    var post = try JSONDecoder.reddit.decode(RedditPost.self, from: json)
+    let change = PostMarkChange(fullname: "t3_m1", mark: .nsfw, value: true)
+    check("a mark change survives its notification", PostMarkChange(change.notification) == change)
+    check("...and applies to the post it names", change.apply(to: &post) && post.over18 && !post.spoiler)
+    check("...and to no other post",
+          !PostMarkChange(fullname: "t3_other", mark: .spoiler, value: true).apply(to: &post) && !post.spoiler)
+    PostMarkChange(fullname: "t3_m1", mark: .spoiler, value: true).apply(to: &post)
+    check("Spoiler is read back from the post", PostMark.spoiler.isSet(on: post))
+
+    check("a new post is submitted unmarked by default",
+          PostSubmitMarks().formParameters == ["nsfw": "false", "spoiler": "false"]
+          && PostSubmitMarks().jsonParameters == ["nsfw": false, "spoiler": false])
+    check("the composer's toggles reach the form and JSON submits",
+          PostSubmitMarks(nsfw: true, spoiler: false).formParameters == ["nsfw": "true", "spoiler": "false"]
+          && PostSubmitMarks(nsfw: false, spoiler: true).jsonParameters == ["nsfw": false, "spoiler": true])
+}

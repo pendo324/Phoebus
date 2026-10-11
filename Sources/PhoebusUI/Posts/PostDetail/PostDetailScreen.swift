@@ -38,6 +38,9 @@ public struct PostDetailScreen: View {
     @State var modStickied: Bool?
     @State var modLocked: Bool?
     @State var modMessage: String?
+    /// Mark NSFW / Mark Spoiler changes since the post was loaded.
+    @State private var markOverrides: [PostMark: Bool] = [:]
+    @State private var signedInUsername: String?
 
     /// Reborn "Apollo AI". Gated on `ApolloAISettings.summariesEnabled` so the menu
     /// action only appears once the user has opted in from `ApolloAISettingsScreen`.
@@ -165,6 +168,11 @@ public struct PostDetailScreen: View {
             // tall header would leave its `.task` never running.
             .task(id: commentSort) { await commentStore.fetch(subreddit: post.subreddit, postID: post.id, sort: commentSort, repository: repository) }
             .task { isModerator = (try? await repository.fetchSubredditInfo(name: post.subreddit).userIsModerator) == true }
+            .task { signedInUsername = await CurrentUsernameCache.username(repository: repository) }
+            .onReceive(NotificationCenter.default.publisher(for: .apolloPostMarkChanged)) { note in
+                guard let change = PostMarkChange(note), change.fullname == post.name else { return }
+                markOverrides[change.mark] = change.value
+            }
             // Restores the row's verb if an activity from a previous visit is still running.
             .task { liveActivityRunning = FollowThreadActivityStore.isActive(postID: post.id) }
             .alert(modMessage ?? "", isPresented: $modMessage.isPresent()) {
@@ -455,7 +463,7 @@ public struct PostDetailScreen: View {
     @ViewBuilder
     private func postHeader(scrollProxy: ScrollViewProxy) -> some View {
         PostDetailHeader(
-            post: post,
+            post: markedPost,
             repository: repository,
             onSubredditTap: { jumpDestination = .subreddit(post.subreddit) },
             onAuthorTap: { jumpDestination = .user(post.author) },
@@ -644,6 +652,13 @@ extension PostDetailScreen {
         }
     }
 
+    /// The post with this session's Mark NSFW / Mark Spoiler changes.
+    private var markedPost: RedditPost {
+        var marked = post
+        for (mark, value) in markOverrides { mark.set(value, on: &marked) }
+        return marked
+    }
+
     private var postDetailMenuIDs: [String] {
         var ids = isModerator ? ["moderator"] : []
         ids += ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children",
@@ -653,6 +668,8 @@ extension PostDetailScreen {
         if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
         if aiSettings.summariesEnabled { ids.append("summarize") }
         if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
+        ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
+                                          signedInUsername: signedInUsername, isModerator: isModerator)
         ids += ["mute-notifications", "report", "live-activity", "spec.DeletedComments"]
         if isOwnPost { ids.append("post-insights") }
         return ids
@@ -661,8 +678,10 @@ extension PostDetailScreen {
     /// The Moderator row: the Moderator (Post) menu, arranged by its layout.
     private var moderatorPostMenu: some View {
         Menu {
-            ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam", "mod-distinguish",
-                                                   "mod-sticky", "mod-lock", "mod-notes"], for: .moderatorPost), id: \.self) { id in
+            let marks = PostMarkMenuPolicy.menuIDs(in: .moderatorMenu, author: post.author,
+                                                   signedInUsername: signedInUsername, isModerator: isModerator)
+            ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam"] + marks
+                                                  + ["mod-distinguish", "mod-sticky", "mod-lock", "mod-notes"], for: .moderatorPost), id: \.self) { id in
                 moderatorPostRow(id)
             }
         } label: { Label("Moderator", systemImage: "shield") }
@@ -703,6 +722,10 @@ extension PostDetailScreen {
                     modStickied = !stickied
                 }
             } label: { Label(stickied ? "Unsticky" : "Sticky", systemImage: "pin") }
+        case "nsfw", "spoiler":
+            if let mark = PostMark(rawValue: id) {
+                PostMarkMenuButton(mark: mark, post: markedPost, repository: repository, identifierPrefix: "postDetail.moderator")
+            }
         case "mod-lock":
             Button {
                 moderate(locked ? "Comments Unlocked" : "Comments Locked") {
@@ -875,6 +898,10 @@ extension PostDetailScreen {
                       systemImage: liveActivityRunning ? "stop.circle" : "clock.badge")
             }
             .accessibilityIdentifier("postDetail.menu.liveActivity")
+        case "nsfw", "spoiler":
+            if let mark = PostMark(rawValue: id) {
+                PostMarkMenuButton(mark: mark, post: markedPost, repository: repository, identifierPrefix: "postDetail.menu")
+            }
         case "spec.DeletedComments":
             // See `CommentTreeStore.toggleDeletedCommentsShortcut`.
             Button {

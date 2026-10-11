@@ -589,14 +589,37 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
 
 // --- Highlight own and followed users (Phoebus-only, inspired by RedReader and Continuum) ---
 /// A stand-in friends list for `FollowedUsernames.friendsFetcher`, keyed by
-/// the account active when the fetch finishes.
+/// the account active when the fetch finishes. While held, a fetch waits
+/// for `release()`, so a check can act while one is in flight without
+/// depending on how long anything takes.
 private final class SmokeFriendsList: @unchecked Sendable {
     var byAccount: [String: [String]] = [:]
     var failing = false
-    var delayNanoseconds: UInt64 = 0
+    private let lock = NSLock()
+    private var isHeld = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    func hold() {
+        lock.withLock { isHeld = true }
+    }
+
+    func release() {
+        let resumed = lock.withLock {
+            isHeld = false
+            defer { waiting = [] }
+            return waiting
+        }
+        for continuation in resumed { continuation.resume() }
+    }
 
     func fetch() async -> [String]? {
-        if delayNanoseconds > 0 { try? await Task.sleep(nanoseconds: delayNanoseconds) }
+        await withCheckedContinuation { continuation in
+            let proceed = lock.withLock {
+                if isHeld { waiting.append(continuation) }
+                return !isHeld
+            }
+            if proceed { continuation.resume() }
+        }
         if failing { return nil }
         return byAccount[FavoriteSubredditsAccountContext.currentUsernameProvider() ?? ""] ?? []
     }
@@ -678,12 +701,27 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("follow and unfollow each announce the change", changePosts == 2)
     NotificationCenter.default.removeObserver(changeObserver)
 
-    friends.delayNanoseconds = 50_000_000
+    // The subscriptions refresh starts a friends fetch, held until the
+    // follows below are made. The check waits for that fetch's own result
+    // (its change notification): a refresh after the release could start a
+    // second, newer fetch instead.
+    friends.hold()
     saveSubscriptions(["u_Gina"])
     FollowedUsernames.setFollowed("Jill", followed: true)
     FollowedUsernames.setFollowed("Hank", followed: false)
-    await FollowedUsernames.refreshFriends()
-    friends.delayNanoseconds = 0
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        let once = NSLock()
+        nonisolated(unsafe) var resumed = false
+        nonisolated(unsafe) var observer: NSObjectProtocol?
+        observer = NotificationCenter.default.addObserver(
+            forName: FollowedUsernames.didChangeNotification, object: nil, queue: nil) { _ in
+            let first = once.withLock { defer { resumed = true }; return !resumed }
+            guard first else { return }
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            continuation.resume()
+        }
+        friends.release()
+    }
     check("follows made during a friends fetch survive its older result", FollowedUsernames.current() == ["gina", "jill"])
 
     FavoriteSubredditsAccountContext.currentUsernameProvider = { nil }

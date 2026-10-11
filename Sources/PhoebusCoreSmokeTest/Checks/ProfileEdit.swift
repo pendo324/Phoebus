@@ -601,6 +601,175 @@ private final class ProfileEditStub: URLProtocol, @unchecked Sendable {
           withoutSession as? ProfileSocialLinksError == .requiresWebSession && ProfileEditStub.captured.isEmpty)
 }
 
+// MARK: - Profile Visibility
+
+@MainActor func checkProfileVisibility() async throws {
+    func json(_ data: Data) -> [String: Any] { (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:] }
+    let pageHTML = String(decoding: try Data(contentsOf: URL(fileURLWithPath: "Tests/Fixtures/profile-settings-page.html")), as: UTF8.self)
+    let visibility = ProfileSettingsPage.parse(html: pageHTML)?.visibility
+
+    check("the page's preferences give what the profile shows, from the visibility section",
+          visibility?.isHideAllContribution == false && visibility?.isHideProfileNsfw == true
+          && visibility?.showsFollowerCount == true && visibility?.shownSubredditIDs == ["t5_exa", "t5_exc"])
+    check("...and the communities the account is active in, in the page's order, the own profile first",
+          visibility?.communities.map(\.id) == ["t5_exown", "t5_exa", "t5_exb", "t5_exc"]
+          && visibility?.communities.first?.isProfile == true && visibility?.communities.first?.title == "Your profile posts"
+          && visibility?.communities[1].title == "r/examplea" && visibility?.communities[1].iconURL == "https://www.example.invalid/a.png"
+          && visibility?.communities[2].iconURL == nil)
+    check("a switch the page reports DISABLED is locked; the others are not",
+          visibility?.isFollowerCountLocked == true && visibility?.isNSFWLocked == false && visibility?.isActivityLocked == false)
+
+    guard let visibility else { return }
+    let current = visibility.edits
+    check("some of the communities chosen reads as Customize, with those visible",
+          current.activity == .customize && current.visibleIDs == ["t5_exa", "t5_exc"]
+          && current.showsNSFW == false && current.showsFollowerCount == true)
+    check("unchanged edits change nothing", !visibility.hasChanges(current))
+
+    let everything = ProfileVisibility(communities: visibility.communities, isHideAllContribution: false, isHideProfileNsfw: false,
+                                       shownSubredditIDs: [], showsFollowerCount: false)
+    check("no chosen communities and no hide-all flag is Show all, with every community visible",
+          everything.edits.activity == .showAll && everything.edits.visibleIDs.count == 4 && everything.edits.showsNSFW)
+    let hidden = ProfileVisibility(communities: visibility.communities, isHideAllContribution: true, isHideProfileNsfw: false,
+                                   shownSubredditIDs: ["t5_exa"], showsFollowerCount: false)
+    check("the hide-all flag is Hide all whatever communities are listed", hidden.edits.activity == .hideAll)
+    let allChosen = ProfileVisibility(communities: visibility.communities, isHideAllContribution: false, isHideProfileNsfw: false,
+                                      shownSubredditIDs: visibility.communities.map(\.id), showsFollowerCount: false)
+    check("every community chosen is Show all", allChosen.edits.activity == .showAll)
+
+    func input(_ edits: ProfileVisibility.Edits, of state: ProfileVisibility = visibility) -> [String: Any] {
+        state.privacyInput(for: edits).variables["input"] as? [String: Any] ?? [:]
+    }
+    let unchangedInput = input(current)
+    check("the mutation sends the whole set, in the page's order, with isShowTopSubreddits true as the page does",
+          unchangedInput["shownSubredditIds"] as? [String] == ["t5_exa", "t5_exc"]
+          && unchangedInput["isHideAllContribution"] as? Bool == false && unchangedInput["isHideProfileNsfw"] as? Bool == true
+          && unchangedInput["isShowTopSubreddits"] as? Bool == true && unchangedInput.count == 4)
+
+    let showAll = visibility.settingActivity(.showAll, in: current)
+    let showAllInput = input(showAll)
+    check("Show all sends no chosen communities and no hide-all flag",
+          showAllInput["shownSubredditIds"] as? [String] == [] && showAllInput["isHideAllContribution"] as? Bool == false
+          && visibility.hasPrivacyChanges(showAll) && !visibility.hasFollowerCountChange(showAll))
+    let hideAll = visibility.settingActivity(.hideAll, in: current)
+    let hideAllInput = input(hideAll)
+    check("Hide all sets the flag and sends no communities",
+          hideAllInput["shownSubredditIds"] as? [String] == [] && hideAllInput["isHideAllContribution"] as? Bool == true)
+    let custom = visibility.settingVisible(["t5_exb"], in: current)
+    let customInput = input(custom)
+    check("Customize sends the chosen communities",
+          custom.activity == .customize && customInput["shownSubredditIds"] as? [String] == ["t5_exb"]
+          && customInput["isHideAllContribution"] as? Bool == false)
+    check("choosing every community is Show all, and choosing none is Hide all, as on reddit.com",
+          visibility.settingVisible(Set(visibility.communities.map(\.id)), in: current).activity == .showAll
+          && visibility.settingVisible([], in: current).activity == .hideAll
+          && visibility.settingVisible(["t5_unknown"], in: current).activity == .hideAll)
+    check("a chosen set in a different order is no change",
+          !visibility.hasChanges(visibility.settingVisible(["t5_exc", "t5_exa"], in: current)))
+
+    var nsfw = current
+    nsfw.showsNSFW = true
+    check("Show NSFW Activity off sends isHideProfileNsfw true, on sends false; only the privacy mutation changes",
+          input(current)["isHideProfileNsfw"] as? Bool == true && input(nsfw)["isHideProfileNsfw"] as? Bool == false
+          && visibility.hasPrivacyChanges(nsfw) && !visibility.hasFollowerCountChange(nsfw))
+    var followers = current
+    followers.showsFollowerCount = false
+    check("the follower count is its own change and leaves the privacy mutation alone",
+          visibility.hasFollowerCountChange(followers) && !visibility.hasPrivacyChanges(followers))
+    let applied = visibility.applying(hideAll, privacy: true, followerCount: false)
+    check("after a save the state is what was applied, and a follower change not yet applied stays pending",
+          applied.edits.activity == .hideAll && applied.showsFollowerCount == visibility.showsFollowerCount
+          && !applied.hasPrivacyChanges(hideAll))
+
+    check("a page without preferences has no visibility",
+          ProfileSettingsPage.parse(html: """
+              <settings-profile-section initialState='{"identity":{"redditor":{"profile":{"socialLinks":[]}}}}'>
+              """)?.visibility == nil)
+    let fallback = ProfileSettingsPage.parse(html: """
+        <settings-profile-section initialState='{"identity":{"preferences":{"isHideAllContribution":true},"redditor":{"profile":{"socialLinks":[]}}}}'>
+        """)
+    check("the profile section's own state is used when there is no visibility section",
+          fallback?.visibility?.isHideAllContribution == true && fallback?.visibility?.communities.isEmpty == true
+          && fallback?.visibility?.shownSubredditIDs.isEmpty == true)
+
+    // Requests, through a stubbed transport.
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [ProfileEditStub.self]
+    let stubbed = URLSession(configuration: configuration)
+    let webSession = WebSessionCredential(username: "exampleuser",
+                                          cookieHeader: "reddit_session=abc; csrf_token=synthetic-csrf; loid=1", modhash: nil)
+
+    ProfileEditStub.captured = []
+    ProfileEditStub.respond = { _ in
+        Data(#"{"data":{"updateProfilePrivacyPreferencesV2":{"ok":true,"errors":null}},"errors":[],"operation":"UpdateProfilePrivacyPreferencesV2"}"#.utf8)
+    }
+    try await ProfileVisibilityService.save(visibility.privacyInput(for: hideAll), session: webSession, urlSession: stubbed)
+    let privacyRequest = ProfileEditStub.captured.last
+    let privacyBody = json(privacyRequest?.body ?? Data())
+    check("saving posts UpdateProfilePrivacyPreferencesV2 to the Shreddit GraphQL endpoint with the whole input",
+          privacyRequest?.url.absoluteString == "https://www.reddit.com/svc/shreddit/graphql" && privacyRequest?.method == "POST"
+          && privacyBody["operation"] as? String == "UpdateProfilePrivacyPreferencesV2"
+          && privacyBody["csrf_token"] as? String == "synthetic-csrf"
+          && ((privacyBody["variables"] as? [String: Any])?["input"] as? [String: Any]).map {
+              $0["isHideAllContribution"] as? Bool == true && $0["isShowTopSubreddits"] as? Bool == true
+                  && $0["shownSubredditIds"] as? [String] == [] && $0["isHideProfileNsfw"] as? Bool == true
+          } == true)
+    check("...with the cookie, origin and the settings page as referer",
+          privacyRequest?.headers["Cookie"] == webSession.cookieHeader
+          && privacyRequest?.headers["Origin"] == "https://www.reddit.com"
+          && privacyRequest?.headers["Referer"] == "https://www.reddit.com/settings/profile")
+
+    ProfileEditStub.respond = { _ in Data(#"{"data":{"updateAccountPreferences":{"ok":true,"errors":null}},"errors":[]}"#.utf8) }
+    try await ProfileVisibilityService.saveFollowerCount(shown: false, session: webSession, urlSession: stubbed)
+    let followerBody = json(ProfileEditStub.captured.last?.body ?? Data())
+    check("the follower count posts UpdateAccountPreferences with showFollowersCount",
+          followerBody["operation"] as? String == "UpdateAccountPreferences"
+          && ((followerBody["variables"] as? [String: Any])?["input"] as? [String: Bool]) == ["showFollowersCount": false])
+    ProfileEditStub.respond = { _ in Data(#"{"data":{},"errors":[]}"#.utf8) }
+    var unverifiedShape = false
+    do { try await ProfileVisibilityService.saveFollowerCount(shown: true, session: webSession, urlSession: stubbed); unverifiedShape = true } catch {}
+    check("...and a reply without a payload is accepted, since the page itself only looks at errors", unverifiedShape)
+
+    func failure(_ body: String, follower: Bool = false) async -> Error? {
+        ProfileEditStub.respond = { _ in Data(body.utf8) }
+        do {
+            if follower {
+                try await ProfileVisibilityService.saveFollowerCount(shown: true, session: webSession, urlSession: stubbed)
+            } else {
+                try await ProfileVisibilityService.save(visibility.privacyInput(for: current), session: webSession, urlSession: stubbed)
+            }
+            return nil
+        } catch { return error }
+    }
+    let refused = await failure(#"{"data":{"updateProfilePrivacyPreferencesV2":{"ok":false,"errors":[{"message":"not allowed"}]}},"errors":[]}"#)
+    check("a refused change surfaces Reddit's reason", refused.flatMap { UserFacingError.message(for: $0) } == "Not allowed.")
+    let unexplained = await failure(#"{"data":{"updateProfilePrivacyPreferencesV2":{"ok":false,"errors":null}},"errors":[]}"#)
+    check("a refusal with no reason still says so",
+          unexplained.flatMap { UserFacingError.message(for: $0) } == "Reddit didn't accept the change to what your profile shows.")
+    let missing = await failure(#"{"data":{},"errors":[]}"#)
+    check("a reply without the mutation's payload is a failure", missing is ProfileVisibilityError)
+    let warned = await failure(#"{"data":{"updateProfilePrivacyPreferencesV2":{"ok":true,"errors":null}},"errors":[],"extensions":{"warnings":[{"extensions":{"code":"FORBIDDEN"}}]}}"#)
+    check("an ok reply carrying a warning is not taken as applied",
+          warned.flatMap { UserFacingError.message(for: $0) }?.contains("FORBIDDEN") == true)
+    let accountRefused = await failure(#"{"data":{"updateAccountPreferences":{"ok":false,"errors":[{"message":"nope"}]}},"errors":[]}"#, follower: true)
+    check("a refused follower count change fails too", accountRefused is ProfileVisibilityError)
+
+    // Without a web session.
+    let credentials = InMemoryCredentialStore()
+    try credentials.save(RedditCredential(accessToken: "tok", refreshToken: "rt",
+                                          expiration: Date().addingTimeInterval(3600), isPermanent: true))
+    let oauthAuth = RedditAuthClient(session: stubbed, credentialStore: credentials, webSessionStore: InMemoryWebSessionStore())
+    let oauthRepository = RedditRepository(client: RedditAPIClient(auth: oauthAuth, session: stubbed))
+    ProfileEditStub.captured = []
+    var withoutSession: Error?
+    do { try await oauthRepository.saveProfilePrivacy(visibility.privacyInput(for: current)) } catch { withoutSession = error }
+    var withoutSessionFollowers: Error?
+    do { try await oauthRepository.saveProfileFollowerCount(shown: true) } catch { withoutSessionFollowers = error }
+    check("an account with no web session can't change them, and sends nothing",
+          withoutSession as? ProfileVisibilityError == .requiresWebSession
+          && withoutSessionFollowers as? ProfileVisibilityError == .requiresWebSession && ProfileEditStub.captured.isEmpty)
+}
+
 // MARK: - Avatar page
 
 @MainActor func checkProfileAvatarWebPage() async throws {

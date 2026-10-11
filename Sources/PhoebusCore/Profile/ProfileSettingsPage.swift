@@ -2,30 +2,44 @@ import Foundation
 
 /// What reddit.com/settings/profile hands its page script: the social links
 /// the profile has now, with the ids removing one takes, and the platforms a
-/// link can be added for. The page carries them as the entity-escaped JSON
-/// `initialState` attribute of its `<settings-profile-section>` element.
+/// link can be added for, and what the profile shows (Profile Visibility). The
+/// page carries them as the entity-escaped JSON `initialState` attribute of its
+/// `<settings-profile-section>` and `<settings-profile-visibility-section>`
+/// elements.
 public struct ProfileSettingsPage: Sendable, Equatable {
     public let socialLinks: [ProfileSocialLink]
     /// The page's `socialPlatforms`; empty when it lists none this app can read.
     public let platforms: [ProfileSocialPlatform]
 
-    public init(socialLinks: [ProfileSocialLink], platforms: [ProfileSocialPlatform]) {
+    /// The page's `identity.preferences`; nil when it carries none.
+    public let visibility: ProfileVisibility?
+
+    public init(socialLinks: [ProfileSocialLink], platforms: [ProfileSocialPlatform], visibility: ProfileVisibility? = nil) {
         self.socialLinks = socialLinks
         self.platforms = platforms
+        self.visibility = visibility
     }
 
     static let elementName = "<settings-profile-section"
+    static let visibilityElementName = "<settings-profile-visibility-section"
 
     /// Reads the page's HTML; nil when it has no profile settings element, as
     /// with a sign-in page, or its state can't be read.
     public static func parse(html: String) -> ProfileSettingsPage? {
-        guard let state = attributes(ofElementAt: elementName, in: html)?["initialstate"],
-              let root = (try? JSONSerialization.jsonObject(with: Data(state.utf8))) as? [String: Any],
+        guard let root = state(ofElementAt: elementName, in: html),
               let profile = ((root["identity"] as? [String: Any])?["redditor"] as? [String: Any])?["profile"] as? [String: Any]
         else { return nil }
         let links = (profile["socialLinks"] as? [[String: Any]] ?? []).compactMap(ProfileSocialLink.init(json:))
         let platforms = (root["socialPlatforms"] as? [[String: Any]] ?? []).compactMap(platform)
-        return ProfileSettingsPage(socialLinks: links, platforms: platforms)
+        // Every section carries the same state; the visibility section's own is preferred.
+        let visibility = state(ofElementAt: visibilityElementName, in: html).flatMap { ProfileVisibility(state: $0) }
+            ?? ProfileVisibility(state: root)
+        return ProfileSettingsPage(socialLinks: links, platforms: platforms, visibility: visibility)
+    }
+
+    private static func state(ofElementAt opening: String, in html: String) -> [String: Any]? {
+        guard let state = attributes(ofElementAt: opening, in: html)?["initialstate"] else { return nil }
+        return (try? JSONSerialization.jsonObject(with: Data(state.utf8))) as? [String: Any]
     }
 
     /// `{type, displayName, fields: [{type: USERNAME|DISPLAY_TEXT|URL, limit}]}`.

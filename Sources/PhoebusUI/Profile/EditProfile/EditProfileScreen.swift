@@ -3,7 +3,8 @@ import PhotosUI
 import PhoebusCore
 
 /// Edit Profile, pushed from your own profile's "•••" menu: banner, display
-/// name, about text, the follower and NSFW switches and social links. The avatar
+/// name, about text, the follower and NSFW switches, social links and what the
+/// profile shows (Profile Visibility). The avatar
 /// is changed on reddit.com's profile settings, shown signed in
 /// (`ProfileAvatarWebScreen`). Phoebus's own design; Reborn opens reddit.com's
 /// profile settings instead.
@@ -34,6 +35,10 @@ struct EditProfileScreen: View {
     @State private var socialEdits = SocialLinkEdits()
     @State private var platforms = ProfileSocialPlatform.builtIn
     @State private var linkEditor: LinkEditor?
+    @State private var visibility: ProfileVisibility?
+    @State private var visibilityEdits: ProfileVisibility.Edits?
+    @State private var visibilityFailure: String?
+    @State private var choosingCommunities = false
     @State private var showingWebSignIn = false
     @State private var showingAvatarPage = false
     @State private var askingAvatarSignIn = false
@@ -70,8 +75,13 @@ struct EditProfileScreen: View {
 
     private var issues: [ProfileEditIssue] { settings?.issues(for: edits) ?? [] }
 
+    private var hasVisibilityChanges: Bool {
+        guard case .editable = linksMode, let visibility, let visibilityEdits else { return false }
+        return visibility.hasChanges(visibilityEdits)
+    }
+
     private var isDirty: Bool {
-        (settings?.hasChanges(edits) ?? false) || !bannerChange.isNone || socialEdits.hasChanges
+        (settings?.hasChanges(edits) ?? false) || !bannerChange.isNone || socialEdits.hasChanges || hasVisibilityChanges
     }
 
     private var canSave: Bool { settings != nil && isDirty && issues.isEmpty && !isSaving }
@@ -88,6 +98,7 @@ struct EditProfileScreen: View {
                 aboutSection
                 profileSection
                 socialLinksSection
+                visibilitySection
             }
             redditSection
         }
@@ -145,6 +156,13 @@ struct EditProfileScreen: View {
                     socialEdits.replace(row, with: draft)
                 } else {
                     socialEdits.add(draft)
+                }
+            }
+        }
+        .sheet(isPresented: $choosingCommunities) {
+            if let visibility, let visibilityEdits {
+                ProfileVisibilityCommunitiesSheet(communities: visibility.communities, visible: visibilityEdits.visibleIDs) { chosen in
+                    self.visibilityEdits = visibility.settingVisible(chosen, in: visibilityEdits)
                 }
             }
         }
@@ -462,6 +480,119 @@ struct EditProfileScreen: View {
         .accessibilityIdentifier("editProfile.socialLink.\(row.id)")
     }
 
+    // MARK: Profile Visibility
+
+    /// What the profile shows is set through the website's GraphQL, so it needs
+    /// the web session the social links do, and reads the same page.
+    @ViewBuilder private var visibilitySection: some View {
+        switch linksMode {
+        case .loading, .unavailable:
+            EmptyView()
+        case .needsWebSession:
+            Section {
+                Text("Choose what your profile shows after a Reddit web sign-in.")
+                    .foregroundStyle(.secondary)
+                    .apolloPlainSettingsRowInsets()
+                Button("Sign In to Edit Profile Visibility") { showingWebSignIn = true }
+                    .apolloPlainSettingsRowInsets(rule: false)
+                    .accessibilityIdentifier("editProfile.visibilitySignIn")
+            } header: {
+                Text("Profile Visibility").apolloSectionHeader()
+            }
+        case .editable:
+            Section {
+                if let visibility, let visibilityEdits {
+                    visibilityRows(visibility, visibilityEdits)
+                } else {
+                    Text("Reddit's profile page didn't list what your profile shows. You can change it on reddit.com.")
+                        .foregroundStyle(.secondary)
+                        .apolloPlainSettingsRowInsets(rule: false)
+                }
+            } header: {
+                Text("Profile Visibility").apolloSectionHeader()
+            } footer: {
+                if visibility != nil {
+                    Text("Profile curation only applies to your profile and your content stays visible in communities. Mods of communities you participate in and redditors whose profile posts you engage with can still see your full profile for moderation. Changes apply when you tap Save.")
+                        .apolloSectionFooter()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func visibilityRows(_ visibility: ProfileVisibility, _ edits: ProfileVisibility.Edits) -> some View {
+        activityRow(.showAll, title: "Show all",
+                    detail: "Show all posts, comments, and communities you’re active in on your profile",
+                    visibility: visibility, edits: edits)
+        if !visibility.communities.isEmpty {
+            activityRow(.customize, title: "Customize",
+                        detail: "Choose what posts, comments, and communities you’re active in show on your profile",
+                        visibility: visibility, edits: edits)
+        }
+        activityRow(.hideAll, title: "Hide all",
+                    detail: "Hide all posts, comments, and communities you’re active in on your profile",
+                    visibility: visibility, edits: edits)
+        SettingsDetailToggle("NSFW", detail: "Show all NSFW posts and comments", isOn: visibilityBinding(\.showsNSFW))
+            .disabled(visibility.isNSFWLocked)
+            .apolloPlainSettingsRowInsets()
+            .accessibilityIdentifier("editProfile.visibility.nsfw")
+        SettingsDetailToggle("Followers", detail: "Show your follower count", isOn: visibilityBinding(\.showsFollowerCount))
+            .disabled(visibility.isFollowerCountLocked)
+            .apolloPlainSettingsRowInsets(rule: visibilityFailure != nil)
+            .accessibilityIdentifier("editProfile.visibility.followers")
+        if let visibilityFailure {
+            Text(visibilityFailure)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .apolloPlainSettingsRowInsets(rule: false)
+                .accessibilityIdentifier("editProfile.visibility.error")
+        }
+    }
+
+    private func visibilityBinding(_ keyPath: WritableKeyPath<ProfileVisibility.Edits, Bool>) -> Binding<Bool> {
+        Binding(get: { visibilityEdits?[keyPath: keyPath] ?? false },
+                set: {
+                    visibilityEdits?[keyPath: keyPath] = $0
+                    visibilityFailure = nil
+                })
+    }
+
+    private func activityRow(_ activity: ProfileVisibility.Activity, title: String, detail: String,
+                             visibility: ProfileVisibility, edits: ProfileVisibility.Edits) -> some View {
+        let isSelected = edits.activity == activity
+        return Button {
+            visibilityFailure = nil
+            if activity == .customize {
+                choosingCommunities = true
+            } else {
+                visibilityEdits = visibility.settingActivity(activity, in: edits)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                    Text(detail)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    if activity == .customize && isSelected {
+                        Text("\(edits.visibleIDs.count) visible · Update")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "checkmark")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.accentColor)
+                    .opacity(isSelected ? 1 : 0)
+                    .accessibilityHidden(true)
+            }
+        }
+        .disabled(visibility.isActivityLocked)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .apolloPlainSettingsRowInsets()
+        .accessibilityIdentifier("editProfile.visibility.\(title.lowercased().replacingOccurrences(of: " ", with: ""))")
+    }
+
     private func loadFailureSection(_ message: String) -> some View {
         Section {
             Text(message)
@@ -541,6 +672,8 @@ struct EditProfileScreen: View {
     private func loadLinks() async {
         linksMode = .loading
         guard await repository.hasWebFeatureSession() else {
+            visibility = nil
+            visibilityEdits = nil
             linksMode = .needsWebSession(await pageLinks())
             return
         }
@@ -548,6 +681,9 @@ struct EditProfileScreen: View {
             let page = try await repository.fetchProfileSettingsPage()
             socialEdits = SocialLinkEdits(current: page.socialLinks)
             if !page.platforms.isEmpty { platforms = page.platforms }
+            visibility = page.visibility
+            visibilityEdits = page.visibility?.edits
+            visibilityFailure = nil
             linksMode = .editable
         } catch {
             linksMode = .unavailable(UserFacingError.message(for: error) ?? "Couldn't load your social links.",
@@ -597,6 +733,7 @@ struct EditProfileScreen: View {
             }
         }
         if await saveSocialLinks(failures: &failures) { appliedAnything = true }
+        if await saveVisibility(failures: &failures) { appliedAnything = true }
 
         isSaving = false
         if appliedAnything { onSaved() }
@@ -605,6 +742,39 @@ struct EditProfileScreen: View {
         } else {
             saveFailure = failures.joined(separator: "\n")
         }
+    }
+
+    /// What the profile shows, then the follower count: separate calls, so one
+    /// can fail while the other applies. What failed stays staged, with the
+    /// reason shown in the section.
+    private func saveVisibility(failures: inout [String]) async -> Bool {
+        visibilityFailure = nil
+        guard case .editable = linksMode, let visibility, let staged = visibilityEdits,
+              visibility.hasChanges(staged) else { return false }
+        var state = visibility
+        var messages: [String] = []
+        if visibility.hasPrivacyChanges(staged) {
+            do {
+                try await repository.saveProfilePrivacy(visibility.privacyInput(for: staged))
+                state = state.applying(staged, privacy: true, followerCount: false)
+            } catch {
+                messages.append(UserFacingError.message(for: error) ?? "Couldn't change what your profile shows.")
+            }
+        }
+        if visibility.hasFollowerCountChange(staged) {
+            do {
+                try await repository.saveProfileFollowerCount(shown: staged.showsFollowerCount)
+                state = state.applying(staged, privacy: false, followerCount: true)
+            } catch {
+                messages.append("Follower count: \(UserFacingError.message(for: error) ?? "Couldn't change it.")")
+            }
+        }
+        self.visibility = state
+        if !messages.isEmpty {
+            visibilityFailure = messages.joined(separator: "\n")
+            failures.append("Profile visibility: \(messages.joined(separator: " "))")
+        }
+        return state != visibility
     }
 
     /// Removals first, which a replaced link's addition follows; if they fail

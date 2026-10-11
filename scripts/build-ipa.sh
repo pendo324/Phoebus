@@ -8,7 +8,8 @@
 #                         (`xcrun simctl install <device> <file>`)
 # <name> comes from scripts/ipa-name.sh. The apps get the version from
 # scripts/version.sh and, with PHOEBUS_BUILD_NUMBER set, that CFBundleVersion
-# (scripts/stamp-version.py).
+# and, with PHOEBUS_BUILD_CHANNEL set (stable or nightly), that release
+# channel (scripts/stamp-version.py).
 #
 # Usage: scripts/build-ipa.sh [--simulator] [output directory]
 #
@@ -28,7 +29,10 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 outputs=()
 
-stamp() { scripts/stamp-version.py "$1" "$version" ${PHOEBUS_BUILD_NUMBER:+"$PHOEBUS_BUILD_NUMBER"}; }
+stamp() {
+  scripts/stamp-version.py "$1" "$version" ${PHOEBUS_BUILD_NUMBER:+"$PHOEBUS_BUILD_NUMBER"} \
+    ${PHOEBUS_BUILD_CHANNEL:+--channel "$PHOEBUS_BUILD_CHANNEL"}
+}
 
 scripts/generate-icons.sh
 

@@ -19,6 +19,7 @@ on:
       - scripts/add-appintents-metadata.sh
       - scripts/appintents-metadata.py
       - scripts/build-app.sh
+      - scripts/build-channel.sh
       - scripts/check-app.py
       - scripts/generate-icons.sh
       - scripts/ipa-name.sh
@@ -203,7 +204,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
-          # version.sh and ipa-name.sh read the release tags.
+          # version.sh, build-channel.sh and ipa-name.sh read the release tags.
           fetch-depth: 0
 
       - uses: actions/download-artifact@v8
@@ -219,12 +220,13 @@ jobs:
         run: |
           name=$(scripts/ipa-name.sh)
           version=$(scripts/version.sh)
+          channel=$(scripts/build-channel.sh)
           for variant in device simulator-x86_64 simulator-arm64; do
             mkdir -p "apps/$variant" && tar -C "apps/$variant" -xf "apps/$variant.tar"
           done
           scripts/merge-apps.py apps/simulator.app apps/simulator-x86_64/Phoebus.app apps/simulator-arm64/Phoebus.app
           for app in apps/device/Phoebus.app apps/simulator.app; do
-            scripts/stamp-version.py "$app" "$version" "$BUILD_NUMBER"
+            scripts/stamp-version.py "$app" "$version" "$BUILD_NUMBER" --channel "$channel"
           done
           scripts/package-ipa.sh apps/device/Phoebus.app "dist/$name.ipa"
           scripts/package-ipa.sh apps/simulator.app "dist/$name-simulator.ipa"

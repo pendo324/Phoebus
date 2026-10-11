@@ -81,7 +81,8 @@ affect the build.
    (`scripts/ci/install-sdk.sh`) and renders the icons
    (`scripts/generate-icons.sh`) first.
 3. **package** numbers the builds with the workflow's run number
-   (`scripts/stamp-version.py`, which also sets the version), merges the two simulator builds into
+   (`scripts/stamp-version.py`, which also sets the version and the build
+   channel), merges the two simulator builds into
    one universal app (`scripts/merge-apps.py`), packs both IPAs
    (`scripts/package-ipa.sh`, which also runs `scripts/check-app.py`) and
    uploads them as the run's artifacts, each the file itself.
@@ -116,6 +117,13 @@ stamped into the app and its extensions when packaging
 and stable builds, so AltStore and SideStore see every new build as an
 update. Local AltStore deploys number their builds from their own counter
 instead, so nothing is committed for a build.
+
+CI builds also record their release channel in the app's `Info.plist`
+(`PhoebusBuildChannel`): `stable` for a build of a `v*` tag, `nightly` for
+any other (`scripts/build-channel.sh`). The app reads it with
+`BuildChannel.current` to know which AltStore source below belongs to it.
+Local builds and local AltStore deploys have no key, so they have no
+channel.
 
 Both IPAs are unsigned and keep their symbols, which the crash reports the
 app records need (stripping would save only about 5 MB of a 36 MB IPA).
@@ -277,8 +285,8 @@ these run for pull requests.
 |---|---|
 | `scripts/build-app.sh` | Builds one variant (`device`, `simulator-x86_64`, `simulator-arm64`). |
 | `scripts/build-ipa.sh` | Everything Build IPA does, on your own machine: `scripts/build-ipa.sh --simulator dist`. |
-| `scripts/version.sh`, `scripts/ipa-name.sh` | The app version from the release tags, and the IPAs' base name. |
-| `scripts/stamp-version.py` | Sets the version and build number in a built app and its extensions. |
+| `scripts/version.sh`, `scripts/ipa-name.sh`, `scripts/build-channel.sh` | The app version from the release tags, the IPAs' base name, and the build's channel (`stable` at a tag, else `nightly`). |
+| `scripts/stamp-version.py` | Sets the version and build number in a built app and its extensions, and the channel in the app. |
 | `scripts/merge-apps.py` | Merges per-architecture builds into one universal app. |
 | `scripts/package-ipa.sh` | Packs an app into an IPA and checks it. |
 | `scripts/check-app.py` | Checks a built app or IPA for what can go wrong without failing the build. |

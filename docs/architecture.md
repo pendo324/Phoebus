@@ -27,7 +27,7 @@ Sources/
     API/            Reddit models, the API client and RedditRepository
     Accounts/ Feed/ Posts/ Comments/ Media/ Links/ Inbox/ Subreddits/ Profile/
     Moderation/ Search/ Navigation/ Notifications/ Settings/ Backup/ Theming/
-    Icons/ AI/ Translation/ Widgets/ Markdown/ Crash/
+    Icons/ AI/ Translation/ Widgets/ Markdown/ Crash/ Updates/
     Support/        General utilities: KeychainItem, LockedCache, LossyArray, formatting
     Resources/      RealAchievements.json, SubredditCapitalization.json
   PhoebusUI/        Screens and views, grouped by the same features (Feed/FeedView,

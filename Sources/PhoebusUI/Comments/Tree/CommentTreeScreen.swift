@@ -16,6 +16,7 @@ public struct CommentTreeScreen: View {
     @State private var post: RedditPost?
     @State private var commentShareAsImage: CommentShareTarget?
     @StateObject private var store = CommentTreeStore()
+    @State private var returnOwner = ScrollReturnOwner()
     /// Gives moderators Approve/Remove/Mark Spam actions on individual
     /// comments, gated on subreddit mod status.
     @State private var isModerator = false
@@ -66,6 +67,9 @@ public struct CommentTreeScreen: View {
             .environment(\.defaultMinListRowHeight, 1)
             // See `PostDetailScreen`: room under the last comment.
             .modifier(ApolloTabBarClearance())
+            // Status-bar tap to the top and back, as in `PostDetailScreen`.
+            .restoresPositionOnSecondScrollToTop(owner: returnOwner, shortensLongScrolls: true)
+            .apolloScrollReturnButton(owner: returnOwner)
             // Parent Comment swipe.
             .onChange(of: store.scrollRequest) { _, target in
                 guard let target else { return }

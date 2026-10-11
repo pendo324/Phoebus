@@ -439,3 +439,38 @@ struct PostRow: View {
         await PostVoting.vote(post: post, direction: direction, repository: repository)
     }
 }
+
+/// A feed redraw (a page arriving, the footer spinner) hands every loaded row
+/// over again with fresh closures, which alone would re-run all their bodies
+/// mid-scroll. Rows compare by what they draw instead; the closures only reach
+/// the screen's own state, so the kept copy acts the same.
+extension PostRow: @MainActor Equatable {
+    static func == (lhs: PostRow, rhs: PostRow) -> Bool {
+        lhs.repository === rhs.repository
+            && lhs.displayStyle == rhs.displayStyle
+            && lhs.isAggregateFeed == rhs.isAggregateFeed
+            && (lhs.onCommentsTap == nil) == (rhs.onCommentsTap == nil)
+            && (lhs.onTranslateTap == nil) == (rhs.onTranslateTap == nil)
+            && (lhs.moreMenu == nil) == (rhs.moreMenu == nil)
+            && lhs.post.drawsSame(as: rhs.post)
+    }
+}
+
+extension RedditPost {
+    /// `==` only compares ids. This also compares every field a row draws
+    /// that can change for the same post (a refresh, an edit, a mod action).
+    func drawsSame(as other: RedditPost) -> Bool {
+        id == other.id && title == other.title && selftext == other.selftext
+            && score == other.score && upvoteRatio == other.upvoteRatio
+            && numComments == other.numComments && likes == other.likes && saved == other.saved
+            && stickied == other.stickied && locked == other.locked && distinguished == other.distinguished
+            && over18 == other.over18 && spoiler == other.spoiler && thumbnail == other.thumbnail
+            && linkFlairText == other.linkFlairText && linkFlairRichtext == other.linkFlairRichtext
+            && linkFlairBackgroundColor == other.linkFlairBackgroundColor
+            && linkFlairTextColorRaw == other.linkFlairTextColorRaw
+            && authorFlairText == other.authorFlairText
+            && authorFlairBackgroundColor == other.authorFlairBackgroundColor
+            && authorFlairTextColorRaw == other.authorFlairTextColorRaw
+            && totalAwardsReceived == other.totalAwardsReceived && pollData == other.pollData
+    }
+}

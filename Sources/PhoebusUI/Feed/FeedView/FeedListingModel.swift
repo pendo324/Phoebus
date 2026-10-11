@@ -28,7 +28,13 @@ final class FeedListingModel: ObservableObject {
     @Published var isLoading = false
     /// Reddit's `after` cursor drives infinite scrolling for the feed.
     @Published var afterToken: String?
-    @Published var isLoadingMore = false
+    /// A next page is on its way. Kept apart from the listing so only the
+    /// footer spinner redraws when it flips, not the whole feed mid-scroll.
+    let paging = FeedPagingState()
+    var isLoadingMore: Bool {
+        get { paging.isLoadingMore }
+        set { paging.isLoadingMore = newValue }
+    }
     /// Set once Reddit returns a page with no `after` cursor, so we
     /// stop asking (Reddit signals end-of-listing with `after: null`).
     @Published var reachedEnd = false
@@ -110,4 +116,10 @@ final class FeedListingModel: ObservableObject {
         self.afterToken = afterToken
         self.reachedEnd = reachedEnd
     }
+}
+
+/// See `FeedListingModel.paging`.
+@MainActor
+final class FeedPagingState: ObservableObject {
+    @Published var isLoadingMore = false
 }

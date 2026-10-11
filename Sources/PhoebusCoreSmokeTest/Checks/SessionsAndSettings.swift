@@ -592,6 +592,14 @@ import PhoebusCore
     check("disableAutoHideInSubreddits on + Home/aggregate feed: filtering still applies (real Popular/All bug fix)", ReadPostStore.apply([readPost, unreadPost], isSpecificSubreddit: false).count == 1)
     check("the Hide Read button finds the read posts on screen", ReadPostStore.readPosts(in: [readPost, unreadPost]).map(\.name) == [readPost.name])
     check("Auto Hide needs Permanently", !ReadPostStore.autoHides(MarkReadSettings(markReadOnOpen: true, hideReadPosts: false, autoHideReadPosts: true), isSpecificSubreddit: false))
+    // The read list is capped at 5000, dropping the oldest first.
+    ReadPostStore.clearAll()
+    ReadPostStore.importRead((0..<5000).map { "t3_old\($0)" })
+    ReadPostStore.markRead("t3_newest")
+    check("over the cap, the oldest read post is dropped and the newest kept",
+          !ReadPostStore.isRead("t3_old0") && ReadPostStore.isRead("t3_old1") && ReadPostStore.isRead("t3_newest"))
+    ReadPostStore.markRead("t3_newest")
+    check("marking a read post again drops nothing", ReadPostStore.isRead("t3_old1"))
     ReadPostStore.clearAll()
     ReadPostStore.saveSettings(.default)
 }

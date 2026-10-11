@@ -427,10 +427,13 @@ public struct MediaPagerScreen: View {
                             Section {
                                 ForEach(VideoPlaybackSpeeds.all, id: \.self) { speed in
                                     Toggle(isOn: Binding(
-                                        get: { speed == playbackSpeed },
+                                        get: { speed == currentPlayer.defaultRate },
                                         set: { isOn in
                                             guard isOn else { return }
+                                            // Re-renders the menu; the player keeps the speed
+                                            // through pauses and loop restarts.
                                             playbackSpeed = speed
+                                            currentPlayer.defaultRate = speed
                                             if currentPlayer.timeControlStatus == .playing {
                                                 currentPlayer.rate = speed
                                             }
@@ -586,6 +589,7 @@ public struct MediaPagerScreen: View {
         let cardItem = AVPlayerItem(asset: item.asset)
         cardItem.videoComposition = item.videoComposition
         let cardPlayer = AVPlayer(playerItem: cardItem)
+        cardPlayer.defaultRate = player.defaultRate
         cardPlayer.isMuted = player.isMuted
         cardPlayer.seek(to: player.currentTime(), toleranceBefore: .zero, toleranceAfter: .zero)
         player.pause()

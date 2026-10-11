@@ -1,5 +1,6 @@
 import Foundation
 import AVKit
+import PhoebusCore
 
 /// One `AVPlayer` per video URL, for as long as it is on screen.
 ///
@@ -45,6 +46,9 @@ public final class VideoPlayerCache {
             return existing
         }
         let player = makePlayer()
+        // Default Playback Speed: `play()` starts at `defaultRate`, so every
+        // start, resume and loop restart picks it up.
+        player.defaultRate = VideoPlaybackSettingsStore.load().effectiveSpeed
         entries = entries.filter { $0.value.player != nil }
         entries[key] = Entry(player: player)
         return player

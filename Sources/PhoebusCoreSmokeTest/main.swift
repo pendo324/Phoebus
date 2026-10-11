@@ -1527,6 +1527,8 @@ try await checkVideosActuallyPlayAndHaveControls()
 
 try await checkTapToFullscreenAndTheVideo()
 
+try await checkVideoPlaybackOptions()
+
 try await checkTheFullscreenVideoViewerLayoutAnd()
 
 try await checkGalleryViewSOwnFullscreenViewer()

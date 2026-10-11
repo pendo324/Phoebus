@@ -10,10 +10,12 @@ final class VideoHoldForSpeed: ObservableObject {
     private var pending: Task<Void, Never>?
     private var rateBeforeHold: Double = 1
 
-    func start(_ transport: any VideoTransport, speed: Float) {
+    /// `restoreRate` is what a paused video plays at when the hold ends
+    /// (Default Playback Speed).
+    func start(_ transport: any VideoTransport, speed: Float, restoreRate: Double = 1) {
         guard !isHolding else { return }
         isHolding = true
-        rateBeforeHold = transport.playbackRate == 0 ? 1 : transport.playbackRate
+        rateBeforeHold = transport.playbackRate == 0 ? restoreRate : transport.playbackRate
         transport.setPlaybackRate(Double(speed))
         Haptics.selection()
     }
@@ -29,7 +31,8 @@ final class VideoHoldForSpeed: ObservableObject {
     /// Hold for Video Speed, on the surface layer that owns the video's
     /// touches. Armed after 250 ms on the right third, cancelled by more than
     /// 12 pt of movement.
-    func gesture(width: CGFloat, isEnabled: Bool, transport: any VideoTransport, speed: Float) -> some Gesture {
+    func gesture(width: CGFloat, isEnabled: Bool, transport: any VideoTransport, speed: Float,
+                 restoreRate: Double = 1) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { [self] value in
                 guard isEnabled, value.startLocation.x > width * 2 / 3 else { return }
@@ -44,7 +47,7 @@ final class VideoHoldForSpeed: ObservableObject {
                 pending = Task { @MainActor [self] in
                     try? await Task.sleep(for: .milliseconds(250))
                     guard !Task.isCancelled else { return }
-                    start(transport, speed: speed)
+                    start(transport, speed: speed, restoreRate: restoreRate)
                 }
             }
             .onEnded { [self] _ in end(transport) }

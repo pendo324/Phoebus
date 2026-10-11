@@ -29,8 +29,9 @@ public struct VideoControlPanel: View {
     @State private var routeDetector: AVRouteDetector?
     @State private var routeObserver: NSObjectProtocol?
 
-    /// Apollo's skip amount.
-    static let skipSeconds: Double = 15
+    /// Apollo's 15 s unless Seek Interval says otherwise.
+    @Setting(VideoPlaybackSettingsStore.storage) private var playback
+    private var seekSeconds: Int { playback.effectiveSeekInterval }
 
     /// The host's own mute toggle, so the panel's button claims the audio
     /// session and records the user's choice the same way the badge does.
@@ -205,21 +206,21 @@ public struct VideoControlPanel: View {
     }
 
     private var back15Button: some View {
-        Button { skip(by: -Self.skipSeconds) } label: {
-            Image(systemName: "gobackward.15")
+        Button { skip(by: -Double(seekSeconds)) } label: {
+            Image(systemName: VideoPlaybackSettings.seekSymbol(seekSeconds, forward: false))
                 .font(.title3)
                 .foregroundStyle(.white)
-            .accessibilityLabel("Back 15 Seconds")
+            .accessibilityLabel(VideoPlaybackSettings.seekLabel(seekSeconds, forward: false))
         }
         .accessibilityIdentifier("video.back15Button")
     }
 
     private var forward15Button: some View {
-        Button { skip(by: Self.skipSeconds) } label: {
-            Image(systemName: "goforward.15")
+        Button { skip(by: Double(seekSeconds)) } label: {
+            Image(systemName: VideoPlaybackSettings.seekSymbol(seekSeconds, forward: true))
                 .font(.title3)
                 .foregroundStyle(.white)
-            .accessibilityLabel("Forward 15 Seconds")
+            .accessibilityLabel(VideoPlaybackSettings.seekLabel(seekSeconds, forward: true))
         }
         .accessibilityIdentifier("video.forward15Button")
     }

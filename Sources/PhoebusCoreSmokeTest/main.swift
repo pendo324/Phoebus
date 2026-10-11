@@ -1448,6 +1448,8 @@ try await checkInlineImgurAlbumsV290()
 
 try await checkPhoebusDeepLinkForms()
 
+try await checkPostRequirements()
+
 try await checkShareMediaLinkNormalisation()
 
 try await checkColourizeVoteArrowsV340()

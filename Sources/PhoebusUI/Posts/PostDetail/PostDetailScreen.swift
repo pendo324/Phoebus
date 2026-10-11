@@ -271,7 +271,7 @@ public struct PostDetailScreen: View {
             // its 16pt padding, plus a 12pt gap.
             .modifier(ApolloTabBarClearance(bottom: generalSettings.showJumpButton
                                             && generalSettings.jumpButtonPosition.sitsAtBottom ? 72 : 24))
-            .restoresPositionOnSecondScrollToTop(owner: returnOwner)
+            .restoresPositionOnSecondScrollToTop(owner: returnOwner, shortensLongScrolls: true)
             .apolloScrollReturnButton(owner: returnOwner)
             // NOT `.apolloHidesHeaderOnScroll()`: that's gated on the
             // tab bar's own setting and pairs with hiding it; this

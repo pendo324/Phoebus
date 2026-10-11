@@ -85,6 +85,9 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
     /// implement is forwarded here.
     weak var forwardingDelegate: NSObjectProtocol?
 
+    /// Long scrolls jump most of the way first (`UIScrollView.apolloScroll`).
+    var shortensLongScrolls = false
+
     /// Offset to return to on the second tap. `nil` means "no place
     /// saved", the state after any manual scroll.
     private var savedOffset: CGPoint?
@@ -114,24 +117,32 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
             guard let offset = savedOffset else { return false }
             savedOffset = nil
             ScrollReturnStore.shared.withdraw(for: owner)
-            scrollView.setContentOffset(offset, animated: true)
+            scroll(scrollView, to: offset)
         } else {
             // First tap: remember this spot, then go (almost) to top.
             let parked = scrollView.contentOffset
             savedOffset = parked
-            scrollView.setContentOffset(top, animated: true)
+            scroll(scrollView, to: top)
             // Offer the Return Button affordance. Populated
             // unconditionally; the setting gates only the UI.
             ScrollReturnStore.shared.offer(for: owner) { [weak self, weak scrollView] in
-                guard let scrollView else { return }
-                self?.savedOffset = nil
-                scrollView.setContentOffset(parked, animated: true)
+                guard let self, let scrollView else { return }
+                self.savedOffset = nil
+                self.scroll(scrollView, to: parked)
             }
         }
         // Always decline UIKit's own scroll: this proxy already
         // performed the movement, and letting UIKit also scroll would
         // race with the restore and land exactly at top.
         return false
+    }
+
+    private func scroll(_ scrollView: UIScrollView, to offset: CGPoint) {
+        if shortensLongScrolls {
+            scrollView.apolloScroll(to: offset)
+        } else {
+            scrollView.setContentOffset(offset, animated: true)
+        }
     }
 
     /// A real user drag invalidates the saved position. Forwarded on
@@ -227,6 +238,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
 /// and the user keeps stock iOS scroll-to-top behaviour.
 struct ScrollToTopRestoreModifier: UIViewRepresentable {
     let owner: ScrollReturnOwner
+    var shortensLongScrolls = false
 
     func makeCoordinator() -> ScrollToTopDelegateProxy {
         ScrollToTopDelegateProxy(owner: owner.id)
@@ -245,6 +257,7 @@ struct ScrollToTopRestoreModifier: UIViewRepresentable {
         DispatchQueue.main.async {
             guard let scrollView = uiView.associatedScrollView() else { return }
             let proxy = context.coordinator
+            proxy.shortensLongScrolls = shortensLongScrolls
             // `updateUIView` runs on every SwiftUI update; re-installing
             // would make the proxy forward to itself and recurse.
             if scrollView.delegate === proxy { return }
@@ -254,6 +267,23 @@ struct ScrollToTopRestoreModifier: UIViewRepresentable {
             // tap; iOS ignores the gesture entirely if several do.
             scrollView.scrollsToTop = true
         }
+    }
+}
+
+extension UIScrollView {
+    /// An animated scroll to `target` that, from more than a screen and a
+    /// half away, first jumps without animation to a screen short of it. A
+    /// lazy `List` builds and sizes a cell for every row an animated scroll
+    /// passes, so a long one stalls on a big comment thread; this way only
+    /// about two screens of rows are built.
+    func apolloScroll(to target: CGPoint) {
+        let screen = bounds.height
+        let distance = target.y - contentOffset.y
+        if abs(distance) > screen * 1.5 {
+            setContentOffset(CGPoint(x: target.x, y: target.y - (distance > 0 ? screen : -screen)), animated: false)
+            layoutIfNeeded()
+        }
+        setContentOffset(target, animated: true)
     }
 }
 
@@ -383,9 +413,11 @@ public extension View {
     /// `List`/`ScrollView`. See `ScrollToTopDelegateProxy` for the two UIKit
     /// constraints this works around. The position it saves is offered to
     /// the Return arrows given the same `owner`, and to no other screen's.
-    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner) -> some View {
+    /// `shortensLongScrolls` is for comment threads; a feed's image rows
+    /// resize after the jump and land short.
+    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner, shortensLongScrolls: Bool = false) -> some View {
         background(
-            ScrollToTopRestoreModifier(owner: owner)
+            ScrollToTopRestoreModifier(owner: owner, shortensLongScrolls: shortensLongScrolls)
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
         )
@@ -394,6 +426,6 @@ public extension View {
 #else
 public extension View {
     func apolloScrollReturnButton(owner: ScrollReturnOwner) -> some View { self }
-    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner) -> some View { self }
+    func restoresPositionOnSecondScrollToTop(owner: ScrollReturnOwner, shortensLongScrolls: Bool = false) -> some View { self }
 }
 #endif

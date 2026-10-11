@@ -17,6 +17,7 @@ any of the files below.
 | `Sources/PhoebusUI/Navigation/PageSwipes/InteractiveSwipeNavigationModifier.swift` | `apolloInteractiveSwipeNavigation()` for the root stacks, and `UINavigationController.apolloDisableSystemPopGestures()`. |
 | `Sources/PhoebusUI/Settings/Rows/SettingsNavigation.swift` | Path-driven navigation for the Settings tab: `SettingsNavigationModel`, `SettingsRoute`, `SettingsLink`, `settingsDestination(isPresented:)`. |
 | `Sources/PhoebusUI/Shared/UIKit/ScrollGestureExclusivity.swift` | `ScrollGestureExclusivity` (is a scroll view scrolling under this touch?) and `ScrollLock` (switches scroll pans off while a swipe owns the touch). |
+| `Sources/PhoebusUI/Navigation/TabBar/ScrollToTopRestore.swift` | **Status-bar tap**: `ScrollToTopDelegateProxy` (top, then back to where you were), `ScrollReturnStore` (the Return Button). |
 | `Sources/PhoebusUI/Navigation/RowSwipes/SwipeActionsModifier.swift` | **Row swipe** (upvote/downvote/save/reply/hide on post and comment rows): `ApolloSwipePanRecognizer`, `ApolloSwipeRecognizerDelegate`, `AncestorAttachingView`, `SwipeGestureArbiter`, `ProgressiveSwipeRowModifier` (the revealed panel). |
 | `Sources/PhoebusUI/Shared/UIKit/AncestorGestureHost.swift` | Hosts a recognizer on an ancestor view; used by the two scrub gestures below. |
 | `Sources/PhoebusUI/Feed/Gallery/GalleryImageViewerScreen.swift` | `GalleryVerticalSwipeCatcher`: swipe-to-dismiss and hold-and-drag video scrub in the gallery pager. |
@@ -183,6 +184,23 @@ gate the left two thirds when Hold for Speed is active.
 
 **Copy this pattern for any new full-surface gesture** rather than
 inventing a parallel mechanism.
+
+## Status-bar tap
+
+The feed, `PostDetailScreen` and `CommentTreeScreen` lists take the
+status-bar tap through `restoresPositionOnSecondScrollToTop()`:
+`ScrollToTopDelegateProxy` declines UIKit's own scroll, parks the
+offset, scrolls to 1pt below the top (so UIKit keeps calling it), and
+a second tap scrolls back to the parked offset. See the type's doc
+comment for why.
+
+The two comment screens pass `shortensLongScrolls: true`: from more than
+a screen and a half away, `UIScrollView.apolloScroll(to:)` first jumps
+without animation to one screen short of the target, lays out, and
+animates the rest. An animated scroll makes the `List` build and size a
+cell for every row it passes, which stalls a long thread for several
+hundred milliseconds. Feeds keep the plain animated scroll: their image
+rows resize after the jump and the scroll lands short of the top.
 
 ## Tuning constants
 

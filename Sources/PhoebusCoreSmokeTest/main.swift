@@ -430,6 +430,7 @@ try await checkSubredditsRootLoadsFromDiskInstantly()
 try await checkFeedImagesUseRedditSPreview()
 
 try await checkTheTextSizeSliderTakesEffect()
+try await checkTextSizesAndFonts()
 
 try await checkYouTubeLinksShowAThumbnailNot()
 

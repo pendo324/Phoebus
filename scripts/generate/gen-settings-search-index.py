@@ -25,6 +25,10 @@ line above:
   // search: item "<Title>"    also index <Title> as a choice inside the
                                row (a menu item), landing on the row
 
+Rows built in a loop (titles that aren't literals) are listed on a comment
+line of their own, after the screen's other rows:
+  // search: rows "<Title>", "<Title>"
+
 Usage: gen-settings-search-index.py [--check] <PhoebusUI dir> <output.swift>
 
 --check writes nothing and exits 1 if <output.swift> differs from what
@@ -82,6 +86,7 @@ SCREEN_CASES = {
     "AutomaticBackupSettingsScreen": "automaticBackup",
     "AccountsAPIKeysScreen": "accountsAPIKeys",
     "ClearTweakCachesScreen": "clearTweakCaches",
+    "TextSizesAndFontsScreen": "textSizes",
 }
 
 STRING = r'"((?:[^"\\]|\\.)*)"'
@@ -276,6 +281,11 @@ class Screen:
                     raise SystemExit(f"{self.path}: unknown search directive: {d}")
             if not skip:
                 rows.append((title, requires, items))
+        for line in lines:
+            m = DIRECTIVE_RE.search(line)
+            if m and line.lstrip().startswith("//") and m.group(1).startswith("rows "):
+                rows += [(t, None, []) for t in literal_strings(m.group(1)[len("rows "):])
+                         if t not in found]
         return rows
 
 

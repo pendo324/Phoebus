@@ -44,6 +44,7 @@ struct PostRow: View {
     @Environment(\.colorScheme) var colorScheme
     /// Scales the measured 15pt title with Dynamic Type (`apolloFont`).
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    @Environment(\.apolloTextScale) var textScale
     @Environment(\.apolloTheme) var themeColors
 
     var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
@@ -217,12 +218,17 @@ struct PostRow: View {
     /// `Text` and `TitleFlairLayout`'s TextKit measurement so the flair
     /// capsule still lands after the last glyph at any text size.
     var titleFontSize: CGFloat {
-        ScaledSystemFont.scaled(15, style: .body, for: dynamicTypeSize)
+        textScale.pointSize(ScaledSystemFont.scaled(15, style: .body, for: dynamicTypeSize), role: .postTitle)
+    }
+
+    /// The large row's 17pt title, likewise.
+    var largeTitleFontSize: CGFloat {
+        textScale.pointSize(ScaledSystemFont.scaled(17, style: .body, for: dynamicTypeSize), role: .postTitle)
     }
 
     var titleText: Text {
         let weight: Font.Weight = appearanceSettings.boldPostTitles ? .semibold : .regular
-        let font = Font.system(size: titleFontSize, weight: weight)
+        let font = Font.system(size: titleFontSize, weight: weight, design: textScale.fontDesign(for: .postTitle))
         // #D0D1D6 in dark+PureBlack, NOT white - see
         // `Color.apolloPrimaryText`, dimmed further once read.
         var text = Text(titleString)

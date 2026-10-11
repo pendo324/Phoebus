@@ -298,6 +298,7 @@ flowchart LR
 | Themes | UI `ThemeGalleryScreen`, `ThemeGenerateScreen`, `ThemeQRCodeView`, `ThemeQRScanScreen`; Core `ThemeGenerationClient`, `ThemeQRCodePayload`, `ThemeGenerationSettings` | 50-theme gallery, AI generation, QR share/scan | |
 | Backups | UI `BackupRestoreSettingsScreen`, `AutomaticBackupSettingsScreen`; UI `DocumentImportPicker`; Core `BackupBundle`, `ApolloBackupImport`, `ApolloKeychainImport`, `ApolloSettingsMigration(+Reborn)`, `AutomaticBackup*`, `ZipReader` | JSON backups, real Apollo/Reborn `.apollobackup` import (58 settings), automatic backups | Copy-mode document picker (`.fileImporter` did not work reliably) |
 | Text size / black | `PhoebusUI/Support/*`; Core `AppearanceTextSizeStep`, `PureBlackSettings` | Use System Text Size, Pure/PURER black tiers | |
+| Text sizes and fonts | UI `TextSizesAndFontsScreen`, `TextSizesPreviewMock`, `ScaledFont` (`apolloFont(role:)`, `apolloTextScale()`); Core `TextScaleSettings` (`TextRole`, `TextFontFamily`) | Per-role size on top of Text Size and a family per group (Titles, Content, Interface), injected once at the root as an environment value | Phoebus-only (inspired by Continuum and RedReader); unassigned `apolloFont` sites are `.other` (no size or family); families go on the role's `Font`, never `.fontDesign`, which overrides them; a custom theme's `.fontDesign` wins |
 
 ## 7. Extensions and shared
 
@@ -370,6 +371,7 @@ during backup import.
 |---|---|---|
 | `GeneralSettingsStore` | `com.pendo324.Phoebus.generalSettings` | General, Posts & Feeds, Comments, Interface, Media, most Reborn toggles |
 | `AppearanceSettingsStore` | `Phoebus.appearanceSettings` | Appearance (text size, fonts) |
+| `TextScaleSettingsStore` | `…textScaleSettings` | Appearance > Text Sizes & Fonts |
 | `ThemeStore`, `CommentsThemeStore` | `…selectedThemeID`, `…commentsThemePalette` | Themes, Comments Theme |
 | `ThemeAutoSwitchSettingsStore`, `SunsetCoordinatesStore` | `…themeAutoSwitchSettings`, `SunsetCoordinates` | Themes > auto switch |
 | `ThemeGenerationSettingsStore` | `…themeGenerationSettings` | Theme Generate |

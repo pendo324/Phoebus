@@ -28,7 +28,7 @@ extension PostRow {
                         SubredditIconView(subreddit: post.subreddit, repository: repository, size: 20)
                     }
                     Text(SubredditCapitalization.display(post.subreddit))
-                        .apolloFont(size: 14, weight: .medium)
+                        .apolloFont(size: 14, weight: .medium, role: .postMeta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -42,12 +42,14 @@ extension PostRow {
             }
 
             TitleFlairLayout(titleString: titleString,
-                             fontSize: ScaledSystemFont.scaled(17, style: .body, for: dynamicTypeSize),
-                             bold: appearanceSettings.boldPostTitles, gap: 6, lineSpacing: 3) {
+                             fontSize: largeTitleFontSize,
+                             bold: appearanceSettings.boldPostTitles,
+                             family: textScale.resolvedFamily(for: .postTitle), gap: 6, lineSpacing: 3) {
                 Text(titleString)
                     // "Bold Post Titles" applies to the large row's title too.
-                    .font(.system(size: ScaledSystemFont.scaled(17, style: .body, for: dynamicTypeSize),
-                                  weight: appearanceSettings.boldPostTitles ? .semibold : .regular))
+                    .font(.system(size: largeTitleFontSize,
+                                  weight: appearanceSettings.boldPostTitles ? .semibold : .regular,
+                                  design: textScale.fontDesign(for: .postTitle)))
                     .fixedSize(horizontal: false, vertical: true)
                 if post.over18 { NSFWTag() }
             }
@@ -205,7 +207,7 @@ extension PostRow {
                                 SubredditIconView(subreddit: post.subreddit, repository: repository, size: 19)
                             }
                             Text(SubredditCapitalization.display(post.subreddit))
-                                .apolloFont(size: 17)
+                                .apolloFont(size: 17, role: .postMeta)
                                 .lineLimit(1)
                         }
                         .contentShape(Rectangle())
@@ -256,7 +258,7 @@ extension PostRow {
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: themeColors))
             }
-            .apolloFont(size: 13)
+            .apolloFont(size: 13, role: .postMeta)
             .padding(.horizontal)
             .padding(.bottom, 4)
             .accessibilityHidden(true)

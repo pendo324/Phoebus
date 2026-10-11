@@ -14,6 +14,8 @@ public enum SettingsPreviewScreen: String, Sendable, CaseIterable {
     case feedShortcuts = "FeedShortcutsPreviewPinned"
     case subredditLayout = "SubredditLayoutPreviewPinned"
     case profileLayout = "ProfileLayoutPreviewPinned"
+    // Phoebus's Text Sizes & Fonts preview, keyed the same way.
+    case textSizes = "TextSizesPreviewPinned"
 }
 
 /// Whether each screen's live preview card stays pinned.

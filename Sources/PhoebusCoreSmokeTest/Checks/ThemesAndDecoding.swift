@@ -223,6 +223,90 @@ import PhoebusCore
     }
 }
 
+// --- Text Sizes & Fonts ---
+//
+// Per-role sizes on top of the app-wide Text Size, and a built-in family
+// for titles, content and post/comment details. The defaults draw today's fonts.
+@MainActor func checkTextSizesAndFonts() async throws {
+    let defaults = TextScaleSettings.default
+    check("every role is 100% by default",
+          TextRole.allCases.allSatisfy { defaults.scale(for: $0) == 1 })
+    check("the default size is the Dynamic Type size unchanged",
+          TextRole.allCases.allSatisfy { defaults.pointSize(17.5, role: $0) == 17.5 })
+    check("no role names a family by default, so text keeps the system font",
+          TextRole.allCases.allSatisfy { defaults.resolvedFamily(for: $0) == nil })
+    check("Everything Else has no size control of its own", !TextRole.scalable.contains(.other))
+    let indexedRows = Set(SettingsSearch.index.filter { $0.screen == .textSizes }.compactMap(\.rowTitle))
+    check("Settings search finds every size and font row",
+          indexedRows == Set(TextRole.scalable.map(\.title) + TextFontGroup.allCases.map { "\($0.title) Font" }))
+
+    var settings = defaults
+    settings.setScale(1.3, for: .commentBody)
+    check("130% comment text scales a 15pt body to 19.5pt",
+          settings.pointSize(15, role: .commentBody) == 19.5)
+    check("a role's size leaves the other roles alone",
+          settings.pointSize(15, role: .commentHeader) == 15 && settings.pointSize(15, role: .other) == 15)
+    settings.setScale(1.32, for: .postTitle)
+    check("sizes snap to 5% steps", settings.postTitleScale == 1.3)
+    settings.setScale(3, for: .postMeta)
+    settings.setScale(0.1, for: .linkCard)
+    check("sizes clamp to 80%...150%", settings.postMetaScale == 1.5 && settings.linkCardScale == 0.8)
+    settings.openedPostTitleScale = 9
+    check("an out-of-range stored size reads clamped", settings.scale(for: .openedPostTitle) == 1.5)
+
+    check("code keeps Apollo's 14pt at 100%", RedditMarkdown.codePointSize(scale: 1) == 14)
+    check("code grows with a 135% body", abs(RedditMarkdown.codePointSize(scale: 1.35) - 18.9) < 0.0001)
+    check("a 100% code scale renders the same string as before",
+          RedditMarkdown.render("a `b` c", codeScale: 1) == RedditMarkdown.render("a `b` c"))
+    check("a scaled render keeps the text",
+          String(RedditMarkdown.render("a `b` c", codeScale: 1.35).characters)
+            == String(RedditMarkdown.render("a `b` c").characters))
+
+    var serifContent = defaults
+    serifContent.contentFont = .serif
+    check("Serif content applies to post and comment text",
+          serifContent.resolvedFamily(for: .postBody) == .serif && serifContent.resolvedFamily(for: .commentBody) == .serif)
+    check("...but not titles or the interface",
+          serifContent.resolvedFamily(for: .postTitle) == nil && serifContent.resolvedFamily(for: .commentHeader) == nil)
+
+    var mixed = defaults
+    mixed.titleFont = .rounded
+    mixed.interfaceFont = .monospaced
+    check("the Interface family covers post details, comment headers and link cards",
+          [TextRole.postMeta, .commentHeader, .linkCard].allSatisfy { mixed.resolvedFamily(for: $0) == .monospaced })
+    check("unassigned text keeps the system font under any Interface family",
+          mixed.resolvedFamily(for: .other) == nil)
+    check("each group keeps its own family alongside a different Interface one",
+          mixed.resolvedFamily(for: .postTitle) == .rounded && mixed.resolvedFamily(for: .openedPostTitle) == .rounded
+            && mixed.resolvedFamily(for: .postBody) == nil && mixed.resolvedFamily(for: .commentBody) == nil)
+
+    let partial = try? JSONDecoder().decode(TextScaleSettings.self,
+                                            from: Data(#"{"commentBodyScale":1.3,"contentFont":"serif"}"#.utf8))
+    check("a partial blob decodes with defaults for the rest",
+          partial?.commentBodyScale == 1.3 && partial?.contentFont == .serif
+            && partial?.postTitleScale == 1 && partial?.titleFont == .system)
+    let unknownFamily = try? JSONDecoder().decode(TextScaleSettings.self, from: Data(#"{"titleFont":"comic"}"#.utf8))
+    check("an unknown family decodes as System", unknownFamily?.titleFont == .system)
+
+    let key = TextScaleSettingsStore.storage.key
+    check("Text Sizes & Fonts is included in backups", SettingsDomainSnapshot.isBackedUp(key))
+    let source = UserDefaults(suiteName: "phoebus.smoke.textScale.source")!
+    let target = UserDefaults(suiteName: "phoebus.smoke.textScale.target")!
+    source.removePersistentDomain(forName: "phoebus.smoke.textScale.source")
+    target.removePersistentDomain(forName: "phoebus.smoke.textScale.target")
+    var custom = defaults
+    custom.setScale(1.3, for: .commentBody)
+    custom.setScale(0.9, for: .postMeta)
+    custom.contentFont = .serif
+    custom.titleFont = .rounded
+    TextScaleSettingsStore.storage.save(custom, to: source)
+    SettingsDomainSnapshot.restore(SettingsDomainSnapshot.capture(from: source), into: target)
+    check("Text Sizes & Fonts round-trips through a backup",
+          TextScaleSettingsStore.storage.load(from: target) == custom)
+    source.removePersistentDomain(forName: "phoebus.smoke.textScale.source")
+    target.removePersistentDomain(forName: "phoebus.smoke.textScale.target")
+}
+
 // --- YouTube links show a thumbnail ---
 //
 // A YouTube link in a comment draws the video's poster frame, and opens

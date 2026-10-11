@@ -169,6 +169,8 @@ struct PhoebusApp: App {
             // SwiftUI's `dynamicTypeSize`. When on (default), no
             // modifier is applied, so the OS's own setting governs.
             .apolloTextSizeOverride()
+            // Text Sizes & Fonts: per-role sizes and font families.
+            .apolloTextScale()
             }
         }
     }

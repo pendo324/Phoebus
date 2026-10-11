@@ -72,6 +72,7 @@ struct SettingsSearchDestination: View {
         case .markRead: MarkReadSettingsScreen()
         case .appIcon: AppIconSettingsScreen()
         case .appearance: AppearanceSettingsScreen()
+        case .textSizes: TextSizesAndFontsScreen()
         case .theme: ThemeSettingsScreen()
         case .about: AboutScreen()
         case .notifications: NotificationsSettingsScreen()

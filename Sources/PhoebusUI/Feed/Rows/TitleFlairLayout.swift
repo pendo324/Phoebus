@@ -1,4 +1,5 @@
 import SwiftUI
+import PhoebusCore
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -15,6 +16,8 @@ struct TitleFlairLayout: Layout {
     let titleString: String
     let fontSize: CGFloat
     let bold: Bool
+    /// The title's Text Sizes & Fonts family; nil is the system font.
+    var family: TextFontFamily? = nil
     /// Gap between the last title glyph and the capsule, 3.7pt.
     var gap: CGFloat = 4
     var lineSpacing: CGFloat = 3
@@ -32,7 +35,10 @@ struct TitleFlairLayout: Layout {
     private func lineRects(width: CGFloat, cache: inout Cache) -> [CGRect] {
         if cache.width == width, cache.text == titleString { return cache.lines }
         #if canImport(UIKit)
-        let font = UIFont.systemFont(ofSize: fontSize, weight: bold ? .semibold : .regular)
+        var font = UIFont.systemFont(ofSize: fontSize, weight: bold ? .semibold : .regular)
+        if let family, let descriptor = font.fontDescriptor.withDesign(family.uiFontDesign) {
+            font = UIFont(descriptor: descriptor, size: fontSize)
+        }
         // `.standard` line breaking, as `Text` and UILabel use, so TextKit and
         // SwiftUI agree on where lines break.
         let paragraph = NSMutableParagraphStyle()

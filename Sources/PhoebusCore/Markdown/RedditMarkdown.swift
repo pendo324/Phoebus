@@ -26,6 +26,33 @@ public enum RedditMarkdown {
         return rendered
     }
 
+    /// Apollo's code size, before a Text Sizes & Fonts scale.
+    public static let codePointSize: Double = 14
+
+    /// The code size for a body drawn at `scale` (its role's Text Sizes &
+    /// Fonts multiplier), so code grows with the text around it.
+    public static func codePointSize(scale: Double) -> Double { codePointSize * scale }
+
+    /// `render(_:)` with inline code and code blocks at `codePointSize(scale:)`.
+    /// The run's font is fixed in the string, so the view's font can't scale it.
+    public static func render(_ raw: String, codeScale: Double) -> AttributedString {
+        guard codeScale != 1, codeScale.isFinite else { return render(raw) }
+        // A NUL can't start a Reddit body, so scaled entries can't collide with plain ones.
+        let key = "\u{0}\(codeScale)\u{0}" + raw
+        if let hit = cache.value(for: key) { return hit }
+        var scaled = render(raw)
+        #if canImport(Darwin) && canImport(SwiftUI)
+        let base = codeFont(size: codePointSize)
+        let ranges = scaled.runs.compactMap { run in
+            run[AttributeScopes.SwiftUIAttributes.FontAttribute.self] == base ? run.range : nil
+        }
+        let font = codeFont(size: codePointSize(scale: codeScale))
+        for range in ranges { scaled[range].swiftUI.font = font }
+        #endif
+        cache.store(scaled, for: key)
+        return scaled
+    }
+
     private final class RenderCache: @unchecked Sendable {
         private let lock = NSLock()
         private var entries: [String: AttributedString] = [:]
@@ -165,6 +192,12 @@ public enum RedditMarkdown {
         return output.characters.isEmpty ? input : output
     }
 
+    #if canImport(SwiftUI)
+    static func codeFont(size: Double) -> Font {
+        .system(size: CGFloat(size), design: .monospaced)
+    }
+    #endif
+
     /// Apollo's code style: 14pt monospaced in #ACB2BF on a #282B33 band
     /// behind each line's text.
     static func styleAsCode(_ piece: inout AttributedString, trimTrailingNewline: Bool) {
@@ -172,7 +205,7 @@ public enum RedditMarkdown {
             piece = AttributedString(piece.characters.dropLast().map(String.init).joined())
         }
         #if canImport(SwiftUI)
-        piece.swiftUI.font = .system(size: 14, design: .monospaced)
+        piece.swiftUI.font = codeFont(size: codePointSize)
         piece.swiftUI.foregroundColor = Color(red: 172 / 255, green: 178 / 255, blue: 191 / 255)
         piece.swiftUI.backgroundColor = Color(red: 40 / 255, green: 43 / 255, blue: 51 / 255)
         #endif

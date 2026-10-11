@@ -317,7 +317,7 @@ struct CommentRow: View {
                     Text(displayAuthor)
                         // 15pt medium in #D0D1D6: Apollo's name strokes are lighter than
                         // semibold.
-                        .apolloFont(size: 15, weight: .medium)
+                        .apolloFont(size: 15, weight: .medium, role: .commentHeader)
                         // Apollo's moderator green (see `ApolloPalette`), then your own
                         // and followed users' highlight.
                         .foregroundStyle(AuthorHighlight.current(
@@ -398,7 +398,7 @@ struct CommentRow: View {
                             // dash.
                             if let score = voteCounts.commentScoreText(displayScore, scoreHidden: node.comment.scoreHidden) {
                                 Text(score)
-                                    .apolloFont(size: 13)
+                                    .apolloFont(size: 13, role: .commentHeader)
                             }
                         }
                         .foregroundStyle(voteState == true ? Color.orange
@@ -475,7 +475,7 @@ struct CommentRow: View {
                                        edited: general.showEditedMarker ? node.comment.edited : nil)
                             // 13pt regular in #61626A (tertiary), 16pt trailing inset, 11pt gap
                             // back to the "•••".
-                            .apolloFont(size: 13)
+                            .apolloFont(size: 13, role: .commentHeader)
                             .foregroundStyle(Color.apolloTertiaryText(
                                 colorScheme: colorScheme, themeColors: themeColors))
                             .padding(.leading, 11)
@@ -532,7 +532,7 @@ struct CommentRow: View {
                             // The recovered body in the normal comment style, then the reason chip.
                             VStack(alignment: .leading, spacing: 5.7) {
                                 InlineMediaBodyView(archivedComment.body)
-                                    .apolloFont(size: 15)
+                                    .apolloFont(size: 15, role: .commentBody)
                                     .foregroundStyle(Color.apolloPrimaryText(
                                         colorScheme: colorScheme, themeColors: themeColors))
                                 DeletedReasonChip(label: archivedComment.reason.displayLabel)
@@ -544,7 +544,7 @@ struct CommentRow: View {
                     } else {
                         // 15pt, Apollo's comment body size.
                         InlineMediaBodyView(displayBody, mediaMetadata: node.comment.mediaMetadata)
-                            .apolloFont(size: 15)
+                            .apolloFont(size: 15, role: .commentBody)
                             // "Tap to Collapse: Comments / Both" also collapses on a tap on the
                             // comment text. Links inside the body keep their own taps.
                             .onTapGesture { collapseFromBody() }
@@ -845,7 +845,7 @@ struct CommentFlairPill: View {
                         let trimmed = value.trimmingCharacters(in: .whitespaces)
                         if !trimmed.isEmpty {
                             Text(trimmed)
-                                .apolloFont(size: 14.5)
+                                .apolloFont(size: 14.5, role: .commentHeader)
                                 .lineLimit(1)
                                 .foregroundStyle(textColor ?? Self.defaultText)
                         }

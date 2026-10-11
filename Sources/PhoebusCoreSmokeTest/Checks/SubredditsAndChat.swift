@@ -47,6 +47,64 @@ import PhoebusCore
             && sectionsLegacy.separateFollowedUsers)
 }
 
+// MARK: - Recently Visited (Phoebus-only)
+
+@MainActor func checkRecentlyVisited() async throws {
+    let defaults = UserDefaults(suiteName: "phoebus.smoke.recentlyVisited")!
+    defaults.removePersistentDomain(forName: "phoebus.smoke.recentlyVisited")
+    let alice: String?? = .some("Alice")
+    let signedOut: String?? = .some(nil)
+
+    check("Home, Popular, All and Moderator are not recorded as visits",
+          ["", "popular", "All", "mod", "pics+funny"].allSatisfy { !RecentlyVisitedStore.isRecordableSubreddit($0) })
+    check("a real subreddit is recorded", RecentlyVisitedStore.isRecordableSubreddit("apple"))
+
+    RecentlyVisitedStore.record(RecentlyVisitedEntry(kind: .subreddit, name: "apple"), username: alice, in: defaults)
+    RecentlyVisitedStore.record(RecentlyVisitedEntry(kind: .user, name: "spez"), username: alice, in: defaults)
+    RecentlyVisitedStore.record(RecentlyVisitedEntry(kind: .multireddit, name: "tech", path: "/user/alice/m/tech"),
+                                username: alice, in: defaults)
+    RecentlyVisitedStore.record(RecentlyVisitedEntry(kind: .subreddit, name: "Apple"), username: alice, in: defaults)
+    let entries = RecentlyVisitedStore.entries(username: alice, in: defaults)
+    check("revisiting moves an entry to the front, de-duplicated case-insensitively",
+          entries.map(\.name) == ["Apple", "tech", "spez"])
+    check("entries(kind:) returns one kind",
+          RecentlyVisitedStore.entries(kind: .user, username: alice, in: defaults).map(\.name) == ["spez"])
+    check("each account keeps its own list; the signed-out bucket starts empty",
+          RecentlyVisitedStore.entries(username: .some("bob"), in: defaults).isEmpty
+            && RecentlyVisitedStore.entries(username: signedOut, in: defaults).isEmpty)
+    check("account buckets ignore username case",
+          RecentlyVisitedStore.entries(username: .some("ALICE"), in: defaults).count == 3)
+
+    var capped: [RecentlyVisitedEntry] = []
+    for index in 0..<60 {
+        capped = RecentlyVisitedStore.recording(RecentlyVisitedEntry(kind: .subreddit, name: "sub\(index)"), into: capped)
+    }
+    check("the list is capped at 50, newest first",
+          capped.count == RecentlyVisitedStore.limit && capped.first?.name == "sub59" && capped.last?.name == "sub10")
+
+    RecentlyVisitedStore.remove(RecentlyVisitedEntry(kind: .user, name: "SPEZ"), username: alice, in: defaults)
+    check("removing an entry drops only it",
+          RecentlyVisitedStore.entries(username: alice, in: defaults).map(\.name) == ["Apple", "tech"])
+
+    check("Recently Visited is included in settings backups",
+          SettingsDomainSnapshot.isBackedUp(RecentlyVisitedStore.storage.key))
+    let restored = UserDefaults(suiteName: "phoebus.smoke.recentlyVisited.restored")!
+    restored.removePersistentDomain(forName: "phoebus.smoke.recentlyVisited.restored")
+    let snapshot = SettingsDomainSnapshot.capture(from: defaults)
+    let roundTripped = try JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(snapshot))
+    SettingsDomainSnapshot.restore(roundTripped, into: restored)
+    check("a backup round trip restores every account's entries",
+          RecentlyVisitedStore.entries(username: alice, in: restored) == RecentlyVisitedStore.entries(username: alice, in: defaults))
+
+    RecentlyVisitedStore.clear(username: alice, in: defaults)
+    check("Clear empties the account's list",
+          RecentlyVisitedStore.entries(username: alice, in: defaults).isEmpty)
+
+    check("Show Recently Visited defaults on", SubredditSectionsSettings.default.showRecentlyVisited)
+    let legacy = try JSONDecoder().decode(SubredditSectionsSettings.self, from: Data("{}".utf8))
+    check("settings saved before Show Recently Visited existed decode it as on", legacy.showRecentlyVisited)
+}
+
 // MARK: - Open in App / dedicated-app link routing
 
 // Host matching accepts subdomains of a claimed host.

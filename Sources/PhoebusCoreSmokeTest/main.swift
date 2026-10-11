@@ -806,6 +806,8 @@ check("reordering the sections reorders the preview's bands",
 
 try await checkSubredditSectionsEnhancementsModernDividers()
 
+try await checkRecentlyVisited()
+
 try await checkOpenInAppDedicatedAppLink()
 
 try await checkThemeGalleryTokenCompilerApolloReborn()

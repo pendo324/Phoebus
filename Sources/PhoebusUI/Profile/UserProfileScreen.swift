@@ -88,7 +88,11 @@ public struct UserProfileScreen: View {
     }
 
     public var body: some View {
-        crashTrackedBody.onAppear { CrashRecorder.record(.openedProfile) }
+        crashTrackedBody.onAppear {
+            CrashRecorder.record(.openedProfile)
+            // Recently Visited (Phoebus-only); your own Profile tab is not a visit.
+            if !isOwnProfile { RecentlyVisitedStore.recordUser(username) }
+        }
     }
 
     @ViewBuilder private var crashTrackedBody: some View {

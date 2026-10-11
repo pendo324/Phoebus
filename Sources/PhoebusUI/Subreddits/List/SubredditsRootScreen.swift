@@ -65,6 +65,8 @@ public struct SubredditsRootScreen: View {
     /// `FollowedUsersOrder` (Apollo-Reborn): the user's hand-arranged
     /// order for the Following section.
     @Setting(FollowedUsersOrderStore.storage) private var followedUsersOrder
+    /// Recently Visited (Phoebus-only), every account's; see `recentlyVisitedEntries`.
+    @Setting(RecentlyVisitedStore.storage) private var recentlyVisited
     /// The active gallery theme's colours, for the filter pill below.
     @Environment(\.apolloTheme) private var apolloTheme
     @Environment(\.colorScheme) private var colorScheme
@@ -179,6 +181,49 @@ public struct SubredditsRootScreen: View {
         }
     }
 
+    /// The active account's Recently Visited entries, narrowed by the filter
+    /// field like every other section.
+    private var recentlyVisitedEntries: [RecentlyVisitedEntry] {
+        guard sectionsSettings.showRecentlyVisited else { return [] }
+        let bucket = RecentlyVisitedStore.bucket(for: FavoriteSubredditsAccountContext.currentUsernameProvider())
+        let entries = recentlyVisited[bucket] ?? []
+        let query = filterText.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return entries }
+        return entries.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private func openRecentlyVisited(_ entry: RecentlyVisitedEntry) {
+        switch entry.kind {
+        case .subreddit: onSelect(.subreddit(entry.name))
+        case .multireddit: onSelect(.multireddit(path: entry.path ?? entry.name, name: entry.name))
+        case .user: entry.openProfile()
+        }
+    }
+
+    /// Laid out like `favoriteRow` (28pt icon, 17pt name), without the star.
+    private func recentlyVisitedRow(_ entry: RecentlyVisitedEntry) -> some View {
+        HStack(spacing: 14.4) {
+            if appearanceSettings.showSubredditIconsInSubredditList {
+                if entry.kind == .subreddit {
+                    SubredditIconView(subreddit: entry.name, repository: repository,
+                                      size: SubredditRowMetrics.iconDiameter)
+                } else {
+                    Image(systemName: entry.systemImage)
+                        .font(.system(size: 20))
+                        .foregroundStyle(apolloTheme.color(.accent) ?? .accentColor)
+                        .frame(width: SubredditRowMetrics.iconDiameter, height: SubredditRowMetrics.iconDiameter)
+                }
+            }
+            Text(entry.kind == .subreddit ? SubredditCapitalization.display(entry.name) : entry.title)
+                .apolloFont(size: 17)
+                .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: apolloTheme))
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: SubredditRowMetrics.iconDiameter, alignment: .leading)
+        .contentShape(Rectangle())
+        .apolloSubredditRowSeparator(modern: sectionsSettings.usesModernDividers)
+    }
+
     /// "Filter Subreddits", the list's first row. Apollo keeps it just above the
     /// visible area at rest, revealed by pulling the list down.
     private var filterField: some View {
@@ -273,6 +318,15 @@ public struct SubredditsRootScreen: View {
                    .buttonStyle(.plain)
                    // The index's ☰ glyph jumps here.
                    .id(SubredditIndexTitle.feedShortcuts)
+
+                    // Recently Visited (Phoebus-only) sits above the reorderable sections,
+                    // like the feed shortcuts it follows.
+                    RecentlyVisitedSection(entries: recentlyVisitedEntries, area: "subreddits",
+                                           onOpen: openRecentlyVisited) {
+                        ApolloSubredditSectionHeader("Recently Visited")
+                    } row: { entry in
+                        recentlyVisitedRow(entry)
+                    }
 
                     // Reborn "Subreddit Sections" order.
                     ForEach(sectionsSettings.visibleOrder) { token in

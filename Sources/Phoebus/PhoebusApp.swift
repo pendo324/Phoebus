@@ -622,6 +622,8 @@ struct MainTabView: View {
             }, onOpenTarget: { target in
                 // A Google result opens natively on this tab (#1260).
                 searchDeepLink = target
+            }, onOpenMultireddit: { path, name in
+                searchDestination = .multireddit(path: path, name: name)
             })
             .apolloSettingsNavigation(searchNavigation)
             .navigationDestination(item: $searchDeepLink) { target in

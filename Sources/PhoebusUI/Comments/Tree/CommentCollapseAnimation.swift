@@ -13,8 +13,8 @@ import ObjectiveC
 /// - collapse: the old expanded cell stays put and fades out while the
 ///   new collapsed header rises into place from below with the rows
 ///   after it, and the replies fade out while drifting down;
-/// - expand: the replies fan out from under the header, starting stacked
-///   at its top and sliding down to their places, while the old collapsed
+/// - expand: the replies fan out from under the header, starting tucked
+///   behind it and sliding down to their places, while the old collapsed
 ///   header drifts down and fades.
 ///
 /// When the batch finishes, a comment whose top is above the visible
@@ -39,15 +39,20 @@ enum CommentCollapseAnimation {
     /// comment to bring back on screen.
     static func perform(revealsRow: Bool = true, _ change: () -> Void) {
         let list = commentsList()
-        if let list { install(on: type(of: list.collectionViewLayout)) }
+        if let list {
+            install(on: type(of: list.collectionViewLayout))
+            installLayoutHook(on: type(of: list))
+        }
         activeUntil = CFAbsoluteTimeGetCurrent() + duration + 0.3
         pending = Update()
         heightsBefore = list.map(visibleHeights) ?? [:]
         listBefore = list
         withAnimation(.easeInOut(duration: duration)) { change() }
+        fanOutDue = true
         DispatchQueue.main.async {
             riseHeader()
-            fanOutReplies()
+            // Normally already run by the list's layout pass (`installLayoutHook`).
+            fanOutRepliesIfDue()
         }
         guard revealsRow else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.02) { revealToggledRow() }
@@ -123,6 +128,34 @@ enum CommentCollapseAnimation {
         }
     }
 
+    /// Whether `fanOutReplies` still has to run for the current change.
+    private static var fanOutDue = false
+
+    private static func fanOutRepliesIfDue() {
+        guard fanOutDue else { return }
+        fanOutDue = false
+        fanOutReplies()
+    }
+
+    /// Starts the fan-out at the end of the list's layout pass that applies
+    /// the batch, so it lands in the same frame; started any later, the
+    /// replies show at their final places for a frame first.
+    private static func installLayoutHook(on cls: AnyClass) {
+        guard installed.insert(ObjectIdentifier(cls)).inserted else { return }
+        let selector = #selector(UIView.layoutSubviews)
+        guard let method = class_getInstanceMethod(cls, selector) else { return }
+        typealias Layout = @convention(c) (UIView, Selector) -> Void
+        let original = unsafeBitCast(method_getImplementation(method), to: Layout.self)
+        let block: @convention(block) (UIView) -> Void = { view in
+            original(view, selector)
+            MainActor.assumeIsolated {
+                guard fanOutDue, pending.collectionView === view else { return }
+                fanOutRepliesIfDue()
+            }
+        }
+        replace(cls, selector, method, block)
+    }
+
     private static func replace(_ cls: AnyClass, _ selector: Selector, _ method: Method, _ block: Any) {
         let imp = imp_implementationWithBlock(block)
         // Added on the class itself when it only inherits the method, so
@@ -193,8 +226,11 @@ enum CommentCollapseAnimation {
             copy.zIndex = -1
         case (false, true, false):
             // Replies fan out from under the header down to their places,
-            // fully drawn, the way Apollo's opaque cells slide out.
-            if let row = pending.toggledRow, let header = layout.layoutAttributesForItem(at: row) {
+            // fully drawn, the way Apollo's opaque cells slide out. Only
+            // those landing on screen: stacking the rest at the header would
+            // build a cell for every reply in a long thread.
+            if let row = pending.toggledRow, let header = layout.layoutAttributesForItem(at: row),
+               let list = layout.collectionView, copy.frame.minY < list.bounds.maxY {
                 copy.frame.origin.y = header.frame.minY
             }
             copy.alpha = 1
@@ -301,8 +337,10 @@ enum CommentCollapseAnimation {
             guard let cell = list.cellForItem(at: path) else { continue }
             let offset: CGFloat
             if inserted.contains(path) {
-                // Stacked at the header's top, sliding to its place.
-                offset = max(-cap, header.frame.minY - cell.frame.minY)
+                // Tucked behind the header, sliding out from under it to its
+                // place. A reply landing below the screen stays there.
+                guard cell.frame.minY < list.bounds.maxY else { continue }
+                offset = header.frame.maxY - cell.frame.maxY
             } else if path > lastInserted {
                 // Where it sat under the collapsed header before.
                 guard let lastFrame = list.layoutAttributesForItem(at: lastInserted)?.frame else { continue }
@@ -320,6 +358,7 @@ enum CommentCollapseAnimation {
             slide.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             slide.isAdditive = true
             cell.layer.add(slide, forKey: "apolloExpandFan")
+            if inserted.contains(path) { clipBelow(header.frame.maxY, cell: cell, slide: slide) }
             // Earlier replies on top, all under the header.
             cell.layer.zPosition = inserted.contains(path) ? -1 - CGFloat(path.item - row.item) * 0.001 : -2
             moved.append((cell.layer, cell.layer.backgroundColor))
@@ -336,6 +375,29 @@ enum CommentCollapseAnimation {
             }
             headerCell.layer.zPosition = 0
             headerCell.layer.backgroundColor = headerBackground
+        }
+    }
+
+    /// Masks off the part of a sliding reply above `edge` (list
+    /// coordinates), so a reply taller than the header never shows above
+    /// it. The mask moves against the cell for the length of `slide`.
+    private static func clipBelow(_ edge: CGFloat, cell: UICollectionViewCell, slide: CABasicAnimation) {
+        let layer = cell.layer
+        guard layer.mask == nil, let offset = slide.fromValue as? CGFloat else { return }
+        let mask = CALayer()
+        mask.backgroundColor = UIColor.black.cgColor
+        mask.frame = CGRect(x: 0, y: edge - cell.frame.minY, width: layer.bounds.width,
+                            height: max(layer.bounds.height, cell.frame.maxY - edge))
+        let counter = CABasicAnimation(keyPath: "position.y")
+        counter.fromValue = -offset
+        counter.toValue = 0
+        counter.duration = slide.duration
+        counter.timingFunction = slide.timingFunction
+        counter.isAdditive = true
+        mask.add(counter, forKey: "apolloExpandFan")
+        layer.mask = mask
+        DispatchQueue.main.asyncAfter(deadline: .now() + slide.duration) {
+            if layer.mask === mask { layer.mask = nil }
         }
     }
 

@@ -221,6 +221,9 @@ struct LinkPreviewCardContent: View {
         return VStack(alignment: .leading, spacing: 0) {
             Color.clear
                 .aspectRatio(1 / shape.ratio, contentMode: .fit)
+                // Always the full width's height: a squeezable image let a
+                // list measure the card taller than it drew, leaving a gap.
+                .fixedSize(horizontal: false, vertical: true)
                 .overlay {
                     CachedAsyncImage(url: preview.imageURL, contentMode: shape.fits ? .fit : .fill)
                 }
@@ -329,6 +332,7 @@ struct LinkPreviewCardContent: View {
             if let imageURL = preview.imageURL {
                 Color.clear
                     .aspectRatio(1 / LinkPreviewRules.postImageAspect(preview), contentMode: .fit)
+                    .fixedSize(horizontal: false, vertical: true)
                     .overlay { CachedAsyncImage(url: imageURL, contentMode: .fill) }
                     .background(palette.secondary.opacity(0.15))
                     .clipShape(RoundedRectangle(cornerRadius: 10))

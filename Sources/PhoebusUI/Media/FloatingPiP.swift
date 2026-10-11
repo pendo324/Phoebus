@@ -959,6 +959,9 @@ struct FloatingPiPSource: ViewModifier {
     /// when that changes, not on every scroll frame: each evaluation read
     /// the PiP settings and probed the item's tracks.
     @State private var wasOffScreen: Bool?
+    /// Paused here for being scrolled away without going to the card, so
+    /// scrolling back plays it again.
+    @State private var pausedOffScreen = false
 
     func body(content: Content) -> some View {
         content
@@ -980,11 +983,24 @@ struct FloatingPiPSource: ViewModifier {
             let silent = isGIF || FloatingPiPController.isKnownSilent(player)
             guard FloatingPiPController.shouldActivate(settings: settings,
                                                        isPlaying: player.timeControlStatus != .paused,
-                                                       isMuted: player.isMuted, isGIF: silent) else { return }
+                                                       isMuted: player.isMuted, isGIF: silent) else {
+                // Not going to the card: a video scrolled out of sight stops.
+                // A post screen keeps its header row alive, so it never
+                // disappears to pause itself.
+                if player.timeControlStatus != .paused {
+                    player.pause()
+                    pausedOffScreen = true
+                }
+                return
+            }
             controller.show(player: player, owner: owner, aspectRatio: aspectRatio,
                             isGIF: silent, screenID: screenID)
         } else {
             controller.hide(owner: owner)
+            if pausedOffScreen {
+                pausedOffScreen = false
+                player.play()
+            }
         }
     }
 }

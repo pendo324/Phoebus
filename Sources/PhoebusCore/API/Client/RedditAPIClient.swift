@@ -89,6 +89,13 @@ public actor RedditAPIClient {
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
 
     private func webJSONRequest(path: String, method: String, parameters: [String: String], session: WebSessionCredential) -> URLRequest {
+        var path = path
+        var parameters = parameters
+        // Reborn "Post flair and wiki saves" (#1309): www only serves these
+        // as /api/<action> with the subreddit in an `r` field.
+        if method != "GET", let rewritten = WebSubredditWrite.rewrite(path: path, parameters: parameters) {
+            (path, parameters) = rewritten
+        }
         // Unlike `oauth.reddit.com`, which serves JSON for every path,
         // `www.reddit.com` only serves JSON for listing pages when the
         // path carries an explicit ".json" suffix, otherwise it returns

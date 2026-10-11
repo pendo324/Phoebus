@@ -916,6 +916,8 @@ try await checkRedditChatOverMatrix()
 
 try await checkWebSessionModeratorRequestsWebBearer()
 
+try await checkWebSessionSubredditWritesUseRField()
+
 try await checkChatSendQueueDesignPortedFrom()
 
 try await checkChatMediaDateHeaders()

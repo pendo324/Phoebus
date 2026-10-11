@@ -107,3 +107,35 @@ private func anonymousJWT() -> String {
     do { _ = try await anonymousCache.bearer(for: session("mod")) } catch { refused = true }
     check("a signed-out cookie's anonymous token is refused", refused)
 }
+
+// MARK: - Subreddit-scoped writes over the cookie
+//
+// Reborn "Post flair and wiki saves" (#1309): www 404s POST /r/<sub>/api/<action>
+// for the cookie, so a web-session account sends flair and wiki saves as
+// POST /api/<action> with the subreddit in an `r` form field.
+@MainActor func checkWebSessionSubredditWritesUseRField() async throws {
+    let flair = WebSubredditWrite.rewrite(path: "/r/swift/api/selectflair",
+                                          parameters: ["link": "t3_abc", "flair_template_id": "tpl"])
+    check("selectflair goes to /api/selectflair with r and its other fields kept",
+          flair?.path == "/api/selectflair"
+            && flair?.parameters == ["link": "t3_abc", "flair_template_id": "tpl", "r": "swift"])
+    check("setflairenabled goes to /api/setflairenabled",
+          WebSubredditWrite.rewrite(path: "/r/swift/api/setflairenabled", parameters: ["flair_enabled": "true"])?.path
+            == "/api/setflairenabled")
+    let wiki = WebSubredditWrite.rewrite(path: "/r/Swift/api/wiki/edit",
+                                         parameters: ["page": "config/automoderator", "content": "x"])
+    check("wiki/edit keeps its two-segment action and the subreddit's case",
+          wiki?.path == "/api/wiki/edit" && wiki?.parameters["r"] == "Swift" && wiki?.parameters["page"] == "config/automoderator")
+    check("an r field already in the body is kept",
+          WebSubredditWrite.rewrite(path: "/r/swift/api/selectflair", parameters: ["r": "other"])?.parameters["r"] == "other")
+    check("a trailing slash and any case are accepted",
+          WebSubredditWrite.rewrite(path: "/R/swift/API/SelectFlair/", parameters: [:])?.path == "/api/selectflair")
+    check("other writes are left alone",
+          WebSubredditWrite.rewrite(path: "/api/selectflair", parameters: [:]) == nil
+            && WebSubredditWrite.rewrite(path: "/r/swift/api/friend", parameters: [:]) == nil
+            && WebSubredditWrite.rewrite(path: "/r/swift/api/flairselector", parameters: [:]) == nil
+            && WebSubredditWrite.rewrite(path: "/r/swift/api/wiki/revert", parameters: [:]) == nil
+            && WebSubredditWrite.rewrite(path: "/r/swift/about/rules", parameters: [:]) == nil)
+    check("the encoded body carries r for the subreddit",
+          FormEncoding.encode(flair?.parameters ?? [:]).contains("r=swift"))
+}

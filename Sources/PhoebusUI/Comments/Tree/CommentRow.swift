@@ -490,6 +490,14 @@ struct CommentRow: View {
                 // and text selection; the author name and chevron keep their own taps
                 // (an inner gesture takes precedence).
                 .contentShape(Rectangle())
+                // Comment Filters: why this comment started collapsed.
+                if node.isCollapsed, let filterReason = node.filterReason {
+                    Text(filterReason)
+                        .apolloFont(size: 13)
+                        .foregroundStyle(Color.apolloTertiaryText(
+                            colorScheme: colorScheme, themeColors: themeColors))
+                        .accessibilityIdentifier("comment.filterReason.\(node.id)")
+                }
                 if !node.isCollapsed {
                     if isEditing {
                         TextEditor(text: $editedText)

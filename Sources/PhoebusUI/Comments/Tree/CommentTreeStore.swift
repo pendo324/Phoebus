@@ -82,6 +82,9 @@ final class CommentTreeStore: ObservableObject {
     /// at instead of blanking and refetching. See `fetch`.
     static let recentTrees = RecentCommentTreeCache()
 
+    /// The comment a link pointed at, which the Comment Filters leave alone.
+    var focusedCommentID: String?
+
     private var lastKey: String?
     private var lastSubreddit = ""
     private var lastPostID = ""
@@ -280,7 +283,7 @@ final class CommentTreeStore: ObservableObject {
             await Task.detached(priority: .userInitiated) {
                 CommentBodyWarmUp.warm(Array(opening), inlineMediaEnabled: inlineEnabled)
             }.value
-            roots = built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
+            roots = filtered(built.roots)
             rootMoreStub = built.moreStub
             warmBodies(roots)
             postDuplicateCount = built.postDuplicateCount
@@ -357,7 +360,7 @@ final class CommentTreeStore: ObservableObject {
             if isAtLiveEdge && GeneralSettingsStore.load().liveCommentsFollow {
                 // FOLLOW: adopt the new snapshot so newest comments
                 // appear at top and older ones slide down.
-                roots = built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
+                roots = filtered(built.roots)
                 rootMoreStub = built.moreStub
                 newCommentIDs = freshIDs
                 NewCommentsTracker.markSeen(postID: postID, commentIDs: allIDs)
@@ -374,7 +377,7 @@ final class CommentTreeStore: ObservableObject {
                 let existing = Set(roots.map(\.id))
                 let fresh = built.roots.filter { freshIDs.contains($0.id) && !existing.contains($0.id) }.prefix(20)
                 guard !fresh.isEmpty else { return }
-                let merged = Array(fresh).applyingBlockedUsers(blockedAuthors(), hide: general.hideBlockedUserComments)
+                let merged = filtered(Array(fresh))
                 roots = merged + roots
                 newCommentIDs = Set(fresh.flatMap { $0.allIDs() })
                 liveBaselineIDs.formUnion(fresh.flatMap { $0.allIDs() })
@@ -399,6 +402,14 @@ final class CommentTreeStore: ObservableObject {
     private func blockedAuthors() -> Set<String> {
         BlockedUsersStore.lowercasedNames().union(
             ContentFilterStore.load().filter { $0.kind == .author }.map { $0.value.lowercased() })
+    }
+
+    /// Blocked users, then the Comment Filters, on freshly built comments.
+    private func filtered(_ nodes: [CommentTreeNode]) -> [CommentTreeNode] {
+        nodes.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
+            .applyingCommentFilters(CommentFilterStore.load(), subreddit: lastSubreddit,
+                                    ownUsername: FavoriteSubredditsAccountContext.currentUsernameProvider(),
+                                    focusedCommentID: focusedCommentID)
     }
 
     /// Collapses or expands every comment's children at once.
@@ -491,10 +502,10 @@ final class CommentTreeStore: ObservableObject {
                 return
             }
             if rootMoreStub?.id == stub.id {
-                roots.append(contentsOf: built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments))
+                roots.append(contentsOf: filtered(built.roots))
                 rootMoreStub = built.moreStub
             } else {
-                roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: built.roots.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)) }
+                roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: filtered(built.roots)) }
             }
         } catch {
             errorMessage = UserFacingError.message(for: error)
@@ -535,7 +546,7 @@ final class CommentTreeStore: ObservableObject {
                 roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: []) }
                 return
             }
-            let visible = revealed.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
+            let visible = filtered(revealed)
             warmBodies(visible, replacingTree: false)
             roots = roots.map {
                 $0.resolvingMoreStub(stubID: stub.id, with: visible)

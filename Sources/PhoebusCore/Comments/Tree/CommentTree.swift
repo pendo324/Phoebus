@@ -61,19 +61,23 @@ public struct CommentTreeNode: Identifiable, Sendable, Equatable {
     /// A trailing "N more replies" continuation stub among this
     /// node's own children, if Reddit truncated the thread here.
     public var moreStub: MoreStub?
+    /// Set when a comment filter started this comment collapsed: the
+    /// "Filtered: ..." line its collapsed row shows.
+    public var filterReason: String?
 
     public var id: String { comment.id }
 
-    public init(comment: RedditComment, depth: Int, children: [CommentTreeNode] = [], isCollapsed: Bool = false, moreStub: MoreStub? = nil) {
+    public init(comment: RedditComment, depth: Int, children: [CommentTreeNode] = [], isCollapsed: Bool = false, moreStub: MoreStub? = nil, filterReason: String? = nil) {
         self.comment = comment
         self.depth = depth
         self.children = children
         self.isCollapsed = isCollapsed
         self.moreStub = moreStub
+        self.filterReason = filterReason
     }
 
     public static func == (lhs: CommentTreeNode, rhs: CommentTreeNode) -> Bool {
-        lhs.id == rhs.id && lhs.isCollapsed == rhs.isCollapsed && lhs.children == rhs.children && lhs.moreStub == rhs.moreStub
+        lhs.id == rhs.id && lhs.isCollapsed == rhs.isCollapsed && lhs.children == rhs.children && lhs.moreStub == rhs.moreStub && lhs.filterReason == rhs.filterReason
     }
 
     /// Flattened depth-first traversal respecting collapse state: what a

@@ -81,7 +81,10 @@ public struct CommentTreeScreen: View {
             .apolloStockSurface()
             // Loading is driven here, at the top-level `List`, rather than inside
             // `CommentTreeContent`'s own `.task`; see `CommentTreeStore`.
-            .task(id: sort) { await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository) }
+            .task(id: sort) {
+                store.focusedCommentID = focusedCommentID
+                await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository)
+            }
             // Land on the linked comment, at the top. `scrollTo` resolves against the
             // realized row, so waiting for the tree to arrive is enough.
             .onChange(of: store.roots.count) { _, _ in

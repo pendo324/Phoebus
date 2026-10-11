@@ -37,6 +37,7 @@ public struct FiltersSettingsScreen: View {
             keywordsSection
             subredditsSection
             blockedUsersSection
+            commentFiltersSection
             AuthorDomainFiltersSection(filters: $filters)
             subredditSpecificSection
             filterByNameSection
@@ -130,6 +131,22 @@ public struct FiltersSettingsScreen: View {
         } footer: {
             Text("Exclude posts and communication from these users.")
                     .apolloSectionFooter()
+        }
+    }
+
+    /// Phoebus's own Comment Filters, beside the other comment-hiding list.
+    private var commentFiltersSection: some View {
+        Section {
+            SettingsLink {
+                CommentFiltersScreen()
+            } label: {
+                Text("Comment Filters")
+            }
+            .accessibilityIdentifier("filters.commentFilters")
+            .apolloSearchRow("Comment Filters", lastBeforeFooter: true)
+        } footer: {
+            Text("Hide or collapse comments by score, words or author.")
+                .apolloSectionFooter()
         }
     }
 

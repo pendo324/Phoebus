@@ -3,22 +3,48 @@ import Foundation
 /// A query run from the Search tab or a feed's search field. Phoebus
 /// addition: neither Apollo nor Reborn keeps search history.
 public struct RecentSearch: Codable, Sendable, Hashable, Identifiable {
+    /// A post search reruns; a user entry, whose query is the username
+    /// opened from the Users section, opens that profile.
+    public enum Kind: String, Codable, Sendable {
+        case posts, user
+    }
+
     public var query: String
     /// The subreddit searched, or empty for all of Reddit.
     public var subreddit: String
     /// `SearchEngine.rawValue`; Google, Kagi and Reddit Answers searches
     /// are always site-wide.
     public var engine: Int
+    public var kind: Kind
     public var searchedAt: Date
 
-    public init(query: String, subreddit: String = "", engine: SearchEngine = .reddit, searchedAt: Date = Date()) {
+    public init(query: String, subreddit: String = "", engine: SearchEngine = .reddit, kind: Kind = .posts,
+                searchedAt: Date = Date()) {
         self.query = query
         self.subreddit = subreddit
         self.engine = engine.rawValue
+        self.kind = kind
         self.searchedAt = searchedAt
     }
 
-    public var id: String { SearchHistoryStore.identity(query, subreddit, String(engine)) }
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        query = try container.decode(String.self, forKey: .query)
+        subreddit = try container.decode(String.self, forKey: .subreddit)
+        engine = try container.decode(Int.self, forKey: .engine)
+        kind = (try? container.decodeIfPresent(Kind.self, forKey: .kind)) ?? .posts
+        searchedAt = try container.decode(Date.self, forKey: .searchedAt)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case query, subreddit, engine, kind, searchedAt
+    }
+
+    public var id: String {
+        kind == .posts
+            ? SearchHistoryStore.identity(query, subreddit, String(engine))
+            : SearchHistoryStore.identity(query, subreddit, String(engine), kind.rawValue)
+    }
     public var searchEngine: SearchEngine { SearchEngine(rawValue: engine) ?? .reddit }
 }
 
@@ -150,6 +176,13 @@ public enum SearchHistoryStore {
         guard !trimmed.isEmpty, SearchHistorySettingsStore.load().saveHistory else { return }
         let entry = RecentSearch(query: trimmed, subreddit: engine == .reddit ? subreddit : "",
                                  engine: engine, searchedAt: date)
+        update { $0.recent = inserting(entry, into: $0.recent) }
+    }
+
+    /// Records a profile opened from the Search tab's Users section.
+    public static func record(user name: String, at date: Date = Date()) {
+        guard !name.isEmpty, SearchHistorySettingsStore.load().saveHistory else { return }
+        let entry = RecentSearch(query: name, kind: .user, searchedAt: date)
         update { $0.recent = inserting(entry, into: $0.recent) }
     }
 

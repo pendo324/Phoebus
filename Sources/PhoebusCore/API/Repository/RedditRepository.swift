@@ -657,6 +657,25 @@ public actor RedditRepository {
         ])
     }
 
+    /// Accounts matching `query` (`search?type=user`), with the exact
+    /// name looked up first when it could be one, since Reddit's user
+    /// search often leaves it out.
+    public func searchUsers(query: String, limit: Int = 10) async throws -> [UserSearchResult] {
+        async let exact = lookUpExactUser(query)
+        let found = try UserSearch.parse(try await client.get(path: "/search", parameters: [
+            "q": query,
+            "type": "user",
+            "limit": String(limit),
+        ]))
+        return UserSearch.merging(exact: await exact, into: found)
+    }
+
+    private func lookUpExactUser(_ name: String) async -> UserSearchResult? {
+        guard UserSearch.isPossibleUsername(name),
+              let data = try? await client.get(path: "/user/\(name)/about") else { return nil }
+        return UserSearch.parseAccount(data)
+    }
+
     /// Name-prefix autocomplete for the Jump Bar, using
     /// `api/subreddit_autocomplete_v2` rather than `subreddits/search`
     /// (which ranks by relevance across descriptions, so typing

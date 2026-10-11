@@ -51,7 +51,11 @@ public struct PostSearchScreen: View {
             // Phoebus addition: this scope's recent and saved searches before typing.
             if query.isEmpty {
                 RecentSearchesSection(subreddit: subreddit) { entry in
-                    run(query: entry.query)
+                    if entry.kind == .user {
+                        jumpDestination = .user(entry.query)
+                    } else {
+                        run(query: entry.query)
+                    }
                 }
                 SavedSearchesSection(subreddit: subreddit) { saved in
                     run(query: saved.query, sort: saved.sort, time: saved.time)

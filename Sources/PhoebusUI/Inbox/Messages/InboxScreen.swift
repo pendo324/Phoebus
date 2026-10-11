@@ -548,6 +548,7 @@ struct MessageRow: View {
     @State private var showingReply = false
     @State private var replyText = ""
     @State private var isSubmittingReply = false
+    @State private var showingTagEditor = false
 
     init(message: RedditMessage, repository: RedditRepository, isNew: Bool, parentBody: String? = nil,
          onMarkedRead: @escaping () -> Void = {},
@@ -643,6 +644,7 @@ struct MessageRow: View {
                 Label("Copy Text", systemImage: "doc.on.doc")
             }
         }
+        .userTagEditor(isPresented: $showingTagEditor, username: message.author)
         // Unread rows sit on Apollo's blue tint (#1C2E48) until opened.
         .listRowBackground(isNew ? unreadBackground : nil)
         // Glyph column from x 11, text from x 39.
@@ -660,9 +662,12 @@ struct MessageRow: View {
                 }
             }
             .frame(width: 27, alignment: .leading)
-            (Text(message.author)
-                + (message.subreddit.map { Text(" in ") + Text(SubredditCapitalization.display($0)) } ?? Text("")))
+            Text(message.author)
                 .lineLimit(1)
+            UserTagPill(username: message.author, leadingPadding: 5)
+            (message.subreddit.map { Text(" in ") + Text(SubredditCapitalization.display($0)) } ?? Text(""))
+                .lineLimit(1)
+                .layoutPriority(-1)
             Spacer(minLength: 8)
             Menu {
                 Button { showingReply.toggle() } label: {
@@ -671,10 +676,16 @@ struct MessageRow: View {
                 Button { PasteboardHelper.copy(message.body) } label: {
                     Label("Copy Text", systemImage: "doc.on.doc")
                 }
+                // Phoebus-only user tags (`UserTags`).
+                if !message.author.isEmpty, message.author != "[deleted]" {
+                    UserTagMenuItem(username: message.author) { showingTagEditor = true }
+                        .accessibilityIdentifier("inbox.message.tagUser")
+                }
             } label: {
                 Text("•••").padding(.horizontal, 6).contentShape(Rectangle())
             }
             .accessibilityLabel("More Options")
+            .accessibilityIdentifier("inbox.message.moreOptions.\(message.id)")
             Text(ShareCardFormatting.compactAge(since: message.created))
                 .padding(.leading, 8)
         }

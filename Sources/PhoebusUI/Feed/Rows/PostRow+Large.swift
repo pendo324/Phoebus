@@ -225,6 +225,7 @@ extension PostRow {
                             .authorHighlight(postAuthorHighlight)
                             .contentShape(Rectangle())
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
+                        UserTagPill(username: post.author)
                         if let authorFlair = post.authorFlairText, !authorFlair.isEmpty, generalSettings.showUserFlair {
                             LinkFlairLabel(text: authorFlair, parts: nil)
                                 .font(.caption2)

@@ -93,6 +93,7 @@ struct PostRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("More options")
+            .accessibilityIdentifier("feed.postRow.moreOptions.\(post.id)")
         } else {
             StockIcon("inline-more-options")
         }

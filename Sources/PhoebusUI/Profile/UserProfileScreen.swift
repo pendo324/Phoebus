@@ -224,6 +224,9 @@ public struct UserProfileScreen: View {
                         } label: {
                             Label(isBlocked ? "Unblock User" : "Block User", systemImage: "nosign")
                         }
+                        // Phoebus-only user tags (`UserTags`).
+                        UserTagMenuItem(username: username) { showingTagEditor = true }
+                            .accessibilityIdentifier("profile.tagUser")
                         Button {
                             PasteboardHelper.copy(username)
                         } label: {
@@ -244,6 +247,7 @@ public struct UserProfileScreen: View {
                         Image(systemName: "ellipsis.circle")
                         .accessibilityLabel("More")
                     }
+                    .accessibilityIdentifier("profile.userOverflowMenu")
                 }
             }
         }
@@ -252,6 +256,7 @@ public struct UserProfileScreen: View {
         } message: {
             Text(watchUserMessage ?? "")
         }
+        .userTagEditor(isPresented: $showingTagEditor, username: username)
         .apolloInAppBrowser(url: $socialLinkURL)
         .sheet(isPresented: $showingCompose) {
             ComposeMessageScreen(to: username, repository: repository) {
@@ -319,6 +324,7 @@ public struct UserProfileScreen: View {
     @State private var trophies: [RedditTrophy] = []
 
     @State private var isBlocked = false
+    @State private var showingTagEditor = false
     @State private var showingCompose = false
     /// Whether this (other) user exposes any public multireddits;
     /// drives whether the Multis segment is offered at all.
@@ -500,6 +506,8 @@ public struct UserProfileScreen: View {
                             .frame(height: 20)
                             .padding(.top, 1)
                     }
+                    UserTagPill(username: user.name)
+                        .padding(.top, 4)
                     Color.clear.frame(height: 10)
                 } else {
                     HStack(alignment: .top, spacing: 12) {
@@ -515,6 +523,8 @@ public struct UserProfileScreen: View {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                             }
+                            UserTagPill(username: user.name)
+                                .padding(.top, 2)
                         }
                         .padding(.top, bannerHeight > 0 ? bannerHeight + 4 : avatarTop + 30)
                     }

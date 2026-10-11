@@ -909,3 +909,47 @@ import PhoebusCore
     check("InfoRowSettings.summaryText reflects overlay + disabled upvote", infoRowSettings.summaryText.contains("Overlays") && infoRowSettings.summaryText.contains("Upvote") && infoRowSettings.summaryText.hasSuffix("off"))
     InfoRowSettingsStore.save(.default)
 }
+
+// MARK: - User tags
+//
+// Phoebus-only: a local label and colour per user, case-insensitive, and
+// carried by settings backups.
+@MainActor func checkUserTags() async throws {
+    var tags = UserTags()
+    tags.setTag("  Helpful mod  ", color: .green, for: "SomeUser")
+    check("a tag is found whatever the username's casing",
+          tags.tag(for: "someuser")?.text == "Helpful mod" && tags.tag(for: "SOMEUSER")?.color == .green)
+    check("a typed u/ prefix names the same user", tags.tag(for: "u/SomeUser") != nil)
+    tags.setTag("Troll", color: .red, for: "someuser")
+    check("retagging replaces the tag and keeps the first casing",
+          tags.byUser.count == 1 && tags.tag(for: "SomeUser")?.text == "Troll" && tags.tag(for: "x")?.text == nil
+            && tags.sorted.first?.username == "SomeUser")
+    tags.setTag(String(repeating: "a", count: 40), color: .blue, for: "Long")
+    check("tag text is clipped to 24 characters", tags.tag(for: "long")?.text.count == UserTags.maxLength)
+    tags.setTag("   ", color: .blue, for: "long")
+    check("empty text removes the tag", tags.tag(for: "Long") == nil)
+    tags.setTag("ghost", color: .blue, for: "[deleted]")
+    check("[deleted] can't be tagged", tags.tag(for: "[deleted]") == nil)
+    tags.setTag("b", color: .blue, for: "bob")
+    tags.setTag("a", color: .blue, for: "Alice")
+    check("the settings list is alphabetical", tags.sorted.map(\.username) == ["Alice", "bob", "SomeUser"])
+    tags.removeTag(for: "BOB")
+    check("Remove Tag is case-insensitive", tags.tag(for: "bob") == nil && tags.byUser.count == 2)
+    check("the palette has eight colours", UserTagColor.allCases.count == 8)
+    let unknownColour = Data(#"{"byUser":{"x":{"username":"X","text":"hi","color":"chartreuse"}}}"#.utf8)
+    check("an unknown colour keeps the tag",
+          (try? JSONDecoder().decode(UserTags.self, from: unknownColour))?.tag(for: "x")?.color == .blue)
+
+    // Backup round trip through the whole-domain snapshot.
+    check("user tags are backed up", SettingsDomainSnapshot.isBackedUp(UserTagStore.storage.key))
+    let source = UserDefaults(suiteName: "UserTagsBackupTest")!
+    source.removePersistentDomain(forName: "UserTagsBackupTest")
+    UserTagStore.storage.save(tags, to: source)
+    let encoded = try JSONEncoder().encode(SettingsDomainSnapshot.capture(from: source))
+    let target = UserDefaults(suiteName: "UserTagsRestoreTest")!
+    target.removePersistentDomain(forName: "UserTagsRestoreTest")
+    SettingsDomainSnapshot.restore(try JSONDecoder().decode([String: JSONValue].self, from: encoded), into: target)
+    check("user tags survive a backup and restore", UserTagStore.storage.load(from: target) == tags)
+    source.removePersistentDomain(forName: "UserTagsBackupTest")
+    target.removePersistentDomain(forName: "UserTagsRestoreTest")
+}

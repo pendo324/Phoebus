@@ -46,11 +46,13 @@ final class YouTubePlayerBridge: NSObject, ObservableObject, VideoTransport {
     private weak var inlineHost: YouTubeWebHostView?
     private weak var cardHost: YouTubeWebHostView?
     private weak var fullscreenHost: YouTubeWebHostView?
+    private var sessionObserver: AnyCancellable?
 
     init(videoID: String, startSeconds: Int) {
         self.videoID = videoID
         self.startSeconds = startSeconds
         let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = YouTubeAccount.dataStore
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = []
         // Lets WebKit put the video in system Picture in Picture; the app's
@@ -74,6 +76,8 @@ final class YouTubePlayerBridge: NSObject, ObservableObject, VideoTransport {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isUserInteractionEnabled = false
         webView.allowsLinkPreview = false
+        sessionObserver = NotificationCenter.default.publisher(for: .youTubeSessionChanged)
+            .sink { [weak self] _ in MainActor.assumeIsolated { self?.reloadForSessionChange() } }
     }
 
     private static var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
@@ -221,6 +225,15 @@ final class YouTubePlayerBridge: NSObject, ObservableObject, VideoTransport {
             guard moved == intent, !playback.playerState.isPlayingOrBuffering else { return }
             reloadAtCurrentTime()
         }
+    }
+
+    /// A player that isn't playing starts over as the account that is signed
+    /// in now; one that is playing keeps going until it next loads.
+    private func reloadForSessionChange() {
+        guard hasLoadedPage, !playback.playerState.isPlayingOrBuffering else { return }
+        isPageReady = false
+        pending = [intendedMuted ? .mute : .unMute]
+        loadPage(startSeconds: Int(currentSeconds))
     }
 
     private func reloadAtCurrentTime() {

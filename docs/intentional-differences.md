@@ -65,6 +65,17 @@ Apollo or Reborn, add an entry here.
   YouTube logo shows at the bottom-left of the picture (inline, fullscreen
   and on the card); tapping it opens the video on YouTube at the current
   time.
+- **You can sign in to YouTube for the player.** Settings > Apollo Reborn >
+  Accounts & API Keys > YouTube signs the player in as your Google account
+  (YouTube Premium without ads, watch history, age-restricted videos), by
+  Google's own sign-in page in a sheet or by pasting a browser's cookies.
+  Every YouTube web view and the sheet share one persistent website data
+  store, kept apart from the in-app browser and Reddit sessions. iOS blocks
+  cookies in the third-party YouTube frame unless "Allow Cross-Website
+  Tracking" is on for Phoebus in iOS Settings (the app can't read or set it,
+  so the section links there). A player that isn't playing reloads when you
+  sign in or out; a playing one picks it up when it next loads. Apollo and
+  Reborn have no YouTube sign-in.
 
 ## Settings and interface
 

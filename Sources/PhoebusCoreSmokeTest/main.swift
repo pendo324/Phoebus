@@ -423,6 +423,8 @@ try await checkApolloSRealVideoControlPanel()
 try await checkYouTubePlaysWithTheAppSControls()
 try await checkYouTubeVideoElementIsTheSourceOfTruth()
 
+try await checkSignInToYouTube()
+
 try await checkSettingsRootRowsAreInThe()
 
 try await checkGlassNeedsTheAppSOwn()

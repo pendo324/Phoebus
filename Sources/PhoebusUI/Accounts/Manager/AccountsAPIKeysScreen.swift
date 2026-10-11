@@ -11,6 +11,10 @@ public struct AccountsAPIKeysScreen: View {
 
     @Setting(CustomAPISettingsStore.storage) private var settings
     @State private var isShowingWebSessionLogin = false
+    @StateObject private var youTube = YouTubeAccount.shared
+    @State private var isShowingYouTubeSignIn = false
+    @State private var isShowingYouTubeImport = false
+    @State private var isConfirmingYouTubeSignOut = false
 
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
@@ -21,6 +25,7 @@ public struct AccountsAPIKeysScreen: View {
             apiKeysSection
             signInSection
             experimentalSection
+            youTubeSection
             extrasSection
         }
         .apolloSettingsSearchScroll()
@@ -130,6 +135,56 @@ public struct AccountsAPIKeysScreen: View {
             Text("Sign in to reddit.com instead of using API keys.")
                     .apolloSectionFooter()
         }
+    }
+
+    /// Phoebus-only: signs the YouTube player in as the user's Google account.
+    private var youTubeSection: some View {
+        Section {
+            if youTube.isSignedIn {
+                HStack {
+                    Text("Signed In")
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+                .apolloPlainSettingsRowInsets()
+                Button("Sign Out of YouTube", role: .destructive) {
+                    isConfirmingYouTubeSignOut = true
+                }
+                .accessibilityIdentifier("youtube.signOut")
+                .apolloSearchRow("Sign Out of YouTube")
+            } else {
+                Button("Sign In to YouTube") {
+                    isShowingYouTubeSignIn = true
+                }
+                .accessibilityIdentifier("youtube.signIn")
+                .apolloSearchRow("Sign In to YouTube")
+            }
+            Button("Import YouTube Cookies") {
+                isShowingYouTubeImport = true
+            }
+            .accessibilityIdentifier("youtube.importCookies")
+            .apolloSearchRow("Import YouTube Cookies")
+            Button("Open Cross-Website Tracking Setting") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            }
+            .accessibilityIdentifier("youtube.openSettings")
+            .apolloSearchRow("Open Cross-Website Tracking Setting", lastBeforeFooter: true)
+        } header: {
+            Text("YouTube")
+                .apolloSectionHeader()
+        } footer: {
+            Text("Plays YouTube videos as your Google account: Premium without ads, watch history, age-restricted videos. Also turn on \"Allow Cross-Website Tracking\" for Phoebus in iOS Settings, or iOS hides the sign-in from the player. Kept apart from the in-app browser and Reddit.")
+                .apolloSectionFooter()
+        }
+        .sheet(isPresented: $isShowingYouTubeSignIn) { YouTubeSignInSheet() }
+        .sheet(isPresented: $isShowingYouTubeImport) { YouTubeImportCookiesSheet() }
+        .confirmationDialog("Sign out of YouTube?", isPresented: $isConfirmingYouTubeSignOut, titleVisibility: .visible) {
+            Button("Sign Out", role: .destructive) {
+                Task { await youTube.signOut() }
+            }
+        }
+        .task { await youTube.refresh() }
     }
 
     /// Extras section: one row, with Reborn's footer.

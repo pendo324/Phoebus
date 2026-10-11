@@ -462,6 +462,32 @@ import PhoebusCore
     check("extracts video ID from shorts URL", YouTubeURLParser.extractVideoID(from: URL(string: "https://www.youtube.com/shorts/abc123XYZ00")!) == "abc123XYZ00")
     check("extracts video ID with extra query params", YouTubeURLParser.extractVideoID(from: URL(string: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=30s")!) == "dQw4w9WgXcQ")
     check("returns nil for non-YouTube URL", YouTubeURLParser.extractVideoID(from: URL(string: "https://example.com/watch?v=abc")!) == nil)
+
+    // The embed page: loaded under an app-identifying https origin, never youtube.com itself.
+    let embedOrigin = YouTubeEmbed.origin(bundleIdentifier: "com.Pendo324.Phoebus")
+    check("YouTubeEmbed origin is the lowercased bundle id over https", embedOrigin.absoluteString == "https://com.pendo324.phoebus")
+    check("YouTubeEmbed origin falls back when there is no bundle id", YouTubeEmbed.origin(bundleIdentifier: nil).host == "phoebus")
+    check("YouTubeEmbed origin is not a YouTube host", !(embedOrigin.host ?? "").contains("youtube"))
+    check("YouTubeEmbed accepts an 11-character video ID", YouTubeEmbed.isValidVideoID("dQw4w9WgXcQ") && YouTubeEmbed.isValidVideoID("a-b_c1D2e3F"))
+    check("YouTubeEmbed rejects video IDs that would not be safe in the page",
+          !YouTubeEmbed.isValidVideoID("") && !YouTubeEmbed.isValidVideoID("short")
+            && !YouTubeEmbed.isValidVideoID("dQw4w9WgXc'") && !YouTubeEmbed.isValidVideoID("dQw4w9WgXcQ1"))
+    let embedHTML = YouTubeEmbed.html(videoID: "dQw4w9WgXcQ", startSeconds: 42, origin: embedOrigin, captionsWanted: false) ?? ""
+    check("YouTubeEmbed page uses the IFrame API for the video at the start time",
+          embedHTML.contains("https://www.youtube.com/iframe_api") && embedHTML.contains("videoId: 'dQw4w9WgXcQ'") && embedHTML.contains("start: 42"))
+    check("YouTubeEmbed page passes the app origin as origin and widget_referrer",
+          embedHTML.contains("origin: 'https://com.pendo324.phoebus'") && embedHTML.contains("widget_referrer: 'https://com.pendo324.phoebus'"))
+    check("YouTubeEmbed page loads with captions off when they aren't wanted", embedHTML.contains("cc_load_policy: 0"))
+    check("YouTubeEmbed page loads with captions on when they are wanted",
+          (YouTubeEmbed.html(videoID: "dQw4w9WgXcQ", startSeconds: 0, origin: embedOrigin, captionsWanted: true) ?? "").contains("cc_load_policy: 1"))
+    check("YouTubeEmbed page reports errors to the message handler",
+          embedHTML.contains("messageHandlers.phoebusYouTube.postMessage") && embedHTML.contains("onError"))
+    check("YouTubeEmbed page clamps a negative start time", (YouTubeEmbed.html(videoID: "dQw4w9WgXcQ", startSeconds: -5, origin: embedOrigin, captionsWanted: false) ?? "").contains("start: 0"))
+    check("YouTubeEmbed builds no page for an invalid video ID", YouTubeEmbed.html(videoID: "x'};alert(1);//", startSeconds: 0, origin: embedOrigin, captionsWanted: false) == nil)
+    check("YouTubeEmbed treats removed, private and embedding-disabled videos as unplayable inline",
+          [100, 101, 150, 152, 153].allSatisfy { YouTubeEmbed.isUnplayableInline(errorCode: $0) })
+    check("YouTubeEmbed keeps playing through parameter and transient player errors",
+          !YouTubeEmbed.isUnplayableInline(errorCode: 2) && !YouTubeEmbed.isUnplayableInline(errorCode: 5))
 }
 
 // --- Mod queue report reason parsing ---

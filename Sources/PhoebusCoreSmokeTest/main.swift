@@ -150,6 +150,7 @@ try await checkHideBlockedUserCommentsDeadToggle()
 try await checkCommentFilters()
 
 try await checkCollapseFlattenLogic()
+try await checkThreadPositionMemory()
 
 // --- "more" comment continuation stubs: threads show "N more replies" rows,
 // so CommentTreeBuilder must not drop kind=="more" objects ---

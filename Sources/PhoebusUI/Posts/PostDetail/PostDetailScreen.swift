@@ -75,6 +75,10 @@ public struct PostDetailScreen: View {
 
     public var startScrolledToComments: Bool = false
     @State private var hasAutoScrolledToComments = false
+    /// "Remember Thread Position": tried once, when the comments first load.
+    @State private var hasRestoredThreadPosition = false
+    @State private var showingBackToTop = false
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Opens the reply composer as soon as the screen appears.
     ///
@@ -139,6 +143,7 @@ public struct PostDetailScreen: View {
                 if !showingFindInComments {
                     Section {
                         FindInCommentsFieldRow { showingFindInComments = true }
+                            .id(Self.findFieldRowID)
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
@@ -146,6 +151,7 @@ public struct PostDetailScreen: View {
                 }
                 Section {
                     header(scrollProxy: scrollProxy)
+                        .id(Self.headerRowID)
                         // A `.plain` List draws a separator above its first row as well as below it, so
                         // the post header would get a rule under the nav bar that Apollo does not have.
                         .listRowSeparator(.hidden, edges: .top)
@@ -199,13 +205,25 @@ public struct PostDetailScreen: View {
             .onChange(of: commentStore.roots) { _, newRoots in
                 aiSummary.commentsDidLoad(candidates: Self.summaryCandidates(
                     roots: newRoots, linkAuthor: post.author))
+                if restoreThreadPosition(scrollProxy: scrollProxy) { hasAutoScrolledToComments = true }
                 guard startScrolledToComments, !hasAutoScrolledToComments, let firstRootID = newRoots.first?.id else { return }
                 hasAutoScrolledToComments = true
                 withAnimation { scrollProxy.scrollTo(commentStore.rowID(firstRootID), anchor: .top) }
             }
+            .onAppear { commentStore.startThreadPositionAutosave() }
             .onDisappear {
                 commentStore.stopLivePolling()
+                commentStore.stopThreadPositionAutosave()
                 aiSummary.pause()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { commentStore.saveThreadPosition() }
+            }
+            .threadPositionBackToTop(isPresented: $showingBackToTop,
+                                     accessibilityIdentifier: "postDetail.threadPosition.backToTop") {
+                withAnimation {
+                    scrollProxy.scrollTo(showingFindInComments ? Self.headerRowID : Self.findFieldRowID, anchor: .top)
+                }
             }
             // Same FOLLOW/READ approximation as `CommentTreeScreen`;
             // SwiftUI's `List` has no CADisplayLink-based edge detector.
@@ -486,6 +504,22 @@ public struct PostDetailScreen: View {
             }
         }
         .onDisappear { InAppBrowserContext.clear(postID: post.name) }
+        .threadRowMarker(CommentTreeStore.headerRowID, tracker: commentStore.threadScroll,
+                         enabled: commentStore.tracksThreadPosition)
+    }
+
+    private static let findFieldRowID = "postDetail.findFieldRow"
+    private static let headerRowID = "postDetail.headerRow"
+
+    /// "Remember Thread Position": lands on the saved comment the first
+    /// time the comments load. Returns whether it scrolled.
+    private func restoreThreadPosition(scrollProxy: ScrollViewProxy) -> Bool {
+        guard !hasRestoredThreadPosition, !commentStore.roots.isEmpty else { return false }
+        hasRestoredThreadPosition = true
+        guard let target = commentStore.threadPositionRestoreTarget(focusedCommentID: nil) else { return false }
+        commentStore.restoreThreadPosition(to: target) { scrollProxy.scrollTo($0, anchor: .top) }
+        showingBackToTop = true
+        return true
     }
 
     @ViewBuilder

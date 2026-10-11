@@ -64,6 +64,88 @@ final class CommentTreeStore: ObservableObject {
     /// "next comment below the one you're reading". Not published: it
     /// is only read when the button is tapped.
     var onScreenRootIDs: Set<String> = []
+    /// "Remember Thread Position" tracks rows only if it was on as the
+    /// thread opened, so rows carry no marker views otherwise.
+    let tracksThreadPosition = ThreadPositionSettingsStore.load().rememberThreadPosition
+    let threadScroll = ThreadScrollTracker()
+    /// The post header's row id for `threadScroll` (`PostDetailScreen` only).
+    static let headerRowID = "#postHeader"
+    private var positionAutosaveTask: Task<Void, Never>?
+    private var restoreTask: Task<Void, Never>?
+    /// From a restore until the reader's first drag: the stored position is
+    /// still the right one, so nothing is saved over it, even if the
+    /// restore fell short.
+    private var keepsRestoredPosition = false
+
+    /// Brings `commentID` to the top: `scroll` (SwiftUI's `scrollTo`) gets
+    /// close cheaply, then `threadScroll` steps the rest of the way. Stops as
+    /// soon as the reader drags.
+    func restoreThreadPosition(to commentID: String, scroll: @escaping @MainActor (String) -> Void) {
+        restoreTask?.cancel()
+        keepsRestoredPosition = true
+        threadScroll.onDragBegan = { [weak self] in self?.threadDragBegan() }
+        scroll(rowID(commentID))
+        let order = roots.flatMap { $0.visibleFlattened() }.map(\.id)
+        restoreTask = Task { [weak self] in
+            guard let tracker = self?.threadScroll else { return }
+            _ = await tracker.scroll(toRow: commentID, order: order) { [weak self] in
+                !Task.isCancelled && self?.keepsRestoredPosition == true
+            }
+        }
+    }
+
+    func threadDragBegan() {
+        keepsRestoredPosition = false
+        restoreTask?.cancel()
+        restoreTask = nil
+    }
+
+    /// Saves where the reader is in this thread (or forgets it when they
+    /// are back at the top). Cheap and idempotent: it writes only when the
+    /// position changed.
+    func saveThreadPosition() {
+        guard tracksThreadPosition, !keepsRestoredPosition,
+              !lastPostID.isEmpty, !roots.isEmpty, lastSort != "live" else { return }
+        var onScreen = threadScroll.visibleRowIDs()
+        let headerOnScreen = onScreen.remove(Self.headerRowID) != nil
+        let atTop = headerOnScreen || roots.first.map { onScreen.contains($0.id) } ?? true
+        // Nothing laid out yet.
+        guard atTop || !onScreen.isEmpty else { return }
+        ThreadPositionStore.record(
+            ThreadPositionPolicy.position(postID: lastPostID, roots: roots, onScreen: onScreen, atTop: atTop),
+            postID: lastPostID)
+    }
+
+    /// Saves every 15s while the thread is open, so a crash or a kill from
+    /// the app switcher loses little; leaving saves at once.
+    func startThreadPositionAutosave() {
+        positionAutosaveTask?.cancel()
+        guard tracksThreadPosition else { return }
+        positionAutosaveTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 15_000_000_000)
+                guard !Task.isCancelled else { return }
+                self?.saveThreadPosition()
+            }
+        }
+    }
+
+    func stopThreadPositionAutosave() {
+        positionAutosaveTask?.cancel()
+        positionAutosaveTask = nil
+        restoreTask?.cancel()
+        restoreTask = nil
+        saveThreadPosition()
+    }
+
+    /// The comment to land on when reopening this thread, once its
+    /// comments have loaded.
+    func threadPositionRestoreTarget(focusedCommentID: String?) -> String? {
+        guard ThreadPositionPolicy.shouldRestore(enabled: ThreadPositionSettingsStore.load().rememberThreadPosition,
+                                                 focusedCommentID: focusedCommentID, sort: lastSort),
+              let position = ThreadPositionStore.position(postID: lastPostID) else { return nil }
+        return ThreadPositionPolicy.restoreTarget(for: position, roots: roots)
+    }
 
     /// The top-level comment after the topmost one on screen, wrapping
     /// to the first.

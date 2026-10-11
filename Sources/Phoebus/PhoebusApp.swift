@@ -81,6 +81,7 @@ struct PhoebusApp: App {
                 }
             }
             .onOpenURL { incoming in
+                ResumeCoordinator.shared.launchedFromLink = true
                 // Backend notification taps arrive as apollo://...
                 let url = PushNotificationClient.appURL(fromApolloURL: incoming) ?? incoming
                 // phoebus://open?url=... links from the Share Sheet action extension.
@@ -299,6 +300,19 @@ struct MainTabView: View {
                 InboxBadge.shared.stop()
             }
         }
+        // "Resume Where I Left Off": saved on the way out, and every 15s
+        // so a kill from the app switcher loses little.
+        .onChange(of: chatPollPhase) { _, phase in
+            if phase != .active { saveResumePlace(force: true) }
+        }
+        .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { _ in
+            if chatPollPhase == .active { saveResumePlace(force: false) }
+        }
+    }
+
+    private func saveResumePlace(force: Bool) {
+        ResumeCoordinator.shared.save(account: FavoriteSubredditsAccountContext.currentUsernameProvider(),
+                                      tab: liquidGlassSelection, force: force)
     }
 
     /// The five tabs, through the system tab bar. `LiquidGlassTabBar`
@@ -430,6 +444,7 @@ struct MainTabView: View {
                 subredditsDestination = destination
             }
             .apolloSettingsNavigation(postsNavigation)
+            .onAppear { ResumeCoordinator.shared.postsTabShowsRoot() }
             // The Subreddits list is a real member of this stack, so a feed pushed
             // from it must be swipe-back-able to it, as in Apollo.
             //
@@ -472,6 +487,16 @@ struct MainTabView: View {
             .task {
                 guard !appliedInitialFeedDestination else { return }
                 appliedInitialFeedDestination = true
+                // "Resume Where I Left Off" replaces the launch destination.
+                if let snapshot = await ResumeCoordinator.shared.launchSnapshot(
+                    account: FavoriteSubredditsAccountContext.currentUsernameProvider(),
+                    hasPendingLink: { deepLink != nil || QuickActionRouter.shared.pending != nil
+                        || AppIntentNavigation.shared.pendingTarget != nil }) {
+                    guard deepLink == nil, subredditsDestination == nil else { return }
+                    liquidGlassSelection = snapshot.tab
+                    if let feed = snapshot.feed { subredditsDestination = Self.rootDestination(for: feed) }
+                    return
+                }
                 guard deepLink == nil, subredditsDestination == nil else { return }
                 if let destination = initialFeedDestination() {
                     subredditsDestination = destination
@@ -482,6 +507,7 @@ struct MainTabView: View {
             // `interactivePopGestureRecognizer` actually lives.
             .apolloInteractiveSwipeNavigation()
         }
+        .apolloResumeTracksFeeds()
     }
 
     /// Routes a tapped link. One choke point: every link in the app

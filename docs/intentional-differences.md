@@ -295,6 +295,14 @@ Apollo or Reborn, add an entry here.
   Remember). A comment link opens at its comment instead, and Live sort
   never restores. Neither Apollo nor Reborn has this; it is inspired by
   Continuum's comment thread continuity.
+- **A cold launch can pick up where you left off.** With General > Other >
+  Resume Where I Left Off on (off by default), the app reopens the tab you
+  were on, the Posts tab's feed scrolled back to the post you'd reached,
+  and the post you had open (at its comment, with Remember Thread
+  Position). Only within a day of leaving and for the same account; a
+  link, widget, notification, quick action or Shortcut opens where it
+  points instead. Neither Apollo nor Reborn has this; it is inspired by
+  Continuum's resume.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

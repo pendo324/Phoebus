@@ -13,6 +13,7 @@ public struct GeneralSettingsScreen: View {
     @Setting(OtherDiscussionsSettings.self) private var otherDiscussions
     @Setting(LocalSavedSettings.self) private var localSaved
     @Setting(ThreadPositionSettings.self) private var threadPosition
+    @Setting(ResumeSettings.self) private var resume
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -72,6 +73,10 @@ public struct GeneralSettingsScreen: View {
         }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
+        // Turning it off forgets the saved place.
+        .onChange(of: resume.resumeWhereLeftOff) { _, on in
+            if !on { ResumeStore.clear() }
+        }
         .task {
             guard let repository = ActiveRedditRepository.provider(),
                   let me = try? await repository.fetchIdentity() else { return }
@@ -338,6 +343,10 @@ public struct GeneralSettingsScreen: View {
             }
             .buttonStyle(.plain)
             .apolloSearchRow("Default Reddit to Load")
+            // Phoebus-only: a cold launch reopens the tab, feed and post you left.
+            Toggle("Resume Where I Left Off", isOn: $resume.resumeWhereLeftOff)
+                .accessibilityIdentifier("settings.general.resumeWhereLeftOff")
+                .apolloSearchRow("Resume Where I Left Off")
             // Stock's own switch; a Share Link Host other than Reddit
             // still wins (`effectiveShareLinkHost`).
             Toggle("Share old.reddit Links", isOn: $settings.shareOldRedditLinks)

@@ -50,7 +50,9 @@ public actor RedditAPIClient {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         var request: URLRequest
 
-        if method == "GET" {
+        // DELETE carries its parameters in the query string, as Reddit's
+        // `DELETE /api/mod/notes` reads them there.
+        if method == "GET" || method == "DELETE" {
             // Without `raw_json=1`, Reddit's API HTML-entity-escapes
             // string fields (titles, thumbnail URLs: `&` becomes
             // `&amp;`), which breaks thumbnail loading since the CDN
@@ -129,12 +131,13 @@ public actor RedditAPIClient {
         var components = URLComponents(url: webBase.appendingPathComponent(effectivePath), resolvingAgainstBaseURL: false)!
         var request: URLRequest
 
-        if method == "GET" {
+        if method == "GET" || method == "DELETE" {
             // Same `raw_json=1` need as the OAuth transport.
             var queryItems = parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
             queryItems.append(URLQueryItem(name: "raw_json", value: "1"))
             components.queryItems = queryItems
             request = URLRequest(url: components.url!)
+            if method == "DELETE" { Self.addWriteHeaders(to: &request, session: session) }
         } else {
             request = URLRequest(url: components.url!)
             // Same `raw_json=1` need as the OAuth POST branch.
@@ -143,11 +146,7 @@ public actor RedditAPIClient {
             let body = FormEncoding.encode(bodyParameters)
             request.httpBody = body.data(using: .utf8)
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-            if let modhash = session.modhash, !modhash.isEmpty {
-                request.setValue(modhash, forHTTPHeaderField: "X-Modhash")
-            }
-            request.setValue("https://www.reddit.com", forHTTPHeaderField: "Origin")
-            request.setValue("https://www.reddit.com/", forHTTPHeaderField: "Referer")
+            Self.addWriteHeaders(to: &request, session: session)
         }
 
         request.httpMethod = method
@@ -159,6 +158,15 @@ public actor RedditAPIClient {
         // and answer with a 403 "blocked by network security" page.
         request.setValue(Self.webBrowserUserAgent, forHTTPHeaderField: "User-Agent")
         return request
+    }
+
+    /// The headers a cookie-authenticated state-changing request needs.
+    private static func addWriteHeaders(to request: inout URLRequest, session: WebSessionCredential) {
+        if let modhash = session.modhash, !modhash.isEmpty {
+            request.setValue(modhash, forHTTPHeaderField: "X-Modhash")
+        }
+        request.setValue("https://www.reddit.com", forHTTPHeaderField: "Origin")
+        request.setValue("https://www.reddit.com/", forHTTPHeaderField: "Referer")
     }
 
     public func get(path: String, parameters: [String: String] = [:]) async throws -> Data {

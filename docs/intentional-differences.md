@@ -135,6 +135,15 @@ Apollo or Reborn, add an entry here.
   report with "Export Sanitized Report". Reports belong to the person
   running the app, not to Reborn's developers.
 
+## Moderation
+
+- **Mod Notes are Phoebus-only.** Neither Apollo nor Apollo Reborn has
+  them. Moderators can read, add and delete a user's notes (Reddit's
+  `/api/mod/notes`) from the Moderator menu on posts and comments and from
+  a leading swipe on the banned, muted and approved lists. This needs the
+  `modnote` OAuth scope, so API-key accounts added before it existed must
+  sign in again; until then Reddit's 403 shows as a "sign in again" message.
+
 ## Accounts, notifications and extensions
 
 - **You bring your own Reddit API key.** Phoebus never uses Apollo's

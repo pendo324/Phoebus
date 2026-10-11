@@ -33,6 +33,8 @@ public enum WebBearerRouting {
 
         // New modmail: the list, a thread and every action under it.
         if parts[0] == "api", parts[1] == "mod", parts[2] == "conversations" { return true }
+        // Mod notes (`/api/mod/notes`, `/api/mod/notes/recent`): www answers 403 to the cookie.
+        if parts[0] == "api", parts[1] == "mod", parts[2] == "notes" { return true }
 
         if parts[0] == "api", parts[1] == "v1" {
             // Removal-reason logging and notices: /api/v1/modactions/<action>.

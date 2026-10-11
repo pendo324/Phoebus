@@ -359,6 +359,50 @@ import PhoebusCore
           ExpandedMultiredditsStore.load(defaults: expandDefaults).isEmpty)
 }
 
+// MARK: - Copy multireddit (Phoebus)
+//
+// "Copy to My Multireddits": who sees it, Reddit's name rules, and the
+// `POST /api/multi/copy` fields.
+@MainActor func checkMultiredditCopy() async throws {
+    check("copy owner is read from /user/<owner>/m/<name>",
+          MultiredditCopy.owner(ofPath: "/user/SomeOne/m/tech") == "SomeOne")
+    check("copy owner is nil for a non-multireddit path", MultiredditCopy.owner(ofPath: "/r/swift") == nil)
+    check("copy is offered on someone else's multireddit",
+          MultiredditCopy.canCopy(path: "/user/someone/m/tech", signedInUsername: "me"))
+    check("copy is not offered on your own multireddit, whatever the case",
+          !MultiredditCopy.canCopy(path: "/user/Me/m/tech", signedInUsername: "me"))
+    check("copy is not offered when signed out",
+          !MultiredditCopy.canCopy(path: "/user/someone/m/tech", signedInUsername: nil))
+    check("path name turns spaces into underscores and drops other characters",
+          MultiredditCopy.pathName(forDisplayName: "  Tech & News 2 ") == "Tech__News_2")
+    check("path name drops a leading underscore", MultiredditCopy.pathName(forDisplayName: "_ab") == "ab")
+    check("path name is capped at 21 characters",
+          MultiredditCopy.pathName(forDisplayName: String(repeating: "a", count: 40)).count == 21)
+    check("a blank copy name is refused", MultiredditCopy.problem(with: "   ") == .empty)
+    check("a 51-character copy name is refused",
+          MultiredditCopy.problem(with: String(repeating: "a", count: 51)) == .tooLong)
+    check("a 50-character copy name is accepted", MultiredditCopy.problem(with: String(repeating: "a", count: 50)) == nil)
+    check("a copy name with no letters or digits is refused", MultiredditCopy.problem(with: "!!") == .noLettersOrDigits)
+    check("a one-letter copy name is refused", MultiredditCopy.problem(with: "a") == .noLettersOrDigits)
+    check("copy destination is on the signed-in account",
+          MultiredditCopy.destinationPath(displayName: "Tech News", username: "me", existingPaths: []) == "/user/me/m/Tech_News")
+    check("copy destination is numbered past an existing multireddit",
+          MultiredditCopy.destinationPath(displayName: "Tech News", username: "me",
+                                          existingPaths: ["/user/me/m/tech_news", "/user/me/m/Tech_News1"]) == "/user/me/m/Tech_News2")
+    check("a numbered copy destination still fits 21 characters",
+          MultiredditCopy.destinationPath(displayName: String(repeating: "a", count: 30), username: "me",
+                                          existingPaths: ["/user/me/m/" + String(repeating: "a", count: 21)])
+              == "/user/me/m/" + String(repeating: "a", count: 20) + "1")
+    check("copy sends from, to and the trimmed display name",
+          MultiredditCopy.parameters(sourcePath: "/user/someone/m/tech", destinationPath: "/user/me/m/Tech", displayName: " Tech ")
+              == ["from": "/user/someone/m/tech", "to": "/user/me/m/Tech", "display_name": "Tech"])
+    let response = Data(#"{"kind":"LabeledMulti","data":{"name":"tech","display_name":"Tech","path":"/user/me/m/tech/","subreddits":[{"name":"swift"}],"visibility":"private","description_md":"copied from [/user/someone/m/tech](/user/someone/m/tech)"}}"#.utf8)
+    let copied = MultiredditCopy.copiedMultireddit(from: response)
+    check("the copy response decodes to the new multireddit",
+          copied?.path == "/user/me/m/tech/" && copied?.displayName == "Tech" && copied?.subreddits.map(\.name) == ["swift"])
+    check("an unexpected copy response decodes to nil", MultiredditCopy.copiedMultireddit(from: Data("{}".utf8)) == nil)
+}
+
 // MARK: - Collapsible navigation actions
 //
 // A screen with fewer than two actionable trailing items keeps them native;

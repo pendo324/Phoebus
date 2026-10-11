@@ -78,6 +78,12 @@ Apollo or Reborn, add an entry here.
   subreddit's ••• menu has "Leave Quarantine" to opt back out. Neither
   Apollo nor Reborn offers this; it is inspired by Continuum's
   quarantine opt-in.
+- **Someone else's multireddit can be copied to your account.** Its •••
+  menu has "Copy to My Multireddits" in place of Edit Multireddit: it
+  asks for a name (prefilled with the original's), copies it with
+  Reddit's `/api/multi/copy`, and offers to open the private copy.
+  Neither Apollo nor Reborn offers this; it is inspired by Continuum's
+  Copy Multireddit.
 
 ## Media and link previews
 

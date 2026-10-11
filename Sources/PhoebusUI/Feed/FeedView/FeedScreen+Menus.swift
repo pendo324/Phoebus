@@ -425,9 +425,17 @@ extension FeedScreen {
             showingGallerySheet = true
         })
         if let multiredditPath {
-            rows.append(ApolloActionSheetRow("Edit Multireddit", icon: "m.circle", startsSection: true, accessibilityIdentifier: "feed.overflow.editMultireddit") {
-                editingMultireddit = EditingMultireddit(path: multiredditPath)
-            })
+            // Someone else's multireddit can't be edited, only copied (not in
+            // Apollo or Reborn; see `MultiredditCopy`).
+            if MultiredditCopy.canCopy(path: multiredditPath, signedInUsername: FavoriteSubredditsAccountContext.currentUsernameProvider()) {
+                rows.append(ApolloActionSheetRow("Copy to My Multireddits", icon: "plus.square.on.square", startsSection: true, accessibilityIdentifier: "feed.overflow.copyMultireddit") {
+                    showingCopyMultireddit = true
+                })
+            } else {
+                rows.append(ApolloActionSheetRow("Edit Multireddit", icon: "m.circle", startsSection: true, accessibilityIdentifier: "feed.overflow.editMultireddit") {
+                    editingMultireddit = EditingMultireddit(path: multiredditPath)
+                })
+            }
         }
         rows.append(ApolloActionSheetRow(effectivePostDisplayStyle == .compact ? "Large Thumbnails" : "Compact Posts",
                                          icon: "rectangle.grid.1x2",

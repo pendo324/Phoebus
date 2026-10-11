@@ -45,7 +45,8 @@ SMOKE_SKIP_IOS=1 scripts/smoke.sh       # must print "SMOKE: ok (N passed)"
   API used without `#available`; see docs/conventions.md.
 - `scripts/smoke.sh` exit codes: 1 assertion failures, 2 build failed,
   3 crashed mid-run, 4 ended without the `ALL CHECKS PASSED` terminator,
-  5 iOS build failed. Do not grep for `FAIL` yourself; the script exists
+  5 iOS build failed, 6 App Intents metadata differs, 7 settings search
+  index stale (regenerate it, see "A setting"). Do not grep for `FAIL` yourself; the script exists
   because that is unsafe.
 - Long builds: a clean build takes several minutes, incremental ones
   seconds. Run anything over a minute in the background.
@@ -123,6 +124,11 @@ Full recipes are in [docs/components.md](docs/components.md), "Recipes".
    `.apolloSearchRow("Title")`.
 4. Regenerate the search index:
    `python3 scripts/generate/gen-settings-search-index.py Sources/PhoebusUI Sources/PhoebusCore/Settings/Search/SettingsSearchIndexData.swift`.
+   Never edit the data file by hand: `scripts/smoke.sh` runs the generator
+   with `--check` and fails when it differs. To leave a row out, make it
+   conditional or index a menu choice, put a `// search: skip`,
+   `// search: requires <tag>` or `// search: item "Title"` comment on the
+   row's line or the line above (see docs/components.md).
 5. Add a Core value check if there is any logic.
 
 **A settings screen**: `List` with `.apolloFlatListAppearance()` (never

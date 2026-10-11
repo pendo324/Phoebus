@@ -43,6 +43,8 @@ When you add behaviour:
   with a one-line reason. Do not delete it.
 - If you add or rename a settings row, regenerate the search index:
   `python3 scripts/generate/gen-settings-search-index.py Sources/PhoebusUI Sources/PhoebusCore/Settings/Search/SettingsSearchIndexData.swift`.
+  Do not edit the data file by hand; `scripts/smoke.sh` fails when it is
+  stale (the generator's `--check` mode).
 
 ## Code style
 

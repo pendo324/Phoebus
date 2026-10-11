@@ -53,6 +53,14 @@ if ! appintents_log="$(python3 scripts/appintents-metadata.py --self-test 2>&1)"
   exit 6
 fi
 
+# The settings search index against the screen sources it is generated from.
+if ! index_log="$(python3 scripts/generate/gen-settings-search-index.py --check \
+    Sources/PhoebusUI Sources/PhoebusCore/Settings/Search/SettingsSearchIndexData.swift 2>&1)"; then
+  printf '%s\n' "$index_log" | tail -20 | sed 's/^/  /'
+  echo "SMOKE: SETTINGS SEARCH INDEX IS STALE ($passes assertions passed)"
+  exit 7
+fi
+
 # Also compile the iOS app, unless SMOKE_SKIP_IOS=1. The steps above only
 # build PhoebusCore, so without this a green run says nothing about
 # PhoebusUI or the app target.

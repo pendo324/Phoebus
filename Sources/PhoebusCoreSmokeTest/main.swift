@@ -375,6 +375,8 @@ try await checkThemeQRCodeSharingImportReal()
 
 try await checkBadgeBookRealGapFixBundled()
 
+try await checkCommunityAchievements()
+
 try await checkRealAchievementsCatalogRealGapFix()
 
 try await checkAppIconPickerCommunityIconPack()

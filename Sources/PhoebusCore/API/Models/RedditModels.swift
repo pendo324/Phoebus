@@ -18,6 +18,8 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     public let title: String
     public let author: String
     public let subreddit: String
+    /// `subreddit_id` (`t5_` fullname); keys per-community lookups.
+    public let subredditID: String?
     public var selftext: String?
     public let url: String?
     public let permalink: String
@@ -82,7 +84,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, title, author, subreddit, selftext, url, permalink, score, saved, likes, thumbnail, media
+        case id, name, title, author, subreddit, subredditID = "subreddit_id", selftext, url, permalink, score, saved, likes, thumbnail, media
         case upvoteRatio = "upvote_ratio"
         case numComments = "num_comments"
         case created = "created_utc"

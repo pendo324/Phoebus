@@ -10,6 +10,10 @@ public struct UserProfileScreen: View {
     let isOwnProfile: Bool
     /// Supplied only on your own profile, the only place the bar carries an "Accounts" button.
     var accountManager: AccountManager?
+    /// The community the author was opened from, so their achievements there
+    /// can be shown. Nil when opened from anywhere else.
+    let community: Community?
+    @State private var communityAchievements: CommunityAchievements?
     @State private var showingAccounts = false
     /// Profile banner viewer (upstream #1186): tap the banner to see the
     /// uncropped original, or the supplied crop if that fails.
@@ -29,8 +33,19 @@ public struct UserProfileScreen: View {
     /// `profileHeader(user:)` reads every field this struct carries.
     @Setting(ProfileLayoutSettingsStore.storage) private var profileLayoutSettings
 
+    public struct Community: Hashable, Sendable {
+        public let name: String
+        public let id: String
+        public init(name: String, id: String) {
+            self.name = name
+            self.id = id
+        }
+    }
+
     public init(username: String, repository: RedditRepository,
-                isOwnProfile: Bool = false, accountManager: AccountManager? = nil) {
+                isOwnProfile: Bool = false, accountManager: AccountManager? = nil,
+                community: Community? = nil) {
+        self.community = community
         self.username = username
         self.repository = repository
         self.isOwnProfile = isOwnProfile
@@ -541,6 +556,10 @@ public struct UserProfileScreen: View {
                 socialLinksBand
                     .padding(.top, 8)
             }
+            if let community, let communityAchievements, !communityAchievements.trophies.isEmpty {
+                CommunityAchievementsBand(subreddit: community.name, achievements: communityAchievements)
+                    .padding(.top, 10)
+            }
             if profileLayoutSettings.badgeBookEnabled {
                 ProfileBadgeBookBand(trophies: trophies) {
                     subpage = .tab(.badges)
@@ -600,6 +619,12 @@ public struct UserProfileScreen: View {
         // Best-effort: a scrape failure (network, page-shape mismatch, rate
         // limit) leaves the band empty rather than surfacing an error.
         socialLinks = (try? await SocialLinkService.fetchSocialLinks(username: username)) ?? []
+        // Only when opened from a community, and only with a web session
+        // (nil otherwise); failures leave the section hidden.
+        if let community, !isOwnProfile {
+            communityAchievements = try? await repository.fetchCommunityAchievements(
+                username: username, subredditID: community.id, subreddit: community.name)
+        }
         if profileLayoutSettings.badgeBookEnabled {
             trophies = (try? await repository.fetchTrophies(username: username, isOwnProfile: isOwnProfile)) ?? []
         }

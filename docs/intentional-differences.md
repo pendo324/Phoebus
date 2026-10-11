@@ -127,6 +127,42 @@ Apollo or Reborn, add an entry here.
   It needs a web session and is hidden without one; Apollo and Reborn have
   no such section.
 
+## Profile
+
+- **"Edit Profile" edits natively; Reborn opens Reddit's web editor.**
+  Reborn's own-profile "Edit Profile" shows reddit.com/settings/profile
+  in a web view (Reborn #1367). Phoebus has its own screen for the
+  banner, display name, about text, "Allow People to Follow You", the
+  NSFW label and social links, so it works with API-key and keyless
+  sign-ins alike without a reddit.com login. A profile is the account's
+  user subreddit (`u_<name>`), so the screen reads its `about/edit`
+  settings and writes them back through `site_admin`, which resends every
+  setting; a web-session account sends those requests to oauth.reddit.com
+  with its web bearer, as moderator endpoints are. The display name is
+  limited to 30 characters, not the 90 reddit.com's editor allows: that
+  editor saves through web GraphQL (which needs a web session), while
+  `site_admin` answers HTTP 500 to a longer title. "Allow People to Follow
+  You" is the account preference `enable_followers` (`/api/v1/me/prefs`),
+  because `site_admin` accepts but ignores `accept_followers`.
+- **The avatar is changed on reddit.com, signed in.** The Avatar row opens
+  reddit.com's profile settings (where a photo or Reddit's avatar builder
+  can be chosen) instead of uploading a photo natively. The page is an
+  in-app web view signed in with the account's web session, whose cookies
+  are seeded into a private data store, because the plain browser was not
+  signed in to Reddit. An account without a web session is offered the
+  one-time web sign-in first (the one Social Links use); "Open in Safari"
+  remains as a fallback.
+- **Social links are edited natively, through a web session.** Reddit has
+  no OAuth endpoint for them, so the editor uses the Shreddit GraphQL
+  mutations reddit.com's own profile settings send, which take a web
+  session's cookie. The current links (with the ids removing one takes)
+  and the platforms on offer, with the fields each takes, are read from
+  that settings page's embedded state. An API-key account without one sees its links
+  read-only, with a button to sign in on the web (the sign-in Polls use)
+  and an "Open on reddit.com" row. Changes are staged and applied on Save
+  with the rest of the screen; editing a link removes it and adds the new
+  one, so it moves to the end of the list.
+
 ## Crash reports
 
 - **Crash reports are reviewed and exported by you.** The review screen

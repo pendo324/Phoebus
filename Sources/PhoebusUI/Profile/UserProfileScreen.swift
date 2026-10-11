@@ -126,6 +126,10 @@ public struct UserProfileScreen: View {
                 RecentlyReadScreen(repository: repository)
             case .moderatorZone:
                 ModeratorZoneScreen(repository: repository)
+            case .editProfile:
+                EditProfileScreen(username: username, repository: repository, user: user) {
+                    Task { await refreshAfterEdit() }
+                }
             }
         }
         .apolloTracksForwardNavigation($subpage)
@@ -166,10 +170,11 @@ public struct UserProfileScreen: View {
                             Label("Recently Read", systemImage: "clock.arrow.circlepath")
                         }
                         Button {
-                            editProfileURL = URL(string: "https://www.reddit.com/settings/profile")
+                            subpage = .editProfile
                         } label: {
                             Label("Edit Profile", systemImage: "pencil")
                         }
+                        .accessibilityIdentifier("profile.editProfile")
                         if let url = URL(string: "https://www.reddit.com/user/\(username)") {
                             ShareLink(item: url) {
                                 Label("Share Profile", systemImage: "square.and.arrow.up")
@@ -243,7 +248,6 @@ public struct UserProfileScreen: View {
         } message: {
             Text(watchUserMessage ?? "")
         }
-        .apolloInAppBrowser(url: $editProfileURL)
         .apolloInAppBrowser(url: $socialLinkURL)
         .sheet(isPresented: $showingCompose) {
             ComposeMessageScreen(to: username, repository: repository) {
@@ -304,6 +308,7 @@ public struct UserProfileScreen: View {
         case hiddenPosts
         case recentlyRead
         case moderatorZone
+        case editProfile
     }
     @State private var subpage: Subpage?
 
@@ -314,10 +319,6 @@ public struct UserProfileScreen: View {
     /// Whether this (other) user exposes any public multireddits;
     /// drives whether the Multis segment is offered at all.
     @State private var hasPublicMultireddits = false
-    /// Reborn "Edit Profile" row: opens Reddit's profile settings page, since
-    /// no first-party profile-edit API exists.
-    @State private var editProfileURL: URL?
-
     @State private var watchUserMessage: String?
 
     private func watchUser() async {
@@ -628,6 +629,16 @@ public struct UserProfileScreen: View {
         if profileLayoutSettings.badgeBookEnabled {
             trophies = (try? await repository.fetchTrophies(username: username, isOwnProfile: isOwnProfile)) ?? []
         }
+    }
+
+    /// Re-reads the header and social links after Edit Profile saved, and the
+    /// avatar cache so feeds and comments show a new picture.
+    private func refreshAfterEdit() async {
+        if let fresh = try? await repository.fetchUserProfile(username: username) {
+            user = fresh
+            await AvatarCache.shared.store(url: fresh.iconImage, for: username)
+        }
+        if let links = try? await SocialLinkService.fetchSocialLinks(username: username) { socialLinks = links }
     }
 }
 

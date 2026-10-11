@@ -1531,5 +1531,11 @@ try await checkBuildChannelParsing()
 
 try await checkOwnChangesShowWhenReopened()
 
+try await checkNativeEditProfile()
+
+try await checkNativeEditProfileSocialLinks()
+
+try await checkProfileAvatarWebPage()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

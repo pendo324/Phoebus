@@ -1,0 +1,27 @@
+{
+  "data": {
+    "setSocialLinks": {
+      "ok": true,
+      "errors": null,
+      "socialLinks": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "type": "CUSTOM",
+          "title": "Example Site",
+          "handle": null,
+          "outboundUrl": "https://example.com/me"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "type": "INSTAGRAM",
+          "title": "exampleuser",
+          "handle": "exampleuser",
+          "outboundUrl": "https://instagram.com/exampleuser"
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "operation": "SetProfileSocialLinks",
+  "extensions": { "traceID": "00000000000000000000000000000000" }
+}

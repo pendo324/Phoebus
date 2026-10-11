@@ -57,6 +57,19 @@ private func anonymousJWT() -> String {
             && !R.needsBearer(path: "/api/mod") && !R.needsBearer(path: "/api/v1/swift/removal_reasons/a/b")
             && !R.needsBearer(path: "/api/v1/modactions/removal_reasons/extra") && !R.needsBearer(path: ""))
 
+    check("Edit Profile's settings read, save, banner upload and banner removal go to the bearer",
+          R.needsBearer(path: "/r/u_swift/about/edit") && R.needsBearer(path: "/api/site_admin")
+            && R.needsBearer(path: "/r/u_swift/api/upload_sr_img") && R.needsBearer(path: "/r/u_swift/api/delete_sr_banner")
+            && R.needsBearer(path: "/R/U_Swift/about/edit/") && R.needsBearer(path: "api/site_admin?raw_json=1"))
+    check("...and so do the account preferences that hold the follow permission",
+          R.needsBearer(path: "/api/v1/me/prefs") && !R.needsBearer(path: "/api/v1/me") && !R.needsBearer(path: "/api/v1/me/prefs/extra"))
+    check("...but only for a profile's own subreddit, and not for what Phoebus no longer sends",
+          !R.needsBearer(path: "/r/swift/about/edit") && !R.needsBearer(path: "/r/swift/api/upload_sr_img")
+            && !R.needsBearer(path: "/r/swift/api/delete_sr_banner") && !R.needsBearer(path: "/r/u_swift/api/delete_sr_icon")
+            && !R.needsBearer(path: "/api/site_admin/extra") && !R.needsBearer(path: "/r/u_swift/about/rules"))
+    check("a profile subreddit's other bearer writes still route",
+          R.needsBearer(path: "/r/u_swift/api/friend") && R.needsBearer(path: "/api/v1/u_swift/banned"))
+
     func session(_ username: String, cookie: String = "loid=1; reddit_session=x") -> WebSessionCredential {
         WebSessionCredential(username: username, cookieHeader: cookie, modhash: "mh")
     }

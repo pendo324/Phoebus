@@ -95,7 +95,7 @@ brings the standard "Discard Changes?" dialog, whose Discard runs
 UIKit's own pop recognizers are disabled (above), so there is no
 second path. The navigation bar's back button and a tab switch are not
 guarded; a screen that wants the back button guarded replaces it with a
-Cancel button that asks. Sheets are not covered either: a
+Cancel button that asks, as Edit Profile does. Sheets are not covered either: a
 sheet that holds edits needs `interactiveDismissDisabled` and its own
 confirmation.
 

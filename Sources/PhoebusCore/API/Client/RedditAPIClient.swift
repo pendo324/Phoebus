@@ -78,6 +78,11 @@ public actor RedditAPIClient {
         return request
     }
 
+    private func authorizedRequest(path: String, method: String, parameters: [String: String], rawBody: RawBody?) async throws -> URLRequest {
+        let request = try await authorizedRequest(path: path, method: method, parameters: parameters)
+        return rawBody?.apply(to: request) ?? request
+    }
+
     /// Builds a `www.reddit.com`-targeted, cookie-authenticated request.
     /// Authorization header omitted, `Cookie` set explicitly with
     /// `httpShouldHandleCookies = false` (this exact harvested snapshot
@@ -173,15 +178,29 @@ public actor RedditAPIClient {
         try await send(path: path, method: "GET", parameters: parameters)
     }
 
+    /// A request body sent as-is in place of the form-encoded parameters.
+    private struct RawBody {
+        let contentType: String
+        let data: Data
+
+        func apply(to request: URLRequest) -> URLRequest {
+            var request = request
+            request.httpBody = data
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+            return request
+        }
+    }
+
     /// Sends an authorized request. A 401 on the OAuth transport means
     /// the access token died early (Reddit revokes it on a password
     /// change), so the token is refreshed once and the request retried;
     /// a refused refresh surfaces as `sessionExpired`.
-    private func send(path: String, method: String, parameters: [String: String]) async throws -> Data {
+    private func send(path: String, method: String, parameters: [String: String], rawBody: RawBody? = nil) async throws -> Data {
         if let webSession = await auth.webSession, WebBearerRouting.needsBearer(path: path) {
-            return try await sendWithWebBearer(path: path, method: method, parameters: parameters, webSession: webSession)
+            return try await sendWithWebBearer(path: path, method: method, parameters: parameters,
+                                               rawBody: rawBody, webSession: webSession)
         }
-        let request = try await authorizedRequest(path: path, method: method, parameters: parameters)
+        let request = try await authorizedRequest(path: path, method: method, parameters: parameters, rawBody: rawBody)
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode == 429, await auth.webSession != nil,
            let wait = RedditRateLimitHold.shared.record(reset: http.value(forHTTPHeaderField: "x-ratelimit-reset"),
@@ -194,7 +213,7 @@ public actor RedditAPIClient {
         }
         if (response as? HTTPURLResponse)?.statusCode == 401, await auth.webSession == nil {
             try await auth.refresh(replacing: Self.bearerToken(of: request))
-            let retry = try await authorizedRequest(path: path, method: method, parameters: parameters)
+            let retry = try await authorizedRequest(path: path, method: method, parameters: parameters, rawBody: rawBody)
             let (retryData, retryResponse) = try await session.data(for: retry)
             try Self.validate(retryResponse, data: retryData)
             return retryData
@@ -208,7 +227,7 @@ public actor RedditAPIClient {
     /// the bearer is dead, so it is re-minted once, as Reddit Chat does.
     /// Reborn "Removal reasons" (#1292), "Mod user lists" (#1304) and
     /// "Moderator Mail" (#1311).
-    private func sendWithWebBearer(path: String, method: String, parameters: [String: String],
+    private func sendWithWebBearer(path: String, method: String, parameters: [String: String], rawBody: RawBody?,
                                    webSession: WebSessionCredential) async throws -> Data {
         var forceMint = false
         while true {
@@ -220,7 +239,7 @@ public actor RedditAPIClient {
             }
             let request = oauthRequest(path: path, method: method, parameters: parameters,
                                        bearer: bearer, userAgent: Self.webBrowserUserAgent)
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await session.data(for: rawBody?.apply(to: request) ?? request)
             if let status = (response as? HTTPURLResponse)?.statusCode, status == 401 || status == 403, !forceMint {
                 await WebBearerCache.shared.clear(account: webSession.username)
                 forceMint = true
@@ -256,6 +275,22 @@ public actor RedditAPIClient {
     @discardableResult
     public func post(path: String, parameters: [String: String] = [:]) async throws -> Data {
         try await send(path: path, method: "POST", parameters: parameters)
+    }
+
+    /// Posts a `multipart/form-data` body with the account's own credentials
+    /// (`upload_sr_img`, for a profile's banner).
+    @discardableResult
+    public func postMultipart(path: String, form: MultipartForm) async throws -> Data {
+        try await send(path: path, method: "POST", parameters: [:],
+                       rawBody: RawBody(contentType: form.contentType, data: form.body))
+    }
+
+    /// `PATCH` with a JSON body (`/api/v1/me/prefs`).
+    @discardableResult
+    public func patchJSON(path: String, body: [String: Any]) async throws -> Data {
+        let payload = try JSONSerialization.data(withJSONObject: body)
+        return try await send(path: path, method: "PATCH", parameters: [:],
+                              rawBody: RawBody(contentType: "application/json", data: payload))
     }
 
     /// Posts a raw JSON body rather than form-encoded parameters:

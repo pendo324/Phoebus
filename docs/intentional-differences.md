@@ -59,6 +59,12 @@ Apollo or Reborn, add an entry here.
   Reddit client ID; the build default is a placeholder. The key is
   entered under Custom API Settings and applies app-wide, so there is no
   per-account key editor.
+- **Sign-in always uses a throwaway cookie store.** Web-session login, the
+  Universal OAuth web view and the system OAuth sheet each start with no
+  Reddit cookies, so adding a second account shows Reddit's login form
+  instead of re-filing the signed-in one. Reborn clears the shared web view
+  jar for an additional account; Phoebus leaves that jar alone. The system
+  OAuth sheet therefore does not share Safari's Reddit login.
 - **Push notifications go through a self-hosted notification backend.**
   There is no central push server: the backend you run delivers through
   the Bark app when a Bark push URL is set, and otherwise over APNs when

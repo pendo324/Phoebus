@@ -60,7 +60,12 @@ public final class CustomOAuthSession: NSObject {
             return
         }
 
-        let webView = WKWebView(frame: .zero)
+        // Every use adds a new account, so a throwaway store makes Reddit ask
+        // which account to authorize instead of reusing the one already signed
+        // in. Reborn's OAuth flow does the same.
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
         self.webView = webView
 

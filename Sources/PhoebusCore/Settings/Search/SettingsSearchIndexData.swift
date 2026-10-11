@@ -110,6 +110,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "NSFW", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "NSFW"),
         SettingsSearchEntry(title: "Spoiler", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Spoiler"),
         SettingsSearchEntry(title: "Filter Type", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Filter Type"),
+        SettingsSearchEntry(title: "Post Rules", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Post Rules"),
         SettingsSearchEntry(title: "Add Subreddit", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Subreddit"),
         SettingsSearchEntry(title: "Add Keyword", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Add Keyword"),
         SettingsSearchEntry(title: "Comment Filters", breadcrumb: "Settings → Filters & Blocks", screen: .filters, rowTitle: "Comment Filters"),

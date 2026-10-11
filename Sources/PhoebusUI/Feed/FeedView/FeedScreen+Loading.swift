@@ -208,7 +208,10 @@ extension FeedScreen {
         }
         return FeedFilterPipeline.apply(fetched, .init(isAggregateFeed: isAggregateFeed,
                                                        isAllOrPopular: isAllOrPopular,
-                                                       excludedSubreddits: excluded))
+                                                       excludedSubreddits: excluded,
+                                                       postRuleFeed: PostRuleFeed(subreddit: subreddit,
+                                                                                  multiredditPath: multiredditPath),
+                                                       username: FavoriteSubredditsAccountContext.currentUsernameProvider()))
     }
 
     var listingRequest: FeedListingModel.Request {

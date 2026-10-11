@@ -70,16 +70,14 @@ final class FeedListingModel: ObservableObject {
         pageBoundaryPostIDs = []
         defer { if current == generation { isLoading = false } }
         do {
-            let listing = try await request.fetch(after: nil)
-            let fetched = await filter(await listing.postsInBackground())
-            guard current == generation else { return }
+            guard let page = try await fetchFiltered(request, after: nil, generation: current, filter: filter) else { return }
             submitted.removeAll { Date().timeIntervalSince($0.at) >= SubmittedPost.lifetime }
-            posts = fetched.restoringSubmitted(submitted)
-            if let lastOfFirstPage = fetched.last {
+            posts = page.posts.restoringSubmitted(submitted)
+            if let lastOfFirstPage = page.posts.last {
                 pageBoundaryPostIDs.insert(lastOfFirstPage.id)
             }
-            afterToken = listing.data.after
-            reachedEnd = listing.data.after == nil
+            afterToken = page.after
+            reachedEnd = page.after == nil
         } catch {
             guard current == generation else { return }
             errorMessage = errorText(error)
@@ -95,11 +93,10 @@ final class FeedListingModel: ObservableObject {
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let listing = try await request.fetch(after: after)
-            let fetched = await filter(await listing.postsInBackground())
             // A reload (new sort, refresh) started meanwhile: this page
             // belongs to the old listing.
-            guard current == generation else { return }
+            guard let page = try await fetchFiltered(request, after: after, generation: current, filter: filter) else { return }
+            let fetched = page.posts
             // Reddit can repeat a post across page boundaries (vote/rank
             // churn between requests); appending blindly would duplicate
             // SwiftUI ids.
@@ -109,8 +106,8 @@ final class FeedListingModel: ObservableObject {
             if let lastOfPage = newPosts.last {
                 pageBoundaryPostIDs.insert(lastOfPage.id)
             }
-            afterToken = listing.data.after
-            if listing.data.after == nil { reachedEnd = true }
+            afterToken = page.after
+            if page.after == nil { reachedEnd = true }
         } catch {
             // A failed page must not kill the feed being read or wedge
             // paging: `afterToken` stays, so the next row that appears
@@ -123,6 +120,26 @@ final class FeedListingModel: ObservableObject {
     func showSubmitted(_ post: RedditPost) {
         submitted.append(SubmittedPost(post: post, at: Date()))
         posts = posts.restoringSubmitted(submitted)
+    }
+
+    /// Fetches from `after` through `filter`, going straight on past pages
+    /// the filter empties (`FeedPaginationPolicy.shouldSkipFilteredPage`).
+    /// Nil when a newer load started meanwhile.
+    private func fetchFiltered(_ request: Request, after: String?, generation current: Int,
+                               filter: ([RedditPost]) async -> [RedditPost]) async throws -> (posts: [RedditPost], after: String?)? {
+        var cursor = after
+        var pagesFetched = 0
+        while true {
+            let listing = try await request.fetch(after: cursor)
+            let kept = await filter(await listing.postsInBackground())
+            guard current == generation else { return nil }
+            pagesFetched += 1
+            cursor = listing.data.after
+            if !FeedPaginationPolicy.shouldSkipFilteredPage(keptCount: kept.count, hasNextPage: cursor != nil,
+                                                             pagesFetched: pagesFetched) {
+                return (kept, cursor)
+            }
+        }
     }
 
     /// Restores a listing kept by `FeedSnapshotCache`.

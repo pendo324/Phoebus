@@ -41,6 +41,17 @@ public enum FeedPaginationPolicy {
         return true
     }
 
+    /// How many pages in a row a fetch may skip when the feed's filters hide
+    /// every post on them. Such a page adds no rows, so no row appears to ask
+    /// for the next one and infinite scroll would stall.
+    public static let maxFilteredPagesSkipped = 5
+
+    /// Whether a fetch whose `pagesFetched`th page kept `keptCount` posts
+    /// after filtering should go straight on to the next page.
+    public static func shouldSkipFilteredPage(keptCount: Int, hasNextPage: Bool, pagesFetched: Int) -> Bool {
+        keptCount == 0 && hasNextPage && pagesFetched <= maxFilteredPagesSkipped
+    }
+
     /// The 1-based page number the manual row would load next, at 25 items per
     /// page (Reddit's default, and what this app requests).
     public static func nextPageNumber(loadedCount: Int, pageSize: Int = 25) -> Int {

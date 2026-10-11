@@ -84,6 +84,18 @@ Apollo or Reborn, add an entry here.
   Reddit's `/api/multi/copy`, and offers to open the private copy.
   Neither Apollo nor Reborn offers this; it is inspired by Continuum's
   Copy Multireddit.
+- **Post Rules (Settings > Filters & Blocks > Post Rules) are
+  Phoebus-only.** Neither Apollo nor Reborn has them; they are inspired
+  by Continuum's post filters. A rule hides posts outside a score,
+  comment or award range (both ends inclusive), can show only NSFW or
+  only spoiler posts, and can hide or require titles matching a
+  case-insensitive regular expression (an invalid pattern is ignored).
+  Each rule applies to every feed or to chosen ones (Home, Popular, All,
+  a subreddit or a multireddit, while viewing that feed). Pinned
+  (stickied) posts and your own posts are never hidden, and profiles,
+  search and saved lists are not filtered. When the filters empty a
+  whole page, the feed fetches the next one straight away, up to five
+  pages, so infinite scroll does not stall.
 
 ## Media and link previews
 

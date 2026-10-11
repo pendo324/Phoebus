@@ -180,6 +180,9 @@ struct PostDetailHeader: View {
                 if isEditing {
                     TextEditor(text: $editedText)
                         .frame(minHeight: 100)
+                        .apolloConfirmsDiscard(
+                            isDirty: UnsavedTextEdit.hasChanges(original: savedEdit ?? post.selftext ?? "", edited: editedText),
+                            message: "Your changes to this post haven't been saved.") { isEditing = false }
                     HStack {
                         Button("Cancel") { isEditing = false }
                         Button("Save") { Task { await saveEdit() } }

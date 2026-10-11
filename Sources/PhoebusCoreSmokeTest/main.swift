@@ -344,6 +344,8 @@ try await checkCustomSubredditSourcesApolloRebornFeature()
 
 try await checkTrendingSubredditTitleParsingApolloReborn()
 
+try await checkSearchHistoryAndSavedSearches()
+
 try await checkTagFiltersApolloRebornFeature()
 
 try await checkAvatarCacheApolloRebornShowUser()

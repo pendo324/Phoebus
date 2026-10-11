@@ -15,6 +15,8 @@ public struct SubredditsSettingsScreen: View {
     public init() {}
 
     @Setting(CustomSubredditSourceStore.storage) private var sources
+    @Setting(SearchHistorySettings.self) private var searchHistory
+    @State private var confirmingClearSearchHistory = false
 
     public var body: some View {
         List {
@@ -22,6 +24,7 @@ public struct SubredditsSettingsScreen: View {
             iconsSection
             favoritesSection
             sourcesSection
+            searchSection
         }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
@@ -149,6 +152,33 @@ public struct SubredditsSettingsScreen: View {
         } header: {
             Text("Sources")
                 .apolloSectionHeader()
+        }
+    }
+}
+
+extension SubredditsSettingsScreen {
+    /// Phoebus addition beside the Search tab's other sources: search history.
+    /// Not in Apollo or Reborn.
+    private var searchSection: some View {
+        Section {
+            Toggle("Save Search History", isOn: $searchHistory.saveHistory)
+                .apolloSearchRow("Save Search History")
+                .accessibilityIdentifier("subreddits.saveSearchHistory")
+            Button("Clear Search History", role: .destructive) { confirmingClearSearchHistory = true }
+                .apolloSearchRow("Clear Search History", lastBeforeFooter: true)
+                .accessibilityIdentifier("subreddits.clearSearchHistory")
+        } header: {
+            Text("Search")
+                .apolloSectionHeader()
+        } footer: {
+            Text("Recent searches show under the search field, for all of Reddit on the Search tab and per subreddit in a feed's search. Saved searches are kept until you remove them.")
+                .apolloSectionFooter()
+        }
+        .alert("Clear Search History?", isPresented: $confirmingClearSearchHistory) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) { SearchHistoryStore.clearAllRecent() }
+        } message: {
+            Text("Recent searches for every account are removed. Saved searches are kept.")
         }
     }
 }

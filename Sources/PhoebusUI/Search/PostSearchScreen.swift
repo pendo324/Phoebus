@@ -9,7 +9,11 @@ public struct PostSearchScreen: View {
     let repository: RedditRepository
 
     @State private var query: String
-    @State private var sort = "relevance"
+    @State private var sort: String
+    /// Reddit's `t` for the Top and Comments sorts.
+    @State private var time: String
+    /// What the current results are for, which "Save Search" pins.
+    @State private var searchedQuery = ""
     @State private var posts: [RedditPost] = []
     @State private var errorMessage: String?
     @State private var isLoading = false
@@ -26,16 +30,32 @@ public struct PostSearchScreen: View {
 
     private static let sorts = ["relevance", "hot", "top", "new", "comments"]
 
-    public init(subreddit: String, repository: RedditRepository, initialQuery: String = "") {
+    public init(subreddit: String, repository: RedditRepository, initialQuery: String = "",
+                initialSort: String = "relevance", initialTime: String? = nil) {
         self.subreddit = subreddit
         self.repository = repository
         _query = State(initialValue: initialQuery)
+        _sort = State(initialValue: initialSort)
+        _time = State(initialValue: initialTime ?? "all")
+    }
+
+    private var currentSavedSearch: SavedSearch {
+        SavedSearch(query: searchedQuery, subreddit: subreddit, sort: sort, time: time)
     }
 
     public var body: some View {
         List {
             if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red)
+            }
+            // Phoebus addition: this scope's recent and saved searches before typing.
+            if query.isEmpty {
+                RecentSearchesSection(subreddit: subreddit) { entry in
+                    run(query: entry.query)
+                }
+                SavedSearchesSection(subreddit: subreddit) { saved in
+                    run(query: saved.query, sort: saved.sort, time: saved.time)
+                }
             }
             // Loading and empty states distinguish an in-flight search from one that found
             // nothing.
@@ -99,25 +119,52 @@ public struct PostSearchScreen: View {
         .onSubmit(of: .search) {
             Task { await search() }
         }
+        // Clearing the field goes back to recent and saved searches.
+        .onChange(of: query) { _, newValue in
+            if newValue.isEmpty {
+                posts = []
+                searchedQuery = ""
+                errorMessage = nil
+            }
+        }
         .task {
             if !query.isEmpty { await search() }
         }
         .apolloFlatListAppearance()
         .navigationTitle("Search")
         .toolbar {
+            if !searchedQuery.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    SaveSearchButton(search: currentSavedSearch)
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 // Each row gets its per-sort icon and the active row a checkmark, as in Apollo's
                 // "Sort by…" sheet. The toolbar glyph stays fixed: a label that changes with
                 // state makes the nav bar jump.
                 Menu {
                     ForEach(Self.sorts, id: \.self) { s in
-                        Button {
-                            sort = s
-                            Task { await search() }
-                        } label: {
-                            // Icon rows carry no checkmark; only icon-less rows get one, as in Apollo's glass
-                            // sort menu.
-                            Label { Text(s.capitalized) } icon: { ApolloIconImage(FeedScreen.iconName(forSort: s)) }
+                        if SavedSearch.sortsWithTime.contains(s) {
+                            Menu {
+                                ForEach(FeedScreen.timeframes, id: \.value) { option in
+                                    Button(option.label) {
+                                        sort = s
+                                        time = option.value
+                                        Task { await search() }
+                                    }
+                                }
+                            } label: {
+                                Label { Text(s.capitalized) } icon: { ApolloIconImage(FeedScreen.iconName(forSort: s)) }
+                            }
+                        } else {
+                            Button {
+                                sort = s
+                                Task { await search() }
+                            } label: {
+                                // Icon rows carry no checkmark; only icon-less rows get one, as in Apollo's glass
+                                // sort menu.
+                                Label { Text(s.capitalized) } icon: { ApolloIconImage(FeedScreen.iconName(forSort: s)) }
+                            }
                         }
                     }
                 } label: {
@@ -133,22 +180,33 @@ public struct PostSearchScreen: View {
         errorMessage = nil
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
             posts = []
+            searchedQuery = ""
             return
         }
         isLoading = true
         defer { isLoading = false }
-        // Only the answer to the latest query and sort lands; a slower earlier search
-        // must not overwrite a newer one.
-        let asked = (query, sort)
+        searchedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        SearchHistoryStore.record(query: searchedQuery, subreddit: subreddit)
+        // Only the answer to the latest query, sort and time lands; a slower earlier
+        // search must not overwrite a newer one.
+        let asked = [query, sort, time]
         do {
-            let listing = try await repository.searchPosts(query: query, subreddit: subreddit.isEmpty ? nil : subreddit, sort: sort)
+            let listing = try await repository.searchPosts(query: query, subreddit: subreddit.isEmpty ? nil : subreddit, sort: sort,
+                                                           time: SavedSearch.sortsWithTime.contains(sort) ? time : nil)
             let found = await listing.postsInBackground()
-            guard asked == (query, sort) else { return }
+            guard asked == [query, sort, time] else { return }
             posts = found
         } catch {
-            guard asked == (query, sort) else { return }
+            guard asked == [query, sort, time] else { return }
             errorMessage = UserFacingError.message(for: error)
         }
+    }
+
+    private func run(query newQuery: String, sort newSort: String? = nil, time newTime: String? = nil) {
+        query = newQuery
+        if let newSort { sort = newSort }
+        if let newTime { time = newTime }
+        Task { await search() }
     }
 
     private func handleSwipeAction(_ action: SwipeAction, on post: RedditPost) async {
@@ -158,5 +216,26 @@ public struct PostSearchScreen: View {
             onHide: { posts.removeAll { $0.id == post.id } },
             author: post.author, subreddit: post.subreddit
         ))
+    }
+}
+
+/// "Save Search" / "Remove from Saved" for a results screen's toolbar.
+private struct SaveSearchButton: View {
+    @Setting(SearchHistoryStore.storage) private var history
+    let search: SavedSearch
+
+    var body: some View {
+        let isSaved = SearchHistoryStore.lists(in: history).isSaved(search)
+        Button {
+            if isSaved {
+                SearchHistoryStore.unsave(search)
+            } else {
+                SearchHistoryStore.save(search)
+            }
+        } label: {
+            Image(systemName: isSaved ? "star.fill" : "star")
+        }
+        .accessibilityLabel(isSaved ? "Remove from Saved Searches" : "Save Search")
+        .accessibilityIdentifier("search.saveSearch")
     }
 }

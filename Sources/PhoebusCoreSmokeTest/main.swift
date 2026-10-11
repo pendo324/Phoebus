@@ -1498,6 +1498,7 @@ try await checkTapToFullscreenAndTheVideo()
 try await checkTheFullscreenVideoViewerLayoutAnd()
 
 try await checkGalleryViewSOwnFullscreenViewer()
+try await checkStickiedPostBannerOnlyInItsSubreddit()
 
 try await checkGalleryViewerRealMediaRealChrome()
 

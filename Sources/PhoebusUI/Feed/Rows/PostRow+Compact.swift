@@ -19,7 +19,7 @@ extension PostRow {
             VStack(alignment: .leading, spacing: 3) {
                 // Apollo renders a distinct banner for stickied posts,
                 // separate from the rest of the info row.
-                if post.stickied {
+                if showsStickiedBanner {
                     Label("Stickied Post", systemImage: "pin.fill")
                         .font(.caption2.bold())
                         .foregroundStyle(.green)

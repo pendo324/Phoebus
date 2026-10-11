@@ -316,7 +316,12 @@ struct PostRow: View {
             score: displayScore, comments: post.numComments, created: post.created,
             flair: generalSettings.showPostFlair ? post.linkFlairText : nil,
             domain: titleDomain, nsfw: post.over18, spoiler: post.spoiler,
-            stickied: post.stickied, saved: isSaved, vote: voteState)
+            stickied: showsStickiedBanner, saved: isSaved, vote: voteState)
+    }
+
+    /// Only in the post's own subreddit feed (`StickiedPostBanner`).
+    var showsStickiedBanner: Bool {
+        StickiedPostBanner.shows(isStickied: post.stickied, isAggregateFeed: isAggregateFeed)
     }
 
     /// Apollo's per-row stacked up/down-arrow vote control, pinned to

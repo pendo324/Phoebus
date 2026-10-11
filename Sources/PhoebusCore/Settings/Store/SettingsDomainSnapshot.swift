@@ -73,7 +73,8 @@ public enum SettingsDomainSnapshot {
         return snapshot
     }
 
-    /// Restores a Phoebus `.apollobackup`'s preferences and accounts.
+    /// Restores a Phoebus `.apollobackup`'s preferences, accounts and Kagi
+    /// Session Link.
     /// Returns how many settings it wrote.
     @discardableResult
     public static func restore(_ payload: ApolloBackupImport.Payload,
@@ -88,6 +89,7 @@ public enum SettingsDomainSnapshot {
             AccountKeychainStoreBox().save(accounts)
             NotificationCenter.default.post(name: .apolloAccountsRestored, object: nil)
         }
+        if let token = payload.kagiToken { KagiSession.setToken(token) }
         return count
     }
 

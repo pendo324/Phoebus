@@ -16,6 +16,8 @@ import Foundation
 ///     com.christianselig.Apollo.webjson
 ///       account `websession:<user>:cookie`  the cookie header
 ///       account `websession:<user>:modhash` the CSRF modhash
+///     com.christianselig.Apollo.kagi
+///       account `sessionToken`              Reborn's Kagi Session Link (#1305)
 ///
 /// The remaining items (`deviceSeed`, the Valet canary, a feature flag) are not
 /// credentials and are ignored. The OAuth blob is decoded via
@@ -64,6 +66,10 @@ public enum ApolloKeychainImport {
         guard !account.isEmpty,
               !service.contains(where: \.isNewline),
               !account.contains(where: \.isNewline) else { return false }
+        // Reborn's Kagi Session Link, and the Phoebus archive's copy of it.
+        if service == KagiSession.rebornKeychainService || service == KagiSession.keychainService {
+            return account == KagiSession.keychainAccount
+        }
         if service == webJSONService {
             if ["sessionCookieHeader", "sessionModhash", "sessionUsername"].contains(account) {
                 return true
@@ -80,6 +86,23 @@ public enum ApolloKeychainImport {
         // accessibility suffix varies by class and every variant is Apollo's.
         return service.hasPrefix("VAL_VAL")
             && service.contains("_com.christianselig.Apollo_")
+    }
+
+    /// The Kagi Session Link, from Reborn's item or a Phoebus archive's. Only
+    /// a well-formed token is taken (it signs in as the subscriber).
+    public static func kagiToken(fromKeychainPlist data: Data) -> String? {
+        guard let items = (try? PropertyListSerialization.propertyList(
+            from: data, options: [], format: nil)) as? [[String: Any]] else { return nil }
+        for item in items {
+            guard let service = item["service"] as? String,
+                  let account = item["account"] as? String,
+                  let blob = item["data"] as? Data,
+                  service == KagiSession.rebornKeychainService || service == KagiSession.keychainService,
+                  ownsIdentity(service: service, account: account),
+                  let token = KagiSearch.normalizeSessionToken(String(decoding: blob, as: UTF8.self)) else { continue }
+            return token
+        }
+        return nil
     }
 
     /// Reads every account it can find.

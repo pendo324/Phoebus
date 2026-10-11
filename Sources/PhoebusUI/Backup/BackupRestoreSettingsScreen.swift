@@ -146,6 +146,7 @@ public struct BackupRestoreSettingsScreen: View {
             let accounts = payload.phoebusAccounts?.accounts.count ?? 0
             statusMessage = "Restored \(count) settings"
                 + (accounts == 0 ? "." : accounts == 1 ? " and 1 account." : " and \(accounts) accounts.")
+                + (payload.kagiToken == nil ? "" : " Restored the Kagi Session Link.")
             return
         }
         let summary = ApolloSettingsMigration.apply(payload)
@@ -166,6 +167,9 @@ public struct BackupRestoreSettingsScreen: View {
             parts.append(restoredAccounts == 1
                 ? "Restored 1 account."
                 : "Restored \(restoredAccounts) accounts.")
+        }
+        if ApolloSettingsMigration.applyKagiSession(payload) {
+            parts.append("Restored the Kagi Session Link.")
         }
         statusMessage = parts.isEmpty
             ? "That Apollo backup had nothing this app can use yet."

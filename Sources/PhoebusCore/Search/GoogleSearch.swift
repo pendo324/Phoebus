@@ -2,25 +2,60 @@ import Foundation
 
 /// The Search tab's engine, picked from the search field's magnifier and
 /// remembered, with no setting (Reborn #1260, `UDKeySearchEngine`:
-/// 0 = Reddit, Apollo's own search; 1 = Google).
+/// 0 = Reddit, Apollo's own search; 1 = Google; 2 = Kagi, Reborn #1305).
 public enum SearchEngine: Int, Sendable, CaseIterable {
     case reddit = 0
     case google = 1
+    case kagi = 2
 
     public static let key = "SearchEngine"
 
+    /// Kagi reads back as Reddit while no Session Link is saved (removed in
+    /// Settings, or a restore without it).
     public static var current: SearchEngine {
-        get { SearchEngine(rawValue: UserDefaults.standard.integer(forKey: key)) ?? .reddit }
+        get {
+            let stored = SearchEngine(rawValue: UserDefaults.standard.integer(forKey: key)) ?? .reddit
+            return stored == .kagi && !KagiSession.hasToken ? .reddit : stored
+        }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
     }
 
-    public var title: String { self == .reddit ? "Reddit" : "Google" }
-    /// The menu rows' subtitles.
-    public var subtitle: String { self == .reddit ? "Posts, subreddits and users" : "Reddit threads, found with Google" }
+    /// Google and Kagi: the engines whose results the Search tab lists itself.
+    public var isExternal: Bool { self != .reddit }
+
+    public var title: String {
+        switch self {
+        case .reddit: return "Reddit"
+        case .google: return "Google"
+        case .kagi: return "Kagi"
+        }
+    }
+
+    /// The menu rows' subtitles. Kagi's stays on one line while it still
+    /// needs a Session Link (the menu caps subtitles at two).
+    public var subtitle: String {
+        switch self {
+        case .reddit: return "Posts, subreddits and users"
+        case .google: return "Reddit threads, found with Google"
+        case .kagi: return KagiSession.hasToken ? "Reddit threads, found with Kagi" : "Needs your Session Link"
+        }
+    }
+
+    /// The search field's prompt in an external mode; nil for Reddit.
+    public var placeholder: String? { isExternal ? "Search Reddit with \(title)" : nil }
+
+    /// The engine's autocomplete endpoint; nil for Reddit.
+    public func suggestionsURL(for query: String) -> URL? {
+        switch self {
+        case .reddit: return nil
+        case .google: return GoogleSearch.suggestionsURL(for: query)
+        case .kagi: return KagiSearch.suggestionsURL(for: query)
+        }
+    }
 }
 
-/// Google mode's filters, set from the chips above the results
-/// (`UDKeyGoogleSearchTimeRange`, `UDKeyGoogleSearchExactWords`).
+/// Google and Kagi mode's filters (shared), set from the chips above the
+/// results (`UDKeyGoogleSearchTimeRange`, `UDKeyGoogleSearchExactWords`).
 public struct GoogleSearchOptions: Equatable, Sendable {
     public enum TimeRange: Int, CaseIterable, Sendable {
         case any = 0, day, week, month, year
@@ -70,7 +105,7 @@ public struct GoogleSearchOptions: Equatable, Sendable {
     }
 }
 
-/// One Reddit result from Google.
+/// One Reddit result from Google or Kagi.
 public struct GoogleSearchResult: Identifiable, Equatable, Sendable {
     public enum Kind: Sendable { case post, comment, subreddit, user, other }
 
@@ -90,8 +125,10 @@ public struct GoogleSearchResult: Identifiable, Equatable, Sendable {
     /// `snippetBoldRanges` (UTF-16 offsets).
     public var snippet = ""
     public var snippetBoldRanges: [NSRange] = []
-    /// Google's forum line ("30+ comments · 2 weeks ago").
-    public var googleMeta: String?
+    /// The engine's own line for the result, shown until Reddit's numbers
+    /// are in: Google's forum line ("30+ comments · 2 weeks ago"), Kagi's
+    /// date ("Mar 27, 2025").
+    public var engineMeta: String?
 
     /// From Reddit (`/api/info`), after Read More; nil until then.
     public var redditInfo: GoogleSearchRedditInfo?
@@ -111,7 +148,7 @@ public struct GoogleSearchResult: Identifiable, Equatable, Sendable {
             while path.hasSuffix("/") { path.removeLast() }
             return path
         }
-        return "google:\(subreddit?.lowercased() ?? "")|\(title.lowercased())|\(googleMeta?.lowercased() ?? "")|\(snippet.lowercased())"
+        return "google:\(subreddit?.lowercased() ?? "")|\(title.lowercased())|\(engineMeta?.lowercased() ?? "")|\(snippet.lowercased())"
     }
 }
 
@@ -410,7 +447,7 @@ public enum GoogleSearch {
             let parsed = parseMarkedSnippet(item["snippet"] as? String ?? "")
             result.snippet = parsed.text
             result.snippetBoldRanges = parsed.bold
-            result.googleMeta = meta(fromLines: lines, title: result.title)
+            result.engineMeta = meta(fromLines: lines, title: result.title)
             results.append(result)
         }
         return results
@@ -505,8 +542,28 @@ public struct GoogleSearchRedditInfo: Equatable, Sendable {
 
     /// Reads one result's post (and comment) out of an `/api/info` listing.
     public static func parse(_ data: Data, postID: String?, commentID: String?) -> GoogleSearchRedditInfo? {
-        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let children = (root["data"] as? [String: Any])?["children"] as? [[String: Any]] else { return nil }
+        guard let children = children(of: data) else { return nil }
+        return parse(children: children, postID: postID, commentID: commentID)
+    }
+
+    /// Every result a single `/api/info` listing covers, keyed by `id`.
+    public static func parse(_ data: Data, for results: [GoogleSearchResult]) -> [String: GoogleSearchRedditInfo] {
+        guard let children = children(of: data) else { return [:] }
+        var infos: [String: GoogleSearchRedditInfo] = [:]
+        for result in results {
+            if let info = parse(children: children, postID: result.postID, commentID: result.commentID) {
+                infos[result.id] = info
+            }
+        }
+        return infos
+    }
+
+    private static func children(of data: Data) -> [[String: Any]]? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return (root["data"] as? [String: Any])?["children"] as? [[String: Any]]
+    }
+
+    private static func parse(children: [[String: Any]], postID: String?, commentID: String?) -> GoogleSearchRedditInfo? {
         var post: [String: Any]?, comment: [String: Any]?
         for child in children {
             guard let thing = child["data"] as? [String: Any], let id = (thing["id"] as? String)?.lowercased() else { continue }

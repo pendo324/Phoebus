@@ -3,9 +3,9 @@ import PhoebusCore
 
 /// Reborn's "Accounts & API Keys" screen (Apollo Reborn → Setup).
 ///
-/// Four sections in order: Default API Keys, Sign-In, Experimental, Extras.
-/// Section 1's seven fields are the `CustomAPISettingsScreen` content,
-/// embedded here.
+/// Five sections in order: Default API Keys, Kagi Search, Sign-In,
+/// Experimental, Extras. Section 1's seven fields are the
+/// `CustomAPISettingsScreen` content, embedded here.
 public struct AccountsAPIKeysScreen: View {
     let accountManager: AccountManager
 
@@ -23,6 +23,7 @@ public struct AccountsAPIKeysScreen: View {
     public var body: some View {
         List {
             apiKeysSection
+            kagiSection
             signInSection
             experimentalSection
             youTubeSection
@@ -52,6 +53,21 @@ public struct AccountsAPIKeysScreen: View {
         } footer: {
             Text("Default credentials, used by any account without a per-account override. Reddit is required to sign in; the rest enable image uploads and the GIF picker.")
                     .apolloSectionFooter()
+        }
+    }
+
+    /// Reborn "Kagi Search" (#1305): the Session Link behind the Search tab's
+    /// Kagi mode. It lives in the Keychain, not in the settings store.
+    private var kagiSection: some View {
+        Section {
+            KagiSessionLinkRow()
+                .apolloSearchRow("Kagi Session Link", lastBeforeFooter: true)
+        } header: {
+            Text("Kagi Search")
+                .apolloSectionHeader()
+        } footer: {
+            Text("For Kagi subscribers. Each page of Kagi results counts as one search on your Kagi plan. Clear the field to remove the link.")
+                .apolloSectionFooter()
         }
     }
 
@@ -212,5 +228,62 @@ public struct AccountsAPIKeysScreen: View {
         // `keyField(...)` IS the Section's direct child, so the insets
         // land on the row itself.
         .apolloSearchRow(label, lastBeforeFooter: lastBeforeFooter)
+    }
+}
+
+/// The Session Link field: saved when editing ends, cleared by emptying it.
+/// Anything that isn't a Session Link is refused and the saved one shown
+/// again; a saved link Kagi turns away is flagged.
+private struct KagiSessionLinkRow: View {
+    @State private var draft = KagiSession.token ?? ""
+    @State private var notice: KagiSessionLinkSheet.Notice?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ApolloSettingsTextFieldRow("Kagi Session Link", placeholder: "https://kagi.com/search?token=\u{2026}",
+                                       text: $draft, secure: true, keyboard: .URL)
+                .onSubmit(commit)
+                .accessibilityIdentifier("settings.kagiSessionLink")
+            Text("Search Reddit with Kagi from the Search tab's magnifier. Copy it from Kagi \u{2192} Settings \u{2192} Account \u{2192} Session Link.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .onDisappear(perform: commit)
+        .onReceive(NotificationCenter.default.publisher(for: .kagiSessionLinkChanged)) { _ in
+            draft = KagiSession.token ?? ""
+        }
+        .alert(notice?.title ?? "", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } }),
+               presenting: notice) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { notice in
+            Text(notice.message)
+        }
+    }
+
+    private func commit() {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = KagiSession.token
+        if trimmed.isEmpty {
+            draft = ""
+            if current != nil { KagiSession.setToken(nil) }
+            return
+        }
+        guard let token = KagiSearch.normalizeSessionToken(trimmed) else {
+            draft = current ?? ""
+            notice = .notALink
+            return
+        }
+        draft = token
+        guard token != current else { return }
+        guard KagiSession.setToken(token) else {
+            draft = current ?? ""
+            notice = .keychain
+            return
+        }
+        // Saved either way; warn if Kagi turns it away, so a bad paste doesn't
+        // only show up later as "Kagi Session Expired" in the Search tab.
+        Task {
+            if await KagiSearch.checkSession(token: token).result == .rejected { notice = .rejected }
+        }
     }
 }

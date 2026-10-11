@@ -763,6 +763,21 @@ public actor RedditRepository {
         return GoogleSearchRedditInfo.parse(data, postID: postID, commentID: commentID)
     }
 
+    /// Reddit's own numbers for a page of Kagi results, read in one
+    /// `/api/info` batch (Reborn #1305), keyed by result id. A failed read
+    /// leaves the results with Kagi's data alone.
+    public func fetchGoogleResultsInfo(_ results: [GoogleSearchResult]) async -> [String: GoogleSearchRedditInfo] {
+        var ids: [String] = []
+        for result in results {
+            for id in [result.postID.map { "t3_\($0)" }, result.commentID.map { "t1_\($0)" }].compactMap({ $0 }) where !ids.contains(id) {
+                ids.append(id)
+            }
+        }
+        guard !ids.isEmpty,
+              let data = try? await client.get(path: "/api/info", parameters: ["id": ids.prefix(100).joined(separator: ",")]) else { return [:] }
+        return GoogleSearchRedditInfo.parse(data, for: results)
+    }
+
     /// The bodies of the given comments (`t1_` fullnames), for the inbox's
     /// “replied to your comment” quote. Missing ones are left out.
     public func fetchCommentBodies(fullnames: [String]) async -> [String: String] {

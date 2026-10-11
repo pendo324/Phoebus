@@ -3,17 +3,20 @@ import SwiftUI
 import WebKit
 import PhoebusCore
 
-/// The Search tab's Google mode (Reborn #1260): Reddit threads found through
-/// Google, with the time and Exact Words chips above, cards showing the
-/// subreddit, title, Google's snippet (query terms bold) and its forum
-/// line; Read More opens the card with the post's own text and Reddit's
-/// numbers; tapping a card opens the thread natively.
+/// The Search tab's Google and Kagi modes (Reborn #1260, #1305): Reddit
+/// threads found through the engine, with the time and Exact Words chips
+/// above, cards showing the subreddit, title, the engine's snippet (Google
+/// bolds the query terms) and its forum line or date; Kagi's cards open with
+/// Reddit's numbers already in. Read More opens the card with the post's own
+/// text and Reddit's numbers; tapping a card opens the thread natively.
 struct GoogleSearchResultsView: View {
+    let engine: SearchEngine
     let query: String
     let repository: RedditRepository
     let onOpen: (RedditURLTarget) -> Void
 
     @StateObject private var session = GoogleSearchSession()
+    @StateObject private var kagiSession = KagiSearchSession()
     @State private var options = GoogleSearchOptions.load()
     @State private var results: [GoogleSearchResult] = []
     @State private var phase: Phase = .loading
@@ -21,6 +24,8 @@ struct GoogleSearchResultsView: View {
     @State private var nextPage = 1
     @State private var loadingMore = false
     @State private var moreFailed = false
+    @State private var moreSessionExpired = false
+    @State private var showsSessionLinkSheet = false
     @State private var expanded: Set<String> = []
     @State private var readMoreLoading: Set<String> = []
     @State private var readMoreTried: Set<String> = []
@@ -31,7 +36,11 @@ struct GoogleSearchResultsView: View {
     enum Phase: Equatable {
         case loading, results
         case failed(title: String, detail: String)
+        /// Kagi turned the saved Session Link away: only a new one helps.
+        case sessionExpired
     }
+
+    private var isSlow: Bool { engine == .kagi ? kagiSession.isSlow : session.isSlow }
 
     var body: some View {
         List {
@@ -43,19 +52,26 @@ struct GoogleSearchResultsView: View {
             switch phase {
             case .loading:
                 status(spinning: true, title: nil,
-                       detail: session.isSlow ? "Google is taking longer than usual." : "Searching Google\u{2026}")
+                       detail: isSlow ? "\(engine.title) is taking longer than usual." : "Searching \(engine.title)\u{2026}")
             case .failed(let title, let detail):
                 status(spinning: false, title: title, detail: detail, action: ("Try Again", { Task { await load(page: 0) } }))
+            case .sessionExpired:
+                status(spinning: false, title: "Kagi Session Expired",
+                       detail: "Paste a new Session Link to keep searching with Kagi.",
+                       action: ("Update Session Link", { showsSessionLinkSheet = true }))
             case .results:
                 if results.isEmpty {
-                    status(spinning: false, title: "No Reddit Results on Google", detail: emptyHint)
+                    status(spinning: false, title: "No Reddit Results on \(engine.title)", detail: emptyHint)
                 }
                 ForEach(results) { result in
                     card(result)
                         .onAppear { loadMoreIfNeeded(after: result) }
                 }
                 if mayHaveMore || loadingMore || moreFailed {
-                    if moreFailed {
+                    if moreSessionExpired {
+                        status(spinning: false, title: nil, detail: "Kagi didn't accept the saved Session Link.",
+                               action: ("Update Session Link", { showsSessionLinkSheet = true }))
+                    } else if moreFailed {
                         status(spinning: false, title: nil, detail: "Couldn't load more results.",
                                action: ("Try Again", { Task { await load(page: nextPage) } }))
                     } else {
@@ -65,8 +81,17 @@ struct GoogleSearchResultsView: View {
             }
         }
         .listStyle(.plain)
-        .task(id: query) { await load(page: 0) }
-        .onDisappear { session.cancel() }
+        .task(id: "\(engine.rawValue)|\(query)") { await load(page: 0) }
+        .onDisappear {
+            session.cancel()
+            kagiSession.cancel()
+        }
+        .sheet(isPresented: $showsSessionLinkSheet) {
+            // Saved: the search (or the page that failed) runs again with the new link.
+            KagiSessionLinkSheet {
+                if results.isEmpty { Task { await load(page: 0) } } else { Task { await load(page: nextPage) } }
+            }
+        }
         .sheet(isPresented: Binding(get: { session.verificationWebView != nil },
                                     set: { if !$0 { session.verificationCancelledByUser() } })) {
             if let web = session.verificationWebView {
@@ -99,7 +124,7 @@ struct GoogleSearchResultsView: View {
                 chip("Exact Words", systemImage: "text.quote", on: options.exactWords, chevron: false)
             }
             .buttonStyle(.plain)
-            .accessibilityHint("Google's Verbatim mode: no synonyms or spelling fixes.")
+            .accessibilityHint("Match the words as typed: no synonyms or spelling fixes.")
             Spacer()
         }
     }
@@ -143,8 +168,16 @@ struct GoogleSearchResultsView: View {
             loadingMore = true
             moreFailed = false
         }
+        moreSessionExpired = false
+        // The other engine's search (the engine just changed) stops.
+        if engine == .kagi { session.cancel() } else { kagiSession.cancel() }
         do {
-            let found = try await session.search(query, options: options, page: page)
+            let found: GoogleSearchSession.Page
+            if engine == .kagi {
+                found = try await kagiSession.search(query, options: options, page: page, repository: repository)
+            } else {
+                found = try await session.search(query, options: options, page: page)
+            }
             if page == 0 {
                 results = found.results
             } else {
@@ -160,17 +193,25 @@ struct GoogleSearchResultsView: View {
             loadingMore = false
             return
         } catch {
+            let expired = engine == .kagi && Self.isSessionExpired(error)
             if page == 0 {
                 let cancelled = (error as? GoogleSearchSession.SearchError).map {
                     if case .verificationCancelled = $0 { return true } else { return false }
                 } ?? false
-                phase = .failed(title: cancelled ? "Google Check Not Finished" : "Couldn't Search Google",
-                                detail: error.localizedDescription)
+                phase = expired ? .sessionExpired
+                    : .failed(title: cancelled ? "Google Check Not Finished" : "Couldn't Search \(engine.title)",
+                              detail: error.localizedDescription)
             } else {
                 moreFailed = true
+                moreSessionExpired = expired
             }
         }
         loadingMore = false
+    }
+
+    private static func isSessionExpired(_ error: Error) -> Bool {
+        if case .sessionExpired? = error as? KagiSearchSession.SearchError { return true }
+        return false
     }
 
     /// Asks for the next page while the last few are still coming in.
@@ -269,7 +310,7 @@ struct GoogleSearchResultsView: View {
             .labelStyle(CompactStatLabelStyle())
             .font(.caption)
             .foregroundStyle(.secondary)
-        } else if let meta = result.googleMeta {
+        } else if let meta = result.engineMeta {
             Text(meta).font(.caption).foregroundStyle(.secondary)
         }
     }

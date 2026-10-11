@@ -3,12 +3,12 @@ import SwiftUI
 import UIKit
 import PhoebusCore
 
-/// The Search tab field's magnifier becomes the engine picker (Reborn #1260):
-/// a tap or hold offers "Search With: Reddit / Google", a small chevron beside
-/// it says it's a menu, and Google mode shows a plain capital G in the
-/// magnifier's colour. The field is SwiftUI's `.searchable`, so the probe
-/// finds its `UISearchBar` through the screen's navigation item and swaps the
-/// field's left view.
+/// The Search tab field's magnifier becomes the engine picker (Reborn #1260,
+/// #1305): a tap or hold offers "Search With: Reddit / Google / Kagi", a small
+/// chevron beside it says it's a menu, and Google and Kagi modes show a plain
+/// capital G or K in the magnifier's colour. The field is SwiftUI's
+/// `.searchable`, so the probe finds its `UISearchBar` through the screen's
+/// navigation item and swaps the field's left view.
 struct SearchEngineMagnifier: UIViewRepresentable {
     let engine: SearchEngine
     let onChange: (SearchEngine) -> Void
@@ -65,8 +65,8 @@ struct SearchEngineMagnifier: UIViewRepresentable {
             config.baseForegroundColor = .secondaryLabel
             config.image = UIImage(systemName: "chevron.down",
                                    withConfiguration: UIImage.SymbolConfiguration(pointSize: 8, weight: .bold))
-            if engine == .google {
-                var title = AttributedString("G")
+            if engine.isExternal {
+                var title = AttributedString(engine == .kagi ? "K" : "G")
                 title.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
                 config.attributedTitle = title
             } else {
@@ -77,12 +77,17 @@ struct SearchEngineMagnifier: UIViewRepresentable {
             self.configuration = config
             accessibilityLabel = "Search With"
             accessibilityValue = engine.title
-            accessibilityHint = "Choose whether to search with Reddit or Google."
+            accessibilityHint = "Choose whether to search with Reddit, Google or Kagi."
             accessibilityIdentifier = "search.engine"
             showsMenuAsPrimaryAction = true
             menu = UIMenu(title: "Search With", children: SearchEngine.allCases.map { option in
-                let action = UIAction(title: option.title,
-                                      image: UIImage(systemName: option == .reddit ? "magnifyingglass" : "g.circle")) { _ in
+                let symbol: String
+                switch option {
+                case .reddit: symbol = "magnifyingglass"
+                case .google: symbol = "g.circle"
+                case .kagi: symbol = "k.circle"
+                }
+                let action = UIAction(title: option.title, image: UIImage(systemName: symbol)) { _ in
                     onPick(option)
                 }
                 action.subtitle = option.subtitle

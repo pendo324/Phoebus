@@ -70,7 +70,7 @@ public struct ApolloRebornHubScreen: View {
 
     // MARK: - Setup
 
-    /// Setup: one row, subtitle "Reddit · Imgur · Giphy · Image Chest", `key.fill`
+    /// Setup: one row, subtitle "Reddit · Imgur · Giphy · Image Chest · Kagi", `key.fill`
     /// on a systemGray tile.
     private var setupSection: some View {
         Section {
@@ -79,7 +79,7 @@ public struct ApolloRebornHubScreen: View {
             } label: {
                 HubRow(
                     title: "Accounts & API Keys",
-                    subtitle: "Reddit · Imgur · Giphy · Image Chest",
+                    subtitle: "Reddit · Imgur · Giphy · Image Chest · Kagi",
                     systemImage: "key.fill",
                     tint: .gray
                 )
@@ -91,7 +91,7 @@ public struct ApolloRebornHubScreen: View {
             Text("Setup")
                 .apolloHubSectionHeader()
         } footer: {
-            Text("Your Reddit sign-in credentials, plus optional Imgur, Giphy and Image Chest keys for uploads and GIFs.")
+            Text("Your Reddit sign-in credentials, plus optional Imgur, Giphy and Image Chest keys for uploads and GIFs, and a Kagi Session Link for searching Reddit with Kagi.")
                     .apolloHubSectionFooter()
         }
     }

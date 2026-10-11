@@ -9,14 +9,16 @@ public struct SubredditSearchScreen: View {
     @State private var errorMessage: String?
     let repository: RedditRepository
     let onSelect: (RedditSubreddit) -> Void
-    /// Opens a Reddit page on this tab's stack (a Google result).
+    /// Opens a Reddit page on this tab's stack (a Google or Kagi result).
     let onOpenTarget: (RedditURLTarget) -> Void
-    /// "Search With" (Reborn #1260): Reddit is Apollo's own search;
-    /// Google lists Reddit threads Google found, searched on Return.
+    /// "Search With" (Reborn #1260, #1305): Reddit is Apollo's own search;
+    /// Google and Kagi list Reddit threads they found, searched on Return.
     @State private var engine = SearchEngine.current
-    /// The query Google was asked, set on Return or a suggestion.
-    @State private var googleQuery = ""
-    @State private var googleSuggestions: [String] = []
+    /// The query the external engine was asked, set on Return or a suggestion.
+    @State private var externalQuery = ""
+    @State private var suggestions: [String] = []
+    /// Kagi picked with no Session Link saved: asks for one first.
+    @State private var showsKagiLinkSheet = false
 
     public init(repository: RedditRepository, onSelect: @escaping (RedditSubreddit) -> Void,
                 onOpenTarget: @escaping (RedditURLTarget) -> Void = { _ in }) {
@@ -25,15 +27,15 @@ public struct SubredditSearchScreen: View {
         self.onOpenTarget = onOpenTarget
     }
 
-    private var showsGoogle: Bool { engine == .google && !query.isEmpty }
+    private var showsExternal: Bool { engine.isExternal && !query.isEmpty }
 
     public var body: some View {
         Group {
             #if canImport(WebKit) && canImport(UIKit)
-            if showsGoogle, !googleQuery.isEmpty, googleQuery == query {
-                GoogleSearchResultsView(query: googleQuery, repository: repository, onOpen: onOpenTarget)
-            } else if showsGoogle {
-                googleSuggestionList
+            if showsExternal, !externalQuery.isEmpty, externalQuery == query {
+                GoogleSearchResultsView(engine: engine, query: externalQuery, repository: repository, onOpen: onOpenTarget)
+            } else if showsExternal {
+                suggestionList
             } else {
                 redditList
             }
@@ -43,24 +45,25 @@ public struct SubredditSearchScreen: View {
         }
         .searchable(text: $query,
                     placement: .navigationBarDrawer(displayMode: .always),
-                    prompt: engine == .google ? "Search Reddit with Google" : "Search Posts, Subreddits, Users")
+                    prompt: engine.placeholder ?? "Search Posts, Subreddits, Users")
         .onSubmit(of: .search) {
-            if engine == .google { googleQuery = query }
+            if engine.isExternal { externalQuery = query }
         }
         .onChange(of: query) { _, newValue in
-            if engine == .google {
+            if engine.isExternal {
                 Task { await loadSuggestions(newValue) }
             } else {
                 Task { await search(newValue) }
             }
         }
         #if canImport(UIKit)
-        .background(SearchEngineMagnifier(engine: engine) { picked in
-            engine = picked
-            SearchEngine.current = picked
-            googleQuery = ""
-            if picked == .reddit { Task { await search(query) } }
-        }.frame(width: 0, height: 0))
+        .background(SearchEngineMagnifier(engine: engine) { pick($0) }.frame(width: 0, height: 0))
+        .sheet(isPresented: $showsKagiLinkSheet) {
+            KagiSessionLinkSheet { pick(.kagi) }
+        }
+        // Removing the Session Link in Settings puts Kagi mode back on Reddit.
+        .onReceive(NotificationCenter.default.publisher(for: .kagiSessionLinkChanged)) { _ in syncEngine() }
+        .onAppear { syncEngine() }
         #endif
         .apolloFlatListAppearance()
         // No navigation title: the Search tab shows none, so the search field sits
@@ -69,20 +72,48 @@ public struct SubredditSearchScreen: View {
         .navigationBarTitleDisplayModeIfAvailable()
     }
 
-    /// While typing in Google mode: Google's own suggestions, under a row
-    /// that searches exactly what was typed.
-    private var googleSuggestionList: some View {
+    /// The Search With choice. Kagi without a Session Link asks for one first
+    /// and is picked again once it's saved. A query already entered runs on
+    /// the new external engine; otherwise the field goes back to suggestions.
+    private func pick(_ picked: SearchEngine) {
+        if picked == .kagi, !KagiSession.hasToken {
+            showsKagiLinkSheet = true
+            return
+        }
+        if !(picked.isExternal && !externalQuery.isEmpty) { externalQuery = "" }
+        engine = picked
+        SearchEngine.current = picked
+        if picked == .reddit {
+            Task { await search(query) }
+        } else {
+            Task { await loadSuggestions(query) }
+        }
+    }
+
+    /// Follows a change made elsewhere (the Session Link removed or added in
+    /// Settings) without rewriting the remembered choice.
+    private func syncEngine() {
+        let current = SearchEngine.current
+        guard engine != current else { return }
+        engine = current
+        externalQuery = ""
+        if current == .reddit { Task { await search(query) } }
+    }
+
+    /// While typing in an external mode: the engine's own suggestions, under a
+    /// row that searches exactly what was typed.
+    private var suggestionList: some View {
         List {
             Button {
-                googleQuery = query
+                externalQuery = query
             } label: {
-                Label("Search Google for \u{201C}\(query)\u{201D}", systemImage: "magnifyingglass")
+                Label("Search \(engine.title) for \u{201C}\(query)\u{201D}", systemImage: "magnifyingglass")
             }
             .accessibilityIdentifier("googleSearch.submit")
-            ForEach(googleSuggestions, id: \.self) { suggestion in
+            ForEach(suggestions, id: \.self) { suggestion in
                 Button {
                     query = suggestion
-                    googleQuery = suggestion
+                    externalQuery = suggestion
                 } label: {
                     Label(suggestion, systemImage: "magnifyingglass").foregroundStyle(.primary)
                 }
@@ -90,7 +121,7 @@ public struct SubredditSearchScreen: View {
             Section {
                 EmptyView()
             } footer: {
-                Text("Searches Reddit through Google. Add r/name to search one subreddit, put a phrase in \"quotes\" to match it exactly, or add -word to leave a word out.")
+                Text("Searches Reddit through \(engine.title). Add r/name to search one subreddit, put a phrase in \"quotes\" to match it exactly, or add -word to leave a word out.")
                     .apolloSectionFooter()
             }
         }
@@ -99,13 +130,13 @@ public struct SubredditSearchScreen: View {
 
     private func loadSuggestions(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { googleSuggestions = []; return }
+        guard !trimmed.isEmpty else { suggestions = []; return }
         #if canImport(WebKit) && canImport(UIKit)
         try? await Task.sleep(nanoseconds: 250_000_000)
         guard text == query else { return }
-        let found = await GoogleSearchSession.suggestions(for: trimmed)
+        let found = await GoogleSearchSession.suggestions(for: trimmed, engine: engine)
         guard text == query else { return }
-        googleSuggestions = Array(found.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }.prefix(8))
+        suggestions = Array(found.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }.prefix(8))
         #endif
     }
 

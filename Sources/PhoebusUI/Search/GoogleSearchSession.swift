@@ -221,8 +221,9 @@ final class GoogleSearchSession: NSObject, ObservableObject {
         return GoogleSearch.apply(destination, to: &resolved) ? resolved : nil
     }
 
-    static func suggestions(for query: String) async -> [String] {
-        guard let url = GoogleSearch.suggestionsURL(for: query),
+    /// The engine's autocomplete (Google's and Kagi's share a shape).
+    static func suggestions(for query: String, engine: SearchEngine = .google) async -> [String] {
+        guard let url = engine.suggestionsURL(for: query),
               let (data, _) = try? await URLSession.shared.data(from: url) else { return [] }
         return GoogleSearch.parseSuggestions(data)
     }

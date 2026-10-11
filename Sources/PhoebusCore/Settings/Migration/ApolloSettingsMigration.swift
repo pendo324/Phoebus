@@ -93,6 +93,14 @@ public enum ApolloSettingsMigration {
         return restored
     }
 
+    /// Restores the backup's Kagi Session Link (Reborn #1305). A backup
+    /// without one leaves the saved link alone.
+    @discardableResult
+    public static func applyKagiSession(_ payload: ApolloBackupImport.Payload) -> Bool {
+        guard let token = payload.kagiToken else { return false }
+        return KagiSession.setToken(token)
+    }
+
     /// Applies everything recognised in `payload`.
     @discardableResult
     public static func apply(_ payload: ApolloBackupImport.Payload) -> Summary {

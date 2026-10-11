@@ -128,18 +128,22 @@ public enum RedditChatClient {
         return value.isEmpty ? nil : String(value)
     }
 
-    /// Whether a JWT bearer is still valid, with a safety margin. Reads `exp` so a dead
-    /// bearer is never sent instead of being re-minted per request.
-    public static func expiry(ofJWT token: String) -> Date? {
+    /// A JWT's claims, or nil when it isn't one.
+    public static func claims(ofJWT token: String) -> [String: Any]? {
         let parts = token.components(separatedBy: ".")
         guard parts.count >= 2 else { return nil }
         var payload = parts[1]
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
         while payload.count % 4 != 0 { payload.append("=") }
-        guard let data = Data(base64Encoded: payload),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = object["exp"] as? Double else { return nil }
+        guard let data = Data(base64Encoded: payload) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    }
+
+    /// Whether a JWT bearer is still valid, with a safety margin. Reads `exp` so a dead
+    /// bearer is never sent instead of being re-minted per request.
+    public static func expiry(ofJWT token: String) -> Date? {
+        guard let exp = claims(ofJWT: token)?["exp"] as? Double else { return nil }
         return Date(timeIntervalSince1970: exp)
     }
 

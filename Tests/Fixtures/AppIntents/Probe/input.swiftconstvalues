@@ -1,0 +1,995 @@
+[
+  {
+    "typeName": "Probe.ProbePostEntity",
+    "mangledTypeName": "5Probe0A10PostEntityV",
+    "kind": "struct",
+    "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+    "line": 8,
+    "conformances": [
+      "AppIntents.IndexedEntity",
+      "AppIntents.AppEntity",
+      "AppIntents.AppValue",
+      "AppIntents.DisplayRepresentable",
+      "Swift.Identifiable",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents.TypeDisplayRepresentable",
+      "AppIntents._IntentValue",
+      "Swift.Sendable",
+      "AppIntents.InstanceDisplayRepresentable",
+      "Swift.SendableMetatype",
+      "Foundation.CustomLocalizedStringResourceConvertible"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "AppIntents.IndexedEntity",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AppEntity",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AppValue",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.DisplayRepresentable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.Identifiable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.TypeDisplayRepresentable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents._IntentValue",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.InstanceDisplayRepresentable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+        "conformanceDefiningModule": "Probe"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "DefaultQuery",
+        "substitutedTypeName": "Probe.ProbePostQuery",
+        "substitutedMangledTypeName": "5Probe0A9PostQueryV"
+      },
+      {
+        "typeAliasName": "ID",
+        "substitutedTypeName": "Swift.String",
+        "substitutedMangledTypeName": "SS"
+      },
+      {
+        "typeAliasName": "ValueType",
+        "substitutedTypeName": "Probe.ProbePostEntity",
+        "substitutedMangledTypeName": "5Probe0A10PostEntityV"
+      },
+      {
+        "typeAliasName": "UnwrappedType",
+        "substitutedTypeName": "Probe.ProbePostEntity",
+        "substitutedMangledTypeName": "5Probe0A10PostEntityV"
+      },
+      {
+        "typeAliasName": "Specification",
+        "substitutedTypeName": "AppIntents.EmptyResolverSpecification<Probe.ProbePostEntity>",
+        "substitutedMangledTypeName": "10AppIntents26EmptyResolverSpecificationVy5Probe0F10PostEntityVG"
+      }
+    ],
+    "properties": [
+      {
+        "label": "id",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 11,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "_title",
+        "type": "AppIntents.EntityProperty<Swift.String>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 12,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.EntityProperty<Swift.String>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Title"
+            },
+            {
+              "label": "indexingKey",
+              "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+              "valueKind": "KeyPath",
+              "value": {
+                "path": "title",
+                "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+                "components": [
+                  {
+                    "label": "title",
+                    "type": "Swift.Optional<Swift.String>"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "label": "_loadedComments",
+        "type": "AppIntents.EntityProperty<Swift.Array<Swift.String>>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "@__swiftmacro_5Probe0A10PostEntityV14loadedComments16DeferredPropertyfMp_.swift",
+        "line": 1,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.EntityProperty<Swift.Array<Swift.String>>",
+          "arguments": [
+            {
+              "label": "identifier",
+              "type": "Swift.String",
+              "valueKind": "RawLiteral",
+              "value": "loadedComments"
+            },
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Loaded Comments"
+            },
+            {
+              "label": "asyncGetter",
+              "type": "@Sendable (Probe.ProbePostEntity) async throws -> Swift.Array<Swift.String>",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "typeDisplayRepresentation",
+        "type": "AppIntents.TypeDisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 9,
+        "valueKind": "RawLiteral",
+        "value": "Post"
+      },
+      {
+        "label": "defaultQuery",
+        "type": "Probe.ProbePostQuery",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 10,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "Probe.ProbePostQuery",
+          "arguments": []
+        }
+      },
+      {
+        "label": "title",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 12,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.EntityProperty<Swift.String>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Title"
+            },
+            {
+              "label": "indexingKey",
+              "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+              "valueKind": "KeyPath",
+              "value": {
+                "path": "title",
+                "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+                "components": [
+                  {
+                    "label": "title",
+                    "type": "Swift.Optional<Swift.String>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.EntityProperty",
+            "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+            "line": 12,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "Title"
+              },
+              {
+                "label": "indexingKey",
+                "type": "Swift.PartialKeyPath<CoreSpotlight.CSSearchableItemAttributeSet>",
+                "valueKind": "KeyPath",
+                "value": {
+                  "path": "title",
+                  "rootType": "CoreSpotlight.CSSearchableItemAttributeSet",
+                  "components": [
+                    {
+                      "label": "title",
+                      "type": "Swift.Optional<Swift.String>"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$title",
+        "type": "AppIntents.EntityProperty<Swift.String>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 12,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "$loadedComments",
+        "type": "AppIntents.EntityProperty<Swift.Array<Swift.String>>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "@__swiftmacro_5Probe0A10PostEntityV14loadedComments16DeferredPropertyfMp_.swift",
+        "line": 5,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "loadedComments",
+        "type": "Swift.Array<Swift.String>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 14,
+        "valueKind": "Array",
+        "value": []
+      },
+      {
+        "label": "displayRepresentation",
+        "type": "AppIntents.DisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 17,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.DisplayRepresentation",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "InterpolatedStringLiteral",
+              "value": {
+                "segments": [
+                  {
+                    "valueKind": "RawLiteral",
+                    "value": ""
+                  },
+                  {
+                    "valueKind": "Runtime"
+                  },
+                  {
+                    "valueKind": "RawLiteral",
+                    "value": ""
+                  }
+                ]
+              }
+            },
+            {
+              "label": "subtitle",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "image",
+              "type": "Swift.Optional<AppIntents.DisplayRepresentation.Image>",
+              "valueKind": "NilLiteral"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "typeName": "Probe.ProbePostQuery",
+    "mangledTypeName": "5Probe0A9PostQueryV",
+    "kind": "struct",
+    "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+    "line": 20,
+    "conformances": [
+      "AppIntents.EntityStringQuery",
+      "AppIntents.EntityQuery",
+      "AppIntents.DynamicOptionsProvider",
+      "AppIntents.PersistentlyIdentifiable",
+      "Swift.Sendable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.SendableMetatype",
+      "Swift.BitwiseCopyable"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "AppIntents.EntityStringQuery",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.EntityQuery",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.DynamicOptionsProvider",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents._SupportsAppDependencies",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.BitwiseCopyable",
+        "conformanceDefiningModule": "Probe"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "Entity",
+        "substitutedTypeName": "Probe.ProbePostEntity",
+        "substitutedMangledTypeName": "5Probe0A10PostEntityV"
+      },
+      {
+        "typeAliasName": "Result",
+        "substitutedTypeName": "Swift.Array<Probe.ProbePostEntity>",
+        "substitutedMangledTypeName": "Say5Probe0A10PostEntityVG"
+      },
+      {
+        "typeAliasName": "Result",
+        "substitutedTypeName": "Swift.Array<Probe.ProbePostEntity>",
+        "substitutedMangledTypeName": "Say5Probe0A10PostEntityVG"
+      },
+      {
+        "typeAliasName": "DefaultValue",
+        "substitutedTypeName": "Probe.ProbePostEntity",
+        "substitutedMangledTypeName": "5Probe0A10PostEntityV"
+      }
+    ],
+    "properties": []
+  },
+  {
+    "typeName": "Probe.ProbeOpenPostIntent",
+    "mangledTypeName": "5Probe0A14OpenPostIntentV",
+    "kind": "struct",
+    "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+    "line": 27,
+    "conformances": [
+      "AppIntents.AssistantSchemaIntent",
+      "AppIntents.AssistantIntent",
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.SendableMetatype",
+      "AppIntents.OpenIntent",
+      "AppIntents.SystemIntent"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "AppIntents.AssistantSchemaIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AssistantIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AppIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents._SupportsAppDependencies",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.OpenIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.SystemIntent",
+        "conformanceDefiningModule": "Probe"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "5Probe0A14OpenPostIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy5Probe0f8OpenPostC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "Value",
+        "substitutedTypeName": "Probe.ProbePostEntity",
+        "substitutedMangledTypeName": "5Probe0A10PostEntityV"
+      }
+    ],
+    "properties": [
+      {
+        "label": "_target",
+        "type": "AppIntents.IntentParameter<Probe.ProbePostEntity>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 31,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<Probe.ProbePostEntity>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Post"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<Probe.ProbePostEntity>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "Which post?"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 28,
+        "valueKind": "RawLiteral",
+        "value": "Open Post"
+      },
+      {
+        "label": "supportedModes",
+        "type": "AppIntents.IntentModes",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 29,
+        "valueKind": "MemberReference",
+        "value": {
+          "baseType": "AppIntents.IntentModes",
+          "memberLabel": "foreground"
+        }
+      },
+      {
+        "label": "allowedExecutionTargets",
+        "type": "AppIntents.IntentExecutionTargets",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 30,
+        "valueKind": "MemberReference",
+        "value": {
+          "baseType": "AppIntents.IntentExecutionTargets",
+          "memberLabel": "main"
+        }
+      },
+      {
+        "label": "target",
+        "type": "Probe.ProbePostEntity",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 31,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<Probe.ProbePostEntity>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Post"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<Probe.ProbePostEntity>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "Which post?"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+            "line": 31,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "Post"
+              },
+              {
+                "label": "requestValueDialog",
+                "type": "Swift.Optional<AppIntents.IntentDialog>",
+                "valueKind": "RawLiteral",
+                "value": "Which post?"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$target",
+        "type": "AppIntents.IntentParameter<Probe.ProbePostEntity>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 31,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "__appSchemaIntent",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "@__swiftmacro_5Probe0A14OpenPostIntent03AppD0fMe_.swift",
+        "line": 3,
+        "valueKind": "RawLiteral",
+        "value": "system.open"
+      }
+    ]
+  },
+  {
+    "typeName": "Probe.ProbeSearchIntent",
+    "mangledTypeName": "5Probe0A12SearchIntentV",
+    "kind": "struct",
+    "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+    "line": 37,
+    "conformances": [
+      "AppIntents.ShowInAppSearchResultsIntent",
+      "AppIntents.SystemIntent",
+      "AppIntents.AssistantSchemaIntent",
+      "AppIntents.AssistantIntent",
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.SendableMetatype"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "AppIntents.ShowInAppSearchResultsIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.SystemIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AssistantSchemaIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AssistantIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.AppIntent",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "AppIntents._SupportsAppDependencies",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "Probe"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "Probe"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "Criteria",
+        "substitutedTypeName": "AppIntents.StringSearchCriteria",
+        "substitutedMangledTypeName": "10AppIntents20StringSearchCriteriaV"
+      },
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "5Probe0A12SearchIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "5Probe0A12SearchIntentV16parameterSummaryQrvpZQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "_criteria",
+        "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 43,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+          "arguments": [
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 38,
+        "valueKind": "RawLiteral",
+        "value": "Search Probe"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 39,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentDescription",
+          "arguments": [
+            {
+              "label": "",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Searches."
+            },
+            {
+              "label": "categoryName",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "searchKeywords",
+              "type": "Swift.Array<Foundation.LocalizedStringResource>",
+              "valueKind": "Array",
+              "value": [
+                {
+                  "valueKind": "RawLiteral",
+                  "value": "search"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "searchScopes",
+        "type": "Swift.Array<AppIntents.StringSearchScope>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 40,
+        "valueKind": "Array",
+        "value": [
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "general"
+            }
+          }
+        ]
+      },
+      {
+        "label": "supportedModes",
+        "type": "AppIntents.IntentModes",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 41,
+        "valueKind": "MemberReference",
+        "value": {
+          "baseType": "AppIntents.IntentModes",
+          "memberLabel": "foreground"
+        }
+      },
+      {
+        "label": "allowedExecutionTargets",
+        "type": "AppIntents.IntentExecutionTargets",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 42,
+        "valueKind": "MemberReference",
+        "value": {
+          "baseType": "AppIntents.IntentExecutionTargets",
+          "memberLabel": "main"
+        }
+      },
+      {
+        "label": "criteria",
+        "type": "AppIntents.StringSearchCriteria",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 43,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+          "arguments": [
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "@__swiftmacro_5Probe0A12SearchIntentV8criteria03AppC0fMr4_.swift",
+            "line": 1,
+            "arguments": []
+          }
+        ]
+      },
+      {
+        "label": "$criteria",
+        "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 43,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "parameterSummary",
+        "type": "some AppIntents.ParameterSummary",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "Tests/AppIntentsMacroProbe/Probe.swift",
+        "line": 44,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameterSummary<Probe.ProbeSearchIntent>",
+          "arguments": [
+            {
+              "label": "",
+              "type": "AppIntents.ParameterSummaryString<Probe.ProbeSearchIntent>",
+              "valueKind": "InterpolatedStringLiteral",
+              "value": {
+                "segments": [
+                  {
+                    "valueKind": "RawLiteral",
+                    "value": "Search Probe for "
+                  },
+                  {
+                    "valueKind": "KeyPath",
+                    "value": {
+                      "path": "$criteria",
+                      "rootType": "Probe.ProbeSearchIntent",
+                      "components": [
+                        {
+                          "label": "$criteria",
+                          "type": "AppIntents.IntentParameter<AppIntents.StringSearchCriteria>"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "valueKind": "RawLiteral",
+                    "value": ""
+                  }
+                ]
+              }
+            },
+            {
+              "label": "table",
+              "type": "Swift.Optional<Swift.String>",
+              "valueKind": "NilLiteral"
+            }
+          ]
+        }
+      },
+      {
+        "label": "__appSchemaIntent",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "@__swiftmacro_5Probe0A12SearchIntent03AppC0fMe_.swift",
+        "line": 3,
+        "valueKind": "RawLiteral",
+        "value": "system.searchInApp"
+      }
+    ]
+  }
+]

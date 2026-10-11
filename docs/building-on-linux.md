@@ -153,15 +153,29 @@ protocol list in `Config/AppIntentsProtocols.json`, which writes
 `*.swiftconstvalues` under `.build/`. Those hold what the metadata needs,
 including each type's mangled name. The generator supports what Phoebus
 uses and stops with an error on anything else; its header lists exactly
-what that is.
+what that is: intents (including the system `OpenIntent`,
+`ShowInAppSearchResultsIntent` and `SnippetIntent`, and the assistant
+schemas `system.open` and `system.searchInApp`), entities and
+`IndexedEntity`s with their properties (deferred ones too),
+`EntityStringQuery`s, enums and App Shortcuts.
+`scripts/appintents-metadata.py --self-test` also checks that changes to the
+const values it cannot match to Apple's output (another system intent, a
+different query, an unknown property type...) are refused.
 
 `Tests/Fixtures/AppIntents/<target>/` holds each target's const values and
-Apple's output for them, and `scripts/appintents-metadata.py --self-test`
-(run by `scripts/smoke.sh`) checks that the generator matches Apple's
-output field for field; Apple's processor orders enums and some lists
-arbitrarily, so those are compared as sets. When a target's intents
-change, `add-appintents-metadata.sh` warns that the generator has not been
-checked against them.
+Apple's output for them (`Probe/` is a few lines of entity, query,
+`@AppIntent(schema:)` and `@DeferredProperty` code from
+`Tests/AppIntentsMacroProbe`, run through Xcode 27 by the macro probe
+workflow, which proves the generator's support for those), and
+`scripts/appintents-metadata.py --self-test` (run by `scripts/smoke.sh`)
+checks that the generator matches Apple's output field for field; Apple's
+processor orders enums and some lists arbitrarily, so those are compared as
+sets. `Phoebus-Siri/` is the app's intents with entities, queries, the
+assistant schemas and the system intents, as Xcode 27 describes them; its
+const values also have to refuse the changes
+`--self-test` tries. When a target's intents change,
+`add-appintents-metadata.sh` warns that the generator has not been checked
+against them.
 
 Regenerate the fixtures with the App Intents reference workflow
 (`.github/workflows/appintents-reference.yml`; see
@@ -187,6 +201,31 @@ arm64-apple-ios17.0 --source-file-list <sources> --swift-const-vals-list
 <const values> --force`, on copies of `Sources/<target>/*.swift` with the
 const values' source paths pointed at them (the processor stops on a source
 it cannot find).
+
+The processor reads only the const values, not the sources' bodies
+(removing a query's `suggestedEntities()` from the sources changes
+nothing).
+
+Limits to keep in mind when writing intents:
+
+- The compiler records computed properties too. Xcode 26's processor could
+  not read the kind of value it records for one built from a member call
+  (`Cannot initialize Kind from invalid String value MemberFunctionCall`);
+  Xcode 27's has not been tried on one. Keep such helpers out of properties
+  of entity and intent types: a method is not recorded, a stored property
+  built in `init` is.
+- In an entity's `init`, assign its plain stored properties before the
+  `@Property` ones: assigning a `@Property` uses `self`, and the compiler
+  then rejects any stored property still unset.
+- The assistant-schema macros (`@AppIntent(schema:)`, `@DeferredProperty`,
+  `@ComputedProperty`) need `AppIntentsMacros`, a compiler plugin that only
+  ships with Xcode, so Linux builds cannot use them. Write what they expand
+  to by hand instead (the macro probe,
+  `.github/workflows/appintents-macro-probe.yml`, prints the expansion and
+  Apple's metadata for it). The generator maps
+  the `__appSchemaIntent` those expansions declare and the `EntityProperty`
+  that `@DeferredProperty` builds; it supports `system.open` and
+  `system.searchInApp` and stops on any other schema.
 
 ## Liquid Glass icons
 

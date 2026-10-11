@@ -89,7 +89,8 @@ public extension View {
     /// same 32/32 with the rule inset past the tile; a plain row's rule starts at
     /// the row's own leading edge.
     func apolloSearchRow(_ title: String) -> some View {
-        modifier(SettingsSearchRowModifier(title: title))
+        modifier(AccountOverrideRowMarker(fields: SettingRowFields.take()))
+            .modifier(SettingsSearchRowModifier(title: title))
             .apolloPlainSettingsRowInsets()
     }
 
@@ -102,7 +103,8 @@ public extension View {
     /// The last row of a section that has a FOOTER: the real table
     /// draws no rule there.
     func apolloSearchRow(_ title: String, lastBeforeFooter: Bool) -> some View {
-        modifier(SettingsSearchRowModifier(title: title))
+        modifier(AccountOverrideRowMarker(fields: SettingRowFields.take()))
+            .modifier(SettingsSearchRowModifier(title: title))
             .apolloPlainSettingsRowInsets(rule: !lastBeforeFooter)
     }
 

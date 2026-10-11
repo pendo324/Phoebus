@@ -575,6 +575,8 @@ try await checkDeletedCommentsSettings()
 
 try await checkInfoRowSettings()
 
+try await checkSeparateSettingsPerAccount()
+
 try await checkLinkPreviewSettings()
 checkLinkCardLimitVisibility()
 

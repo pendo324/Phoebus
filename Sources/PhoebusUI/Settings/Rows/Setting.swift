@@ -46,8 +46,9 @@ public struct Setting<Value: Equatable>: DynamicProperty {
 
         /// One field, written onto the stored value.
         public subscript<T>(dynamicMember keyPath: WritableKeyPath<Value, T>) -> Binding<T> {
-            Binding(get: { box.value[keyPath: keyPath] },
-                    set: { newValue in box.update { $0[keyPath: keyPath] = newValue } })
+            box.noteRowField(keyPath)
+            return Binding(get: { box.value[keyPath: keyPath] },
+                           set: { newValue in box.update { $0[keyPath: keyPath] = newValue } })
         }
     }
 }
@@ -56,6 +57,11 @@ public struct Setting<Value: Equatable>: DynamicProperty {
 @MainActor
 public final class SettingBox<Value: Equatable>: ObservableObject {
     @Published public private(set) var value: Value
+    private let key: String
+    /// A `SettingsStore`, whose fields can be overridden per account.
+    private let hasFields: Bool
+    /// Key path to stored field name, "" when it has none.
+    private var fieldNames: [AnyKeyPath: String] = [:]
     private let load: () -> Value
     private let write: ((inout Value) -> Void) -> Value
     private var observers: [NSObjectProtocol] = []
@@ -64,7 +70,8 @@ public final class SettingBox<Value: Equatable>: ObservableObject {
 
     static func shared<Source: SettingsSource>(for source: Source) -> SettingBox<Value> where Source.Value == Value {
         if let existing = registry[source.key] as? SettingBox<Value> { return existing }
-        let box = SettingBox(load: { source.load(from: .standard) },
+        let box = SettingBox(key: source.key, hasFields: source is any FieldedSettingsSource,
+                             load: { source.load(from: .standard) },
                              write: { change in source.update(in: .standard, change) })
         registry[source.key] = box
         let key = source.key
@@ -81,7 +88,10 @@ public final class SettingBox<Value: Equatable>: ObservableObject {
         return box
     }
 
-    private init(load: @escaping () -> Value, write: @escaping ((inout Value) -> Void) -> Value) {
+    private init(key: String, hasFields: Bool,
+                 load: @escaping () -> Value, write: @escaping ((inout Value) -> Void) -> Value) {
+        self.key = key
+        self.hasFields = hasFields
         self.load = load
         self.write = write
         self.value = load()
@@ -95,6 +105,47 @@ public final class SettingBox<Value: Equatable>: ObservableObject {
     func update(_ change: (inout Value) -> Void) {
         let saved = write(change)
         if saved != value { value = saved }
+    }
+
+    /// "Separate Settings per Account": hands the field a row's binding
+    /// writes to the row's `apolloSearchRow`, which marks it when the
+    /// account overrides it. Only a flag check while the switch is off.
+    func noteRowField<T>(_ keyPath: WritableKeyPath<Value, T>) {
+        guard hasFields, AccountSettingsScope.overridingAccount(for: key, in: .standard) != nil else { return }
+        let field = fieldNames[keyPath] ?? {
+            let found = AccountSettingsOverrides.field(of: keyPath, in: value) ?? ""
+            fieldNames[keyPath] = found
+            return found
+        }()
+        guard !field.isEmpty else { return }
+        SettingRowFields.note(SettingRowField(key: key, field: field))
+    }
+}
+
+/// One stored field a settings row edits.
+struct SettingRowField: Hashable {
+    let key: String
+    let field: String
+}
+
+/// The fields the bindings built since the last settings row wrote.
+/// A row's controls are built just before its `apolloSearchRow`, in the
+/// same body, so that modifier takes them; anything left over is dropped
+/// at the end of the turn so it can't land on another screen's row.
+@MainActor
+enum SettingRowFields {
+    private static var pending: [SettingRowField] = []
+
+    static func note(_ field: SettingRowField) {
+        if pending.isEmpty {
+            Task { @MainActor in pending.removeAll() }
+        }
+        if !pending.contains(field) { pending.append(field) }
+    }
+
+    static func take() -> [SettingRowField] {
+        defer { pending.removeAll() }
+        return pending
     }
 }
 

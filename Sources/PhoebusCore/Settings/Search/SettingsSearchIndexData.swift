@@ -167,6 +167,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Smart Rotation Lock", breadcrumb: "Settings → Portrait Lock", screen: .portraitLock, rowTitle: "Smart Rotation Lock"),
         SettingsSearchEntry(title: "Portrait Lock Buddy", breadcrumb: "Settings → Portrait Lock", screen: .portraitLock, rowTitle: "Portrait Lock Buddy"),
         SettingsSearchEntry(title: "Universal OAuth Sign-In", breadcrumb: "Settings → Apollo Reborn → Accounts & API Keys", screen: .accountsAPIKeys, rowTitle: "Universal OAuth Sign-In"),
+        SettingsSearchEntry(title: "Separate Settings per Account", breadcrumb: "Settings → Apollo Reborn → Accounts & API Keys", screen: .accountsAPIKeys, rowTitle: "Separate Settings per Account"),
         SettingsSearchEntry(title: "Kagi Session Link", breadcrumb: "Settings → Apollo Reborn → Accounts & API Keys", screen: .accountsAPIKeys, rowTitle: "Kagi Session Link"),
         SettingsSearchEntry(title: "Set Up reddit.com Web Sign-In", breadcrumb: "Settings → Apollo Reborn → Accounts & API Keys", screen: .accountsAPIKeys, rowTitle: "Set Up reddit.com Web Sign-In"),
         SettingsSearchEntry(title: "Can't sign in?", breadcrumb: "Settings → Apollo Reborn → Accounts & API Keys", screen: .accountsAPIKeys, rowTitle: "Can't sign in?"),

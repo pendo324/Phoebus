@@ -298,6 +298,7 @@ flowchart LR
 | Stock screens | UI `GeneralSettingsScreen`, `AppearanceSettingsScreen`, `ThemeSettingsScreen`, `CommentsThemeSettingsScreen`, `GestureSettingsScreen`, `FiltersSettingsScreen`, `MarkReadSettingsScreen`, `NotificationsSettingsScreen`, `SecuritySettingsScreen`, `PortraitLockSettingsScreen`, `ExternalBrowserSettingsScreen`, `AppIconSettingsScreen`, `AboutScreen`, `CacheExplainerScreen`, `AwardGiftingScreen` | Apollo's own settings tree, section for section, real `UserDefaults` keys so backups import | Defaults follow Apollo's registered defaults |
 | Reborn hub | UI `ApolloRebornHubScreen` and every Reborn sub-screen (`InterfaceSettings`, `PostsFeedsSettings`, `CommentsSettings`, `MediaSettings`, `InlineMediaSettings`, `LinkPreviewSettings`, `PollsSettings`, `SubredditsSettings`, `SubredditLayout/Sections`, `ProfileLayout`, `InfoRow`, `Translation`, `ApolloAI`, `AIModelBrowser`, `PictureInPicture`, `DeletedComments`, `PostFilters`, `TagFilters`, `SavedCategories`, `OpenInApp`, `CustomSubredditSource`, `SettingsShortcuts`, `Wallpapers`, `BugReport`, `CrashReports`, `ClearTweakCaches`, `DeleteImgurUploads`, `WidgetSetup`, `BuyUsACoffee`) | Reborn's hub tree | `ApolloSettingsMigration+Reborn` lists which keys import |
 | Themes | UI `ThemeGalleryScreen`, `ThemeGenerateScreen`, `ThemeQRCodeView`, `ThemeQRScanScreen`; Core `ThemeGenerationClient`, `ThemeQRCodePayload`, `ThemeGenerationSettings` | 50-theme gallery, AI generation, QR share/scan | |
+| Per-account settings | Core `AccountSettingsScope`, `AccountSettingsOverrides`; UI `AccountOverrideRowMarker`, `GlobalDefaultsSettingsSheet`, `AccountsAPIKeysScreen` | Phoebus-only "Separate Settings per Account": global defaults plus per-account field overrides (inspired by Continuum) | See "Separate Settings per Account" under Persistence map |
 | Backups | UI `BackupRestoreSettingsScreen`, `AutomaticBackupSettingsScreen`; UI `DocumentImportPicker`; Core `BackupBundle`, `ApolloBackupImport`, `ApolloKeychainImport`, `ApolloSettingsMigration(+Reborn)`, `AutomaticBackup*`, `ZipReader` | JSON backups, real Apollo/Reborn `.apollobackup` import (58 settings), automatic backups | Copy-mode document picker (`.fileImporter` did not work reliably) |
 | Text size / black | `PhoebusUI/Support/*`; Core `AppearanceTextSizeStep`, `PureBlackSettings` | Use System Text Size, Pure/PURER black tiers | |
 | Text sizes and fonts | UI `TextSizesAndFontsScreen`, `TextSizesPreviewMock`, `ScaledFont` (`apolloFont(role:)`, `apolloTextScale()`); Core `TextScaleSettings` (`TextRole`, `TextFontFamily`) | Per-role size on top of Text Size and a family per group (Titles, Content, Interface), injected once at the root as an environment value | Phoebus-only (inspired by Continuum and RedReader); unassigned `apolloFont` sites are `.other` (no size or family); families go on the role's `Font`, never `.fontDesign`, which overrides them; a custom theme's `.fontDesign` wins |
@@ -365,6 +366,69 @@ save (or a direct defaults write, e.g. a restore), so screens never
 disagree and a read in `body` costs nothing. Never hold a `@State` copy
 of a stored setting; `XStore.load()` remains fine in actions,
 initializers and non-view code.
+
+### Separate Settings per Account (optional second layer)
+
+Off by default (`com.pendo324.Phoebus.perAccountSettingsEnabled`,
+Settings → Apollo Reborn → Accounts & API Keys → "Separate Settings per
+Account"). Core: `Settings/Store/AccountSettingsOverrides.swift`
+(`AccountSettingsScope`, `AccountSettingsOverrides`); UI:
+`AccountOverrideRowMarker`, `GlobalDefaultsSettingsSheet`, the section in
+`AccountsAPIKeysScreen`.
+
+- **Two layers.** The global value stays under the store's key. Each
+  account's override is a partial JSON dictionary under
+  `<key>@<username>` holding only the fields that account changed.
+  `SettingsStore.load` lays it over the global JSON field by field and
+  decodes the result (memoised by both layers' bytes), so one toggle can
+  be overridden while every other field follows the globals.
+- **Writes.** `save` (and so `update`) diffs the new value against what
+  the account reads now and writes just the changed top-level fields to
+  its override. A value that isn't a JSON object (a list) has no fields
+  and is written to the global key.
+- **Who owns writes.** `AccountSettingsScope.overridingAccount(for:in:)`:
+  the switch is on, an account is active (`AccountManager` sets it on
+  launch and every switch), Settings isn't open in "Edit Global Defaults"
+  (`setEditingGlobalDefaults`), and the key isn't global-only. Signed
+  out, everything reads and writes the globals.
+- **Global only** (`AccountSettingsOverrides.globalOnlyKeys`): app lock,
+  portrait lock, custom API keys, Apollo AI, theme generation and
+  translation (they hold API keys), notification settings and backend
+  (device push registration), custom subreddit sources, content filters,
+  Post Rules and comment filters (lists), mature-media prefs, blocked
+  users, Recently Visited and search history (already per account), user
+  tags, saved categories, last viewed feed, generated themes, the switch
+  itself. Every `DefaultsKey` and `CustomSettingsSource` is global
+  (automatic backups, app icon, settings shortcuts, chat filters, followed
+  order). The selected theme is a plain key that opts in through
+  `AccountSettingsScope.readKey`/`writeKey`.
+- **Switching** (account, switch, editing layer) runs `refreshAll`: each
+  store created so far re-reads, re-runs its `mirror` (caches such as the
+  gesture settings) and posts `.apolloSettingsChanged` and its own
+  `didChange`, so every `@Setting` refreshes; the theme re-applies only
+  when the effective theme changed (re-applying resets bar appearance).
+- **Off** costs one `bool(forKey:)` per read and write, and stores and
+  writes exactly what a single layer does.
+- **Backups** need nothing extra: override keys share the store's
+  `com.pendo324.Phoebus.`/`Phoebus.` prefix, so `SettingsDomainSnapshot`
+  captures and restores the globals, the switch and every account's
+  overrides. Removing an account keeps its overrides for when it signs
+  back in.
+- **Row marker.** `$setting.field` notes the field it writes (found by
+  changing the value at the key path and seeing which field encodes
+  differently: Bool, Int, Double, String and CaseIterable enums) only when
+  the switch is on; the next `apolloSearchRow` takes it, draws a dot when
+  the account overrides it, and offers "Use Global Default" on long press.
+  Rows not ending in `apolloSearchRow`, rows whose bindings are built in a
+  child view's body, optional or list fields, and the theme picker get no
+  marker; "Reset This Account's Overrides" still clears them.
+- "Edit Global Defaults" switches the shared `@Setting` copies to the
+  global layer while its sheet is open, so the app behind it shows the
+  globals until it closes.
+  The sheet clears `\.settingsNavigation` so its `SettingsLink`s push
+  inside the sheet rather than onto the Settings tab's path, and the
+  section hosts its sheet and dialogs on the list, not the `Section`
+  (whose rows change while the sheet is up).
 
 Keys are this app's own unless noted; real Apollo keys are only read
 during backup import.

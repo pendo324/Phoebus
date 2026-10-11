@@ -402,6 +402,16 @@ Apollo or Reborn, add an entry here.
   Bark can only badge its own icon, so without APNs the app icon's badge
   is kept by the app itself, while open and from background refreshes iOS
   schedules, and can lag behind new messages.
+- **Accounts can keep their own settings.** Not in Apollo or Reborn, which
+  share one set of settings across accounts; inspired by Continuum's
+  per-account settings. "Separate Settings per Account" (off by default,
+  Accounts & API Keys) keeps global defaults and lets each account
+  override single settings: changes made while signed in to an account
+  apply to it only, overridden rows show a dot with "Use Global Default"
+  on long press, and "Edit Global Defaults", "Copy Overrides from…" and
+  "Reset This Account's Overrides" manage the layers. An account without its
+  own value follows the global one. API keys, passcode,
+  notifications, backups and filters stay global.
 - **Remind Me uses local notifications.** Reminders are scheduled on the
   device through the system notification center, with no server-side
   reminder service, so they also work offline.

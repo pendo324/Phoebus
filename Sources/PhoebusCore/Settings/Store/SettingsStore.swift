@@ -25,6 +25,8 @@ public struct SettingsStore<Value: Codable>: Sendable {
     /// Runs after a value is decoded or saved (write-through mirrors).
     private let mirror: (@Sendable (Value, UserDefaults) -> Void)?
     private let memo = DecodeMemo()
+    /// The last global-plus-override merge, keyed by both layers' bytes.
+    private let overrideMemo = DecodeMemo()
 
     public init(key: String, didChange: Notification.Name? = nil,
                 migrate: (@Sendable (inout Value, UserDefaults) -> Bool)? = nil,
@@ -35,22 +37,33 @@ public struct SettingsStore<Value: Codable>: Sendable {
         self.migrate = migrate
         self.mirror = mirror
         self.fallback = fallback
+        let store = self
+        AccountSettingsScope.register(key: key) { defaults in
+            store.mirror?(store.load(from: defaults), defaults)
+            store.postChange()
+        }
     }
 
-    /// The stored value, or the default when missing or undecodable.
+    /// The stored value, or the default when missing or undecodable. With
+    /// "Separate Settings per Account" on, the active account's
+    /// overridden fields are laid over it.
     public func load(from defaults: UserDefaults = .standard) -> Value {
-        loadIfPresent(from: defaults) ?? fallback()
+        if let account = AccountSettingsScope.overridingAccount(for: key, in: defaults),
+           let override = defaults.data(forKey: AccountSettingsOverrides.overrideKey(key, account: account)) {
+            return merged(override, in: defaults)
+        }
+        return loadIfPresent(from: defaults) ?? fallback()
     }
 
     public var defaultValue: Value { fallback() }
 
-    /// The stored value only if one decodes; nil otherwise.
+    /// The stored global value only if one decodes; nil otherwise.
     public func loadIfPresent(from defaults: UserDefaults = .standard) -> Value? {
         guard let data = defaults.data(forKey: key) else { return nil }
         if let hit = memo.value(for: data) as? Value { return hit }
         guard var value = try? JSONDecoder().decode(Value.self, from: data) else { return nil }
         if let migrate, migrate(&value, defaults) {
-            save(value, to: defaults)
+            saveGlobal(value, to: defaults)
             return value
         }
         memo.store(value, for: data)
@@ -58,13 +71,43 @@ public struct SettingsStore<Value: Codable>: Sendable {
         return value
     }
 
+    private func merged(_ override: Data, in defaults: UserDefaults) -> Value {
+        let global = loadIfPresent(from: defaults) ?? fallback()
+        let globalData = defaults.data(forKey: key) ?? Data()
+        var memoKey = withUnsafeBytes(of: globalData.count.littleEndian) { Data($0) }
+        memoKey.append(globalData)
+        memoKey.append(override)
+        if let hit = overrideMemo.value(for: memoKey) as? Value { return hit }
+        guard let value = AccountSettingsOverrides.merge(override, over: global) else { return global }
+        overrideMemo.store(value, for: memoKey)
+        mirror?(value, defaults)
+        return value
+    }
+
     /// Replaces the whole stored value. For restores and imports; a
-    /// screen changing a setting uses `update`.
+    /// screen changing a setting uses `update`. With "Separate Settings
+    /// per Account" on, only the fields that differ from what the
+    /// account sees now are written, to its override.
     public func save(_ value: Value, to defaults: UserDefaults = .standard) {
+        if let account = AccountSettingsScope.overridingAccount(for: key, in: defaults),
+           AccountSettingsOverrides.record(from: load(from: defaults), to: value, key: key,
+                                           account: account, in: defaults) {
+            mirror?(load(from: defaults), defaults)
+            postChange()
+            return
+        }
+        saveGlobal(value, to: defaults)
+    }
+
+    private func saveGlobal(_ value: Value, to defaults: UserDefaults) {
         guard let data = try? JSONEncoder().encode(value) else { return }
         defaults.set(data, forKey: key)
         memo.store(value, for: data)
         mirror?(value, defaults)
+        postChange()
+    }
+
+    private func postChange() {
         NotificationCenter.default.post(name: .apolloSettingsChanged, object: key)
         if let didChange { NotificationCenter.default.post(name: didChange, object: nil) }
     }
@@ -88,6 +131,12 @@ public protocol SettingsSource: Sendable {
 }
 
 extension SettingsStore: SettingsSource {}
+
+/// A source stored as a model with named fields, which an account can
+/// override one at a time (only `SettingsStore`).
+public protocol FieldedSettingsSource {}
+
+extension SettingsStore: FieldedSettingsSource {}
 
 public extension SettingsSource {
     /// Read-modify-write of the stored value.

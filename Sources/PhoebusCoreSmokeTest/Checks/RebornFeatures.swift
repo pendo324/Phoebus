@@ -793,6 +793,13 @@ import PhoebusCore
     }
     check("an absent preference means PINNED, not unpinned",
           SettingsPreviewScreen.allCases.allSatisfy { SettingsPreviewPinStore.isPinned($0) })
+    check("preview pinning needs 200pt of list room under the card",
+          SettingsPreviewPinStore.pinningAvailable(containerHeight: 600, cardHeight: 392)
+          && !SettingsPreviewPinStore.pinningAvailable(containerHeight: 600, cardHeight: 393))
+    check("pinning is decided by the pinned card's height once measured, so moving it can't flip the answer",
+          SettingsPreviewPinStore.decidingCardHeight(pinned: 300, inList: 280) == 300
+          && SettingsPreviewPinStore.decidingCardHeight(pinned: nil, inList: 280) == 280
+          && SettingsPreviewPinStore.decidingCardHeight(pinned: nil, inList: nil) == 0)
 
     SettingsPreviewPinStore.setPinned(false, for: .inlineMedia)
     check("an explicit unpin is honoured",

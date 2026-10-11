@@ -41,6 +41,21 @@ public enum SettingsPreviewPinStore {
 
     /// Caption shown briefly beside the glyph after a tap;
     /// `pinningAvailable` false overrides to "Needs room".
+    /// Pinning needs 200pt of list room under the card, or the list
+    /// beneath a tall card could not scroll.
+    public static func pinningAvailable(containerHeight: Double, cardHeight: Double) -> Bool {
+        containerHeight - (cardHeight + 8) >= 200
+    }
+
+    /// The card height that decides pinning: the card's height where it
+    /// would be pinned, once it has been measured there, else its height in
+    /// the list. The card measures a little differently in the two places,
+    /// so deciding from whichever is on screen let pinning undo itself near
+    /// the threshold, and the screen laid out forever.
+    public static func decidingCardHeight(pinned: Double?, inList: Double?) -> Double {
+        pinned ?? inList ?? 0
+    }
+
     public static func caption(pinned: Bool, pinningAvailable: Bool = true) -> String {
         guard pinningAvailable else { return "Needs room" }
         return pinned ? "Pinned" : "Unpinned"

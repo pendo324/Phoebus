@@ -613,6 +613,22 @@ public actor RedditRepository {
         return try await postChecked("/api/submit", parameters)
     }
 
+    private static let crosspostableCache = CrosspostableSubredditsCache()
+
+    /// Subreddits Reddit suggests as crosspost destinations for a post from
+    /// `sourceSubreddit`, cached per account for the launch. Requires a
+    /// signed-in account; any failure returns an empty list and isn't cached.
+    public func fetchCrosspostableSubreddits(sourceSubreddit: String) async -> [String] {
+        let account = FavoriteSubredditsAccountContext.currentUsernameProvider()?.lowercased() ?? ""
+        let key = "\(account)|\(sourceSubreddit.lowercased())"
+        if let cached = await Self.crosspostableCache.list(for: key) { return cached }
+        guard let data = try? await client.get(path: "/api/crosspostable_subreddits",
+                                               parameters: ["sr_name": sourceSubreddit]) else { return [] }
+        let names = CrosspostSuggestions.parseCrosspostable(data)
+        if !names.isEmpty { await Self.crosspostableCache.store(names, for: key) }
+        return names
+    }
+
     public func searchSubreddits(query: String, limit: Int = 25) async throws -> Data {
         try await client.get(path: "/subreddits/search", parameters: [
             "q": query,

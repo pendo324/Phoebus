@@ -119,6 +119,7 @@ public actor RedditAPIClient {
             "/api/info",
             "/api/multi/mine",
             "/api/user_data_by_account_ids",
+            "/api/crosspostable_subreddits",
         ]
         let isUserTrophiesPath = effectivePath.hasPrefix("/api/v1/user/") && effectivePath.hasSuffix("/trophies")
         let isMeTrophiesPath = effectivePath == "/api/v1/me/trophies"

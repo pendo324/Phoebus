@@ -129,6 +129,7 @@ extension PostRow {
                         }
                         Text(post.author)
                             .font(.caption)
+                            .authorHighlight(postAuthorHighlight)
                             .foregroundStyle(.secondary)
                             .contentShape(Rectangle())
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
@@ -225,6 +226,7 @@ extension PostRow {
                 AvatarView(username: post.author, repository: repository, size: 20)
             }
             Text(post.author)
+                .authorHighlight(postAuthorHighlight)
                 .lineLimit(1)
                 .truncationMode(.tail)
             if post.authorCakeday == true {

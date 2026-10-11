@@ -134,6 +134,14 @@ struct PostRow: View {
     var showsVotingButtons: Bool { appearanceSettings.showVotingButtons }
     var largePostsShowVotingButtons: Bool { appearanceSettings.largePostsShowVotingButtons }
 
+    /// Recolours the author after a Follow/Unfollow.
+    @ObservedObject private var followedRevision = FollowedUsernamesRevision.shared
+
+    /// Your own name or a followed user's, tinted (`AuthorHighlight`).
+    var postAuthorHighlight: AuthorHighlight {
+        AuthorHighlight.current(author: post.author, distinguished: post.distinguished, settings: generalSettings)
+    }
+
     /// Reborn "Bold Post Titles" (Appearance > Posts). Same once-per-row-render
     /// pattern as the two above.
     @Setting(AppearanceSettings.self) var appearanceSettings

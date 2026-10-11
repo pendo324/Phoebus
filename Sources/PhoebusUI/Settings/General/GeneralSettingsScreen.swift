@@ -217,6 +217,12 @@ public struct GeneralSettingsScreen: View {
             Toggle("Show Edited Marker", isOn: $settings.showEditedMarker)
                 .accessibilityIdentifier("general.showEditedMarker")
                 .apolloSearchRow("Show Edited Marker")
+            Toggle("Highlight My Username", isOn: $settings.highlightOwnUsername)
+                .accessibilityIdentifier("settings.general.highlightOwnUsername")
+                .apolloSearchRow("Highlight My Username")
+            Toggle("Highlight Followed Users", isOn: $settings.highlightFollowedUsers)
+                .accessibilityIdentifier("settings.general.highlightFollowedUsers")
+                .apolloSearchRow("Highlight Followed Users")
             ApolloSettingsPicker("Blocked Users", selection: $settings.hideBlockedUserComments,
                                  options: [false, true],
                                  display: { $0 ? "Hide" : "Collapse" })

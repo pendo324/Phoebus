@@ -45,6 +45,8 @@ struct CommentRow: View {
     /// `@State` (see `VoteStateStore`): the swipe gesture is handled by the
     /// parent list, so per-row state cannot reflect it.
     @ObservedObject private var voteStore = VoteStateStore.shared
+    /// Recolours the author after a Follow/Unfollow (`AuthorHighlight`).
+    @ObservedObject private var followedRevision = FollowedUsernamesRevision.shared
     /// Row colours: #D0D1D6 username/body, #61626A score and age (see
     /// `Color.apolloPrimaryText`).
     @Environment(\.colorScheme) private var colorScheme
@@ -308,8 +310,13 @@ struct CommentRow: View {
                         // 15pt medium in #D0D1D6: Apollo's name strokes are lighter than
                         // semibold.
                         .apolloFont(size: 15, weight: .medium)
-                        // Apollo's moderator green (see `ApolloPalette`).
-                        .foregroundStyle(isDistinguished ? Color(hex: ApolloPalette.moderatorGreenHex) : (node.comment.distinguished == "admin" ? Color.red : Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors)))
+                        // Apollo's moderator green (see `ApolloPalette`), then your own
+                        // and followed users' highlight.
+                        .foregroundStyle(AuthorHighlight.current(
+                            author: displayAuthor,
+                            distinguished: isDistinguished ? "moderator" : node.comment.distinguished == "admin" ? "admin" : nil,
+                            settings: general
+                        ).color(plain: Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors)))
                         // Tapping the username opens the profile. A long username shrinks to
                         // one line with a tail ellipsis instead of pushing the score, badges
                         // and age off the row (Reborn #1162).

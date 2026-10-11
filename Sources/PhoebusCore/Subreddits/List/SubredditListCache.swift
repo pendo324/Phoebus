@@ -59,6 +59,8 @@ public enum SubredditListCache {
         // snapshot that can never be matched on read, so skip it
         // rather than leaving a file that is dead on arrival.
         guard !snapshot.accountUsername.isEmpty else { return }
+        FollowedUsernames.update(account: snapshot.accountUsername,
+                                 subredditNames: snapshot.subscriptions.map(\.displayName))
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
@@ -66,6 +68,7 @@ public enum SubredditListCache {
     /// Drops the cache. Called on sign-out, since the next user must
     /// not inherit this one's list.
     public static func clear() {
+        FollowedUsernames.invalidate()
         try? FileManager.default.removeItem(at: fileURL)
     }
 }

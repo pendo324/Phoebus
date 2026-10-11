@@ -351,6 +351,134 @@ import PhoebusCore
           GeneralSettingsStore.storage.load(from: target).commentAgeMode == .relativeToParent)
 }
 
+// --- Highlight own and followed users (Phoebus-only, inspired by RedReader and Continuum) ---
+/// A stand-in friends list for `FollowedUsernames.friendsFetcher`, keyed by
+/// the account active when the fetch finishes.
+private final class SmokeFriendsList: @unchecked Sendable {
+    var byAccount: [String: [String]] = [:]
+    var failing = false
+    var delayNanoseconds: UInt64 = 0
+
+    func fetch() async -> [String]? {
+        if delayNanoseconds > 0 { try? await Task.sleep(nanoseconds: delayNanoseconds) }
+        if failing { return nil }
+        return byAccount[FavoriteSubredditsAccountContext.currentUsernameProvider() ?? ""] ?? []
+    }
+}
+
+@MainActor func checkAuthorHighlight() async throws {
+    let followed: Set<String> = ["alice"]
+    func resolve(_ author: String, _ distinguished: String? = nil, own: Bool = true, follow: Bool = true) -> AuthorHighlight {
+        AuthorHighlight.resolve(author: author, distinguished: distinguished, ownUsername: "Me",
+                                followedUsernames: followed, highlightOwn: own, highlightFollowed: follow)
+    }
+    check("your own name highlights, case-insensitively", resolve("me") == .own)
+    check("a followed user highlights, case-insensitively", resolve("Alice") == .followed)
+    check("anyone else is plain", resolve("bob") == .none)
+    check("moderator distinguish wins over your own name", resolve("me", "moderator") == .moderator)
+    check("admin distinguish wins over a followed user", resolve("alice", "admin") == .admin)
+    check("own highlight off leaves your name plain", resolve("me", own: false) == .none)
+    check("followed highlight off leaves followed users plain", resolve("alice", follow: false) == .none)
+    check("[deleted] never highlights", resolve("[deleted]") == .none)
+    check("your own name wins over following yourself",
+          AuthorHighlight.resolve(author: "me", distinguished: nil, ownUsername: "me", followedUsernames: ["me"],
+                                  highlightOwn: true, highlightFollowed: true) == .own)
+    check("signed out, nothing is your own",
+          AuthorHighlight.resolve(author: "me", distinguished: nil, ownUsername: nil, followedUsernames: [],
+                                  highlightOwn: true, highlightFollowed: true) == .none)
+    check("followed users come from u_ subscriptions",
+          FollowedUsernames.from(subredditNames: ["u_Alice", "pics", "U_bob", "u_"]) == ["alice", "bob"])
+    check("own highlight defaults on, followed off",
+          GeneralSettings.default.highlightOwnUsername && !GeneralSettings.default.highlightFollowedUsers)
+    check("a GeneralSettings blob without the highlight keys decodes their defaults",
+          (try? JSONDecoder().decode(GeneralSettings.self, from: Data(#"{"defaultCommentSort":"top"}"#.utf8)))
+              .map { $0.highlightOwnUsername && !$0.highlightFollowedUsers } == true)
+
+    // The followed set is the u_ subscriptions plus the friends list, each
+    // refreshed without dropping the other, per account.
+    let savedProvider = FavoriteSubredditsAccountContext.currentUsernameProvider
+    let savedFetcher = FollowedUsernames.friendsFetcher
+    let friends = SmokeFriendsList()
+    FollowedUsernames.friendsFetcher = { await friends.fetch() }
+    FollowedUsernames.invalidate()
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokehighlight" }
+    func saveSubscriptions(_ names: [String]) {
+        SubredditListCache.save(.init(subscriptions: names.compactMap(RedditSubreddit.named),
+                                      multireddits: [], moderated: [], accountUsername: "smokehighlight"))
+    }
+    friends.byAccount = ["smokehighlight": ["Frank"]]
+    saveSubscriptions(["u_Carol", "swift"])
+    await FollowedUsernames.refreshFriends()
+    check("the followed set is u_ subscriptions plus friends", FollowedUsernames.current() == ["carol", "frank"])
+    friends.failing = true
+    saveSubscriptions(["u_Gina"])
+    await FollowedUsernames.refreshFriends()
+    check("a subscriptions refresh replaces u_ names and keeps friends", FollowedUsernames.current() == ["gina", "frank"])
+    friends.failing = false
+    friends.byAccount = ["smokehighlight": ["Hank"]]
+    await FollowedUsernames.refreshFriends()
+    check("a friends refresh replaces friends and keeps u_ names", FollowedUsernames.current() == ["gina", "hank"])
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "someoneelse" }
+    _ = FollowedUsernames.current()
+    await FollowedUsernames.refreshFriends()
+    check("another account does not inherit the followed set", FollowedUsernames.current().isEmpty)
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokehighlight" }
+    _ = FollowedUsernames.current()
+    await FollowedUsernames.refreshFriends()
+    check("switching back reloads both parts for that account", FollowedUsernames.current() == ["gina", "hank"])
+    var highlightSettings = GeneralSettings.default
+    highlightSettings.highlightFollowedUsers = true
+    check("current() resolves own and followed for the active account",
+          AuthorHighlight.current(author: "SmokeHighlight", distinguished: nil, settings: highlightSettings) == .own
+              && AuthorHighlight.current(author: "hank", distinguished: nil, settings: highlightSettings) == .followed)
+
+    nonisolated(unsafe) var changePosts = 0
+    let changeObserver = NotificationCenter.default.addObserver(
+        forName: FollowedUsernames.didChangeNotification, object: nil, queue: nil) { _ in changePosts += 1 }
+    FollowedUsernames.setFollowed("Ivy", followed: true)
+    check("following someone adds them to the set at once", FollowedUsernames.current() == ["gina", "hank", "ivy"])
+    FollowedUsernames.setFollowed("HANK", followed: false)
+    check("unfollowing someone removes them at once, case-insensitively", FollowedUsernames.current() == ["gina", "ivy"])
+    check("follow and unfollow each announce the change", changePosts == 2)
+    NotificationCenter.default.removeObserver(changeObserver)
+
+    friends.delayNanoseconds = 50_000_000
+    saveSubscriptions(["u_Gina"])
+    FollowedUsernames.setFollowed("Jill", followed: true)
+    FollowedUsernames.setFollowed("Hank", followed: false)
+    await FollowedUsernames.refreshFriends()
+    friends.delayNanoseconds = 0
+    check("follows made during a friends fetch survive its older result", FollowedUsernames.current() == ["gina", "jill"])
+
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { nil }
+    FollowedUsernames.setFollowed("erin", followed: true)
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokehighlight" }
+    check("signed out, a follow changes nothing", !FollowedUsernames.current().contains("erin"))
+    friends.byAccount = [:]
+    SubredditListCache.clear()
+    check("clearing the list clears the followed set", FollowedUsernames.current().isEmpty)
+    await FollowedUsernames.refreshFriends()
+    FollowedUsernames.friendsFetcher = savedFetcher
+    FavoriteSubredditsAccountContext.currentUsernameProvider = savedProvider
+    FollowedUsernames.invalidate()
+
+    // Settings backups carry the whole GeneralSettings blob.
+    let source = UserDefaults(suiteName: "AuthorHighlightBackupSource")!
+    source.removePersistentDomain(forName: "AuthorHighlightBackupSource")
+    var backed = GeneralSettings.default
+    backed.highlightOwnUsername = false
+    backed.highlightFollowedUsers = true
+    GeneralSettingsStore.storage.save(backed, to: source)
+    let snapshot = try! JSONDecoder().decode([String: JSONValue].self,
+                                             from: try! JSONEncoder().encode(SettingsDomainSnapshot.capture(from: source)))
+    let target = UserDefaults(suiteName: "AuthorHighlightBackupTarget")!
+    target.removePersistentDomain(forName: "AuthorHighlightBackupTarget")
+    SettingsDomainSnapshot.restore(snapshot, into: target)
+    let restored = GeneralSettingsStore.storage.load(from: target)
+    check("highlight settings survive a settings backup round trip",
+          !restored.highlightOwnUsername && restored.highlightFollowedUsers)
+}
+
 // --- Auto-collapse pinned comments (Apollo-Reborn feature) ---
 @MainActor func checkAutoCollapsePinnedCommentsApolloReborn() async throws {
     let pinnedCommentJSON = """

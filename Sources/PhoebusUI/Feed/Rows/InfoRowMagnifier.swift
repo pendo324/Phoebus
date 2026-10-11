@@ -388,12 +388,17 @@ enum InfoRowAgeDetail {
 /// score and rounded percentage, shown only at 60% or above, where the
 /// estimate holds.
 enum InfoRowPercentDetail {
-    static func lines(score: Int, ratio: Double, condensed: Bool) -> (title: String, message: String?) {
+    /// `showsEstimate` is off under "Hide Post Scores", whose totals would give
+    /// the score away.
+    static func lines(score: Int, ratio: Double, condensed: Bool, showsEstimate: Bool = true) -> (title: String, message: String?) {
         let percent = ratio * 100
         let rounded = Int(percent.rounded())
         let percentText = rounded.formatted()
         let ratioLine = "~\(rounded):\(100 - rounded) upvote to downvote ratio"
         let title = "\(percentText)% Upvoted"
+        guard showsEstimate else {
+            return (title, condensed ? ratioLine : "\(percentText)% of voters upvoted this post.\n\n\(ratioLine)")
+        }
         let p = Double(rounded) / 100
         guard rounded >= 60, rounded <= 100, score > 0, 2 * p - 1 > 0 else {
             if condensed { return (title, ratioLine) }

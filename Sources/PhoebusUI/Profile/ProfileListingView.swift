@@ -462,6 +462,7 @@ struct ProfileCommentRow: View {
     var onSubredditTap: (String) -> Void = { _ in }
 
     @Setting(GeneralSettings.self) private var general
+    @Setting(VoteCountSettings.self) private var voteCounts
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var themeColors
 
@@ -478,8 +479,10 @@ struct ProfileCommentRow: View {
                 HStack(spacing: 5) {
                     StockIcon("posts-points")
                         .rotationEffect(.degrees(comment.likes == false ? 180 : 0))
-                    Text(comment.scoreHidden ? "\u{2014}" : comment.score.apolloAbbreviated)
-                        .apolloFont(size: 13)
+                    if let score = voteCounts.commentScoreText(comment.score, scoreHidden: comment.scoreHidden) {
+                        Text(score)
+                            .apolloFont(size: 13)
+                    }
                 }
                 .foregroundStyle(comment.likes == true ? Color.orange
                                  : (comment.likes == false ? Color.blue : Color.apolloIdleVoteArrow))

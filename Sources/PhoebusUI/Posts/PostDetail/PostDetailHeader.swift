@@ -58,6 +58,7 @@ struct PostDetailHeader: View {
     private var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
     @State private var showingVoteBreakdown = false
     @Setting(InfoRowSettings.self) private var infoRow
+    @Setting(VoteCountSettings.self) private var voteCounts
     @State private var selfTextCollapsed = false
     @State private var isEditing = false
     @State private var editedText: String
@@ -310,8 +311,11 @@ struct PostDetailHeader: View {
             HStack(spacing: 9) {
                 HStack(spacing: 5) {
                     StockIcon("posts-points")
-                    // Abbreviated like the feed: "10.9K".
-                    Text(displayScore.apolloAbbreviated)
+                    // Abbreviated like the feed: "10.9K". "Hide Post Scores" keeps
+                    // only the arrow; the "% Upvoted" stays, as it doesn't give the score.
+                    if let score = voteCounts.postScoreText(displayScore) {
+                        Text(score)
+                    }
                 }
                 // Info Row Popup / Overlay: the % and the age explain themselves on a tap, as in
                 // Reborn.
@@ -321,7 +325,8 @@ struct PostDetailHeader: View {
                         Text("\(Int((ratio * 100).rounded()))%")
                     }
                     .modifier(InfoRowDetailTap(popup: infoRow.popupMode, overlay: infoRow.overlayMode, edge: .leading) { condensed in
-                        InfoRowPercentDetail.lines(score: displayScore, ratio: ratio, condensed: condensed)
+                        InfoRowPercentDetail.lines(score: displayScore, ratio: ratio, condensed: condensed,
+                                                   showsEstimate: voteCounts.showsPostVoteEstimate)
                     })
                 }
                 HStack(spacing: 5) {
@@ -376,7 +381,8 @@ struct PostDetailHeader: View {
                 // Long-press the score for an approximate vote breakdown.
                 .onLongPressGesture { showingVoteBreakdown = true }
                 .popover(isPresented: $showingVoteBreakdown) {
-                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio)
+                    VoteBreakdownView(score: post.score, upvoteRatio: post.upvoteRatio,
+                                      showsEstimate: voteCounts.showsPostVoteEstimate)
                         .padding()
                         .presentationCompactAdaptation(.popover)
                 }

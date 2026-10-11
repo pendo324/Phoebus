@@ -13,6 +13,7 @@ import UIKit
 /// button is pinned near the bottom.
 public struct ShareAsImageScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
+    @Setting(VoteCountSettings.self) private var voteCounts
     let post: RedditPost
     /// The comment being shared, when this is a comment share.
     let comment: RedditComment?
@@ -367,6 +368,7 @@ public struct ShareAsImageScreen: View {
         options.includeWatermark = showWatermark
         options.parentComments = parentComments
         options.includeCommentImages = includeCommentImages
+        options.voteCounts = voteCounts
         return options
     }
 

@@ -9,6 +9,7 @@ public struct AllSubredditCommentsScreen: View {
 
     @State private var comments: [RedditComment] = []
     @State private var errorMessage: String?
+    @Setting(VoteCountSettings.self) private var voteCounts
 
     public init(subreddit: String, repository: RedditRepository) {
         self.subreddit = subreddit
@@ -24,7 +25,9 @@ public struct AllSubredditCommentsScreen: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(comment.author).font(.caption.bold())
-                        Text("\(comment.score) pts").font(.caption).foregroundStyle(.secondary)
+                        if !voteCounts.hideCommentScores {
+                            Text("\(comment.score) pts").font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     Text(RedditMarkdown.render(comment.body)).font(.body).lineLimit(4)
                 }

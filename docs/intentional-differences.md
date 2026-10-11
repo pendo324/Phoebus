@@ -46,6 +46,17 @@ Apollo or Reborn, add an entry here.
   submit still wins. If the rules can't be fetched the composer behaves as
   before. Neither Apollo nor Reborn has this.
 
+## Posts and comments
+
+- **Link posts have Other Discussions.** A link post's ••• menu in the
+  comments view (and a crosspost's) has "Other Discussions", listing the
+  other posts of the same link from Reddit's `/duplicates` endpoint as
+  feed rows, each opening its thread. When Reddit reports any, a
+  "N Other Discussions" row also sits under the post header; Settings >
+  General > Comments > Show Other Discussions hides it. Neither Apollo nor
+  Reborn has this; it is inspired by Continuum's Other Discussions. A
+  Phoebus addition.
+
 ## Media and link previews
 
 - **Link previews are one unified card pipeline.** Reborn's rich

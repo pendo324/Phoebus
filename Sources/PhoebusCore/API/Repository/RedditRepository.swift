@@ -149,6 +149,18 @@ public actor RedditRepository {
         return try JSONDecoder.reddit.decode(RedditPost.self, from: postData)
     }
 
+    /// Other Discussions: other posts of the same link (`/duplicates/<id>`),
+    /// a page at a time.
+    public func fetchOtherDiscussions(postID: String, after: String? = nil, limit: Int = 25) async throws -> OtherDiscussionsPage {
+        var parameters = ["limit": String(limit)]
+        if let after { parameters["after"] = after }
+        let data = try await client.get(path: "/duplicates/\(postID)", parameters: parameters)
+        guard let page = try OtherDiscussions.page(from: data, excluding: postID) else {
+            throw RedditRepositoryError.postNotFound
+        }
+        return page
+    }
+
     /// A subreddit-wide feed of the most recent comments across all
     /// posts (distinct from a single post's comment tree), matching
     /// Reddit's own `/r/<sub>/comments` listing.

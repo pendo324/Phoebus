@@ -1286,3 +1286,74 @@ private final class SmokeFriendsList: @unchecked Sendable {
     let encodedTheme = try! JSONEncoder().encode(Theme.chumbusLight)
     check("Theme round-trips through Codable", try! JSONDecoder().decode(Theme.self, from: encodedTheme) == Theme.chumbusLight)
 }
+
+// --- Other Discussions: `/duplicates/<id>` parsing, the row's count from
+// the comments response, and its setting in backups ---
+@MainActor func checkOtherDiscussions() async throws {
+    // Reddit's `[postListing, duplicatesListing]` shape, filled with
+    // archived copies of real posts of one link (authors anonymised).
+    let duplicates = fixture("reddit-duplicates.json")
+    check("the duplicates fixture is present", !duplicates.isEmpty)
+    let page = try? OtherDiscussions.page(from: duplicates, excluding: "1wko4v6")
+    check("a duplicates response yields the second listing's posts",
+          page?.posts.map(\.id) == ["1wmp1pl", "1wmp0wj", "1wm5500", "1wvtfnf"])
+    check("...with each post's subreddit and score",
+          page?.posts.first?.subreddit == "Anthropic" && page?.posts.first?.score == 178)
+    check("...and the cursor for the next page", page?.after == "t3_1wvtfnf")
+    check("a crosspost among them keeps its original",
+          page?.posts.last?.crosspostParent?.id == "1wko4v6")
+    let single = try OtherDiscussions.page(from: Data(#"[{"kind":"Listing","data":{"children":[]}}]"#.utf8), excluding: "x")
+    check("a single listing is not a duplicates response", single == nil)
+
+    let selfFirst = Data(#"""
+    [{"kind":"Listing","data":{"children":[]}},
+     {"kind":"Listing","data":{"children":[
+      {"kind":"t3","data":{"id":"p","name":"t3_p","title":"t","author":"a","subreddit":"s","permalink":"/p","score":1,"num_comments":0,"created_utc":0,"is_self":false,"over_18":false,"spoiler":false,"stickied":false,"saved":false}},
+      {"kind":"t3","data":{"id":"q","name":"t3_q","title":"t","author":"a","subreddit":"s","permalink":"/q","score":1,"num_comments":0,"created_utc":0,"is_self":false,"over_18":false,"spoiler":false,"stickied":false,"saved":false}},
+      {"kind":"t3","data":{"id":"q","name":"t3_q","title":"t","author":"a","subreddit":"s","permalink":"/q","score":1,"num_comments":0,"created_utc":0,"is_self":false,"over_18":false,"spoiler":false,"stickied":false,"saved":false}}]}}]
+    """#.utf8)
+    check("the post itself and repeats are dropped",
+          (try? OtherDiscussions.page(from: selfFirst, excluding: "p"))?.posts.map(\.id) == ["q"])
+    if let posts = page?.posts {
+        check("a next page skips posts already shown",
+              OtherDiscussions.appending(Array(posts.suffix(2)), to: Array(posts.prefix(3))).map(\.id)
+                == ["1wmp1pl", "1wmp0wj", "1wm5500", "1wvtfnf"])
+    }
+
+    let original = page?.posts.first
+    if let link = original {
+        check("a link post has other discussions", OtherDiscussions.isAvailable(for: link))
+        check("the row shows when Reddit reports some",
+              OtherDiscussions.showsCountRow(count: 3, post: link, settings: .default))
+        check("...not with none, or with the setting off",
+              !OtherDiscussions.showsCountRow(count: 0, post: link, settings: .default)
+                && !OtherDiscussions.showsCountRow(count: nil, post: link, settings: .default)
+                && !OtherDiscussions.showsCountRow(count: 3, post: link, settings: OtherDiscussionsSettings(showCountRow: false)))
+    }
+    let selfPost = try JSONDecoder.reddit.decode(RedditPost.self, from: Data(#"""
+    {"id":"s1","name":"t3_s1","title":"t","author":"a","subreddit":"s","permalink":"/s1","score":1,"num_comments":0,"created_utc":0,"is_self":true,"over_18":false,"spoiler":false,"stickied":false,"saved":false}
+    """#.utf8))
+    check("a text post has no other discussions", !OtherDiscussions.isAvailable(for: selfPost))
+    if let crosspost = page?.posts.last {
+        check("a crosspost has other discussions", OtherDiscussions.isAvailable(for: crosspost))
+    }
+    check("the row's label agrees with its count",
+          OtherDiscussions.countLabel(1) == "1 Other Discussion" && OtherDiscussions.countLabel(12) == "12 Other Discussions")
+
+    let comments = Data(#"""
+    [{"kind":"Listing","data":{"children":[{"kind":"t3","data":{"num_comments":7,"num_duplicates":29}}]}},
+     {"kind":"Listing","data":{"children":[]}}]
+    """#.utf8)
+    check("a comments response carries the post's duplicate count",
+          (try? CommentTreeBuilder.parseCommentsResponse(comments, postID: "p"))?.postDuplicateCount == 29)
+
+    check("the row's setting defaults on", OtherDiscussionsSettings.default.showCountRow)
+    check("an empty settings blob decodes to the default",
+          (try? JSONDecoder().decode(OtherDiscussionsSettings.self, from: Data("{}".utf8))) == .default)
+    OtherDiscussionsSettingsStore.storage.update { $0.showCountRow = false }
+    let snapshot = SettingsDomainSnapshot.capture()
+    OtherDiscussionsSettingsStore.save(.default)
+    SettingsDomainSnapshot.restore(snapshot)
+    check("the row's setting survives a settings backup", OtherDiscussionsSettingsStore.load().showCountRow == false)
+    OtherDiscussionsSettingsStore.save(.default)
+}

@@ -297,6 +297,14 @@ public struct FeedScreen: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .listRowSeparator(.hidden)
                     .accessibilityIdentifier("feed.errorMessage")
+                if let quarantine = listing.quarantine, !subreddit.isEmpty {
+                    QuarantineOptInView(subreddit: subreddit, notice: quarantine, repository: repository,
+                                        buttonIdentifier: "feed.quarantine.viewAnyway") {
+                        await reloadAfterQuarantineChange()
+                    }
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
             } else if posts.isEmpty && !isLoading {
                 Text(emptyStateText)
                     .foregroundStyle(.secondary)

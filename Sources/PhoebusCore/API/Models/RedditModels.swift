@@ -535,9 +535,12 @@ public struct RedditSubreddit: Codable, Sendable, Identifiable {
     /// Reddit's `can_assign_user_flair`: whether members may set their
     /// own flair here. Nil when the response didn't say.
     public let canAssignUserFlair: Bool?
+    /// Reddit's `quarantine`. The about page of a quarantined subreddit
+    /// only loads once the account has opted in, so true means opted in.
+    public let quarantine: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, title, subscribers
+        case id, name, title, subscribers, quarantine
         case displayName = "display_name"
         case activeUserCount = "active_user_count"
         case publicDescription = "public_description"
@@ -579,6 +582,7 @@ public struct RedditSubreddit: Codable, Sendable, Identifiable {
         legacyBannerImage = try container.decodeIfPresent(String.self, forKey: .legacyBannerImage)
         mobileBannerImage = try container.decodeIfPresent(String.self, forKey: .mobileBannerImage)
         canAssignUserFlair = try container.decodeIfPresent(Bool.self, forKey: .canAssignUserFlair)
+        quarantine = try container.decodeIfPresent(Bool.self, forKey: .quarantine)
     }
 
     /// The subreddit header's banner, in Reborn's order: `banner_img`, then
@@ -616,6 +620,7 @@ public struct RedditSubreddit: Codable, Sendable, Identifiable {
         try container.encodeIfPresent(legacyBannerImage, forKey: .legacyBannerImage)
         try container.encodeIfPresent(mobileBannerImage, forKey: .mobileBannerImage)
         try container.encodeIfPresent(canAssignUserFlair, forKey: .canAssignUserFlair)
+        try container.encodeIfPresent(quarantine, forKey: .quarantine)
     }
 }
 

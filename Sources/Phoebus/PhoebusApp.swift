@@ -773,34 +773,48 @@ struct PostLinkLoader: View {
     let repository: RedditRepository
     @State private var post: RedditPost?
     @State private var errorMessage: String?
+    @State private var quarantine: QuarantineNotice?
 
     var body: some View {
         Group {
             if let post {
                 PostDetailScreen(post: post, repository: repository)
             } else if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red)
+                VStack(spacing: 16) {
+                    Text(errorMessage).foregroundStyle(quarantine == nil ? Color.red : Color.secondary)
+                    if let quarantine {
+                        QuarantineOptInView(subreddit: subreddit, notice: quarantine, repository: repository) {
+                            await load()
+                        }
+                    }
+                }
             } else {
                 ProgressView()
             }
         }
-        .task {
-            do {
-                let data = try await repository.fetchComments(subreddit: subreddit, postID: postID)
-                guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
-                      let postListingRaw = json.first as? [String: Any],
-                      let postData = postListingRaw["data"] as? [String: Any],
-                      let children = postData["children"] as? [Any],
-                      let firstChild = children.first as? [String: Any],
-                      let childData = firstChild["data"] as? [String: Any] else {
-                    errorMessage = "Couldn't load post"
-                    return
-                }
-                let payload = try JSONSerialization.data(withJSONObject: childData)
-                post = try JSONDecoder.reddit.decode(RedditPost.self, from: payload)
-            } catch {
-                errorMessage = UserFacingError.message(for: error)
+        .task { await load() }
+    }
+
+    private func load() async {
+        errorMessage = nil
+        quarantine = nil
+        do {
+            let data = try await repository.fetchComments(subreddit: subreddit, postID: postID)
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
+                  let postListingRaw = json.first as? [String: Any],
+                  let postData = postListingRaw["data"] as? [String: Any],
+                  let children = postData["children"] as? [Any],
+                  let firstChild = children.first as? [String: Any],
+                  let childData = firstChild["data"] as? [String: Any] else {
+                errorMessage = "Couldn't load post"
+                return
             }
+            let payload = try JSONSerialization.data(withJSONObject: childData)
+            post = try JSONDecoder.reddit.decode(RedditPost.self, from: payload)
+        } catch {
+            quarantine = QuarantineNotice(error: error)
+            errorMessage = quarantine == nil ? UserFacingError.message(for: error)
+                : FeedErrorCopy.quarantined(subreddit: subreddit)
         }
     }
 }

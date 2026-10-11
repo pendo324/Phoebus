@@ -82,6 +82,27 @@ extension FeedScreen {
         subredditInfo = info
     }
 
+    /// Opting in to or out of a quarantined subreddit changes what Reddit
+    /// serves for it: the posts, the about data and the highlights.
+    func reloadAfterQuarantineChange() async {
+        await load()
+        await checkModeratorStatus()
+        await loadCommunityHighlights(force: true)
+    }
+
+    /// The ••• menu's "Leave Quarantine": opts the account back out, after
+    /// which the feed shows the quarantine notice again.
+    func leaveQuarantine() async {
+        do {
+            try await repository.setQuarantineOptIn(subredditName: subreddit, optIn: false)
+            await reloadAfterQuarantineChange()
+        } catch {
+            guard let message = UserFacingError.message(for: error) else { return }
+            downloadTitle = "Couldn't Leave Quarantine"
+            downloadMessage = message
+        }
+    }
+
     /// A subscription changed elsewhere (the ••• menu, the Subscriptions
     /// list, an interactive post): the pill follows (Reborn #1264).
     func applySubscriptionChange(_ note: Notification) {

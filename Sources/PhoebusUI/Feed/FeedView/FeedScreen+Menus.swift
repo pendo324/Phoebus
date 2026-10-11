@@ -397,6 +397,15 @@ extension FeedScreen {
             })
         }
 
+        // Not in Apollo: undoes "View Anyway". The about data only loads for
+        // a quarantined subreddit once opted in, so its flag means opted in.
+        if !subreddit.isEmpty, subredditInfo?.quarantine == true, isSignedIn {
+            rows.append(ApolloActionSheetRow("Leave Quarantine", icon: "eye.slash",
+                                             accessibilityIdentifier: "feed.overflow.leaveQuarantine") {
+                Task { await leaveQuarantine() }
+            })
+        }
+
         // Moderator-only. Not in Apollo's stock menu, but this app implements
         // Mod Queue and hiding a working screen would be worse than appending
         // one row a moderator expects.

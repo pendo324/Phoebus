@@ -153,10 +153,8 @@ public enum VideoDownloader {
 /// descriptions.
 public enum FeedErrorCopy {
     public static func message(status: Int, body: String, subreddit: String) -> String {
+        if body.contains("quarantined") { return quarantined(subreddit: subreddit) }
         let name = subreddit.isEmpty ? "This feed" : "r/\(subreddit)"
-        if body.contains("quarantined") {
-            return "\(name) has been quarantined by Reddit Administrators for offensive content"
-        }
         switch status {
         case 403:
             return "\(name) has been set to private by its subreddit moderators"
@@ -165,6 +163,10 @@ public enum FeedErrorCopy {
         default:
             return "Couldn't load posts."
         }
+    }
+
+    public static func quarantined(subreddit: String) -> String {
+        "\(subreddit.isEmpty ? "This feed" : "r/\(subreddit)") has been quarantined by Reddit Administrators for offensive content"
     }
 }
 

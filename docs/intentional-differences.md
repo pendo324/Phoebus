@@ -97,6 +97,22 @@ Apollo or Reborn, add an entry here.
   whole page, the feed fetches the next one straight away, up to five
   pages, so infinite scroll does not stall.
 
+## Removed posts and comments
+
+- **Removed posts can be recovered.** When a post reads `[removed]` or
+  `[deleted]`, has a removal category, or its author is deleted, post
+  detail shows the archived title (when it differs), body, link and
+  author from Arctic Shift under a "Recovered from archive" label. It
+  follows the Deleted Comments mode: Always Show fetches on open (with
+  Tap to Show behind the reason chip), Passive shows a "Show Original
+  Post" row, Off shows nothing. Neither Apollo nor Reborn has this;
+  it is inspired by Continuum's removed post recovery.
+- **Deleted comments fall back to Reveddit.** When Arctic Shift has no
+  copy of a deleted comment in the thread, Phoebus asks Reveddit's thread
+  lookup once and fills the gaps; Arctic Shift's copy wins where both
+  have one. Reborn uses Arctic Shift only; the fallback is inspired by
+  Continuum's removed comment recovery.
+
 ## Media and link previews
 
 - **Link previews are one unified card pipeline.** Reborn's rich

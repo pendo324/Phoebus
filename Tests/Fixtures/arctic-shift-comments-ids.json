@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "id": "kq1aaa1",
+      "name": "t1_kq1aaa1",
+      "author": "example_commenter",
+      "body": "The archived text of a removed comment.",
+      "score": 12,
+      "link_id": "t3_1qx0bb2",
+      "parent_id": "t3_1qx0bb2"
+    },
+    {
+      "id": "kq1bbb2",
+      "author": "[deleted]",
+      "body": "Archived before the account was deleted.",
+      "score": 3,
+      "link_id": "t3_1qx0bb2",
+      "parent_id": "t1_kq1aaa1",
+      "_meta": { "removal_type": "deleted" }
+    },
+    {
+      "id": "kq1ccc3",
+      "author": "[deleted]",
+      "body": "[removed]",
+      "score": 1,
+      "link_id": "t3_1qx0bb2",
+      "parent_id": "t3_1qx0bb2"
+    }
+  ],
+  "error": null
+}

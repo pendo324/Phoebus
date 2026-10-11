@@ -115,6 +115,8 @@ final class CommentTreeStore: ObservableObject {
     /// Per-thread, in-memory only.
     @Published var revealedFullnames: Set<String> = []
     private var archiveFetchedForPostID: String?
+    private var archiveLoadedForPostID: String?
+    private var fallbackFetchedForPostID: String?
 
     /// True when deleted/removed comment recovery is active for this
     /// thread: global Always mode, or Passive mode with this thread's
@@ -149,10 +151,28 @@ final class CommentTreeStore: ObservableObject {
         guard deletedCommentsRecoveryActive, archiveFetchedForPostID != postID else { return }
         archiveFetchedForPostID = postID
         do {
-            archivedComments = try await ArcticShiftClient.fetchArchivedComments(linkFullname: "t3_\(postID)")
+            let archive = try await ArcticShiftClient.fetchArchivedComments(linkFullname: "t3_\(postID)")
+            // Keeps what an earlier Reveddit fallback added for this store.
+            archivedComments = DeletedCommentsFallback.merged(primary: archive, fallback: archivedComments)
+            archiveLoadedForPostID = postID
+            await fetchFallbackCommentsIfNeeded(postID: postID)
         } catch {
             archiveFetchedForPostID = nil
         }
+    }
+
+    /// Reveddit fallback for the deleted comments Arctic Shift has no copy
+    /// of (Phoebus-only): one request per thread, once both the tree and
+    /// Arctic Shift's answer are in. Failures stay silent.
+    func fetchFallbackCommentsIfNeeded(postID: String) async {
+        guard deletedCommentsRecoveryActive, archiveLoadedForPostID == postID,
+              fallbackFetchedForPostID != postID, !roots.isEmpty else { return }
+        let deleted = roots.flatMap { $0.flattenedAll() }.map(\.comment)
+            .filter { DeletedCommentsClassifier.bodyLooksDeletedOrRemoved($0.body) }.map(\.name)
+        guard !DeletedCommentsFallback.missing(deleted: deleted, archive: archivedComments).isEmpty else { return }
+        fallbackFetchedForPostID = postID
+        guard let fallback = try? await RevedditClient.fetchThreadComments(linkID: postID) else { return }
+        archivedComments = DeletedCommentsFallback.merged(primary: archivedComments, fallback: fallback)
     }
 
     /// Comments "..." menu "Show/Hide Deleted Comments" shortcut: a plain
@@ -307,6 +327,7 @@ final class CommentTreeStore: ObservableObject {
             }
             errorMessage = nil
             quarantine = nil
+            Task { await fetchFallbackCommentsIfNeeded(postID: postID) }
             if sort == "live" {
                 liveBaselineIDs = Set(allIDs)
                 liveNewCount = 0

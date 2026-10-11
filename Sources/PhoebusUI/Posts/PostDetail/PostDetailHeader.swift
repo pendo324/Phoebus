@@ -235,6 +235,10 @@ struct PostDetailHeader: View {
                 }
             }
 
+            if !isDeleted {
+                RecoveredPostSection(post: post)
+            }
+
             // Byline row: subreddit avatar + name, "by", author avatar
             // + name, no "in" prefix and no `r/`/`u/` markers.
             HStack(spacing: 4) {

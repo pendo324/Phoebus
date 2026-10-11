@@ -79,6 +79,9 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     public let postHint: String?
     /// Reddit's `edited`: when the self text was last edited.
     public var edited: RedditEditedTime? = nil
+    /// `removed_by_category` ("moderator", "deleted", "reddit"...), set
+    /// once the post is removed. Drives removed-post recovery.
+    public let removedByCategory: String?
     public let suggestedSortRaw: String?
     public var suggestedSort: String? {
         guard let suggestedSortRaw, suggestedSortRaw != "null" else { return nil }
@@ -114,6 +117,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
         case suggestedSortRaw = "suggested_sort"
         case postHint = "post_hint"
         case edited
+        case removedByCategory = "removed_by_category"
     }
 
     /// Resolves this post's gallery images in display order, unescaping

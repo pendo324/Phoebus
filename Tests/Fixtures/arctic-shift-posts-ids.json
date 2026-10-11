@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "id": "1qx0aa1",
+      "name": "t3_1qx0aa1",
+      "author": "example_poster",
+      "subreddit": "examplesub",
+      "title": "An example link post that was later removed",
+      "selftext": "",
+      "is_self": false,
+      "url": "https://example.com/news/article-123",
+      "permalink": "/r/examplesub/comments/1qx0aa1/an_example_link_post_that_was_later_removed/",
+      "domain": "example.com",
+      "created_utc": 1790000000,
+      "removed_by_category": null
+    }
+  ],
+  "error": null
+}

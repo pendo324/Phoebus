@@ -77,6 +77,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Share old.reddit Links", breadcrumb: "Settings → General", screen: .general, rowTitle: "Share old.reddit Links"),
         SettingsSearchEntry(title: "No Subscribed in All/Popular", breadcrumb: "Settings → General", screen: .general, rowTitle: "No Subscribed in All/Popular"),
         SettingsSearchEntry(title: "Allow Save Categories", breadcrumb: "Settings → General", screen: .general, rowTitle: "Allow Save Categories"),
+        SettingsSearchEntry(title: "Keep Local Copies of Saved Items", breadcrumb: "Settings → General", screen: .general, rowTitle: "Keep Local Copies of Saved Items"),
         SettingsSearchEntry(title: "Haptic Feedback", breadcrumb: "Settings → General", screen: .general, rowTitle: "Haptic Feedback"),
         SettingsSearchEntry(title: "3D Touch Marks Read", breadcrumb: "Settings → General", screen: .general, rowTitle: "3D Touch Marks Read"),
         SettingsSearchEntry(title: "Default Sort", breadcrumb: "Settings → General", screen: .general, rowTitle: "Default Sort"),

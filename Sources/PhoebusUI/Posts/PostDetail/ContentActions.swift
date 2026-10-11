@@ -47,8 +47,16 @@ public enum ContentActions {
         do {
             if wasSaved {
                 try await repository.unsave(fullname: item.name)
+                if let account = LocalSavedStore.currentAccount {
+                    LocalSavedStore.remove(fullname: item.name, account: account)
+                }
             } else {
                 try await repository.save(fullname: item.name)
+                // Local Saved: a snapshot in case Reddit later drops it from Saved.
+                if LocalSavedSettingsStore.load().keepLocalCopies, let account = LocalSavedStore.currentAccount,
+                   let record = LocalSavedRecord.snapshot(of: item) {
+                    LocalSavedStore.record(record, account: account)
+                }
                 if GeneralSettingsStore.load().upvoteOnSave {
                     await vote(item, direction: 1, repository: repository)
                 }

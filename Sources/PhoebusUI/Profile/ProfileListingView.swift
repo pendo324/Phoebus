@@ -58,6 +58,13 @@ struct ProfileListingView: View {
     @State private var postReplyTarget: RedditPost?
     @State private var shareTarget: RedditPost?
     @State private var shareCommentTarget: RedditComment?
+    /// Local Saved: every fullname Saved has returned so far and when its
+    /// first page was asked for, so a fully paged listing can reconcile.
+    @State private var savedSeen: Set<String> = []
+    @State private var savedListingStartedAt: Date?
+    @State private var keptLocallyCount = 0
+    @State private var showingKeptLocally = false
+    @Setting(LocalSavedSettings.self) private var localSavedSettings
 
     var body: some View {
         List {
@@ -76,6 +83,9 @@ struct ProfileListingView: View {
                 Text(emptyStateText)
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("profile.emptyState")
+            }
+            if showsKeptLocally {
+                keptLocallyRow
             }
             if tab == .saved && !categories.isEmpty && generalSettings.allowSaveCategories {
                 // Saved-category filter ("Show saved items for category…"), gated on
@@ -198,6 +208,12 @@ struct ProfileListingView: View {
             UserProfileScreen(username: name, repository: repository)
         }
         .apolloTracksForwardNavigation($authorTarget)
+        .navigationDestination(isPresented: $showingKeptLocally) {
+            LocalSavedScreen(username: username, repository: repository)
+        }
+        .apolloTracksForwardNavigation($showingKeptLocally)
+        .onReceive(NotificationCenter.default.publisher(for: .localSavedChanged)) { _ in refreshKeptLocallyCount() }
+        .onAppear { refreshKeptLocallyCount() }
         .apolloPopsOnTabReselection(item: $selectedPost)
         .apolloForwardSwipe()
         // `task(id: tab)` re-runs when the segment changes (must reload) and when the
@@ -240,6 +256,46 @@ struct ProfileListingView: View {
                 onSubmitted: { replyTarget = nil }
             )
         }
+    }
+
+    /// Phoebus-only Local Saved: the entry to items Reddit dropped from
+    /// your Saved, on your own Saved only.
+    private var showsKeptLocally: Bool {
+        tab == .saved && isOwnProfile && localSavedSettings.keepLocalCopies
+            && LocalSavedStore.currentAccount?.caseInsensitiveCompare(username) == .orderedSame
+    }
+
+    private var keptLocallyRow: some View {
+        Button { showingKeptLocally = true } label: {
+            HStack {
+                Label("Kept Locally", systemImage: "externaldrive")
+                Spacer()
+                if keptLocallyCount > 0 {
+                    Text("\(keptLocallyCount)")
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("profile.saved.keptLocally")
+    }
+
+    private func refreshKeptLocallyCount() {
+        guard showsKeptLocally, let account = LocalSavedStore.currentAccount else { return }
+        keptLocallyCount = LocalSavedStore.keptLocally(account: account).count
+    }
+
+    /// Once Saved has been paged to its end, items saved here that it no
+    /// longer lists are kept locally. A partial listing proves nothing.
+    private func reconcileLocalSavedIfComplete() {
+        guard showsKeptLocally, let startedAt = savedListingStartedAt,
+              LocalSavedPolicy.isListingComplete(after: after, itemCount: savedSeen.count),
+              let account = LocalSavedStore.currentAccount else { return }
+        LocalSavedStore.reconcile(present: savedSeen, listingComplete: true, listingStartedAt: startedAt, account: account)
     }
 
     private var isEmptyState: Bool {
@@ -354,6 +410,10 @@ struct ProfileListingView: View {
             guard let listing = try await fetchPage(after: cursor), loadingTab == tab else { return }
             items = RedditListing.appending(await listing.profileItemsInBackground(), to: items)
             after = listing.data.after
+            if tab == .saved {
+                savedSeen.formUnion(listing.fullnames)
+                reconcileLocalSavedIfComplete()
+            }
         } catch {
             if loadingTab == tab { moreFailed = true }
         }
@@ -377,12 +437,18 @@ struct ProfileListingView: View {
                 multireddits = try await repository.fetchPublicMultireddits(username: username)
             case .overview, .comments, .posts, .saved, .upvoted, .downvoted, .hidden:
                 let loadingTab = tab
+                let startedAt = Date()
                 guard let listing = try await fetchPage(after: nil), loadingTab == tab else { break }
                 // Deduped: Reddit can return the same item twice in one
                 // response (Reborn #1005, `SavedItemsDeduplicator`).
                 items = RedditListing.appending(await listing.profileItemsInBackground(), to: [])
                 after = listing.data.after
                 moreFailed = false
+                if tab == .saved {
+                    savedListingStartedAt = startedAt
+                    savedSeen = Set(listing.fullnames)
+                    reconcileLocalSavedIfComplete()
+                }
             case .friends:
                 // Apollo's friends screen is a user list, not a post/comment listing; it is
                 // handled by the dedicated `FriendsListView`.

@@ -248,6 +248,118 @@ import PhoebusCore
           SavedItemsDeduplicator.deduplicate([savedUnique[0]]) { $0.name }.count == 1)
 }
 
+// MARK: - Local Saved (Phoebus-only)
+@MainActor func checkLocalSaved() async throws {
+    let postJSON = """
+    {"id":"p1","name":"t3_p1","title":"A saved link","author":"poster","subreddit":"pics",
+     "permalink":"/r/pics/comments/p1/a_saved_link/","url":"https://example.com/a.jpg",
+     "thumbnail":"https://example.com/t.jpg","selftext":"","score":1,"num_comments":0,
+     "created_utc":1700000000,"is_self":false,"over_18":false,"spoiler":false,"stickied":false,"saved":true}
+    """.data(using: .utf8)!
+    let post = try JSONDecoder.reddit.decode(RedditPost.self, from: postJSON)
+    let postRecord = LocalSavedRecord.snapshot(of: post, savedAt: Date(timeIntervalSince1970: 100))
+        ?? LocalSavedRecord(comment: makeComment(id: "unused"))
+    check("a saved post snapshots its title, subreddit and link",
+          postRecord.kind == .post && postRecord.title == "A saved link" && postRecord.subreddit == "pics"
+            && postRecord.url == "https://example.com/a.jpg" && postRecord.thumbnail == "https://example.com/t.jpg"
+            && postRecord.postID == "p1" && postRecord.state == .onReddit)
+
+    let commentJSON = """
+    {"id":"c1","name":"t1_c1","author":"commenter","body":"\(String(repeating: "x", count: 400))","score":0,
+     "created_utc":1700000000,"parent_id":"t3_p1","link_id":"t3_p1","saved":true,"score_hidden":false,
+     "stickied":false,"subreddit":"pics","link_title":"A saved link"}
+    """.data(using: .utf8)!
+    let comment = try JSONDecoder.reddit.decode(RedditComment.self, from: commentJSON)
+    let commentRecord = LocalSavedRecord(comment: comment, savedAt: Date(timeIntervalSince1970: 200))
+    check("a saved comment keeps the first 300 characters of its body",
+          commentRecord.kind == .comment && commentRecord.snippet.count == LocalSavedRecord.snippetLength)
+    check("a saved comment links to its place in the thread",
+          commentRecord.permalink == "/r/pics/comments/p1/_/c1/" && commentRecord.postID == "p1" && commentRecord.commentID == "c1")
+    check("an inbox reply known only by fullname keeps nothing",
+          LocalSavedRecord.snapshot(of: VotableRef(name: "t1_zz")) == nil)
+
+    typealias P = LocalSavedPolicy
+    check("a listing with no next page and under Reddit's ceiling is complete",
+          P.isListingComplete(after: nil, itemCount: 40))
+    check("a listing with a next page is not complete", !P.isListingComplete(after: "t3_next", itemCount: 25))
+    check("a listing at Reddit's 1000-item ceiling is not complete", !P.isListingComplete(after: nil, itemCount: 1000))
+
+    let listedAt = Date(timeIntervalSince1970: 1000)
+    let afterListing = LocalSavedRecord(fullname: "t3_late", kind: .post, title: "late", snippet: "", subreddit: "s",
+                                        author: "a", permalink: "/r/s/comments/late/", postID: "late",
+                                        created: Date(), savedAt: Date(timeIntervalSince1970: 2000))
+    let records = [postRecord, commentRecord, afterListing]
+    let partial = P.reconcile(records, present: ["t3_p1"], listingComplete: false, listingStartedAt: listedAt)
+    check("a partial listing keeps nothing locally", partial.allSatisfy { $0.state == .onReddit })
+    let complete = P.reconcile(records, present: ["t3_p1"], listingComplete: true, listingStartedAt: listedAt,
+                               now: Date(timeIntervalSince1970: 5000))
+    check("a listed item stays on Reddit", complete[0].state == .onReddit)
+    check("a missing item is kept locally once the listing is complete",
+          complete[1].state == .keptLocally && complete[1].missingSince == Date(timeIntervalSince1970: 5000))
+    check("an item saved after the listing was fetched is not judged missing", complete[2].state == .onReddit)
+    let reappeared = P.reconcile(complete, present: ["t3_p1", "t1_c1"], listingComplete: false, listingStartedAt: listedAt)
+    check("a kept item that reappears in Saved goes back to Reddit",
+          reappeared[1].state == .onReddit && reappeared[1].missingSince == nil)
+    check("Kept Locally lists only kept items", P.keptLocally(complete).map(\.fullname) == ["t1_c1"])
+
+    var capped: [LocalSavedRecord] = []
+    for index in 0..<3 {
+        var record = afterListing
+        record.fullname = "t3_\(index)"
+        record.state = index == 0 ? .keptLocally : .onReddit
+        capped = P.inserting(record, into: capped, cap: 2)
+    }
+    check("the cap drops the oldest item still on Reddit before a kept one",
+          capped.map(\.fullname) == ["t3_2", "t3_0"])
+    check("saving again replaces the older snapshot",
+          P.inserting(postRecord, into: [postRecord, commentRecord], cap: 10).count == 2)
+
+    let removedPost = try JSONDecoder.reddit.decode(RedditPost.self, from: Data("""
+    {"id":"p2","name":"t3_p2","title":"t","author":"someone","subreddit":"s","permalink":"/r/s/comments/p2/",
+     "selftext":"[removed]","removed_by_category":"moderator","score":1,"num_comments":0,"created_utc":0,
+     "is_self":true,"over_18":false,"spoiler":false,"stickied":false,"saved":false}
+    """.utf8))
+    check("a mod-removed post is badged Removed", LocalSavedLiveStatus.classify(.post(removedPost)) == .removed)
+    check("an intact post is badged Not in Saved", LocalSavedLiveStatus.classify(.post(post)) == .notInSaved)
+    let deletedComment = try JSONDecoder.reddit.decode(RedditComment.self, from: Data("""
+    {"id":"c2","name":"t1_c2","author":"[deleted]","body":"[deleted]","score":0,"created_utc":0,
+     "parent_id":"t3_p1","link_id":"t3_p1","saved":false,"score_hidden":false,"stickied":false}
+    """.utf8))
+    check("a user-deleted comment is badged Deleted", LocalSavedLiveStatus.classify(.comment(deletedComment)) == .deleted)
+    check("an item Reddit no longer returns is Unavailable", LocalSavedLiveStatus.classify(nil) == .unavailable)
+
+    let listing = try JSONDecoder.reddit.decode(RedditListing.self, from: Data("""
+    {"kind":"Listing","data":{"after":null,"children":[{"kind":"t3","data":{"name":"t3_a"}},{"kind":"t1","data":{"name":"t1_b"}}]}}
+    """.utf8))
+    check("Saved's fullnames are read even from rows the models can't decode", listing.fullnames == ["t3_a", "t1_b"])
+
+    let source = UserDefaults(suiteName: "phoebus.smoke.localSaved")!
+    let target = UserDefaults(suiteName: "phoebus.smoke.localSaved.restore")!
+    source.removePersistentDomain(forName: "phoebus.smoke.localSaved")
+    target.removePersistentDomain(forName: "phoebus.smoke.localSaved.restore")
+    LocalSavedStore.record(postRecord, account: "Me", defaults: source)
+    LocalSavedStore.record(commentRecord, account: "Me", defaults: source)
+    LocalSavedStore.reconcile(present: ["t3_p1"], listingComplete: true, listingStartedAt: listedAt,
+                              account: "me", defaults: source)
+    check("records are stored per account, case-insensitively",
+          LocalSavedStore.load(account: "ME", defaults: source).count == 2
+            && LocalSavedStore.load(account: "someoneElse", defaults: source).isEmpty)
+    LocalSavedStore.remove(fullname: "t3_p1", account: "me", defaults: source)
+    check("unsaving forgets the record", LocalSavedStore.load(account: "me", defaults: source).map(\.fullname) == ["t1_c1"])
+    LocalSavedSettingsStore.storage.save(LocalSavedSettings(keepLocalCopies: false), to: source)
+    let snapshot = SettingsDomainSnapshot.capture(from: source)
+    check("the backup snapshot includes Local Saved records",
+          snapshot[LocalSavedStore.key(account: "me")] != nil)
+    let roundTripped = try JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(snapshot))
+    SettingsDomainSnapshot.restore(roundTripped, into: target)
+    check("Local Saved records survive a backup round trip",
+          LocalSavedStore.load(account: "me", defaults: target) == LocalSavedStore.load(account: "me", defaults: source))
+    check("Keep Local Copies survives a backup round trip",
+          LocalSavedSettingsStore.storage.load(from: target).keepLocalCopies == false)
+    let decodedEmpty = try JSONDecoder().decode(LocalSavedSettings.self, from: Data("{}".utf8))
+    check("Keep Local Copies defaults on", LocalSavedSettings.default.keepLocalCopies && decodedEmpty.keepLocalCopies)
+}
+
 // MARK: - Reddit /s/ share links
 //
 // Reddit's share button emits `reddit.com/r/<sub>/s/<opaque>`, which carries

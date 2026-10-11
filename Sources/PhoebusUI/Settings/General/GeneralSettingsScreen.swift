@@ -11,6 +11,7 @@ public struct GeneralSettingsScreen: View {
     @Setting(VoteCountSettings.self) private var voteCounts
     @Setting(VideoPlaybackSettingsStore.storage) private var playback
     @Setting(OtherDiscussionsSettings.self) private var otherDiscussions
+    @Setting(LocalSavedSettings.self) private var localSaved
     @State private var commentSortMemoryMode = CommentSortMemoryStore.loadMode()
 
     public init() {}
@@ -340,6 +341,10 @@ public struct GeneralSettingsScreen: View {
             // Reborn injection.
             SettingsLink("Saved Categories") { SavedCategoriesSettingsScreen() }
                 .apolloSearchRow("Saved Categories")
+            // Phoebus-only Local Saved: see `LocalSavedStore`.
+            Toggle("Keep Local Copies of Saved Items", isOn: $localSaved.keepLocalCopies)
+                .accessibilityIdentifier("settings.general.keepLocalCopiesOfSavedItems")
+                .apolloSearchRow("Keep Local Copies of Saved Items")
             ApolloSettingsPicker("Open Tweets in", selection: $settings.openTwitterLinksIn,
                                  options: TwitterLinkDestination.allCases.map { $0 },
                                  display: { $0.displayName })

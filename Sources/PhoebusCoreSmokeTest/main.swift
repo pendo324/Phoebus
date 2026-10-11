@@ -667,6 +667,7 @@ try await checkExtraPlaybackSpeedsReborn445()
 try await checkPostFiltersPerSubredditKeywordsFlairs()
 
 try await checkSavedItemsDeDuplication()
+try await checkLocalSaved()
 
 try await checkRedditSShareLinks()
 

@@ -252,7 +252,7 @@ flowchart LR
 | Saving | UI `PhotoAlbumSaver`, `AlbumImageSaver`, `GIFSaveService`, `SaveAllMediaJob`, `VideoDownloadService`, `ShareVideoExportService`; Core `AlbumSaveCapacity`, `SaveAllMediaSummary`, `VideoDownloader` | Save to "Apollo" album, Save GIFs as…, Save All Media (#1048), Download Video, Share as Video (#380) | |
 | Image menu | UI `PressAnchoredImageMenu` | Long-press image menu anchored at the press point | |
 | Hosts | Core `RedGifsClient`, `ImgurClient`, `ImgChestClient`, `GiphyClient`, `StreamableClient`, `VimeoURLParser`, `ImgflipURLParser`, `YouTubeURLParser`, `YouTubeEmbed`, `YouTubePlayback`, `SteamURLParser`, `TweetClient`, `OpenGraphClient`, `LinkPreviewCache`, `SportsClipHost`, `RedditVideoStream`, `RedditMediaUploadClient` | Third-party media resolution and uploads | |
-| Inline media | Core `InlineMediaDetector`, `InlineMediaSettings`, `LinkPreviewSettings`, `DevvitPostDetector` | Reborn inline media in bodies, rich link previews, Devvit detection | |
+| Inline media | Core `InlineMediaDetector`, `InlineMediaSettings`, `LinkPreviewSettings`, `LinkCardLimit`, `DevvitPostDetector` | Reborn inline media in bodies, rich link previews, Devvit detection | Phoebus-only Maximum Cards (`LinkPreviewSettings.maxCards`, default 5): `InlineMediaBodyView` shows the first N link cards and a "Show N more previews" row; media never hidden. See intentional-differences |
 | Avatars | UI `AvatarView`, `ProfileTabAvatar`; Core `AvatarCache`, `AccountAgeCache` | Circular/rounded avatars per Shared Profile Picture Shape (#1136), cached | |
 | Audio | Core `VideoAudioSession`; UI `Haptics` | Audio session hand-over, haptics matching Apollo's | |
 | Feed video sound | UI `FeedVideoSound` | Only one feed video audible at a time (Reborn #1250) | |

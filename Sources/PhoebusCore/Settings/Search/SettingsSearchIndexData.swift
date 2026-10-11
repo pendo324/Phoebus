@@ -231,6 +231,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Preview Card Color", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Preview Card Color"),
         SettingsSearchEntry(title: "Body", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Body"),
         SettingsSearchEntry(title: "Comments", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Comments"),
+        SettingsSearchEntry(title: "Maximum Cards", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Maximum Cards"),
         SettingsSearchEntry(title: "Fallback Provider", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Fallback Provider"),
         SettingsSearchEntry(title: "Color", breadcrumb: "Settings → Apollo Reborn → Rich Link Previews", screen: .linkPreview, rowTitle: "Color"),
         SettingsSearchEntry(title: "Polls", breadcrumb: "Settings → Apollo Reborn → Polls", screen: .polls, rowTitle: "Polls"),

@@ -558,6 +558,7 @@ try await checkDeletedCommentsSettings()
 try await checkInfoRowSettings()
 
 try await checkLinkPreviewSettings()
+checkLinkCardLimitVisibility()
 
 try await checkDeletedCommentsClassifierArchivedComment()
 

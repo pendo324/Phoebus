@@ -506,6 +506,8 @@ private struct VideoPosterFrame: View {
 /// `Text(RedditMarkdown.render(body))`.
 public struct InlineMediaBodyView: View {
     @Setting(InlineMediaSettings.self) private var inlineMediaSettings
+    @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
+    @State private var showsAllCards = false
     /// Which real toggle governs this body.
     ///
     /// Reborn treats message media as its OWN setting
@@ -548,19 +550,37 @@ public struct InlineMediaBodyView: View {
         // two or more, Reborn draws the ordinary cards compact.
         let showsCards = context == .postsAndComments && lineLimit == nil && showsLinkCards
         let shown = showsCards ? attachments : attachments.filter { if case .media = $0 { return true } else { return false } }
-        let cardCount = shown.filter { if case .link = $0 { return true } else { return false } }.count
+        let isLink = shown.map { if case .link = $0 { return true } else { return false } }
+        let cardCount = isLink.filter { $0 }.count
+        // Phoebus's Maximum Cards: link cards past the limit fold behind a row;
+        // media always draw, and the compact decision counts every card.
+        let visibility = linkPreviewSettings.maxCards.visibility(isLink: isLink, expanded: showsAllCards)
         VStack(alignment: .leading, spacing: 4) {
             if !text.isEmpty {
                 BulkTranslatedText(text, lineLimit: lineLimit)
             }
-            ForEach(Array(shown.enumerated()), id: \.offset) { _, attachment in
-                switch attachment {
-                case .media(let kind):
-                    InlineMediaPreviewView(kind: kind, settings: settings)
-                case .link(let url):
-                    LinkPreviewCard(url: url, context: linkContext, forceCompact: cardCount > 1)
+            ForEach(Array(shown.enumerated()), id: \.offset) { index, attachment in
+                if visibility.visible[index] {
+                    switch attachment {
+                    case .media(let kind):
+                        InlineMediaPreviewView(kind: kind, settings: settings)
+                    case .link(let url):
+                        LinkPreviewCard(url: url, context: linkContext, forceCompact: cardCount > 1)
+                            .padding(.top, 4)
+                    }
+                }
+            }
+            if visibility.hiddenCount > 0 {
+                Button {
+                    showsAllCards = true
+                } label: {
+                    Text(visibility.hiddenCount == 1 ? "Show 1 more preview" : "Show \(visibility.hiddenCount) more previews")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("linkPreviews.showMore")
             }
         }
     }

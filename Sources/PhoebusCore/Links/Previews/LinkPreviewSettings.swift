@@ -23,6 +23,56 @@ public enum LinkPreviewDisplayMode: String, Codable, Sendable, CaseIterable, Ide
     }
 }
 
+/// How many link cards stack under one post body or comment before the rest
+/// fold behind "Show N more previews". Phoebus's own setting; Apollo and Reborn
+/// draw every card. Stored by raw value, 0 meaning Unlimited.
+public enum LinkCardLimit: Int, Codable, Sendable, CaseIterable, Identifiable {
+    case one = 1
+    case two = 2
+    case three = 3
+    case five = 5
+    case ten = 10
+    case unlimited = 0
+
+    public var id: Int { rawValue }
+
+    public var title: String {
+        self == .unlimited ? "Unlimited" : String(rawValue)
+    }
+
+    /// `nil` when every card shows.
+    public var count: Int? { self == .unlimited ? nil : rawValue }
+
+    /// Which attachments of a body draw. `isLink` flags each attachment in
+    /// order (true for a link card, false for inline media). Only link cards
+    /// count against the limit; media always draw.
+    public func visibility(isLink: [Bool], expanded: Bool) -> LinkCardVisibility {
+        guard let count, !expanded else { return LinkCardVisibility(visible: isLink.map { _ in true }, hiddenCount: 0) }
+        var seen = 0
+        var hidden = 0
+        let visible = isLink.map { link -> Bool in
+            guard link else { return true }
+            seen += 1
+            if seen <= count { return true }
+            hidden += 1
+            return false
+        }
+        return LinkCardVisibility(visible: visible, hiddenCount: hidden)
+    }
+}
+
+/// Per-attachment visibility from `LinkCardLimit.visibility`, and how many
+/// link cards it folded away.
+public struct LinkCardVisibility: Equatable, Sendable {
+    public let visible: [Bool]
+    public let hiddenCount: Int
+
+    public init(visible: [Bool], hiddenCount: Int) {
+        self.visible = visible
+        self.hiddenCount = hiddenCount
+    }
+}
+
 /// Backs `sLinkPreviewBodyMode`, `sLinkPreviewCommentsMode`,
 /// `sLinkPreviewCardColorHex`, shown as `#RRGGBB`/"Default color".
 public struct LinkPreviewSettings: Codable, Sendable, Equatable {
@@ -33,6 +83,8 @@ public struct LinkPreviewSettings: Codable, Sendable, Equatable {
     public var cardColorHex: String?
     /// Asked for a tweet X itself won't give out.
     public var twitterFallback: TwitterFallbackProvider = .none
+    /// Link cards stacked under one body or comment.
+    public var maxCards: LinkCardLimit = .five
 
     /// Full / Full, Reborn's registered defaults.
     public static let `default` = LinkPreviewSettings(bodyDisplayMode: .full, commentsDisplayMode: .full, cardColorHex: nil)
@@ -50,6 +102,7 @@ public struct LinkPreviewSettings: Codable, Sendable, Equatable {
             ?? LinkPreviewSettings.default.commentsDisplayMode
         cardColorHex = (try? container.decodeIfPresent(String.self, forKey: .cardColorHex))
         twitterFallback = (try? container.decodeIfPresent(TwitterFallbackProvider.self, forKey: .twitterFallback)) ?? .none
+        maxCards = (try? container.decodeIfPresent(LinkCardLimit.self, forKey: .maxCards)) ?? .five
     }
 
     /// `"#RRGGBB"` for display, or "Default color" when unset.

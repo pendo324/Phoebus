@@ -95,6 +95,8 @@ public enum ActionMenuCatalog {
     static let translate = ActionMenuItem("translate", "Translate", "character.bubble")
     static let edit = ActionMenuItem("edit", "Edit", "pencil")
     static let delete = ActionMenuItem("delete", "Delete", "trash")
+    // Phoebus-only: the author's /poststats page.
+    static let postInsights = ActionMenuItem("post-insights", "Insights", "chart.bar")
     static let nsfw = ActionMenuItem("nsfw", "Mark NSFW", "exclamationmark.triangle")
     static let spoiler = ActionMenuItem("spoiler", "Mark Spoiler", "eye.trianglebadge.exclamationmark")
     static let selectText = ActionMenuItem("select-text", "Select Text", "selection.pin.in.out")
@@ -168,12 +170,12 @@ public enum ActionMenuCatalog {
         case .post:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, subreddit, hide, hideAbove,
                     share, shareImage, crosspost, award, report, floatingTabs.sometimes()]
-                + [translate, filterSubreddit, edit, delete, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
+                + [translate, filterSubreddit, edit, delete, postInsights, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
         case .postDetail:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, subreddit, collapseChildren, selectText, share,
                     shareImage, crosspost, find, award, report, liveActivity,
                     deletedComments.sometimes(), floatingTabs.sometimes()]
-                + [translate, edit, delete, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
+                + [translate, edit, delete, postInsights, nsfw, spoiler, postFlair, muteNotifications].map { $0.sometimes() }
         case .comment:
             return [moderator.sometimes(), upvote, downvote, save, reply, author, selectText, share,
                     shareImage, collapseTop, award, report]

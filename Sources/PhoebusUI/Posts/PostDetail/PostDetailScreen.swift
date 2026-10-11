@@ -18,6 +18,9 @@ public struct PostDetailScreen: View {
     @State private var showingRemindMe = false
     @State private var showingReport = false
     @State private var showingShareAsImage = false
+    /// Whether the signed-in user wrote this post (gates Insights).
+    @State private var isOwnPost = false
+    @State private var showingInsights = false
     @State private var showingTranslator = false
     @State private var showingAward = false
     @State private var commentSort: String
@@ -231,6 +234,10 @@ public struct PostDetailScreen: View {
                 }
             }
         .onAppear { isMuted = MutedThreadsStore.isMuted(post.name) }
+            .task {
+                let username = await CurrentUsernameCache.username(repository: repository)
+                isOwnPost = PostInsightsParser.isEligible(author: post.author, currentUsername: username)
+            }
             .apolloTracksForwardNavigation($jumpDestination)
             .apolloOpensRedditTargetsHere()
             .apolloForwardSwipe()
@@ -394,6 +401,9 @@ public struct PostDetailScreen: View {
         }
         .sheet(isPresented: $showingShareAsImage) {
             ShareAsImageScreen(post: post, repository: repository)
+        }
+        .sheet(isPresented: $showingInsights) {
+            PostInsightsSheet(post: post, repository: repository)
         }
         .sheet(item: $commentShareAsImage) { target in
             ShareAsImageScreen(post: post, comment: target.comment,
@@ -619,6 +629,7 @@ extension PostDetailScreen {
         if aiSettings.summariesEnabled { ids.append("summarize") }
         if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
         ids += ["mute-notifications", "report", "live-activity", "spec.DeletedComments"]
+        if isOwnPost { ids.append("post-insights") }
         return ids
     }
 
@@ -754,6 +765,9 @@ extension PostDetailScreen {
         case "share":
             ShareLink(item: post.shareText()) { Label("Share", systemImage: "square.and.arrow.up") }
                 .accessibilityIdentifier("postDetail.menu.share")
+        case "post-insights":
+            Button { showingInsights = true } label: { Label("Insights", systemImage: "chart.bar") }
+                .accessibilityIdentifier("postDetail.menu.insights")
         case "share-image":
             Button { showingShareAsImage = true } label: {
                 Label("Share as Image…", systemImage: "photo.badge.plus")

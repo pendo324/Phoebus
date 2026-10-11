@@ -12,13 +12,24 @@ public struct SubredditSearchScreen: View {
     /// Opens a Reddit page on this tab's stack (a Google or Kagi result).
     let onOpenTarget: (RedditURLTarget) -> Void
     /// "Search With" (Reborn #1260, #1305): Reddit is Apollo's own search;
-    /// Google and Kagi list Reddit threads they found, searched on Return.
+    /// Google and Kagi list Reddit threads they found, searched on Return;
+    /// Reddit Answers (Phoebus-only) answers the question asked on Return.
     @State private var engine = SearchEngine.current
     /// The query the external engine was asked, set on Return or a suggestion.
     @State private var externalQuery = ""
+    /// Reddit Answers' answer, kept here so it outlives the answer screen.
+    @StateObject private var answersSession = RedditAnswersSession()
+
+    /// The asked query is still the one in the field (a change of case or
+    /// spacing alone, as the search field can make, doesn't count).
+    private var showsAskedQuery: Bool {
+        !externalQuery.isEmpty && RedditAnswersSession.sameQuestion(externalQuery, query)
+    }
     @State private var suggestions: [String] = []
     /// Kagi picked with no Session Link saved: asks for one first.
     @State private var showsKagiLinkSheet = false
+    /// Reddit Answers picked with no reddit.com web session: asks for a sign-in first.
+    @State private var showsAnswersSignIn = false
 
     public init(repository: RedditRepository, onSelect: @escaping (RedditSubreddit) -> Void,
                 onOpenTarget: @escaping (RedditURLTarget) -> Void = { _ in }) {
@@ -28,11 +39,20 @@ public struct SubredditSearchScreen: View {
     }
 
     private var showsExternal: Bool { engine.isExternal && !query.isEmpty }
+    private var showsAnswers: Bool { engine == .answers && !query.isEmpty }
 
     public var body: some View {
         Group {
             #if canImport(WebKit) && canImport(UIKit)
-            if showsExternal, !externalQuery.isEmpty, externalQuery == query {
+            if showsAnswers, showsAskedQuery {
+                RedditAnswerScreen(query: externalQuery, repository: repository, onOpen: onOpenTarget,
+                                   session: answersSession) { question in
+                    query = question
+                    externalQuery = question
+                }
+            } else if showsAnswers {
+                answersPrompt
+            } else if showsExternal, showsAskedQuery {
                 GoogleSearchResultsView(engine: engine, query: externalQuery, repository: repository, onOpen: onOpenTarget)
             } else if showsExternal {
                 suggestionList
@@ -47,11 +67,13 @@ public struct SubredditSearchScreen: View {
                     placement: .navigationBarDrawer(displayMode: .always),
                     prompt: engine.placeholder ?? "Search Posts, Subreddits, Users")
         .onSubmit(of: .search) {
-            if engine.isExternal { externalQuery = query }
+            if engine.isExternal || engine == .answers { externalQuery = query }
         }
         .onChange(of: query) { _, newValue in
             if engine.isExternal {
                 Task { await loadSuggestions(newValue) }
+            } else if engine == .answers {
+                // Asked on Return; there is nothing to look up while typing.
             } else {
                 Task { await search(newValue) }
             }
@@ -60,6 +82,9 @@ public struct SubredditSearchScreen: View {
         .background(SearchEngineMagnifier(engine: engine) { pick($0) }.frame(width: 0, height: 0))
         .sheet(isPresented: $showsKagiLinkSheet) {
             KagiSessionLinkSheet { pick(.kagi) }
+        }
+        .sheet(isPresented: $showsAnswersSignIn) {
+            RedditAnswersSignInSheet { pick(.answers) }
         }
         // Removing the Session Link in Settings puts Kagi mode back on Reddit.
         .onReceive(NotificationCenter.default.publisher(for: .kagiSessionLinkChanged)) { _ in syncEngine() }
@@ -80,12 +105,16 @@ public struct SubredditSearchScreen: View {
             showsKagiLinkSheet = true
             return
         }
+        if picked == .answers, !RedditAnswers.hasWebSession {
+            showsAnswersSignIn = true
+            return
+        }
         if !(picked.isExternal && !externalQuery.isEmpty) { externalQuery = "" }
         engine = picked
         SearchEngine.current = picked
         if picked == .reddit {
             Task { await search(query) }
-        } else {
+        } else if picked.isExternal {
             Task { await loadSuggestions(query) }
         }
     }
@@ -122,6 +151,25 @@ public struct SubredditSearchScreen: View {
                 EmptyView()
             } footer: {
                 Text("Searches Reddit through \(engine.title). Add r/name to search one subreddit, put a phrase in \"quotes\" to match it exactly, or add -word to leave a word out.")
+                    .apolloSectionFooter()
+            }
+        }
+        .apolloFlatListAppearance()
+    }
+
+    /// Reddit Answers while typing: one row asks exactly what was typed.
+    private var answersPrompt: some View {
+        List {
+            Button {
+                externalQuery = query
+            } label: {
+                Label("Ask Reddit Answers \u{201C}\(query)\u{201D}", systemImage: "sparkles")
+            }
+            .accessibilityIdentifier("answers.ask")
+            Section {
+                EmptyView()
+            } footer: {
+                Text("Reddit Answers writes a reply from Reddit posts and comments, with the posts it used. Reddit limits how many questions you can ask.")
                     .apolloSectionFooter()
             }
         }

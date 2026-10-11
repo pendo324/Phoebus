@@ -126,6 +126,14 @@ Apollo or Reborn, add an entry here.
   (e.g. Elder), fetched once per user and subreddit when the profile opens.
   It needs a web session and is hidden without one; Apollo and Reborn have
   no such section.
+- **The Search tab has a fourth engine, Reddit Answers.** Pick it from the
+  magnifier's "Search With" menu and a question asked on Return gets Reddit's
+  generated answer, drawn natively with numbered citations that open the cited
+  post or comment. Neither Apollo nor Apollo Reborn has it. It needs a
+  reddit.com web session (the one polls use), asks Reddit's website endpoints
+  rather than the OAuth API, and each question, follow-ups included, starts a
+  new conversation. Carousels, image and video cards, products and quote cards
+  are not requested; if one arrives it shows as its text and links.
 
 ## Profile
 

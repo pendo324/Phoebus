@@ -1,0 +1,48 @@
+id: 1
+event: userQuota
+data: {"queriesRemaining":42,"timeUntilResetSeconds":3725}
+
+id: 2
+event: patch
+data: [{"value":{"comments":[],"followUps":[],"posts":[],"renderOptions":{"source_bar":"disabled"},"translationLanguage":"en","richtext":{"document":[{"c":[{"c":[],"e":"ra:thinking_step","state":"in_progress","title":"Thinking...","uuid":"thinking_1"}],"e":"ra:reasoning","uuid":"reasoning_1"}]}},"op":"replace","path":""}]
+
+id: 3
+event: patch
+data: [{"value":"Searching for sourdough starter","op":"replace","path":"/richtext/document/0/c/0/title"}]
+
+id: 4
+event: patch
+data: [{"value":[{"c":[],"e":"ra:thinking_step","state":"complete","title":"Consolidating what redditors are saying","uuid":"thinking_1"},{"c":[{"c":[{"c":[],"e":"ra:post_source","id":"t3_aaa111","uuid":"post_source_1"},{"c":[],"e":"ra:post_source","id":"t3_bbb222","uuid":"post_source_2"}],"e":"ra:post_sources","uuid":"post_sources_1"},{"c":[{"c":[],"e":"ra:subreddit_source","id":"t5_sour1","uuid":"subreddit_source_1"},{"c":[],"e":"ra:subreddit_source","id":"t5_bake2","uuid":"subreddit_source_2"}],"e":"ra:subreddit_sources","uuid":"subreddit_sources_1"}],"e":"ra:subreddit_source_bar","subreddit_info":[{"name":"r/Sourdough","icon_url":"https://example.invalid/icon-sourdough.png"},{"name":"r/Breadit"}],"uuid":"subreddit_source_bar_1"}],"op":"replace","path":"/richtext/document/0/c"},{"value":[{"ID":"t5_sour1"},{"ID":"t5_bake2"}],"op":"add","path":"/subreddits"}]
+
+id: 5
+event: patch
+data: [{"value":{"c":[{"e":"text","t":"**"}],"e":"par"},"op":"add","path":"/richtext/document/1"}]
+
+id: 6
+event: patch
+data: [{"value":{"e":"text","f":[[1,0,40]],"t":"Feed it equal weights of flour and water daily. Keep it warm."},"op":"replace","path":"/richtext/document/1/c/0"}]
+
+id: 7
+event: patch
+data: [{"value":{"c":[{"e":"raw","t":"Feeding Schedule"}],"e":"h","l":3},"op":"add","path":"/richtext/document/2"},{"value":{"c":[{"c":[{"c":[{"e":"text","f":[[1,0,16],[2,17,6]],"t":"Room temperature starters want feeding every 12 hours. "},{"e":"link","t":"\"Mine doubles in about six hours at 78F\"","u":"https://www.reddit.com/r/Sourdough/comments/aaa111/starter_help/"},{"c":[],"e":"ra:source","id":"t3_aaa111","subreddit_name":"r/Sourdough","tl":"en","type":"post"}],"e":"par"}],"e":"li"},{"c":[{"c":[{"e":"text","t":"Fridge starters can wait a week. "},{"e":"link","t":"\"I feed mine on Sundays\"","u":"https://www.reddit.com/r/Breadit/comments/bbb222/comment/ccc333/"},{"c":[],"e":"ra:source","id":"t1_ccc333","subreddit_name":"r/Breadit","tl":"en","type":"comment"},{"e":"text","t":" "},{"c":[],"e":"ra:source","id":"t3_aaa111","subreddit_name":"r/Sourdough","tl":"en","type":"post"}],"e":"par"}],"e":"li"}],"e":"list","o":true},"op":"add","path":"/richtext/document/3"}]
+
+id: 8
+event: patch
+data: [{"value":[{"id":"x"}],"op":"test","path":"/nope"}]
+
+id: 9
+event: patch
+data: [{"value":{"c":[{"c":[],"e":"ra:imagecard","entity_id":"t1_ccc333","entity_type":"comment","height":900,"src":"https://example.invalid/starter.jpg","width":600}],"content_type":"media","e":"ra:carousel","label":"Related images from across Reddit","length":1,"state":"complete","uuid":"carousel-1"},"op":"add","path":"/richtext/document/4"},{"value":{"e":"hr"},"op":"add","path":"/richtext/document/5"},{"value":{"c":[{"c":[],"e":"ra:subreddit","id":"t5_sour1"},{"c":[],"e":"ra:subreddit","id":"t5_bake2"}],"content_type":"subreddit","e":"ra:grid"},"op":"add","path":"/richtext/document/6"}]
+
+id: 10
+event: patch
+data: [{"value":{"ID":"t1_ccc333"},"op":"add","path":"/comments/0"},{"from":"/comments/0","op":"copy","path":"/comments/1"},{"op":"remove","path":"/comments/1"},{"value":[{"ID":"t3_aaa111"},{"ID":"t3_bbb222"}],"op":"replace","path":"/posts"},{"value":[{"query":"how to revive a dead starter"},{"query":"best flour for starter"}],"op":"replace","path":"/followUps"},{"from":"/richtext/document/1","op":"move","path":"/richtext/document/2"}]
+
+id: 11
+event: patch
+data: [{"value":"complete","op":"replace","path":"/richtext/document/0/c/0/state"}]
+
+id: 12
+event: success
+data: {}
+

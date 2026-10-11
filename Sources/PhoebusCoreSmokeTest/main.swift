@@ -420,6 +420,9 @@ try await checkOnDeviceAIActuallyRunsA()
 
 try await checkApolloSRealVideoControlPanel()
 
+try await checkYouTubePlaysWithTheAppSControls()
+try await checkYouTubeVideoElementIsTheSourceOfTruth()
+
 try await checkSettingsRootRowsAreInThe()
 
 try await checkGlassNeedsTheAppSOwn()

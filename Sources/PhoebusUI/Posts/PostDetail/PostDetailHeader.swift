@@ -87,7 +87,7 @@ struct PostDetailHeader: View {
     private var mediaLeads: Bool {
         guard !isDeleted, post.pollData == nil, !post.isSelf, post.crosspostParent == nil else { return false }
         switch PostMediaKind.classify(post: post) {
-        case .image, .gif, .video, .redgifs, .gfycat, .streamable, .gallery, .imgurAlbum:
+        case .image, .gif, .video, .youtube, .redgifs, .gfycat, .streamable, .gallery, .imgurAlbum:
             return true
         default:
             return false

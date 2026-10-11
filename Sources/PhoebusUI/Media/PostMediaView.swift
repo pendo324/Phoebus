@@ -329,7 +329,8 @@ public struct PostMediaView: View {
         case .sportsClip(let pageURL):
             SportsClipView(pageURL: pageURL)
         case .youtube(let id):
-            YouTubePlayerView(videoID: id)
+            YouTubePlayerView(videoID: id, votePost: votePost, repository: voteRepository,
+                              onJumpToComments: onJumpToComments)
         case .vimeo(let id):
             VimeoPlayerView(videoID: id)
         case .steam(let kind, let id):

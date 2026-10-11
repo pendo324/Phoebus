@@ -833,3 +833,247 @@ import PhoebusCore
               absent?.fallbackURL == "https://v.redd.it/x/DASH_720.mp4")
     }
 }
+
+// MARK: - YouTube plays with the app's own controls
+//
+// YouTube's IFrame player runs with its controls off and the app's control
+// panel drives it, so the player's state numbers, the page's messages and the
+// playhead between its time reports must come out the way an AVPlayer's do.
+@MainActor func checkYouTubePlaysWithTheAppSControls() async throws {
+    do {
+        func parseMessage(_ body: [String: Any]) -> YouTubePlayerMessage? { YouTubePlayerMessage.parse(body) }
+        // The IFrame API's state numbers.
+        check("YouTube state codes map to their states",
+              [-1, 0, 1, 2, 3, 5].map { YouTubePlayerState(rawValue: $0) }
+                == [.unstarted, .ended, .playing, .paused, .buffering, .cued])
+        check("YouTube has no state 4", YouTubePlayerState(rawValue: 4) == nil)
+        check("playing and buffering show Pause, paused, cued, ended and unstarted show Play",
+              YouTubePlayerState.playing.isPlayingOrBuffering && YouTubePlayerState.buffering.isPlayingOrBuffering
+                && ![YouTubePlayerState.paused, .cued, .ended, .unstarted].contains { $0.isPlayingOrBuffering })
+
+        // Messages from the page, as Swift and as WebKit delivers numbers.
+        check("a ready message carries the duration and mute state",
+              parseMessage(["event": "ready", "duration": 212.0, "muted": false])
+                == .ready(duration: 212, isMuted: false))
+        check("a ready message without a mute state means muted",
+              parseMessage(["event": "ready"]) == .ready(duration: 0, isMuted: true))
+        check("a state message carries the state, playhead and duration",
+              parseMessage(["event": "state", "code": 1, "current": 12.5, "duration": 300])
+                == .state(.playing, current: 12.5, duration: 300))
+        check("a state message reads a number WebKit hands over as NSNumber",
+              parseMessage(["event": "state", "code": NSNumber(value: 2)])
+                == .state(.paused, current: nil, duration: nil))
+        check("a state message with a state the API doesn't have is ignored",
+              parseMessage(["event": "state", "code": 4]) == nil)
+        check("a time message carries the playhead, duration and rate",
+              parseMessage(["event": "time", "current": 3.25, "duration": 60, "rate": 1.5])
+                == .time(current: 3.25, duration: 60, rate: 1.5))
+        check("a time message without a playhead is ignored",
+              parseMessage(["event": "time", "duration": 60]) == nil)
+        check("a non-finite playhead is ignored",
+              parseMessage(["event": "time", "current": Double.nan, "duration": 60]) == nil)
+        check("an error message carries the API's error code",
+              parseMessage(["event": "error", "code": 150]) == .error(code: 150))
+        check("a rate message must have a positive rate",
+              parseMessage(["event": "rate", "rate": 2]) == .rate(2)
+                && parseMessage(["event": "rate", "rate": 0]) == nil)
+        check("an unknown event or a body that isn't a dictionary is ignored",
+              parseMessage(["event": "bogus"]) == nil && YouTubePlayerMessage.parse("ready") == nil
+                && parseMessage(["code": 1]) == nil)
+
+        // The playhead between the page's time reports.
+        var playback = YouTubePlayback()
+        check("a new playback starts muted, paused at zero",
+              playback.isMuted && !playback.isPlaying && playback.seconds(at: 50) == 0 && !playback.status.hasPlayed)
+        playback.apply(.ready(duration: 200, isMuted: true), at: 0)
+        check("ready makes the duration known", playback.status.isReady && playback.status.duration == 200)
+        playback.apply(.state(.playing, current: 10, duration: 200), at: 100)
+        check("playing carries the playhead forward between reports",
+              playback.seconds(at: 100) == 10 && abs(playback.seconds(at: 102.5) - 12.5) < 0.0001)
+        check("the first play marks the video as played", playback.status.hasPlayed && playback.status.isPlaying)
+        playback.apply(.time(current: 14, duration: 200, rate: nil), at: 103)
+        check("a time report corrects the playhead", abs(playback.seconds(at: 104) - 15) < 0.0001)
+        playback.apply(.rate(2), at: 104)
+        check("a faster rate carries the playhead faster, from where it was",
+              abs(playback.seconds(at: 104) - 15) < 0.0001 && abs(playback.seconds(at: 105) - 17) < 0.0001)
+        playback.apply(.state(.paused, current: 18, duration: 200), at: 106)
+        check("paused holds the playhead", playback.seconds(at: 120) == 18 && !playback.status.isPlaying)
+        playback.requestPlaying(true, at: 120)
+        check("asking to play shows Pause at once, before the player answers",
+              playback.status.isPlaying && playback.seconds(at: 125) == 18)
+        playback.apply(.state(.buffering, current: 18, duration: nil), at: 121)
+        check("buffering shows Pause but doesn't move the playhead",
+              playback.status.isPlaying && playback.seconds(at: 130) == 18)
+        playback.apply(.state(.playing, current: 18, duration: nil), at: 130)
+        playback.requestPlaying(false, at: 131)
+        check("asking to pause holds the playhead at once", !playback.status.isPlaying && playback.seconds(at: 140) == 20)
+        playback.apply(.state(.paused, current: nil, duration: nil), at: 141)
+        check("a state without a playhead keeps the one carried to it", playback.seconds(at: 150) == 20)
+        playback.requestPlaying(true, at: 141)
+        playback.settleRequest(at: 144)
+        check("a request the player never answers stops showing as playing",
+              !playback.status.isPlaying && playback.seconds(at: 150) == 20)
+        playback.seek(to: 90, at: 150)
+        check("seeking moves the playhead at once", playback.seconds(at: 150) == 90)
+        playback.apply(.state(.playing, current: 199, duration: nil), at: 151)
+        check("the playhead never runs past the duration", playback.seconds(at: 400) == 200)
+        playback.apply(.state(.ended, current: 199.6, duration: nil), at: 152)
+        check("an ended video rests at its duration and shows Play",
+              playback.seconds(at: 160) == 200 && !playback.status.isPlaying)
+        playback.setMuted(false)
+        check("mute state follows the app's choice", !playback.status.isMuted)
+        check("remaining time reuses the control panel's label",
+              VideoControlPanelTimeLabel(max(0, playback.status.duration - 75)) == "2:05")
+
+        var failed = YouTubePlayback()
+        failed.apply(.error(code: 150), at: 0)
+        check("an embedding-disabled error makes the video unplayable inline", failed.status.isUnplayable)
+        var transient = YouTubePlayback()
+        transient.apply(.error(code: 5), at: 0)
+        check("a transient player error does not", !transient.status.isUnplayable)
+
+        // Commands into the page.
+        check("play, pause, mute and unmute call the page's functions",
+              [YouTubeEmbed.Command.play, .pause, .mute, .unMute].map(\.script)
+                == ["phoebusYT.play()", "phoebusYT.pause()", "phoebusYT.mute()", "phoebusYT.unMute()"])
+        check("a seek carries the time and whether the API may seek ahead",
+              YouTubeEmbed.Command.seek(seconds: 12.5, allowSeekAhead: false).script == "phoebusYT.seek(12.500, false)"
+                && YouTubeEmbed.Command.seek(seconds: 90, allowSeekAhead: true).script == "phoebusYT.seek(90.000, true)")
+        check("a seek time that isn't a usable number is sent as zero",
+              YouTubeEmbed.Command.seek(seconds: .nan, allowSeekAhead: true).script == "phoebusYT.seek(0.000, true)"
+                && YouTubeEmbed.Command.seek(seconds: -4, allowSeekAhead: true).script == "phoebusYT.seek(0.000, true)")
+        check("a playback rate command carries the rate", YouTubeEmbed.Command.setPlaybackRate(1.25).script == "phoebusYT.setRate(1.250)")
+
+        // The page itself.
+        let origin = YouTubeEmbed.origin(bundleIdentifier: "com.pendo324.Phoebus")
+        let page = YouTubeEmbed.html(videoID: "dQw4w9WgXcQ", startSeconds: 0, origin: origin, captionsWanted: false) ?? ""
+        check("the player's own controls are off", page.contains("controls: 0") && page.contains("disablekb: 1") && page.contains("fs: 0"))
+        check("the player stays inline with related videos limited and annotations off",
+              page.contains("playsinline: 1") && page.contains("rel: 0") && page.contains("iv_load_policy: 3"))
+        check("the page offers the commands the app sends",
+              ["play", "pause", "mute", "unMute", "setRate", "seek"].allSatisfy { page.contains("\($0): function") })
+        check("the page reports state, time, rate and error changes",
+              ["onStateChange", "onPlaybackRateChange", "onError", "event: 'time'", "event: 'state'", "event: 'ready'"]
+                .allSatisfy { page.contains($0) })
+        check("the page reports the time at the update interval, only while playing",
+              page.contains("setInterval(postTime, 250)") && page.contains("e.data === 1 || e.data === 3")
+                && YouTubeEmbed.timeUpdateInterval == 0.25)
+        check("the page doesn't hide the player's branding",
+              !page.contains("display:none") && !page.contains("visibility:hidden") && !page.contains("opacity:0"))
+    }
+}
+
+@MainActor func checkYouTubeVideoElementIsTheSourceOfTruth() async throws {
+    func video(_ type: String, current: Double = 0, duration: Double = 100, rate: Double = 1, muted: Bool = true,
+               paused: Bool = false, ended: Bool = false, waiting: Bool = false, ad: Bool = false) -> [String: Any] {
+        ["event": "video", "type": type, "current": current, "duration": duration, "rate": rate, "muted": muted,
+         "paused": paused, "ended": ended, "waiting": waiting, "ad": ad]
+    }
+    func report(_ body: [String: Any]) -> YouTubePlayerMessage { YouTubePlayerMessage.parse(body) ?? .rate(0) }
+
+    // Messages from the embed frame's script.
+    check("a video report carries the element's state",
+          YouTubePlayerMessage.parse(video("pause", current: 12.5, duration: 300, rate: 1.5, muted: false, paused: true))
+            == .video(YouTubeVideoReport(type: "pause", current: 12.5, duration: 300, rate: 1.5, isMuted: false, isPaused: true)))
+    check("a video report reads numbers WebKit hands over as NSNumber",
+          YouTubePlayerMessage.parse(["event": "video", "type": "timeupdate", "current": NSNumber(value: 3), "paused": false])
+            == .video(YouTubeVideoReport(type: "timeupdate", current: 3, duration: 0, rate: 1, isMuted: true, isPaused: false)))
+    check("a video report without a type is ignored", YouTubePlayerMessage.parse(["event": "video", "paused": false]) == nil)
+    check("a video report with no usable playhead reads zero",
+          YouTubePlayerMessage.parse(["event": "video", "type": "play", "current": Double.nan, "paused": false])
+            == .video(YouTubeVideoReport(type: "play", current: 0, duration: 0, rate: 1, isMuted: true, isPaused: false)))
+    check("the element's flags amount to a player state",
+          [YouTubeVideoReport(type: "a", isPaused: false).state, YouTubeVideoReport(type: "a", isPaused: false, isWaiting: true).state,
+           YouTubeVideoReport(type: "a", isPaused: true).state, YouTubeVideoReport(type: "a", isPaused: false, isEnded: true).state]
+            == [.playing, .buffering, .paused, .ended])
+
+    // The element decides over the IFrame API once it has reported.
+    var playback = YouTubePlayback()
+    playback.apply(.state(.playing, current: 5, duration: 100), at: 0)
+    check("before the element is found, the API's reports count", playback.status.isPlaying && !playback.hasVideoSource)
+    playback.apply(report(video("attached", current: 5, muted: true, paused: true)), at: 1)
+    check("the first video report takes over", playback.hasVideoSource && !playback.status.isPlaying)
+    playback.apply(.state(.playing, current: 50, duration: 100), at: 2)
+    playback.apply(.time(current: 50, duration: 100, rate: 2), at: 2)
+    playback.apply(.rate(3), at: 2)
+    check("the API's state, time and rate reports are then ignored",
+          !playback.status.isPlaying && playback.seconds(at: 3) == 5 && playback.rate == 1)
+    playback.apply(.ready(duration: 100, isMuted: false), at: 2)
+    check("the API's ready doesn't set the sound", playback.status.isMuted)
+    playback.apply(report(video("volumechange", current: 5, muted: false, paused: true)), at: 3)
+    check("the mute state follows what the element reports", !playback.status.isMuted)
+    playback.apply(report(video("volumechange", current: 5, muted: true, paused: true)), at: 3)
+    check("a re-muted element shows as muted", playback.status.isMuted)
+    playback.apply(report(video("playing", current: 5, rate: 2)), at: 10)
+    check("playing carries the playhead at the element's rate",
+          playback.status.isPlaying && playback.status.hasPlayed && abs(playback.seconds(at: 11) - 7) < 0.0001)
+    playback.apply(report(video("waiting", current: 7, rate: 2, waiting: true)), at: 11)
+    check("waiting shows Pause but stops the playhead", playback.status.isPlaying && playback.seconds(at: 20) == 7)
+
+    // An ad in the same element leaves the content's time alone.
+    playback.apply(report(video("playing", current: 7, rate: 2)), at: 20)
+    playback.apply(report(video("ad", current: 0.5, duration: 15, rate: 1, ad: true)), at: 21)
+    check("an ad reports as an ad", playback.status.isAd)
+    check("an ad's time, duration and rate don't move the scrub bar",
+          playback.seconds(at: 30) == playback.seconds(at: 21) && playback.status.duration == 100 && playback.rate == 2)
+    playback.apply(report(video("timeupdate", current: 3, duration: 15, rate: 1, ad: true)), at: 22)
+    check("the ad's playhead is not taken for the content's", abs(playback.seconds(at: 22) - 7) < 0.0001)
+    playback.apply(report(video("ad", current: 7, duration: 100, rate: 2, ad: false)), at: 40)
+    check("the content's playhead resumes when the ad ends",
+          !playback.status.isAd && abs(playback.seconds(at: 41) - 9) < 0.0001)
+
+    // A play the app asked for isn't undone by a stale pause report.
+    playback.apply(report(video("pause", current: 9, paused: true)), at: 50)
+    playback.requestPlaying(true, at: 51)
+    playback.apply(report(video("pause", current: 9, paused: true)), at: 51.1)
+    check("a pause report while a play is pending keeps showing Pause", playback.status.isPlaying)
+    playback.apply(report(video("playing", current: 9)), at: 51.5)
+    check("the element playing settles the request", playback.status.isPlaying)
+    playback.apply(report(video("ended", current: 99.6, ended: true)), at: 60)
+    check("an ended element rests at its duration", !playback.status.isPlaying && playback.seconds(at: 70) == 100)
+
+    playback.videoSourceLost()
+    check("a reloaded page hands back to the API until the element is found again",
+          !playback.hasVideoSource && !playback.status.isAd)
+
+    // Commands into the embed frame.
+    check("each command has a frame call that answers whether the element took it",
+          [YouTubeEmbed.Command.play, .pause, .mute, .unMute].map(\.frameScript)
+            == ["window.__phoebusFrame ? __phoebusFrame.play() : false", "window.__phoebusFrame ? __phoebusFrame.pause() : false",
+                "window.__phoebusFrame ? __phoebusFrame.mute() : false", "window.__phoebusFrame ? __phoebusFrame.unMute() : false"])
+    check("keeping playback through an audio session change runs in the frame and is a no-op on the API",
+          YouTubeEmbed.Command.keepPlaying.frameScript == "window.__phoebusFrame ? __phoebusFrame.keepPlaying() : true"
+            && YouTubeEmbed.Command.keepPlaying.script == "void 0")
+    check("a frame seek and rate carry a usable number",
+          YouTubeEmbed.Command.seek(seconds: 12.5, allowSeekAhead: false).frameScript == "window.__phoebusFrame ? __phoebusFrame.seek(12.500) : false"
+            && YouTubeEmbed.Command.seek(seconds: .infinity, allowSeekAhead: true).frameScript == "window.__phoebusFrame ? __phoebusFrame.seek(0.000) : false"
+            && YouTubeEmbed.Command.setPlaybackRate(2).frameScript == "window.__phoebusFrame ? __phoebusFrame.setRate(2.000) : false")
+
+    // The frame script.
+    let script = YouTubeEmbed.frameScript(captionsWanted: false)
+    check("the frame script acts only in YouTube's embed frame",
+          script.contains("youtube(-nocookie)?\\.com$") && script.contains("location.pathname.indexOf('/embed/') !== 0"))
+    check("the frame script reports to the app's message handler as video events",
+          script.contains("messageHandlers.\(YouTubeEmbed.messageHandlerName)") && script.contains("event: 'video'"))
+    check("the frame script offers every command", ["play", "pause", "mute", "unMute", "seek", "setRate"].allSatisfy { script.contains("\($0): function") })
+    check("the frame script reports the video's events",
+          ["playing", "pause", "waiting", "seeked", "timeupdate", "ratechange", "durationchange", "ended", "volumechange"]
+            .allSatisfy { script.contains("'\($0)'") })
+    check("the frame script reports an ad from the player's class", script.contains("ad-showing"))
+    check("the overlays hidden include the desktop and mobile players' controls, title and play button",
+          [".ytp-chrome-bottom", ".ytp-large-play-button", ".ytp-title", ".ytp-spinner", ".ytp-pause-overlay", "#player-controls",
+           ".ytmVideoInfoHost", ".ytmCuedOverlayHost"].allSatisfy { YouTubeEmbed.hiddenOverlaySelectors.contains($0) }
+            && script.contains("display:none !important"))
+    check("the error screen stays visible", !YouTubeEmbed.hiddenOverlaySelectors.contains { $0.contains("error") })
+
+    // Captions: kept off and hidden unless the system caption setting wants them.
+    let captionsWantedScript = YouTubeEmbed.frameScript(captionsWanted: true)
+    check("the frame script keeps captions off when they aren't wanted",
+          script.contains("captionsWanted = false") && script.contains("unloadModule('captions')")
+            && script.contains("setOption('captions', 'track', {})"))
+    check("the frame script re-applies caption-off on source changes, rate-limited",
+          script.contains("'loadedmetadata'") && script.contains("captionResets.length >= 6"))
+    check("the frame script hides the caption layer only when captions aren't wanted",
+          YouTubeEmbed.captionSelectors.allSatisfy { script.contains($0) && !captionsWantedScript.contains($0) })
+    check("the frame script leaves captions alone when they are wanted", captionsWantedScript.contains("captionsWanted = true"))
+}

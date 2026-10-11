@@ -46,6 +46,25 @@ Apollo or Reborn, add an entry here.
   which opens the video, instead of YouTube's own error page.
 - **Inline YouTube captions follow the system caption setting.** They are
   off unless Closed Captions + SDH is on or Subtitles is On for the app.
+- **YouTube videos play with the app's own controls.** Apollo and Reborn
+  show YouTube's web player with its own controls. Phoebus runs the same
+  official IFrame player with YouTube's controls off and drives the video
+  element in its embed frame from the app, hiding the player's own overlays
+  (play button, title bar, spinner, end screens), so a YouTube video behaves
+  like every other video: inline on the post screen it looks like a
+  v.redd.it video (full-width picture, the corner mute badge, the Feed Video
+  Scrubber strip and the speed menu over it, no control panel), and the
+  fullscreen viewer has the control panel, scrub bar, remaining time and
+  mute button (the same web view moved into it, aspect-fit to the whole screen, with the
+  viewer's chrome and the floating control panel over the picture), Hold for
+  Video Speed and the scrub gesture, and the floating in-app PiP card when
+  the post's video is scrolled away. The mute button shows what the video
+  element reports, and ads that play in the same element are not scrubbable.
+  The AirPlay button and the system PiP hand-off are AVPlayer features and
+  don't apply to it. While the video is paused, not yet played or ended, a
+  YouTube logo shows at the bottom-left of the picture (inline, fullscreen
+  and on the card); tapping it opens the video on YouTube at the current
+  time.
 
 ## Settings and interface
 

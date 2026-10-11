@@ -10,7 +10,10 @@ import AVKit
 ///
 /// - A playing post video scrolled out of view on the comments page keeps
 ///   playing in a floating card that hosts a second `AVPlayerLayer` on the
-///   same `AVPlayer`; scrolling back hides the card.
+///   same `AVPlayer`; scrolling back hides the card. A YouTube video's card
+///   hosts the player's web view instead (`YouTubePlayerBridge`), moved in
+///   from the post and back; its controls and progress go through the
+///   bridge's `VideoTransport`.
 /// - The card lives in its own passthrough window above the app; only the
 ///   card takes touches.
 /// - Size is an area calibrated so a 16:9 video is half the screen wide,
@@ -50,6 +53,8 @@ final class FloatingPiPController: NSObject {
     static let controlsAutoHide: TimeInterval = 3
 
     private(set) var player: AVPlayer?
+    /// A YouTube video on the card, instead of `player`.
+    private(set) var youtube: YouTubePlayerBridge?
     private(set) var ownerID: String?
     /// The post screen that owns the card's video; its closing is a
     /// back-pop (see `floatingPiPScreenScope`).
@@ -65,6 +70,9 @@ final class FloatingPiPController: NSObject {
     private var card: UIView?
     private var playerLayer: AVPlayerLayer?
     private var layerView: PlayerLayerView?
+    private var youtubeHost: YouTubeWebHostView?
+    private var youtubeTimer: Timer?
+    private var youtubeLogo: UIButton?
     private var overlay: UIView?
     private var stashHandle: UIImageView?
     private var playButton: UIButton?
@@ -95,6 +103,20 @@ final class FloatingPiPController: NSObject {
     /// not pause it.
     func owns(_ player: AVPlayer) -> Bool {
         isShowing && self.player === player
+    }
+
+    /// Whether the card has this YouTube video.
+    func owns(_ bridge: YouTubePlayerBridge) -> Bool {
+        isShowing && youtube === bridge
+    }
+
+    private var isCardPlaying: Bool {
+        if let youtube { return youtube.isPlaying }
+        return player.map { $0.timeControlStatus != .paused } ?? false
+    }
+
+    private var isCardMuted: Bool {
+        youtube?.isMuted ?? player?.isMuted ?? true
     }
 
     private let lastCenterXKey = "PictureInPictureLastCenterX"
@@ -174,6 +196,7 @@ final class FloatingPiPController: NSObject {
               screenID: UUID? = nil, fromFullscreen: Bool = false) {
         settings = PictureInPictureSettingsStore.load()
         if ownerID != owner || self.player !== player { stopObserving() }
+        releaseYouTube()
         self.player = player
         ownerID = owner
         ownerScreenID = screenID
@@ -205,6 +228,60 @@ final class FloatingPiPController: NSObject {
         syncControls()
     }
 
+    /// A YouTube video's card: the player's web view moves in from the post
+    /// (or the fullscreen viewer) and goes back when the card closes. System
+    /// PiP and the looping of an ended clip don't apply to a web player.
+    func show(youtube bridge: YouTubePlayerBridge, owner: String, screenID: UUID? = nil,
+              fromFullscreen: Bool = false) {
+        settings = PictureInPictureSettingsStore.load()
+        if youtube !== bridge { stopObserving() }
+        releaseYouTube()
+        player = nil
+        playerLayer?.player = nil
+        youtube = bridge
+        ownerID = owner
+        ownerScreenID = screenID
+        isGIFContent = false
+        self.fromFullscreen = fromFullscreen
+        if !bridge.isMuted { VideoAudioSession.claim(Self.audioHolder) }
+        aspect = YouTubePlayerBridge.aspectRatio
+        buildIfNeeded()
+        guard let card, let window else { return }
+        destroyNativePiP()
+        if card.isHidden {
+            let size = spawnSize()
+            card.bounds = CGRect(origin: .zero, size: size)
+            placeAtSpawn(size: size)
+            card.isHidden = false
+            card.alpha = 0
+            card.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
+            UIView.animate(withDuration: 0.25) {
+                card.alpha = 1
+                card.transform = .identity
+            }
+        }
+        // The card is on screen before the web view arrives: a video in a web
+        // view that is hidden or has no window gets paused.
+        window.isHidden = false
+        let host = YouTubeWebHostView(frame: card.bounds)
+        host.backgroundColor = .clear
+        host.isUserInteractionEnabled = false
+        host.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        card.insertSubview(host, at: 1)
+        youtubeHost = host
+        bridge.register(host: host, role: .card)
+        startObserving()
+        syncControls()
+    }
+
+    private func releaseYouTube() {
+        youtubeLogo?.isHidden = true
+        if let youtube, let youtubeHost { youtube.unregister(host: youtubeHost) }
+        youtubeHost?.removeFromSuperview()
+        youtubeHost = nil
+        youtube = nil
+    }
+
     /// The inline video is visible again: hand the picture back, still
     /// playing.
     func hide(owner: String) {
@@ -227,7 +304,10 @@ final class FloatingPiPController: NSObject {
     func close() {
         // A fullscreen-origin card's player is its own: nothing inline
         // shows it, so it always stops.
-        if let player, !isGIFContent || fromFullscreen {
+        if let youtube {
+            youtube.pause()
+            youtube.setMuted(true)
+        } else if let player, !isGIFContent || fromFullscreen {
             player.pause()
             player.isMuted = true
         }
@@ -277,6 +357,7 @@ final class FloatingPiPController: NSObject {
         window?.isHidden = true
         playerLayer?.player = nil
         player = nil
+        releaseYouTube()
         ownerID = nil
         ownerScreenID = nil
         isGIFContent = false
@@ -287,10 +368,11 @@ final class FloatingPiPController: NSObject {
     // MARK: System PiP
 
     /// "Enable PiP When Leaving App": the card's layer gets a system PiP
-    /// controller that starts on its own when the app backgrounds.
+    /// controller that starts on its own when the app backgrounds. A web
+    /// player has none: the page's PiP needs a user gesture to start.
     private func setupNativePiP() {
         guard settings.systemEnabled, AVPictureInPictureController.isPictureInPictureSupported(),
-              nativePiP == nil, let playerLayer else { return }
+              nativePiP == nil, youtube == nil, let playerLayer else { return }
         let controller = AVPictureInPictureController(playerLayer: playerLayer)
         controller?.canStartPictureInPictureAutomaticallyFromInline = true
         controller?.delegate = self
@@ -508,6 +590,15 @@ final class FloatingPiPController: NSObject {
         settingsButton = button("gearshape.fill", 14, #selector(settingsTapped), "Picture in Picture Settings")
         muteButton = button("speaker.slash.fill", 14, #selector(muteTapped), "Mute")
 
+        let logo = UIButton(type: .custom)
+        logo.setImage(YouTubeLogoLink.image(height: 12, scale: card.traitCollection.displayScale), for: .normal)
+        logo.addTarget(self, action: #selector(youtubeLogoTapped), for: .touchUpInside)
+        logo.accessibilityLabel = "Watch on YouTube"
+        logo.accessibilityIdentifier = "youtube.logo"
+        logo.isHidden = true
+        card.addSubview(logo)
+        youtubeLogo = logo
+
         let handle = UIImageView()
         handle.tintColor = .white
         handle.contentMode = .center
@@ -580,11 +671,12 @@ final class FloatingPiPController: NSObject {
     }
 
     private func syncControls() {
-        guard let player else { return }
-        let playing = player.timeControlStatus != .paused
+        guard player != nil || youtube != nil else { return }
+        syncYouTubeLogo()
+        let playing = isCardPlaying
         playButton?.setImage(UIImage(systemName: playing ? "pause.fill" : "play.fill",
                                      withConfiguration: UIImage.SymbolConfiguration(pointSize: 26, weight: .semibold)), for: .normal)
-        muteButton?.setImage(UIImage(systemName: player.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+        muteButton?.setImage(UIImage(systemName: isCardMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                                      withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)), for: .normal)
         muteButton?.isHidden = isGIFContent
         let secs = settings.skipSeconds
@@ -593,7 +685,30 @@ final class FloatingPiPController: NSObject {
         skipForward?.setImage(UIImage(systemName: "goforward.\(secs)", withConfiguration: medium) ?? UIImage(systemName: "goforward", withConfiguration: medium), for: .normal)
     }
 
+    /// The YouTube logo at the card's bottom-left while the video isn't
+    /// playing; the controls overlay replaces it while that shows.
+    private func syncYouTubeLogo() {
+        guard let card, let logo = youtubeLogo else { return }
+        let visible = youtube.map { !$0.isPlaying } == true && overlay?.isHidden != false
+        if visible, let size = logo.image(for: .normal)?.size {
+            logo.frame = CGRect(x: 2, y: card.bounds.height - size.height - 2, width: size.width, height: size.height)
+        }
+        logo.isHidden = !visible
+        card.bringSubviewToFront(logo)
+        if let handle = stashHandle { card.bringSubviewToFront(handle) }
+    }
+
+    @objc private func youtubeLogoTapped() {
+        guard let youtube else { return }
+        YouTubeLogoLink.open(youtube)
+    }
+
     private func updateProgress() {
+        if let youtube, let track = progressTrack, let fill = progressFill, youtube.durationSeconds > 0 {
+            let fraction = max(0, min(1, youtube.currentSeconds / youtube.durationSeconds))
+            fill.frame = CGRect(x: 0, y: 0, width: track.bounds.width * fraction, height: track.bounds.height)
+            return
+        }
         guard let player, let track = progressTrack, let fill = progressFill,
               let item = player.currentItem, item.duration.isNumeric, item.duration.seconds > 0 else { return }
         let fraction = max(0, min(1, player.currentTime().seconds / item.duration.seconds))
@@ -603,6 +718,18 @@ final class FloatingPiPController: NSObject {
     // MARK: Observation
 
     private func startObserving() {
+        if youtube != nil {
+            guard youtubeTimer == nil else { return }
+            let timer = Timer(timeInterval: 1.0 / 15, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.updateProgress()
+                    self?.syncControls()
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            youtubeTimer = timer
+            return
+        }
         guard let player, timeObserver == nil else { return }
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(value: 1, timescale: 30), queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -622,6 +749,8 @@ final class FloatingPiPController: NSObject {
     }
 
     private func stopObserving() {
+        youtubeTimer?.invalidate()
+        youtubeTimer = nil
         if let timeObserver, let player { player.removeTimeObserver(timeObserver) }
         timeObserver = nil
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
@@ -725,6 +854,12 @@ final class FloatingPiPController: NSObject {
     }
 
     @objc private func playPauseTapped() {
+        if let youtube {
+            if youtube.isPlaying { youtube.pause() } else { youtube.play() }
+            syncControls()
+            showControls()
+            return
+        }
         guard let player else { return }
         if player.timeControlStatus == .paused { player.play() } else { player.pause() }
         syncControls()
@@ -732,6 +867,14 @@ final class FloatingPiPController: NSObject {
     }
 
     @objc private func muteTapped() {
+        if let youtube {
+            if youtube.isMuted { VideoAudioSession.claim(Self.audioHolder) }
+            youtube.setMuted(!youtube.isMuted)
+            if youtube.isMuted { VideoAudioSession.release(Self.audioHolder) }
+            syncControls()
+            showControls()
+            return
+        }
         guard let player else { return }
         if player.isMuted { VideoAudioSession.claim(Self.audioHolder) }
         player.isMuted.toggle()
@@ -749,6 +892,13 @@ final class FloatingPiPController: NSObject {
     @objc private func skipForwardTapped() { skip(by: Double(settings.skipSeconds)) }
 
     private func skip(by seconds: Double) {
+        if let youtube {
+            let target = max(0, youtube.currentSeconds + seconds)
+            youtube.seek(to: youtube.durationSeconds > 0 ? min(target, youtube.durationSeconds) : target,
+                         scrubbing: false, completion: nil)
+            showControls()
+            return
+        }
         guard let player else { return }
         let target = max(0, player.currentTime().seconds + seconds)
         player.seek(to: CMTime(seconds: target, preferredTimescale: 600))
@@ -945,6 +1095,27 @@ enum FloatingPiPHomes {
     static func isVisible(_ owner: String) -> Bool { visible[owner] == true }
 }
 
+/// Reports whether an inline video has scrolled away: under the navigation
+/// bar (past its midpoint) or off the bottom. Only changes are reported: each
+/// evaluation by the callers reads the PiP settings and probes tracks.
+private struct FloatingPiPOffscreenWatcher: ViewModifier {
+    let onChange: (Bool) -> Void
+    @State private var probe = NavigationBarProbe.Box()
+    @State private var wasOffScreen: Bool?
+
+    func body(content: Content) -> some View {
+        content
+            .background(NavigationBarProbe(box: probe).frame(width: 0, height: 0))
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                let screen = UIScreen.main.bounds
+                let offScreen = frame.midY < probe.topLimit || frame.midY > screen.height || frame.width < 1
+                guard offScreen != wasOffScreen else { return }
+                wasOffScreen = offScreen
+                onChange(offScreen)
+            }
+    }
+}
+
 /// Watches an inline video's frame and hands it to the floating card when
 /// it scrolls under the navigation bar or off the bottom while playing,
 /// and takes it back when it returns.
@@ -954,28 +1125,15 @@ struct FloatingPiPSource: ViewModifier {
     let aspectRatio: CGFloat
     var isGIF = false
     var screenID: UUID?
-    @State private var probe = NavigationBarProbe.Box()
-    /// Whether the last frame was scrolled away. The hand-over is decided
-    /// when that changes, not on every scroll frame: each evaluation read
-    /// the PiP settings and probed the item's tracks.
-    @State private var wasOffScreen: Bool?
     /// Paused here for being scrolled away without going to the card, so
     /// scrolling back plays it again.
     @State private var pausedOffScreen = false
 
     func body(content: Content) -> some View {
-        content
-            .background(NavigationBarProbe(box: probe).frame(width: 0, height: 0))
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
-                evaluate(frame)
-            }
+        content.modifier(FloatingPiPOffscreenWatcher { evaluate(offScreen: $0) })
     }
 
-    private func evaluate(_ frame: CGRect) {
-        let screen = UIScreen.main.bounds
-        let offScreen = frame.midY < probe.topLimit || frame.midY > screen.height || frame.width < 1
-        guard offScreen != wasOffScreen else { return }
-        wasOffScreen = offScreen
+    private func evaluate(offScreen: Bool) {
         let controller = FloatingPiPController.shared
         if offScreen {
             guard !controller.isShowing || controller.ownerID != owner else { return }
@@ -1000,6 +1158,44 @@ struct FloatingPiPSource: ViewModifier {
             if pausedOffScreen {
                 pausedOffScreen = false
                 player.play()
+            }
+        }
+    }
+}
+
+/// The same hand-over for a YouTube video: the card takes the player's web
+/// view.
+struct FloatingPiPYouTubeSource: ViewModifier {
+    let bridge: YouTubePlayerBridge
+    let owner: String
+    var screenID: UUID?
+    /// Paused here for being scrolled away without going to the card.
+    @State private var pausedOffScreen = false
+
+    func body(content: Content) -> some View {
+        content.modifier(FloatingPiPOffscreenWatcher { evaluate(offScreen: $0) })
+    }
+
+    private func evaluate(offScreen: Bool) {
+        let controller = FloatingPiPController.shared
+        if offScreen {
+            guard !controller.isShowing || controller.ownerID != owner else { return }
+            guard FloatingPiPController.shouldActivate(settings: PictureInPictureSettingsStore.load(),
+                                                       isPlaying: bridge.isPlaying,
+                                                       isMuted: bridge.isMuted, isGIF: false) else {
+                // Not going to the card: a video scrolled out of sight stops.
+                if bridge.isPlaying {
+                    bridge.pause()
+                    pausedOffScreen = true
+                }
+                return
+            }
+            controller.show(youtube: bridge, owner: owner, screenID: screenID)
+        } else {
+            controller.hide(owner: owner)
+            if pausedOffScreen {
+                pausedOffScreen = false
+                bridge.play()
             }
         }
     }
@@ -1078,6 +1274,11 @@ extension View {
                            isGIF: Bool = false, screenID: UUID? = nil) -> some View {
         modifier(FloatingPiPSource(player: player, owner: owner, aspectRatio: aspectRatio,
                                    isGIF: isGIF, screenID: screenID))
+    }
+
+    /// Reborn's in-app PiP source for a YouTube video.
+    func floatingPiPSource(youtube bridge: YouTubePlayerBridge, owner: String, screenID: UUID? = nil) -> some View {
+        modifier(FloatingPiPYouTubeSource(bridge: bridge, owner: owner, screenID: screenID))
     }
 
     /// Marks a post screen, so closing it resolves the card as a back-pop.

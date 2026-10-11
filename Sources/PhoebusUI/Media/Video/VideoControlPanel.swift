@@ -7,19 +7,22 @@ import PhoebusCore
 /// scrubber) in portrait; one row in landscape with a different
 /// control order.
 public struct VideoControlPanel: View {
-    let player: AVPlayer
+    let transport: any VideoTransport
     /// Landscape uses `landscapeHeight`: one row instead of two, with
     /// a different order (skip/play/skip, times, scrubber, then
     /// AirPlay and mute trailing).
     let isLandscape: Bool
+    /// AirPlay routes an `AVPlayer`; a web player's video can't be sent
+    /// through the picker, so its panel leaves the button out.
+    let showsAirPlay: Bool
 
     @State private var isPlaying = false
     @State private var isMuted: Bool
-    @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var isScrubbing = false
     @State private var scrubTime: Double = 0
-    @State private var timeObserver: Any?
+    /// Picks up the duration once the item has loaded it.
+    @State private var durationTick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     /// Apollo's `showsRouteButton` flag: the AirPlay button is conditional on a
     /// route being available (`AVRouteDetector`), not always shown.
     @State private var showsRouteButton = false
@@ -34,17 +37,19 @@ public struct VideoControlPanel: View {
     let onToggleMute: (() -> Void)?
 
     public init(player: AVPlayer, isLandscape: Bool = false, onToggleMute: (() -> Void)? = nil) {
-        self.player = player
+        self.init(transport: AVPlayerTransport.shared(for: player), isLandscape: isLandscape, onToggleMute: onToggleMute)
+    }
+
+    init(transport: any VideoTransport, isLandscape: Bool = false, showsAirPlay: Bool = true, onToggleMute: (() -> Void)? = nil) {
+        self.transport = transport
         self.isLandscape = isLandscape
+        self.showsAirPlay = showsAirPlay
         self.onToggleMute = onToggleMute
-        _isMuted = State(initialValue: player.isMuted)
+        _isMuted = State(initialValue: transport.isMuted)
         // Known at once when the item has loaded, so the bar's first frame is
         // already in proportion.
-        let known = player.currentItem?.duration.seconds ?? 0
-        _duration = State(initialValue: known.isFinite && known > 0 ? known : 0)
-        let now = player.currentTime().seconds
-        _currentTime = State(initialValue: now.isFinite && now > 0 ? now : 0)
-        _isPlaying = State(initialValue: player.rate != 0)
+        _duration = State(initialValue: transport.durationSeconds)
+        _isPlaying = State(initialValue: transport.isPlaying)
     }
 
     public var body: some View {
@@ -59,8 +64,14 @@ public struct VideoControlPanel: View {
             RoundedRectangle(cornerRadius: Metrics.cornerRadius, style: .continuous)
                 .fill(Color(red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255))
         )
-        .onAppear { startObserving(); startRouteDetection() }
-        .onDisappear { stopObserving(); stopRouteDetection() }
+        .onAppear {
+            isPlaying = transport.isPlaying
+            isMuted = transport.isMuted
+            updateDuration()
+            if showsAirPlay { startRouteDetection() }
+        }
+        .onDisappear { stopRouteDetection() }
+        .onReceive(durationTick) { _ in if duration <= 0 { updateDuration() } }
         .accessibilityIdentifier("video.controlPanel")
     }
 
@@ -91,7 +102,7 @@ public struct VideoControlPanel: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 Group {
-                    if showsRouteButton { airPlayButton } else { Color.clear }
+                    if showsAirPlay, showsRouteButton { airPlayButton } else { Color.clear }
                 }
                 .frame(width: 28, height: 28)
                 Spacer(minLength: 0)
@@ -123,7 +134,7 @@ public struct VideoControlPanel: View {
             playPauseButton
             forward15Button
             scrubberRow
-            if showsRouteButton { airPlayButton }
+            if showsAirPlay, showsRouteButton { airPlayButton }
             muteUnmuteButton
         }
         .padding(.horizontal, 16)
@@ -133,7 +144,7 @@ public struct VideoControlPanel: View {
     private var scrubberRow: some View {
         // Read every frame, so the labels and the bar move with the
         // video and follow a scrub from anywhere at once.
-        VideoLiveTime(player: player) { seconds in
+        VideoLiveTime(transport: transport) { seconds in
             let shown = isScrubbing ? scrubTime : seconds
             HStack(spacing: 0) {
                 Text(Self.timeLabel(shown))
@@ -165,10 +176,10 @@ public struct VideoControlPanel: View {
                 if !isScrubbing { isScrubbing = true }
                 scrubTime = seconds
                 // The picture follows the thumb, not just the release.
-                VideoScrubSession.shared(for: player).scrub(to: seconds)
+                VideoScrubSession.shared(for: transport).scrub(to: seconds)
             },
             onEnd: {
-                VideoScrubSession.shared(for: player).end(at: scrubTime)
+                VideoScrubSession.shared(for: transport).end(at: scrubTime)
                 isScrubbing = false
             }
         )
@@ -179,8 +190,8 @@ public struct VideoControlPanel: View {
         Button {
             // By the player's intended rate: `timeControlStatus` reads "waiting"
             // while a just-played video buffers, which would show Play again.
-            if player.rate != 0 { player.pause() } else { player.play() }
-            isPlaying = player.rate != 0
+            if transport.isPlaying { transport.pause() } else { transport.play() }
+            isPlaying = transport.isPlaying
         } label: {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
@@ -190,7 +201,7 @@ public struct VideoControlPanel: View {
         .accessibilityIdentifier("video.playPauseButton")
         // Follows the player: autoplay, the end of a clip, or another
         // control can change it.
-        .onReceive(player.publisher(for: \.rate).receive(on: RunLoop.main)) { isPlaying = $0 != 0 }
+        .onReceive(transport.isPlayingPublisher) { isPlaying = $0 }
     }
 
     private var back15Button: some View {
@@ -215,7 +226,7 @@ public struct VideoControlPanel: View {
 
     private var muteUnmuteButton: some View {
         Button {
-            if let onToggleMute { onToggleMute() } else { player.isMuted.toggle() }
+            if let onToggleMute { onToggleMute() } else { transport.setMuted(!transport.isMuted) }
         } label: {
             Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                 .font(.title3)
@@ -224,7 +235,7 @@ public struct VideoControlPanel: View {
         .accessibilityLabel(isMuted ? "Unmute" : "Mute")
         .accessibilityIdentifier("video.muteUnmuteButton")
         // Follows the player: another video or the viewer can mute it.
-        .onReceive(player.publisher(for: \.isMuted).receive(on: RunLoop.main)) { isMuted = $0 }
+        .onReceive(transport.isMutedPublisher) { isMuted = $0 }
     }
 
     /// Real `AVRoutePickerView`, not a look-alike button: only the
@@ -265,8 +276,8 @@ public struct VideoControlPanel: View {
     }
 
     private func skip(by seconds: Double) {
-        let target = max(0, min(duration, currentTime + seconds))
-        player.seek(to: CMTime(seconds: target, preferredTimescale: 600))
+        let target = max(0, min(duration, transport.currentSeconds + seconds))
+        transport.seek(to: target, scrubbing: false, completion: nil)
     }
 
     /// `m:ss`, matching Apollo's own display format. Delegates to
@@ -275,30 +286,9 @@ public struct VideoControlPanel: View {
         VideoControlPanelTimeLabel(seconds)
     }
 
-    private func startObserving() {
-        isPlaying = player.rate != 0
-        isMuted = player.isMuted
-        updateDuration()
-        timeObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600),
-            queue: .main
-        ) { time in
-            if !isScrubbing { currentTime = time.seconds }
-            if duration <= 0 { updateDuration() }
-        }
-    }
-
     private func updateDuration() {
-        guard let item = player.currentItem else { return }
-        let d = item.duration.seconds
-        if d.isFinite, d > 0 { duration = d }
-    }
-
-    private func stopObserving() {
-        if let timeObserver {
-            player.removeTimeObserver(timeObserver)
-            self.timeObserver = nil
-        }
+        let known = transport.durationSeconds
+        if known > 0 { duration = known }
     }
 }
 

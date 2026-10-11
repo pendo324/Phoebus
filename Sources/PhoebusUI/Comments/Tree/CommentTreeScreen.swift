@@ -206,6 +206,7 @@ public struct CommentTreeScreen: View {
 /// within `PostDetailScreen`).
 struct CommentTreeContent: View {
     @Setting(DeletedCommentsSettings.self) private var deletedCommentsSettings
+    @Setting(GeneralSettings.self) private var general
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var store: CommentTreeStore
     @State private var replyTargetID: String?
@@ -269,6 +270,8 @@ struct CommentTreeContent: View {
                         .accessibilityIdentifier("comments.empty")
                 }
             }
+            let commentsByFullname = general.commentAgeMode == .relativeToParent
+                ? CommentAgeFormatter.commentsByFullname(store.roots) : [:]
             ForEach(flattenedVisible(), id: \.id) { item in
                 switch item {
                 case .comment(let node):
@@ -281,6 +284,7 @@ struct CommentTreeContent: View {
                             // The comment an Inbox reply pointed at, drawn highlighted.
                             isLinkedToComment: highlightedCommentID == node.id,
                             isModerator: isModerator,
+                            ageLabel: ageLabel(for: node.comment, commentsByFullname: commentsByFullname),
                             // Reborn "Deleted Comments" archive recovery; see
                             // `CommentRow.archivedComment`. Only for a comment Reddit shows as
                             // deleted/removed: Arctic Shift archives every comment in a thread, so
@@ -391,6 +395,15 @@ struct CommentTreeContent: View {
         .sheet(item: $shareCommentTarget) { comment in
             ActivityShareSheet(items: [comment.shareURL()])
         }
+    }
+
+    /// The byline age under the Comment Age setting; nil keeps the row's
+    /// plain "3h".
+    private func ageLabel(for comment: RedditComment, commentsByFullname: [String: RedditComment]) -> String? {
+        guard general.commentAgeMode != .sincePosted else { return nil }
+        return CommentAgeFormatter.label(comment: comment, post: post,
+                                         parent: commentsByFullname[comment.parentID],
+                                         mode: general.commentAgeMode)
     }
 
     /// Share as Image is offered only when the owner supplied a post,

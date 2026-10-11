@@ -120,6 +120,12 @@ Apollo or Reborn, add an entry here.
 - **There is no Memechine Learning setting.** Apollo's General > Other
   switch gated a classifier that Phoebus does not reimplement, so General
   settings offers no row for it.
+- **General > Comments has a Comment Age setting.** Since Posted (the default)
+  keeps Apollo's "3h"; Relative to Post shows how long after the post a
+  comment came ("+3h"), and Relative to Parent how long after the comment
+  it replies to ("2m later", top-level comments count from the post).
+  Tapping the age still shows the exact time. Neither Apollo nor Reborn
+  has this; it is inspired by RedReader's comment age setting.
 
 - **A community author's profile shows their achievements there.** Opening
   an author from a post or comment thread shows "Achievements in r/<sub>"

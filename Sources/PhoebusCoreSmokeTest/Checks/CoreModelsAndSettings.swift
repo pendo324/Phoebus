@@ -289,6 +289,68 @@ import PhoebusCore
     check("YouTubeURLParser native app URL carries the start time", YouTubeURLParser.nativeAppURL(forVideoID: "dQw4w9WgXcQ", startSeconds: 42)?.absoluteString == "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42" && YouTubeURLParser.nativeAppURL(forVideoID: "dQw4w9WgXcQ", startSeconds: 0)?.absoluteString == "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 }
 
+// --- Comment age mode (Phoebus-only, inspired by RedReader) ---
+@MainActor func checkCommentAgeMode() async throws {
+    let now = Date(timeIntervalSince1970: 1_000_000)
+    let post = now.addingTimeInterval(-86400)
+    let parent = post.addingTimeInterval(3 * 3600)
+    let reply = parent.addingTimeInterval(120)
+    check("comment age defaults to Since Posted", GeneralSettings.default.commentAgeMode == .sincePosted)
+    check("Since Posted shows the plain age",
+          CommentAgeFormatter.label(created: reply, postCreated: post, parentCreated: parent, mode: .sincePosted, now: now) == "20h")
+    check("Since Posted shows 'now' under a minute",
+          CommentAgeFormatter.label(created: now.addingTimeInterval(-30), postCreated: nil, parentCreated: nil, mode: .sincePosted, now: now) == "now")
+    check("Relative to Post counts from the post",
+          CommentAgeFormatter.label(created: reply, postCreated: post, parentCreated: parent, mode: .relativeToPost, now: now) == "+3h")
+    check("Relative to Parent counts from the parent comment",
+          CommentAgeFormatter.label(created: reply, postCreated: post, parentCreated: parent, mode: .relativeToParent, now: now) == "2m later")
+    check("Relative to Parent falls back to the post for a top-level comment",
+          CommentAgeFormatter.label(created: parent, postCreated: post, parentCreated: nil, mode: .relativeToParent, now: now) == "+3h")
+    check("relative modes fall back to the plain age without the post",
+          CommentAgeFormatter.label(created: reply, postCreated: nil, parentCreated: nil, mode: .relativeToPost, now: now) == "20h")
+    check("a sub-minute gap reads in seconds",
+          CommentAgeFormatter.label(created: parent.addingTimeInterval(45), postCreated: post, parentCreated: parent, mode: .relativeToParent, now: now) == "45s later")
+    check("clock skew before the parent clamps to zero",
+          CommentAgeFormatter.label(created: parent.addingTimeInterval(-5), postCreated: post, parentCreated: parent, mode: .relativeToParent, now: now) == "0s later")
+
+    let treeJSON = Data(#"""
+    [{"kind": "t1", "data": {"id": "a1", "name": "t1_a1", "author": "a", "body": "top", "score": 1,
+      "created_utc": 1000, "parent_id": "t3_x", "link_id": "t3_x", "saved": false, "score_hidden": false, "stickied": false,
+      "replies": {"kind": "Listing", "data": {"children": [
+        {"kind": "t1", "data": {"id": "a2", "name": "t1_a2", "author": "b", "body": "reply", "score": 1,
+          "created_utc": 4600, "parent_id": "t1_a1", "link_id": "t3_x", "saved": false, "score_hidden": false, "stickied": false}}
+      ]}}}}]
+    """#.utf8)
+    let roots = CommentTreeBuilder.build(from: try! JSONDecoder().decode([JSONValue].self, from: treeJSON))
+    let byName = CommentAgeFormatter.commentsByFullname(roots)
+    check("commentsByFullname indexes nested replies", byName.count == 2 && byName["t1_a1"]?.id == "a1")
+    if let replyComment = byName["t1_a2"] {
+        check("a reply's parentID finds its parent in the index",
+              CommentAgeFormatter.label(comment: replyComment, post: nil, parent: byName[replyComment.parentID],
+                                        mode: .relativeToParent, now: now) == "1h later")
+    } else {
+        check("the reply decodes", false)
+    }
+
+    check("an unknown stored comment age mode decodes as Since Posted",
+          (try? JSONDecoder().decode([CommentAgeMode].self, from: Data(#"["sideways"]"#.utf8)))?.first == .sincePosted)
+    check("a GeneralSettings blob without commentAgeMode decodes as Since Posted",
+          (try? JSONDecoder().decode(GeneralSettings.self, from: Data(#"{"defaultCommentSort":"top"}"#.utf8)))?.commentAgeMode == .sincePosted)
+    // Settings backups carry the whole GeneralSettings blob.
+    let source = UserDefaults(suiteName: "CommentAgeBackupSource")!
+    source.removePersistentDomain(forName: "CommentAgeBackupSource")
+    var ageSettings = GeneralSettings.default
+    ageSettings.commentAgeMode = .relativeToParent
+    GeneralSettingsStore.storage.save(ageSettings, to: source)
+    let snapshot = try! JSONDecoder().decode([String: JSONValue].self,
+                                             from: try! JSONEncoder().encode(SettingsDomainSnapshot.capture(from: source)))
+    let target = UserDefaults(suiteName: "CommentAgeBackupTarget")!
+    target.removePersistentDomain(forName: "CommentAgeBackupTarget")
+    SettingsDomainSnapshot.restore(snapshot, into: target)
+    check("comment age mode survives a settings backup round trip",
+          GeneralSettingsStore.storage.load(from: target).commentAgeMode == .relativeToParent)
+}
+
 // --- Auto-collapse pinned comments (Apollo-Reborn feature) ---
 @MainActor func checkAutoCollapsePinnedCommentsApolloReborn() async throws {
     let pinnedCommentJSON = """

@@ -79,6 +79,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Auto Collapse Child Comments", breadcrumb: "Settings → General", screen: .general, rowTitle: "Auto Collapse Child Comments"),
         SettingsSearchEntry(title: "Tap to Collapse...", breadcrumb: "Settings → General", screen: .general, rowTitle: "Tap to Collapse..."),
         SettingsSearchEntry(title: "Jump Button Position", breadcrumb: "Settings → General", screen: .general, rowTitle: "Jump Button Position"),
+        SettingsSearchEntry(title: "Comment Age", breadcrumb: "Settings → General", screen: .general, rowTitle: "Comment Age"),
         SettingsSearchEntry(title: "Blocked Users", breadcrumb: "Settings → General", screen: .general, rowTitle: "Blocked Users"),
         SettingsSearchEntry(title: "Unmute Videos When Opened", breadcrumb: "Settings → General", screen: .general, rowTitle: "Unmute Videos When Opened"),
         SettingsSearchEntry(title: "Download GIFs as...", breadcrumb: "Settings → General", screen: .general, rowTitle: "Download GIFs as..."),

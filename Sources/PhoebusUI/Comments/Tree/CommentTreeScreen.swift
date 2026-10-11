@@ -297,6 +297,8 @@ struct CommentTreeContent: View {
                                 replyTargetID = node.id
                             },
                             onAuthorTapped: { onAuthorTapped?(node.comment.author) },
+                            onEdited: { store.commentEdited(id: node.id, body: $0) },
+                            onDeleted: { store.commentDeleted(id: node.id) },
                             onShareAsImage: shareAsImageAction(for: node.comment)
                         )
                         .onAppear {
@@ -328,13 +330,16 @@ struct CommentTreeContent: View {
                                 replyTargetID = nil
                                 quotedText[node.id] = nil
                                 quotedPreview[node.id] = nil
+                                OwnPostChanges.shared.recordCommentChange(fullname: "t3_\(postID)", listed: post?.numComments ?? 0, delta: 1)
                                 Task { await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository, force: true) }
                             },
                             onPosted: { posted in
                                 replyTargetID = nil
                                 quotedText[node.id] = nil
                                 quotedPreview[node.id] = nil
-                                if !store.insertPosted(posted, parentFullname: node.comment.name) {
+                                OwnPostChanges.shared.recordCommentChange(fullname: "t3_\(postID)", listed: post?.numComments ?? 0, delta: 1)
+                                let decorated = store.decoratingPosted(posted, post: post)
+                                if !store.insertPosted(decorated, parentFullname: node.comment.name) {
                                     Task { await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository, force: true) }
                                 }
                             }

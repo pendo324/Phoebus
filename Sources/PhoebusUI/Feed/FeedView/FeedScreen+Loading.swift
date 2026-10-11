@@ -215,6 +215,16 @@ extension FeedScreen {
         }
     }
 
+    /// Puts a post the user just submitted at the top of this feed. Reddit's
+    /// listings trail a submission, so the reload that follows it usually
+    /// lacks the post; it stays through further reloads until a listing has it.
+    func showSubmitted(_ fullname: String?) async {
+        guard let fullname, !subreddit.isEmpty, multiredditPath == nil, sort == "new" || sort == "hot",
+              let post = try? await repository.fetchPost(fullname: fullname),
+              post.subreddit.caseInsensitiveCompare(subreddit) == .orderedSame else { return }
+        listing.showSubmitted(post)
+    }
+
     /// Per-listing failure copy, verbatim from Apollo: a private,
     /// quarantined or banned subreddit has its own sentence rather than
     /// the raw error.

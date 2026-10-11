@@ -11,7 +11,9 @@ public struct ComposePostScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
     let subreddit: String
     let repository: RedditRepository
-    let onSubmitted: () -> Void
+    /// Called after a successful submit with the new post's fullname, when
+    /// Reddit's answer gave one.
+    let onSubmitted: (String?) -> Void
 
     @State private var title = ""
     @State private var selftextBody = ""
@@ -59,7 +61,7 @@ public struct ComposePostScreen: View {
     public init(subreddit: String,
                 repository: RedditRepository,
                 initialType: PostType = .text,
-                onSubmitted: @escaping () -> Void) {
+                onSubmitted: @escaping (String?) -> Void) {
         self.subreddit = subreddit
         self.repository = repository
         self.onSubmitted = onSubmitted
@@ -320,6 +322,7 @@ public struct ComposePostScreen: View {
         isSubmitting = true
         errorMessage = nil
         defer { isSubmitting = false }
+        var submittedFullname: String?
         do {
             switch postType {
             case .media:
@@ -359,15 +362,16 @@ public struct ComposePostScreen: View {
                     flairText: selectedFlair?.text
                 )
             default:
-                try await repository.submitPost(
+                let response = try await repository.submitPost(
                     subreddit: subreddit,
                     title: title,
                     selftext: postType == .link ? nil : (selftextBody.isEmpty ? nil : selftextBody),
                     url: postType == .link ? linkURL : nil,
                     flairID: selectedFlair?.id
                 )
+                submittedFullname = SubmittedPostResponse.fullname(from: response)
             }
-            onSubmitted()
+            onSubmitted(submittedFullname)
         } catch {
             errorMessage = UserFacingError.message(for: error)
         }

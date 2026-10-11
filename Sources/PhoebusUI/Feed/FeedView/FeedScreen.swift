@@ -619,9 +619,12 @@ public struct FeedScreen: View {
         }
         .sheet(isPresented: $showingCompose) {
             NavigationStack {
-                ComposePostScreen(subreddit: subreddit, repository: repository, initialType: composeKind) {
+                ComposePostScreen(subreddit: subreddit, repository: repository, initialType: composeKind) { fullname in
                     showingCompose = false
-                    Task { await load() }
+                    Task {
+                        await load()
+                        await showSubmitted(fullname)
+                    }
                 }
             }
         }

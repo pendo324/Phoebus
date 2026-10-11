@@ -18,12 +18,12 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     public let title: String
     public let author: String
     public let subreddit: String
-    public let selftext: String?
+    public var selftext: String?
     public let url: String?
     public let permalink: String
     public let score: Int
     public let upvoteRatio: Double?
-    public let numComments: Int
+    public var numComments: Int
     public let created: Date
     public let isSelf: Bool
     public let over18: Bool
@@ -431,9 +431,9 @@ public struct RedditMedia: Codable, Sendable {
 public struct RedditComment: Decodable, Sendable, Identifiable {
     public let id: String
     public let name: String
-    public let author: String
-    public let body: String
-    public let bodyHTML: String?
+    public var author: String
+    public var body: String
+    public var bodyHTML: String?
     public let score: Int
     public let created: Date
     public let parentID: String
@@ -447,12 +447,12 @@ public struct RedditComment: Decodable, Sendable, Identifiable {
     /// find disagreement rather than just top-scoring consensus.
     public let controversiality: Int?
     public let stickied: Bool
-    public let authorFlairText: String?
-    public let authorFlairBackgroundColor: String?
-    public let authorFlairTextColorRaw: String?
+    public var authorFlairText: String?
+    public var authorFlairBackgroundColor: String?
+    public var authorFlairTextColorRaw: String?
     /// True when this commenter is the post's original poster; real
     /// Reddit clients show an "OP" badge for this.
-    public let isSubmitter: Bool?
+    public var isSubmitter: Bool?
     /// `"moderator"` / `"admin"` / `nil`: real clients color-distinguish
     /// mod/admin comments.
     public let distinguished: String?
@@ -467,7 +467,7 @@ public struct RedditComment: Decodable, Sendable, Identifiable {
     public let locked: Bool?
     /// The flair as Reddit's rich parts (`author_flair_richtext`):
     /// custom emoji images and text runs, e.g. a state flag + "Maine".
-    public let authorFlairRichtext: [FlairPart]?
+    public var authorFlairRichtext: [FlairPart]?
     /// Uploaded images and GIFs in the body (`![img](<id>)` tokens), keyed
     /// by asset id, with their pixel size and file type. Lets an inline
     /// image reserve its final shape before it loads (Reborn #1273) and

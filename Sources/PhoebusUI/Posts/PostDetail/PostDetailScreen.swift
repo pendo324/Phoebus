@@ -5,7 +5,11 @@ import PhoebusCore
 /// above the comment tree.
 public struct PostDetailScreen: View {
     @Setting(GeneralSettings.self) private var generalSettings
-    let post: RedditPost
+    /// The post as the opener had it; `post` has this device's own changes
+    /// laid over it (an edited body, comments it added).
+    private let listedPost: RedditPost
+    @ObservedObject private var changes = OwnPostChanges.shared
+    private var post: RedditPost { changes.apply(to: listedPost) }
     let repository: RedditRepository
     @State private var isSubmitting = false
     @State private var submitError: String?
@@ -75,7 +79,7 @@ public struct PostDetailScreen: View {
                 repository: RedditRepository,
                 startScrolledToComments: Bool = false,
                 startComposingReply: Bool = false) {
-        self.post = post
+        self.listedPost = post
         self.repository = repository
         self.startScrolledToComments = startScrolledToComments
         self.startComposingReply = startComposingReply
@@ -364,10 +368,12 @@ public struct PostDetailScreen: View {
                 repository: repository,
                 subreddit: post.subreddit,
                 onSubmitted: {
+                    changes.recordCommentChange(fullname: post.name, listed: listedPost.numComments, delta: 1)
                     Task { await commentStore.fetch(subreddit: post.subreddit, postID: post.id, sort: commentSort, repository: repository, force: true) }
                 },
                 onPosted: { posted in
-                    commentStore.insertPosted(posted, parentFullname: post.name)
+                    changes.recordCommentChange(fullname: post.name, listed: listedPost.numComments, delta: 1)
+                    commentStore.insertPosted(commentStore.decoratingPosted(posted, post: post), parentFullname: post.name)
                 }
             )
         }

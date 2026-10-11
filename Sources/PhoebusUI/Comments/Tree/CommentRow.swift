@@ -33,6 +33,10 @@ struct CommentRow: View {
     /// Tapping a commenter's username navigates to their profile.
     /// Optional since not every call site threads a navigation target.
     var onAuthorTapped: () -> Void = {}
+    /// The user saved an edit to this comment / deleted it, so the tree that
+    /// owns the row can keep the change for when the row is built again.
+    var onEdited: (String) -> Void = { _ in }
+    var onDeleted: () -> Void = {}
 
     /// Vote and save state come from the shared store, not private
     /// `@State` (see `VoteStateStore`): the swipe gesture is handled by the
@@ -80,7 +84,7 @@ struct CommentRow: View {
         if general.tapToCollapseType.collapsesOnBodyTap { onToggleCollapse() }
     }
 
-    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, archivedComment: ArchivedComment? = nil, tapToReveal: Bool = false, isRevealed: Bool = false, onReveal: @escaping () -> Void = {}, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
+    init(node: CommentTreeNode, depthColors: [Color], repository: RedditRepository, isNew: Bool = false, isLinkedToComment: Bool = false, isModerator: Bool = false, archivedComment: ArchivedComment? = nil, tapToReveal: Bool = false, isRevealed: Bool = false, onReveal: @escaping () -> Void = {}, onToggleCollapse: @escaping () -> Void, onReplyTapped: @escaping () -> Void, onQuoteTapped: @escaping () -> Void, onAuthorTapped: @escaping () -> Void = {}, onEdited: @escaping (String) -> Void = { _ in }, onDeleted: @escaping () -> Void = {}, onShareAsImage: (() -> Void)? = nil) {
         self.node = node
         self.depthColors = depthColors
         self.repository = repository
@@ -96,6 +100,8 @@ struct CommentRow: View {
         self.onReplyTapped = onReplyTapped
         self.onQuoteTapped = onQuoteTapped
         self.onAuthorTapped = onAuthorTapped
+        self.onEdited = onEdited
+        self.onDeleted = onDeleted
         _editedText = State(initialValue: node.comment.body)
         _displayBody = State(initialValue: node.comment.body)
         _isMuted = State(initialValue: MutedThreadsStore.isMuted(node.comment.name))
@@ -561,6 +567,7 @@ struct CommentRow: View {
         }
         .onChange(of: node.comment.distinguished) { _, value in isDistinguished = value == "moderator" }
         .onChange(of: node.comment.stickied) { _, value in isStickied = value }
+        .onChange(of: isDeleted) { _, deleted in if deleted { onDeleted() } }
     }
 
     /// The author-only actions (Edit, Delete, Vote Insights), grouped so the
@@ -577,6 +584,7 @@ struct CommentRow: View {
         do {
             try await repository.editUserText(fullname: node.comment.name, text: editedText)
             displayBody = editedText
+            onEdited(editedText)
             isEditing = false
         } catch {
             // Leave the editor open on failure so the user can retry.

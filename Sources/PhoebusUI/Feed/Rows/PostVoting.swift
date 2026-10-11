@@ -8,6 +8,7 @@ import SwiftUI
 /// a hand-rolled `objectWillChange`, and this is where it is declared
 /// observable for SwiftUI.
 extension VoteStateStore: @MainActor ObservableObject {}
+extension OwnPostChanges: @MainActor ObservableObject {}
 #endif
 
 /// The one place a post's vote is changed.

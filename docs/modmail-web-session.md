@@ -133,7 +133,8 @@ attempt inside the throttle window.
   constructed; a JSON listing is far less fragile.
 - **Legacy `/api/compose`** answers 401 on www and 404 on old.
   The modhash from `/api/me.json` rotates on every request and is not a
-  usable CSRF token. GraphQL supersedes it.
+  usable CSRF token. GraphQL supersedes it. Private messages from a web-session account therefore go to
+  oauth.reddit.com with the web bearer (`WebBearerRouting`).
 - Over a web session every operation Apollo's modmail UI exposes (list,
   thread, reply, highlight, read/unread, filter, archive, compose) is
   available. Archiving a mod discussion is refused by Reddit, as above.

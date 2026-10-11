@@ -148,6 +148,11 @@ Apollo or Reborn, add an entry here.
 - **Remind Me uses local notifications.** Reminders are scheduled on the
   device through the system notification center, with no server-side
   reminder service, so they also work offline.
+- **A web-session account sends private messages with its web bearer.**
+  Reddit answers `/api/compose` with a 401 for any cookie request, so
+  Phoebus sends it to oauth.reddit.com with the account's web bearer, the
+  way it sends the moderator endpoints. Reborn leaves compose on the
+  cookie.
 - **The Safari extension's mode is chosen in its popup.** Automatic, Ask
   or Off is set from the extension's toolbar popup, not in Settings.
 

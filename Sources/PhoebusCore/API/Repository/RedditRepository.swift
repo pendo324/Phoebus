@@ -845,11 +845,20 @@ public actor RedditRepository {
     /// since Reddit treats PM replies as comments on the message
     /// "post").
     public func sendPrivateMessage(to username: String, subject: String, body: String) async throws {
-        try await postChecked("/api/compose", [
-            "to": username,
-            "subject": subject,
-            "text": body,
-        ])
+        do {
+            try await postChecked("/api/compose", [
+                "to": username,
+                "subject": subject,
+                "text": body,
+            ])
+        } catch RedditAPIError.httpError(let status, let body) {
+            // A web session's other requests work, so this isn't an expired
+            // sign-in: Reddit refused the message itself.
+            guard [401, 403].contains(status), await client.isUsingWebSession else {
+                throw RedditAPIError.httpError(status: status, body: body)
+            }
+            throw PrivateMessageRefusedError()
+        }
     }
 
     /// Fetches the list of available link flairs for a subreddit
@@ -1003,6 +1012,15 @@ public actor RedditRepository {
         let data = try await client.post(path: path, parameters: parameters)
         try PostedCommentResponse.throwIfRejected(data)
         return data
+    }
+}
+
+/// Reddit refused a private message sent over a web session. Not an expired
+/// sign-in, so it must not tell the user to sign in again.
+public struct PrivateMessageRefusedError: Error, LocalizedError {
+    public init() {}
+    public var errorDescription: String? {
+        "Reddit refused to send this message from your web sign-in. Messages may be turned off for this account or recipient."
     }
 }
 

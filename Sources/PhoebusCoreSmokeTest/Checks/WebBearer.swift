@@ -40,6 +40,12 @@ private func anonymousJWT() -> String {
           R.needsBearer(path: "/api/mod/conversations/abc/mute")
             && R.needsBearer(path: "/api/mod/conversations/abc/unmute")
             && R.needsBearer(path: "/api/mod/conversations"))
+    check("sending a private message goes to the bearer, www answers its cookie with 401",
+          R.needsBearer(path: "/api/compose") && R.needsBearer(path: "api/compose?raw_json=1")
+            && R.needsBearer(path: "/API/Compose/"))
+    check("only the compose endpoint itself is routed, not look-alikes",
+          !R.needsBearer(path: "/api/compose/extra") && !R.needsBearer(path: "/message/compose")
+            && !R.needsBearer(path: "/api/comment") && !R.needsBearer(path: "/api"))
     check("matching ignores case and a trailing slash",
           R.needsBearer(path: "/API/v1/Swift/Removal_Reasons/") && R.needsBearer(path: "/r/Swift/api/FRIEND"))
     check("ordinary cookie requests stay on the cookie",

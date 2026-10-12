@@ -323,8 +323,8 @@ public struct SubredditsRootScreen: View {
                     // Recently Visited (Phoebus-only) sits above the reorderable sections,
                     // like the feed shortcuts it follows.
                     RecentlyVisitedSection(entries: recentlyVisitedEntries, area: "subreddits",
-                                           onOpen: openRecentlyVisited) {
-                        ApolloSubredditSectionHeader("Recently Visited")
+                                           onOpen: openRecentlyVisited) { clear in
+                        ApolloSubredditSectionHeader("Recently Visited") { clear }
                     } row: { entry in
                         recentlyVisitedRow(entry)
                     }

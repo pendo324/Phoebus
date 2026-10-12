@@ -232,8 +232,12 @@ public struct SubredditSearchScreen: View {
                 // follow in a separate, header-less section. Recently Visited (Phoebus-only)
                 // goes above them all.
                 RecentlyVisitedSection(entries: recentlyVisitedEntries, area: "search",
-                                       onOpen: openRecentlyVisited) {
-                    Text("Recently Visited").textCase(.uppercase)
+                                       onOpen: openRecentlyVisited) { clear in
+                    HStack {
+                        Text("Recently Visited").textCase(.uppercase)
+                        Spacer()
+                        clear.font(.footnote.weight(.semibold))
+                    }
                 } row: { entry in
                     SearchLandingRow(title: entry.title, systemImage: entry.systemImage)
                 }

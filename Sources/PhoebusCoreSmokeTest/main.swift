@@ -1458,6 +1458,10 @@ try await checkCenterTitleBetweenButtonsReborn3()
 try await checkReturnButtonReborn371()
 try await checkScrollReturnOffersPerScreen()
 
+try await checkTabReselectScrollPolicyReborn1360()
+
+// Last: it prints the pass/fail verdict and exits.
+
 try await checkAutomaticBackupsReborn371()
 
 try await checkWidgetFeedSourcesReborn37()

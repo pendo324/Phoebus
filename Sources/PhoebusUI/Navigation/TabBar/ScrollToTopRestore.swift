@@ -107,34 +107,76 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
         scrollView.contentOffset.y <= -scrollView.adjustedContentInset.top + Self.topEpsilon + 1
     }
 
+    /// True from a jump to the top starting until it settles; a re-tap of
+    /// the Posts tab is ignored meanwhile.
+    private(set) var isJumping = false
+
+    /// Bumped whenever a jump is cancelled (drag, return), so its pending
+    /// settle does nothing.
+    private var jumpGeneration = 0
+
     func scrollViewShouldScrollToTop(_ scrollView: UIScrollView) -> Bool {
-        let top = CGPoint(
-            x: scrollView.contentOffset.x,
-            y: -scrollView.adjustedContentInset.top + Self.topEpsilon
-        )
         if isAtTop(scrollView) {
             // Second tap: back to where the user was reading.
             guard let offset = savedOffset else { return false }
             savedOffset = nil
+            cancelJump()
             ScrollReturnStore.shared.withdraw(for: owner)
             scroll(scrollView, to: offset)
         } else {
             // First tap: remember this spot, then go (almost) to top.
-            let parked = scrollView.contentOffset
-            savedOffset = parked
-            scroll(scrollView, to: top)
-            // Offer the Return Button affordance. Populated
-            // unconditionally; the setting gates only the UI.
-            ScrollReturnStore.shared.offer(for: owner) { [weak self, weak scrollView] in
-                guard let self, let scrollView else { return }
-                self.savedOffset = nil
-                self.scroll(scrollView, to: parked)
-            }
+            scrollToTopSavingPosition(scrollView, animated: true)
         }
         // Always decline UIKit's own scroll: this proxy already
         // performed the movement, and letting UIKit also scroll would
         // race with the restore and land exactly at top.
         return false
+    }
+
+    /// The jump shared by a status-bar tap and a Posts-tab re-tap (Reborn
+    /// "Fix Posts tab scroll-to-top and preserve return position", #1360):
+    /// park the reading position, offer the Return Button, and scroll to just
+    /// below the top. A repeat while the first jump runs keeps the original
+    /// spot.
+    func scrollToTopSavingPosition(_ scrollView: UIScrollView, animated: Bool) {
+        let parked = savedOffset ?? scrollView.contentOffset
+        savedOffset = parked
+        jumpGeneration += 1
+        let generation = jumpGeneration
+        isJumping = animated
+        if animated {
+            scroll(scrollView, to: topOffset(of: scrollView))
+        } else {
+            scrollView.setContentOffset(topOffset(of: scrollView), animated: false)
+        }
+        // Offer the Return Button affordance. Populated
+        // unconditionally; the setting gates only the UI.
+        ScrollReturnStore.shared.offer(for: owner) { [weak self, weak scrollView] in
+            guard let self, let scrollView else { return }
+            self.savedOffset = nil
+            self.cancelJump()
+            self.scroll(scrollView, to: parked)
+        }
+        guard animated else { return }
+        // A lazy SwiftUI List re-estimates row heights as rows scroll in,
+        // which can leave one animated scroll short of the top. Settle once
+        // it ends.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self, weak scrollView] in
+            guard let self, let scrollView, self.jumpGeneration == generation else { return }
+            self.isJumping = false
+            guard !scrollView.isDragging, !self.isAtTop(scrollView) else { return }
+            scrollView.setContentOffset(self.topOffset(of: scrollView), animated: false)
+        }
+    }
+
+    private func topOffset(of scrollView: UIScrollView) -> CGPoint {
+        CGPoint(x: scrollView.contentOffset.x,
+                y: -scrollView.adjustedContentInset.top + Self.topEpsilon)
+    }
+
+    private func cancelJump() {
+        jumpGeneration += 1
+        isJumping = false
     }
 
     private func scroll(_ scrollView: UIScrollView, to offset: CGPoint) {
@@ -149,6 +191,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
     /// so SwiftUI still sees the event.
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         savedOffset = nil
+        cancelJump()
         // The affordance must disappear with the saved position it
         // would have restored.
         ScrollReturnStore.shared.withdraw(for: owner)

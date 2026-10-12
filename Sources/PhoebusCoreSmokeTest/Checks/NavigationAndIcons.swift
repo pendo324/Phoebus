@@ -42,6 +42,25 @@ import PhoebusCore
           thread.id != feed.id && ScrollReturnOwner().id != ScrollReturnOwner().id)
 }
 
+// MARK: - Posts tab re-tap saves your place (Reborn #1360)
+@MainActor func checkTabReselectScrollPolicyReborn1360() async throws {
+    typealias P = TabReselectScrollPolicy
+    check("a re-tap below the top scrolls to the top",
+          P.action(offsetY: 400, topY: -100, jumpInFlight: false, canPop: true) == .scrollToTop)
+    check("a re-tap within a point of the top counts as at the top and goes back",
+          P.action(offsetY: -99, topY: -100, jumpInFlight: false, canPop: true) == .popPage)
+    check("a re-tap exactly at the top goes back a page",
+          P.action(offsetY: -100, topY: -100, jumpInFlight: false, canPop: true) == .popPage)
+    check("a re-tap at the top of a root screen does nothing to the stack",
+          P.action(offsetY: -100, topY: -100, jumpInFlight: false, canPop: false) == .atRoot)
+    check("a screen without a list goes back when it can",
+          P.action(offsetY: nil, topY: 0, jumpInFlight: false, canPop: true) == .popPage)
+    check("a re-tap while the jump runs is ignored, even below the top",
+          P.action(offsetY: 400, topY: -100, jumpInFlight: true, canPop: true) == .ignore)
+    check("a re-tap while the jump runs never pops, even at an intermediate top frame",
+          P.action(offsetY: -100, topY: -100, jumpInFlight: true, canPop: true) == .ignore)
+}
+
 // MARK: - Automatic Backups (Reborn, PR #1060)
 //
 // Keys AutomaticBackupsEnabled (default OFF) and AutomaticBackupIntervalDays

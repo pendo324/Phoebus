@@ -171,14 +171,14 @@ import PhoebusCore
 
     // Settings layout details.
     do {
-        // (3) Profile Layout: Native style + Reborn's summary line.
+        // (3) Profile Layout: Native style + the User Profiles row's value.
         var p = ProfileLayoutSettings.default
         p.style = .native
-        check("Native profile style clears detailed profiles and summarises as Native (Apollo)",
-              !p.showDetailedProfiles && p.summaryText == "Native (Apollo)")
+        check("Native profile style clears detailed profiles and is labelled Native",
+              !p.showDetailedProfiles && p.style.displayName == "Native")
         p.style = .compact
         check("Compact is detailed but not immersive",
-              p.showDetailedProfiles && !p.headerImmersive && p.summaryText.hasPrefix("Compact"))
+              p.showDetailedProfiles && !p.headerImmersive && p.style.displayName == "Compact")
     }
 
     // Profile picture shape, gallery autoplay, quick actions.
@@ -227,6 +227,18 @@ import PhoebusCore
         UserDefaults.standard.set(["inline-media", "bogus", "general", "general"], forKey: SettingsShortcutsStore.key)
         check("saved shortcuts are migrated, validated and de-duplicated",
               SettingsShortcutsStore.load() == ["media", "general"])
+        // Profile Layout became User Profiles (Reborn #1352); a saved
+        // "profile-layout" keeps its place under the new id.
+        UserDefaults.standard.set(["general", "profile-layout", "media"], forKey: SettingsShortcutsStore.key)
+        check("a saved profile-layout shortcut migrates to user-profiles in place",
+              SettingsShortcutsStore.load() == ["general", "user-profiles", "media"])
+        UserDefaults.standard.set(["profile-layout", "user-profiles"], forKey: SettingsShortcutsStore.key)
+        check("...without duplicating an already-migrated entry",
+              SettingsShortcutsStore.load() == ["user-profiles"])
+        check("the migrated id is in the catalog and has a title",
+              SettingsShortcutsStore.catalog.contains("user-profiles")
+                && !SettingsShortcutsStore.catalog.contains("profile-layout")
+                && SettingsShortcutsStore.title("user-profiles") == "User Profiles")
         UserDefaults.standard.removeObject(forKey: SettingsShortcutsStore.key)
         // Reborn's 27 routes, less Pixel Pals.
         check("the catalog has Reborn's routes and a limit of 15",

@@ -12,7 +12,6 @@ import UIKit
 /// discloses to. Section titles, footers, row order, titles, SF Symbol names and
 /// tile colors follow Reborn.
 public struct ApolloRebornHubScreen: View {
-    @Setting(ProfileLayoutSettings.self) private var profileLayoutSettings
     @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     @Setting(ApolloAISettings.self) private var apolloAISettings
     @Setting(NotificationBackendSettings.self) private var notificationBackendSettings
@@ -98,8 +97,8 @@ public struct ApolloRebornHubScreen: View {
 
     // MARK: - Features
 
-    /// Features, in order: Posts & Feeds, Comments, Media, Subreddits, Profile
-    /// Layout, Interface, Rich Link Previews, Polls, Apollo AI.
+    /// Features, in order: Posts & Feeds, Comments, Media, Subreddits, User
+    /// Profiles, Interface, Rich Link Previews, Polls, Apollo AI.
     private var featuresSection: some View {
         Section {
             SettingsNavigationRow {
@@ -127,14 +126,9 @@ public struct ApolloRebornHubScreen: View {
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
-                ProfileLayoutSettingsScreen()
+                UserProfilesSettingsScreen()
             } label: {
-                HubRow(
-                    title: "Profile Layout",
-                    systemImage: "person.crop.circle.fill",
-                    tint: .teal,
-                    detail: profileLayoutSettings.summaryText
-                )
+                HubRow(title: "User Profiles", systemImage: "person.crop.circle.fill", tint: .teal)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {

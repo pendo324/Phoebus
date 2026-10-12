@@ -113,13 +113,6 @@ public struct ProfileLayoutSettings: Codable, Sendable, Equatable {
         showActions = (try? container.decodeIfPresent(Bool.self, forKey: .showActions)) ?? ProfileLayoutSettings.default.showActions
         showDetailedProfiles = (try? container.decodeIfPresent(Bool.self, forKey: .showDetailedProfiles)) ?? true
     }
-
-    /// The hub row's value: header mode, then avatar style, joined with " · ".
-    /// Reborn #1351 dropped the "N hidden" count.
-    public var summaryText: String {
-        if !showDetailedProfiles { return "Native (Apollo)" }
-        return "\(headerImmersive ? "Immersive" : "Compact") · \(avatarStyle.displayName)"
-    }
 }
 
 public enum ProfileLayoutSettingsStore {

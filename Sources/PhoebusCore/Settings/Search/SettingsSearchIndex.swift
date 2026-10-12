@@ -65,6 +65,7 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case polls
     case postsFeeds
     case profileLayout
+    case userProfiles
     case subredditLayout
     case subredditSections
     case subreddits

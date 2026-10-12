@@ -87,6 +87,7 @@ SCREEN_CASES = {
     "AccountsAPIKeysScreen": "accountsAPIKeys",
     "ClearTweakCachesScreen": "clearTweakCaches",
     "TextSizesAndFontsScreen": "textSizes",
+    "UserProfilesSettingsScreen": "userProfiles",
 }
 
 STRING = r'"((?:[^"\\]|\\.)*)"'

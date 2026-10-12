@@ -89,7 +89,7 @@ public struct SettingsShortcutsScreen: View {
         case "posts-feeds": return .orange
         case "comments": return .green
         case "subreddits": return .red
-        case "profile-layout": return .teal
+        case "user-profiles": return .teal
         case "interface": return .purple
         case "accounts-api-keys": return .gray
         case "tag-filters", "crash-reports": return .orange
@@ -124,7 +124,7 @@ public struct SettingsShortcutDestination: View {
         case "comments": CommentsSettingsScreen()
         case "media": MediaSettingsScreen()
         case "subreddits": SubredditsSettingsScreen()
-        case "profile-layout": ProfileLayoutSettingsScreen()
+        case "user-profiles": UserProfilesSettingsScreen()
         case "interface": InterfaceSettingsScreen()
         case "rich-link-previews": LinkPreviewSettingsScreen()
         case "apollo-ai": ApolloAISettingsScreen()

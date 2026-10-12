@@ -266,19 +266,6 @@ import PhoebusCore
               && AppearanceTextSizeStep.sizes.map(AppearanceTextSizeStep.steps(forScale:)) == [-3, -2, -1, 0, 1, 2, 3]
               && AppearanceTextSizeStep.scale(forApolloTextSize: 8) == nil)
 
-    // Hub row subtitles are live summaries and must reproduce their format
-    // exactly.
-    // -profileLayoutSummaryText
-    // The default avatar is Circle (Reborn #1136, shared Profile Picture
-    // Shape), so the default summary reads "Immersive · Circle".
-    check("ProfileLayoutSettings.default.summaryText is 'Immersive · Circle'", ProfileLayoutSettings.default.summaryText == "Immersive · Circle")
-    var profileHidden = ProfileLayoutSettings.default
-    profileHidden.headerImmersive = false
-    profileHidden.avatarStyle = .square
-    profileHidden.showBanner = false
-    profileHidden.showStatCards = false
-    check("ProfileLayoutSettings.summaryText no longer counts hidden bands", profileHidden.summaryText == "Compact · Square")
-
     // -subredditLayoutSummaryText: headers off short-circuits to "Native (Apollo)".
     var layoutNative = SubredditLayoutSettings.default
     layoutNative.showSubredditHeaders = false

@@ -63,7 +63,7 @@ Apollo or Reborn, add an entry here.
   collapsed to five with Show All, with swipe to remove and Clear. Home,
   Popular, All and Moderator are not recorded. Each account keeps its
   own list of up to 50 (signed out has its own), the list is included in
-  backups, and "Show Recently Visited" in Subreddit Sections hides it.
+  backups, and "Show Recently Visited" in Subreddit List Sections hides it.
 - **The crosspost composer suggests destinations.** Neither Apollo nor
   Reborn has it; it is inspired by Continuum's crosspost screen. While
   the subreddit field is empty, recently visited subreddits and the

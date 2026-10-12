@@ -75,6 +75,22 @@ public struct MessageBubbleRow<Accessory: View>: View {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(bubbleColor)
                     )
+                    // Reborn "Message Copy Text / Select Text" (#1307): touch and hold a
+                    // PM or modmail message for the same pair Apollo's message sheet leads with.
+                    .contextMenu {
+                        Button {
+                            PasteboardHelper.copy(body_)
+                        } label: {
+                            Label("Copy Text", systemImage: "doc.on.doc")
+                        }
+                        .accessibilityIdentifier("messageBubble.menu.copyText")
+                        Button {
+                            SelectTextPresenter.shared.present(title: "", body: body_)
+                        } label: {
+                            Label("Select Text", systemImage: "selection.pin.in.out")
+                        }
+                        .accessibilityIdentifier("messageBubble.menu.selectText")
+                    }
 
                 HStack(spacing: 6) {
                     if let date {

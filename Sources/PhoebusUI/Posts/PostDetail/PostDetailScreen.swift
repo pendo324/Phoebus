@@ -21,7 +21,8 @@ public struct PostDetailScreen: View {
     @State private var showingReport = false
     @State private var showingModNotes = false
     @State private var showingShareAsImage = false
-    /// Whether the signed-in user wrote this post (gates Insights).
+    /// Whether the signed-in user wrote this post: gates Insights, and the
+    /// ••• menu's Edit Post and Delete Post.
     @State private var isOwnPost = false
     @State private var showingInsights = false
     @State private var showingTranslator = false
@@ -30,6 +31,10 @@ public struct PostDetailScreen: View {
     @State private var showingCommentSortSheet = false
     @State private var showingReplyComposer = false
     @State private var isMuted = false
+    /// Your own post: the header shows the inline editor and the deleted state.
+    @State private var isEditingPost = false
+    @State private var isPostDeleted = false
+    @State private var confirmingPostDelete = false
     /// Gates `CommentRow`'s Approve/Remove/Mark Spam actions. See
     /// `CommentTreeScreen.isModerator`'s doc comment.
     @State private var isModerator = false
@@ -95,6 +100,7 @@ public struct PostDetailScreen: View {
                 startComposingReply: Bool = false) {
         self.listedPost = post
         self.repository = repository
+        _isPostDeleted = State(initialValue: OwnPostChanges.shared.isDeleted(post.name))
         self.startScrolledToComments = startScrolledToComments
         self.startComposingReply = startComposingReply
         // Remembered sort (per-post or per-subreddit) beats suggested
@@ -459,6 +465,12 @@ public struct PostDetailScreen: View {
             }
         }
         .sheet(isPresented: $showingAISummary) { aiSummarySheet }
+        .alert("Delete Post?", isPresented: $confirmingPostDelete) {
+            Button("Delete", role: .destructive) { Task { await deletePost() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This can't be undone.")
+        }
         }
         // Closing this screen is the back-pop a floating PiP card answers.
         .floatingPiPScreenScope()
@@ -493,7 +505,10 @@ public struct PostDetailScreen: View {
                 }
             },
             onReply: { showingReplyComposer = true },
-            aiSummary: aiSummary
+            aiSummary: aiSummary,
+            overflowMenu: AnyView(postOverflowMenu),
+            isEditing: $isEditingPost,
+            isDeleted: $isPostDeleted
         )
         // Links opened from this post get the browser's comments button.
         .onAppear {
@@ -700,6 +715,10 @@ extension PostDetailScreen {
         if OtherDiscussions.isAvailable(for: post) { ids.append("other-discussions") }
         ids += ["find", "award", "copy-link", "remind-me"]
         if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
+        if isOwnPost && !isPostDeleted {
+            if post.isSelf { ids.append("edit") }
+            ids.append("delete")
+        }
         if aiSettings.summariesEnabled { ids.append("summarize") }
         if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
         ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
@@ -777,6 +796,13 @@ extension PostDetailScreen {
         default:
             EmptyView()
         }
+    }
+
+    private func deletePost() async {
+        // Only on success, so a failed delete does not show the post as deleted.
+        guard (try? await repository.delete(fullname: post.name)) != nil else { return }
+        OwnPostChanges.shared.recordDeletion(fullname: post.name)
+        isPostDeleted = true
     }
 
     private func moderate(_ done: String, _ action: @escaping () async throws -> Void) {
@@ -890,6 +916,14 @@ extension PostDetailScreen {
             Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")
             }
+        case "edit":
+            Button { isEditingPost = true } label: { Label("Edit Post", systemImage: "pencil") }
+                .accessibilityIdentifier("postDetail.menu.editPost")
+        case "delete":
+            Button(role: .destructive) { confirmingPostDelete = true } label: {
+                Label("Delete Post", systemImage: "trash")
+            }
+            .accessibilityIdentifier("postDetail.menu.deletePost")
         case "summarize":
             Button {
                 showingAISummary = true

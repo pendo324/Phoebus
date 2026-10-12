@@ -59,10 +59,6 @@ public struct SubredditLayoutSettingsScreen: View {
             } header: {
                 Text("Layout")
                     .apolloPreviewScreenSectionHeader()
-            } footer: {
-                // Verbatim.
-                Text("Immersive and Compact use Apollo Reborn’s customizable header. Native keeps Apollo’s original layout.")
-                    .apolloPreviewScreenSectionFooter()
             }
 
             // Section "Community Highlights", row "Display" with Off / Partial / Full and a

@@ -291,7 +291,9 @@ import PhoebusCore
     layoutCustom.subredditShowBanner = false
     layoutCustom.subredditShowJoinButton = false
     layoutCustom.subredditShowDisplayName = true
-    check("SubredditLayoutSettings.summaryText lists hidden header elements", layoutCustom.summaryText == "Immersive · Banner, Join Button, User Flair Button, Sidebar Button off")
+    check("SubredditLayoutSettings.summaryText is only the header mode", layoutCustom.summaryText == "Immersive")
+    layoutCustom.subredditHeaderImmersive = false
+    check("SubredditLayoutSettings.summaryText is 'Compact' for the compact header", layoutCustom.summaryText == "Compact")
 
     // -subredditSectionsSummaryText. The default order is constant, and the
     // Following section is filtered out unless Separate Followed Users is on.

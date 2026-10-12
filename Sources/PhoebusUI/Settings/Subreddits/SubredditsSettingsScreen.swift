@@ -1,9 +1,9 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's "Subreddits" settings screen (Apollo Reborn → Features): Main,
-/// Favorites and Sources sections. Row subtitles are live summaries via each
-/// settings model's `summaryText`.
+/// Reborn's "Subreddits" settings screen (Apollo Reborn → Features): Subreddit
+/// List, Subreddit Appearance and Search Tab Sources sections. Row values are
+/// live summaries via each settings model's `summaryText`.
 public struct SubredditsSettingsScreen: View {
     @Setting(SubredditSectionsSettings.self) private var subredditSectionsSettings
     @Setting(SubredditLayoutSettings.self) private var subredditLayoutSettings
@@ -20,9 +20,9 @@ public struct SubredditsSettingsScreen: View {
 
     public var body: some View {
         List {
-            mainSection
+            listSection
+            appearanceSection
             iconsSection
-            favoritesSection
             sourcesSection
             searchSection
         }
@@ -38,40 +38,58 @@ public struct SubredditsSettingsScreen: View {
         }
     }
 
-    /// Row order: Feed Shortcuts, Subreddit Sections, Subreddit Layout.
-    /// Feed Shortcuts subtitle format is `"{iconStyle} · {layoutStyle}"`.
-    private var mainSection: some View {
+    /// Reborn "Clean up Subreddits settings" (#1350): the list organization
+    /// rows and the favorites toggles share one "Subreddit List" section.
+    /// Feed Shortcuts detail format is `"{iconStyle} · {layoutStyle}"`. The
+    /// Per-Account Favorites switch writes through
+    /// `FavoriteSubredditsStore.perAccountEnabled`'s migration semantics.
+    private var listSection: some View {
         Section {
             SettingsLink {
                 FeedShortcutsSettingsScreen()
             } label: {
-                SubtitleRow(
+                ValueRow(
                     title: "Feed Shortcuts",
-                    subtitle: "\(settings.subredditFeedIconStyle.displayName) · \(settings.subredditFeedLayout.displayName)"
+                    value: "\(settings.subredditFeedIconStyle.displayName) · \(settings.subredditFeedLayout.displayName)"
                 )
             }
             .apolloSearchRow("Feed Shortcuts")
             SettingsLink {
                 SubredditSectionsSettingsScreen()
             } label: {
-                SubtitleRow(
-                    title: "Subreddit Sections",
-                    subtitle: subredditSectionsSettings.summaryText
-                )
+                Text("Subreddit Sections")
             }
             .apolloSearchRow("Subreddit Sections")
+            Toggle("Per-Account Favorites", isOn: Binding(get: { perAccountFavorites }, set: { on in
+                if FavoriteSubredditsStore.setPerAccountEnabled(on) { perAccountFavorites = on } else { showingAccountLoading = true }
+            }))
+                    .apolloSearchRow("Per-Account Favorites")
+            // Reborn #1042, `SortFavoritesAlphabetically` / `FavoriteSortingByAccount`,
+            // default off. Per-account when Per-Account Favorites is on.
+            Toggle("Sort Favorites Alphabetically", isOn: sortFavoritesBinding)
+                    .apolloSearchRow("Sort Favorites Alphabetically")
+                .accessibilityIdentifier("subreddits.sortFavoritesAlphabetically")
+            // Reborn #1173, `ConfirmFavoriteToggle`, default off.
+            Toggle("Confirm Favorite Changes", isOn: $confirmFavoriteChanges)
+                    .apolloSearchRow("Confirm Favorite Changes", lastBeforeFooter: true)
+                .accessibilityIdentifier("subreddits.confirmFavoriteChanges")
+        } header: {
+            Text("Subreddit List")
+                .apolloSectionHeader()
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section {
             SettingsLink {
                 SubredditLayoutSettingsScreen()
             } label: {
-                SubtitleRow(
-                    title: "Subreddit Layout",
-                    subtitle: subredditLayoutSettings.summaryText
-                )
+                ValueRow(title: "Subreddit Layout", value: subredditLayoutSettings.summaryText)
             }
             .apolloSearchRow("Subreddit Layout", lastBeforeFooter: true)
-        } footer: {
-            Text("Feed Shortcuts customizes the Home, Popular, All and Moderator Posts rows — their icons, layout, visibility and descriptions. Subreddit Sections arranges the rest of the subreddit list — section order, followed users, multireddit descriptions and the list style toggles live there. Subreddit Layout customizes subreddit pages.")
-                    .apolloSectionFooter()
+        } header: {
+            Text("Subreddit Appearance")
+                .apolloSectionHeader()
         }
     }
 
@@ -90,32 +108,6 @@ public struct SubredditsSettingsScreen: View {
         }
     }
 
-    /// Footer documents the migration semantics implemented by
-    /// `FavoriteSubredditsStore.perAccountEnabled`.
-    private var favoritesSection: some View {
-        Section {
-            Toggle("Per-Account Favorites", isOn: Binding(get: { perAccountFavorites }, set: { on in
-                if FavoriteSubredditsStore.setPerAccountEnabled(on) { perAccountFavorites = on } else { showingAccountLoading = true }
-            }))
-                    .apolloSearchRow("Per-Account Favorites")
-            // Reborn #1042, `SortFavoritesAlphabetically` / `FavoriteSortingByAccount`,
-            // default off. Per-account when Per-Account Favorites is on.
-            Toggle("Sort Favorites Alphabetically", isOn: sortFavoritesBinding)
-                    .apolloSearchRow("Sort Favorites Alphabetically")
-                .accessibilityIdentifier("subreddits.sortFavoritesAlphabetically")
-            // Reborn #1173, `ConfirmFavoriteToggle`, default off.
-            Toggle("Confirm Favorite Changes", isOn: $confirmFavoriteChanges)
-                    .apolloSearchRow("Confirm Favorite Changes", lastBeforeFooter: true)
-                .accessibilityIdentifier("subreddits.confirmFavoriteChanges")
-        } header: {
-            Text("Favorites")
-                .apolloSectionHeader()
-        } footer: {
-            Text("Per-Account Favorites saves a separate list and sorting preference for each account. First enable copies the current list to existing accounts; new accounts start empty. Turning it off restores the shared list.\nAlphabetical sorting keeps existing and new favorites in order. Turn it off to rearrange them manually while editing the subreddit list.\nConfirm Favorite Changes asks before adding or removing a favorite from the Subreddits list star.")
-                    .apolloSectionFooter()
-        }
-    }
-
     /// Per-account resolution lives in `FavoriteSubredditsStore`.
     private var sortFavoritesBinding: Binding<Bool> {
         Binding(
@@ -124,11 +116,11 @@ public struct SubredditsSettingsScreen: View {
         )
     }
 
-    /// Trending/Random sources, Show RandNSFW in Search and RandNSFW Source;
-    /// each source field's placeholder is its default URL.
+    /// Trending/Random sources, Show RandNSFW in Search and RandNSFW Source
+    /// (Reborn's "Search Tab Sources"); each source field's placeholder is its
+    /// default URL.
     private var sourcesSection: some View {
         Section {
-            // Explicit row insets to line up with the Favorites section above.
             ApolloSettingsTextFieldRow("Trending Subreddits Limit", placeholder: "(unlimited)", text: Binding(
                 get: { settings.trendingSubredditsLimit > 0 ? String(settings.trendingSubredditsLimit) : "" },
                 set: { v in $settings.update { $0.trendingSubredditsLimit = Int(v) ?? 0 } }), keyboard: .numberPad)
@@ -150,7 +142,7 @@ public struct SubredditsSettingsScreen: View {
                 set: { $sources.randomNSFWSourceURL.wrappedValue = $0.isEmpty ? nil : $0 }), keyboard: .URL)
                 .apolloSearchRow("RandNSFW Source")
         } header: {
-            Text("Sources")
+            Text("Search Tab Sources")
                 .apolloSectionHeader()
         }
     }
@@ -183,19 +175,19 @@ extension SubredditsSettingsScreen {
     }
 }
 
-/// A title-over-gray-subtitle disclosure row.
-struct SubtitleRow: View {
+/// A title with a grey value on the trailing edge, before the disclosure
+/// chevron the enclosing link draws.
+struct ValueRow: View {
     let title: String
-    let subtitle: String
+    let value: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        HStack {
             Text(title)
-            if !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.caption)
+            Spacer()
+            if !value.isEmpty {
+                Text(value)
                     .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -234,9 +226,6 @@ public struct FeedShortcutsSettingsScreen: View {
             } header: {
                 Text("Visible Shortcuts")
                     .apolloPreviewScreenSectionHeader()
-            } footer: {
-                Text("Home is always shown. Choose which other shortcuts appear.")
-                    .apolloPreviewScreenSectionFooter()
             }
 
             Section {

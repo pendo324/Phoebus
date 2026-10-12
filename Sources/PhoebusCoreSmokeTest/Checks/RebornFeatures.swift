@@ -713,14 +713,12 @@ import PhoebusCore
     check("...and leaves the two OFF-by-default buttons off",
           !layoutSparse.subredditShowSidebarButton && !layoutSparse.subredditShowUserFlairButton)
 
-    // The hub summary lists bands that are OFF but shipped ON.
+    // The summary is only the header mode; hidden bands are no longer listed.
     var layoutBands = SubredditLayoutSettings.default
     layoutBands.showSubredditHeaders = true
     layoutBands.subredditShowSubtitle = false
-    check("the hub summary reports a hidden Subtitle",
-          layoutBands.summaryText.contains("Subtitle"))
-    check("...and, as Reborn's, the buttons that are off",
-          layoutBands.summaryText.contains("User Flair Button, Sidebar Button"))
+    check("the Subreddit Layout summary ignores hidden bands",
+          layoutBands.summaryText == "Immersive")
 }
 
 // MARK: - Moderator green

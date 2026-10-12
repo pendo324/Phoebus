@@ -84,6 +84,7 @@ struct CommentRow: View {
     /// `node.comment` is nested in an immutable value-type tree.
     @State private var isDistinguished: Bool
     @State private var isStickied: Bool
+    @StateObject private var actionsMenuHole = ActionsMenuHole()
 
     /// Reborn "Tap to Collapse…" (`TapToCollapseEnabledType`): where a
     /// single tap collapses (header, body, both, neither).
@@ -472,6 +473,7 @@ struct CommentRow: View {
                         }
                         .accessibilityIdentifier("comment.actionsMenu.\(node.id)")
                         .accessibilityLabel("Comment actions")
+                        .background { actionsMenuHole.measure() }
                         // The age owns the detailed-timestamp tap, not the "...". The info-row
                         // detail icons (% upvoted, timestamp, edited pencil) reveal their
                         // detail on tap; `TimestampLabel` gives itself its own `contentShape`
@@ -492,9 +494,7 @@ struct CommentRow: View {
                 // parent so it covers the whole band including the empty gap, and sits
                 // behind the score button and "..." menu, which keep their own taps.
                 .background(
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture { collapseFromHeader() }
+                    CollapseTapLayer(hole: actionsMenuHole) { collapseFromHeader() }
                         .accessibilityIdentifier("comment.headerSpacerCollapse.\(node.id)")
                 )
                 // The byline strip is itself a collapse trigger. Scoped to the byline
@@ -586,12 +586,11 @@ struct CommentRow: View {
         // the body's links, spoilers and media and the header's own taps.
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            Color.clear
-                .contentShape(Rectangle())
+            CollapseTapLayer(hole: actionsMenuHole) { node.isCollapsed ? collapseFromHeader() : collapseFromBody() }
                 .padding(-24)
-                .onTapGesture { node.isCollapsed ? collapseFromHeader() : collapseFromBody() }
                 .accessibilityHidden(true)
         }
+        .coordinateSpace(.named(ActionsMenuHole.rowSpace))
         // Reborn/Apollo "New Comments Highlightifier" (Settings > General >
         // Comments): tints comments posted since your last visit.
         .background(
@@ -701,6 +700,55 @@ struct CommentRow: View {
     private var authorFlairTextColor: Color? {
         guard general.enableFlairColors else { return nil }
         return RedditFlairColor.validHex(from: node.comment.authorFlairTextColorRaw).map(Color.init(hex:))
+    }
+}
+
+/// Where the ••• menu sits in its row. A `Menu` lets a tap through to the
+/// SwiftUI gestures behind it, whose tap then wins: the comment collapsed
+/// and the menu didn't open. The row's collapse taps leave this rect out.
+final class ActionsMenuHole: ObservableObject {
+    static let rowSpace = "commentRow"
+    @Published var rect: CGRect = .null
+
+    /// Reports the frame of the view it is the background of.
+    func measure() -> some View {
+        GeometryReader { proxy in
+            // The glyph is 18x4; its target is a finger wide.
+            let frame = proxy.frame(in: .named(Self.rowSpace)).insetBy(dx: -10, dy: -14)
+            Color.clear
+                .onAppear { self.update(frame) }
+                .onChange(of: frame) { _, frame in self.update(frame) }
+                .onDisappear { self.update(.null) }
+        }
+    }
+
+    private func update(_ frame: CGRect) {
+        if rect != frame { rect = frame }
+    }
+}
+
+/// A collapse tap filling its frame except over the ••• menu.
+private struct CollapseTapLayer: View {
+    @ObservedObject var hole: ActionsMenuHole
+    let action: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let origin = proxy.frame(in: .named(ActionsMenuHole.rowSpace)).origin
+            Color.clear
+                .contentShape(RectangleWithHole(hole: hole.rect.offsetBy(dx: -origin.x, dy: -origin.y)), eoFill: true)
+                .onTapGesture(perform: action)
+        }
+    }
+}
+
+private struct RectangleWithHole: Shape {
+    let hole: CGRect
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(rect)
+        if !hole.isNull { path.addRect(hole) }
+        return path
     }
 }
 

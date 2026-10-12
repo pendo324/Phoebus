@@ -337,8 +337,9 @@ struct CommentRow: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .layoutPriority(-1)
-                        .contentShape(Rectangle())
+                        .hitArea(CommentHeaderHitArea.author)
                         .onTapGesture(perform: onAuthorTapped)
+                        .hitAreaLayout(CommentHeaderHitArea.author)
                         .accessibilityIdentifier("comment.authorLabel.\(node.id)")
                     UserTagPill(username: displayAuthor)
                     }
@@ -409,9 +410,10 @@ struct CommentRow: View {
                         }
                         .foregroundStyle(voteState == true ? Color.orange
                                          : (voteState == false ? Color.blue : Color.apolloIdleVoteArrow))
-                        .contentShape(Rectangle())
+                        .hitArea(CommentHeaderHitArea.score)
                     }
                     .buttonStyle(.plain)
+                    .hitAreaLayout(CommentHeaderHitArea.score)
                     .accessibilityIdentifier("comment.scoreUpvote.\(node.id)")
                     // Locked comments carry Apollo's lock glyph, green like the pin.
                     if node.comment.locked == true {
@@ -421,7 +423,7 @@ struct CommentRow: View {
                     }
                     // Apollo's edited pencil (Show Edited Marker); a tap names the edit time.
                     if EditedMarker.isShown(node.comment.edited, enabled: general.showEditedMarker), let edited = node.comment.edited {
-                        EditedIndicator(edited: edited)
+                        EditedIndicator(edited: edited, hitInsets: CommentHeaderHitArea.pencil)
                             .foregroundStyle(Color.apolloTertiaryText(colorScheme: colorScheme, themeColors: themeColors))
                             .accessibilityIdentifier("comment.edited.\(node.id)")
                     }
@@ -453,9 +455,10 @@ struct CommentRow: View {
                             }
                             // The gap between the badge and the chevron, and the padding around
                             // them, are part of the button's hit area.
-                            .contentShape(Rectangle())
+                            .hitArea(CommentHeaderHitArea.trailing)
                         }
                         .buttonStyle(.plain)
+                        .hitAreaLayout(CommentHeaderHitArea.trailing)
                         .accessibilityIdentifier("comment.collapseToggle.\(node.id)")
                     } else {
                         // The "..." is an actions button, presenting the same menu as a long
@@ -469,17 +472,19 @@ struct CommentRow: View {
                                 .foregroundStyle(colorScheme == .dark ? Color(hex: "505256") : Color(hex: "C4C4C6"))
                                 // A bare glyph is a ~10pt target; enlarge the hit area without
                                 // changing the look.
-                                .contentShape(Rectangle())
+                                .hitArea(CommentHeaderHitArea.menu)
                         }
+                        .hitAreaLayout(CommentHeaderHitArea.menu)
                         .accessibilityIdentifier("comment.actionsMenu.\(node.id)")
                         .accessibilityLabel("Comment actions")
-                        .background { actionsMenuHole.measure() }
+                        .background { actionsMenuHole.measure(growingBy: CommentHeaderHitArea.menu) }
                         // The age owns the detailed-timestamp tap, not the "...". The info-row
                         // detail icons (% upvoted, timestamp, edited pencil) reveal their
                         // detail on tap; `TimestampLabel` gives itself its own `contentShape`
                         // so the row's collapse gesture doesn't swallow it.
                         TimestampLabel(node.comment.created, text: ageLabel,
-                                       edited: general.showEditedMarker ? node.comment.edited : nil)
+                                       edited: general.showEditedMarker ? node.comment.edited : nil,
+                                       hitInsets: CommentHeaderHitArea.trailing)
                             // 13pt regular in #61626A (tertiary), 16pt trailing inset, 11pt gap
                             // back to the "•••".
                             .apolloFont(size: 13, role: .commentHeader)
@@ -497,11 +502,8 @@ struct CommentRow: View {
                     CollapseTapLayer(hole: actionsMenuHole) { collapseFromHeader() }
                         .accessibilityIdentifier("comment.headerSpacerCollapse.\(node.id)")
                 )
-                // The byline strip is itself a collapse trigger. Scoped to the byline
-                // only, not the whole cell, so the body stays tappable for link taps
-                // and text selection; the author name and chevron keep their own taps
-                // (an inner gesture takes precedence).
-                .contentShape(Rectangle())
+                // No `contentShape` on the byline itself: it would clip the controls'
+                // taps (`CommentHeaderHitArea`) to the 18pt line.
                 // Comment Filters: why this comment started collapsed.
                 if node.isCollapsed, let filterReason = node.filterReason {
                     Text(filterReason)
@@ -710,11 +712,11 @@ final class ActionsMenuHole: ObservableObject {
     static let rowSpace = "commentRow"
     @Published var rect: CGRect = .null
 
-    /// Reports the frame of the view it is the background of.
-    func measure() -> some View {
+    /// Reports the frame of the view it is the background of, grown to
+    /// that view's tap area.
+    func measure(growingBy insets: EdgeInsets) -> some View {
         GeometryReader { proxy in
-            // The glyph is 18x4; its target is a finger wide.
-            let frame = proxy.frame(in: .named(Self.rowSpace)).insetBy(dx: -10, dy: -14)
+            let frame = proxy.frame(in: .named(Self.rowSpace)).expanded(by: insets)
             Color.clear
                 .onAppear { self.update(frame) }
                 .onChange(of: frame) { _, frame in self.update(frame) }
@@ -848,6 +850,27 @@ struct CommentAccessibility: ViewModifier {
     }
 }
 
+
+/// The header's controls take taps a finger wide: from the cell's top (the
+/// row's 10pt inset) down to the body (the 8pt gap), measured from the 18pt
+/// byline whatever the control's own height, and half of each 11pt gap to
+/// their neighbours. The ••• and the age share the 22pt between them
+/// (spacing plus the age's padding); a trailing control reaches the row's
+/// 16pt inset. Taps in what's left still collapse.
+enum CommentHeaderHitArea {
+    private static func reach(height: CGFloat, leading: CGFloat, trailing: CGFloat) -> EdgeInsets {
+        let centring = max(0, (18 - height) / 2)
+        return EdgeInsets(top: 10 + centring, leading: leading, bottom: 8 + centring, trailing: trailing)
+    }
+
+    static let author = reach(height: 18, leading: 0, trailing: 0)
+    static let score = reach(height: 16, leading: 5.5, trailing: 5.5)
+    /// Next to the Spacer on its right, which keeps the rest of the gap.
+    static let pencil = reach(height: 12, leading: 5.5, trailing: 11)
+    static let menu = reach(height: 4, leading: 11, trailing: 11)
+    /// The age, or a collapsed row's count badge.
+    static let trailing = reach(height: 16, leading: 11, trailing: 16)
+}
 
 /// Comment-row geometry.
 enum CommentRowMetrics {

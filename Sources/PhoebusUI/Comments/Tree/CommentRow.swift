@@ -581,6 +581,17 @@ struct CommentRow: View {
                 SavedIndicatorBadge(size: .small)
             }
         }
+        // Tap to Collapse covers the whole cell, as in Apollo: the blank space
+        // beside short lines, between paragraphs and in the row's insets, behind
+        // the body's links, spoilers and media and the header's own taps.
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            Color.clear
+                .contentShape(Rectangle())
+                .padding(-24)
+                .onTapGesture { node.isCollapsed ? collapseFromHeader() : collapseFromBody() }
+                .accessibilityHidden(true)
+        }
         // Reborn/Apollo "New Comments Highlightifier" (Settings > General >
         // Comments): tints comments posted since your last visit.
         .background(

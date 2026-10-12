@@ -9,11 +9,11 @@ struct RecentlyVisitedSection<Header: View, Row: View>: View {
     /// Prefix for accessibility identifiers ("subreddits" / "search").
     let area: String
     let onOpen: (RecentlyVisitedEntry) -> Void
-    @ViewBuilder let header: () -> Header
+    /// Gets the Clear button to place at the header's trailing edge.
+    @ViewBuilder let header: (RecentlyVisitedClearButton) -> Header
     @ViewBuilder let row: (RecentlyVisitedEntry) -> Row
 
     @State private var showsAll = false
-    @State private var confirmingClear = false
 
     static var collapsedCount: Int { 5 }
 
@@ -37,32 +37,42 @@ struct RecentlyVisitedSection<Header: View, Row: View>: View {
                         }
                         .accessibilityIdentifier("\(area).recentlyVisited.row.\(entry.title)")
                 }
-                HStack {
-                    if entries.count > Self.collapsedCount {
-                        Button(showsAll ? "Show Less" : "Show All (\(entries.count))") {
-                            withAnimation { showsAll.toggle() }
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityIdentifier("\(area).recentlyVisited.showAll")
+                if entries.count > Self.collapsedCount {
+                    Button(showsAll ? "Show Less" : "Show All (\(entries.count))") {
+                        withAnimation { showsAll.toggle() }
                     }
-                    Spacer(minLength: 0)
-                    Button("Clear", role: .destructive) { confirmingClear = true }
-                        .buttonStyle(.borderless)
-                        .accessibilityIdentifier("\(area).recentlyVisited.clear")
-                }
-                .font(.subheadline)
-                .confirmationDialog("Clear Recently Visited?", isPresented: $confirmingClear, titleVisibility: .visible) {
-                    Button("Clear", role: .destructive) {
-                        withAnimation { RecentlyVisitedStore.clear() }
-                    }
-                    .accessibilityIdentifier("\(area).recentlyVisited.clearConfirm")
-                    Button("Cancel", role: .cancel) {}
+                    .buttonStyle(.borderless)
+                    .font(.subheadline)
+                    .accessibilityIdentifier("\(area).recentlyVisited.showAll")
                 }
             } header: {
-                header()
+                header(RecentlyVisitedClearButton(area: area))
             }
             .accessibilityIdentifier("\(area).recentlyVisited")
         }
+    }
+}
+
+/// Recently Visited's Clear, with its confirmation. Sits in the section
+/// header; the header sets its font.
+struct RecentlyVisitedClearButton: View {
+    let area: String
+
+    @State private var confirming = false
+
+    var body: some View {
+        Button("Clear", role: .destructive) { confirming = true }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.red)
+            .textCase(nil)
+            .accessibilityIdentifier("\(area).recentlyVisited.clear")
+            .confirmationDialog("Clear Recently Visited?", isPresented: $confirming, titleVisibility: .visible) {
+                Button("Clear", role: .destructive) {
+                    withAnimation { RecentlyVisitedStore.clear() }
+                }
+                .accessibilityIdentifier("\(area).recentlyVisited.clearConfirm")
+                Button("Cancel", role: .cancel) {}
+            }
     }
 }
 

@@ -59,7 +59,8 @@ struct RecentSearchesSection: View {
                 HStack {
                     Text("Recent Searches").textCase(.uppercase)
                     Spacer()
-                    Button("Clear") { SearchHistoryStore.clearRecent(subreddit: subreddit) }
+                    Button("Clear", role: .destructive) { SearchHistoryStore.clearRecent(subreddit: subreddit) }
+                        .foregroundStyle(.red)
                         .font(.footnote.weight(.semibold))
                         .textCase(nil)
                         .accessibilityIdentifier("search.recent.clear")

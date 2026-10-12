@@ -6,10 +6,12 @@ import PhoebusCore
 ///
 /// - label in the accent blue, 19pt from the leading edge, caption size
 /// - 2pt rule fading from solid to transparent, left to right
+/// - an optional trailing accessory (Recently Visited's Clear), kept
+///   clear of the A-Z index; the rule stops short of it
 ///
 /// SwiftUI's stock `Section` header is grey, sentence case and has no
 /// rule, so it cannot be restyled into this.
-public struct ApolloSubredditSectionHeader: View {
+public struct ApolloSubredditSectionHeader<Accessory: View>: View {
     @Setting(SubredditSectionsSettings.self) private var subredditSectionsSettings
     let title: String
     /// Reborn's "Subreddit List Enhancements" + "Modern Subreddit
@@ -18,8 +20,16 @@ public struct ApolloSubredditSectionHeader: View {
     /// stock Apollo's plain grey section band.
     private var modern: Bool { subredditSectionsSettings.usesModernDividers }
 
-    public init(_ title: String) {
+    let accessory: Accessory
+
+    public init(_ title: String, @ViewBuilder accessory: () -> Accessory) {
         self.title = title
+        self.accessory = accessory()
+    }
+
+    /// Ends 6pt before the A-Z index; the header itself spans the full width.
+    private static var accessoryTrailingInset: CGFloat {
+        SubredditsRootScreen.indexInkWidth + SubredditsRootScreen.indexTrailingMargin + 6
     }
 
     public var body: some View {
@@ -34,6 +44,7 @@ public struct ApolloSubredditSectionHeader: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
+            styledAccessory
         }
         .padding(.leading, 19)
         .padding(.vertical, 6)
@@ -56,6 +67,7 @@ public struct ApolloSubredditSectionHeader: View {
                 endPoint: .trailing
             )
             .frame(height: 2)
+            styledAccessory
         }
         .padding(.leading, 19)
         // The rule runs under the index letters, stopping 3pt short of the
@@ -68,5 +80,21 @@ public struct ApolloSubredditSectionHeader: View {
         .textCase(nil)  // SwiftUI upper-cases headers itself; the label already is.
         .listRowInsets(EdgeInsets())
         .accessibilityIdentifier("subreddits.sectionHeader.\(title)")
+    }
+
+    /// In the label's caption size, centred on the rule. The trailing
+    /// padding is relative to the header's own 3pt.
+    @ViewBuilder private var styledAccessory: some View {
+        if Accessory.self != EmptyView.self {
+            accessory
+                .font(.caption.weight(.semibold))
+                .padding(.trailing, modern ? Self.accessoryTrailingInset - 3 : Self.accessoryTrailingInset)
+        }
+    }
+}
+
+extension ApolloSubredditSectionHeader where Accessory == EmptyView {
+    public init(_ title: String) {
+        self.init(title) { EmptyView() }
     }
 }

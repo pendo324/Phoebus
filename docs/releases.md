@@ -78,7 +78,8 @@ affect the build.
 2. **build** (three jobs, in parallel) each run `scripts/build-app.sh` for
    one variant: `device` (release), `simulator-x86_64` and `simulator-arm64`
    (debug, which compiles incrementally). Each job installs the SDK
-   (`scripts/ci/install-sdk.sh`) and renders the icons
+   (`scripts/ci/install-sdk.sh`), fetches Apollo's IPA from `APOLLO_IPA_URL`
+   when it is not cached, and renders the icons
    (`scripts/generate-icons.sh`) first.
 3. **package** numbers the builds with the workflow's run number
    (`scripts/stamp-version.py`, which also sets the version and the build
@@ -274,7 +275,8 @@ such as `nightly`, are ignored by both.
 |---|---|
 | `DARWIN_SDK_URL` | The packed Darwin SDK in private storage. How it is made, and its pinned SHA-256, are in [building-on-linux.md](building-on-linux.md), "The Darwin SDK". |
 | `XCODE_XIP_URL` | Optional: an Xcode `.xip` to install the SDK from instead (slower). |
-| `PHOEBUSBOT_APP_CLIENT_ID`, `PHOEBUSBOT_APP_PRIVATE_KEY` | PhoebusBot, a GitHub App installed on the SDK's storage repository, on AltStoreRepo and on this repository, with Contents: read and write. The builds make a read-only token for the SDK download; the publishing workflow makes one that can write to AltStoreRepo; the Release workflow makes one that can push tags here. The workflows' own `GITHUB_TOKEN` cannot reach other repositories. |
+| `APOLLO_IPA_URL` | Apollo's IPA, which the standard icons are extracted from, as a release asset in the SDK's private storage repository (its API URL, `https://api.github.com/repos/<owner>/<repo>/releases/assets/<id>`). Downloaded with PhoebusBot's read-only token as `PHOEBUS_APOLLO_IPA` when the IPA cache misses, and checked against `APOLLO_IPA_SHA256` in `scripts/generate-icons.sh`. |
+| `PHOEBUSBOT_APP_CLIENT_ID`, `PHOEBUSBOT_APP_PRIVATE_KEY` | PhoebusBot, a GitHub App installed on the SDK's storage repository, on AltStoreRepo and on this repository, with Contents: read and write. The builds make a read-only token for the SDK and Apollo IPA downloads; the publishing workflow makes one that can write to AltStoreRepo; the Release workflow makes one that can push tags here. The workflows' own `GITHUB_TOKEN` cannot reach other repositories. |
 
 `scripts/ci/install-sdk.sh` checks the SDK against the SHA-256 pinned in
 it, and the SDK cache is keyed on that hash, so replacing the SDK means

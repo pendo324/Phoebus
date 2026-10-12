@@ -88,6 +88,7 @@ SCREEN_CASES = {
     "ClearTweakCachesScreen": "clearTweakCaches",
     "TextSizesAndFontsScreen": "textSizes",
     "UserProfilesSettingsScreen": "userProfiles",
+    "SiriSpotlightSettingsScreen": "siriSpotlight",
 }
 
 STRING = r'"((?:[^"\\]|\\.)*)"'

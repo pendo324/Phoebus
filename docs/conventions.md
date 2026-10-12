@@ -6,8 +6,8 @@
   feature this is* and *why*, where that isn't obvious. Keep:
   - the feature name and its settings key, e.g.
     `// Reborn "Hide Header on Scroll" (HideTopBarOnScroll).`
-  - Reborn issue numbers for behaviour that matches an upstream fix
-    (`#1153`)
+  - Reborn PR or issue numbers for behaviour that matches an upstream
+    fix (`#1153`), as plain text: no URLs and no @mentions
   - non-obvious UIKit/SwiftUI workarounds, private-API levers and their
     gates, ordering or concurrency rules, in one to three lines
   - measured constants as one trailing note (`// 52pt stock row`)
@@ -78,3 +78,9 @@ so `Package.swift` also passes the linker `-platform_version <platform>
 - Keep a version bump (`Config/Phoebus/Info.plist`) in its own commit
   (`Bump version to X.Y.Z/N`).
 - Stage explicit paths rather than `git add -A`.
+- Credit ports from Apollo Reborn in a form that doesn't notify anyone:
+  contributors' names without an @, Reborn PRs and issues in backticks
+  (`` `Apollo-Reborn#1305` ``) rather than links, and no
+  `Co-authored-by` trailers for Reborn authors. The same goes for pull
+  request descriptions. See [CREDITS.md](../CREDITS.md), "Attribution
+  style".

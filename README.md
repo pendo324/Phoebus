@@ -1,21 +1,35 @@
 # Phoebus
 
-Phoebus is a native iOS Reddit client that recreates
+Phoebus is a native iOS Reddit client that recreates the experience of
 [Apollo for Reddit](https://apolloapp.io) together with the features of
 the [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn)
-tweak, built entirely on Linux with [xtool](https://xtool.sh).
+tweak, built entirely on Linux with [xtool](https://xtool.sh). It began
+as an attempt to rebuild Apollo's UX with modern tooling, as a standalone
+app, so that it can keep existing more sustainably.
 
 - **The core app is written from scratch** in SwiftUI, following Apollo's
   design. It contains none of Apollo's code.
 - **Apollo Reborn's features are ported directly from Apollo Reborn's
   GPL-3.0 source code**, translated to Swift. They are the work of the
   Apollo Reborn team and contributors; see [CREDITS.md](CREDITS.md).
+- **Some files are not original to Phoebus**, including, for now, some of
+  Apollo's interface glyphs. [Disclaimer](#disclaimer) lists exactly what
+  is included and where it comes from.
+
+> [!IMPORTANT]
+> **Phoebus is not affiliated with Apollo Reborn.** It has no connection
+> with, and is not endorsed or supported by, Apollo Reborn or its
+> maintainers, Christian Selig or Apollo, or Reddit. Please don't contact
+> any of them about Phoebus or ask them for help with it; open an issue
+> in this repository instead.
+>
+> Phoebus is a personal, non-commercial project. It is not sold or
+> advertised.
 
 The name comes from Phoebus ("bright", "radiant"), the Greek epithet of
-the god Apollo, often joined as Phoebus Apollo.
-
-It is a personal, non-commercial project. It is not affiliated with or
-endorsed by Christian Selig, Apollo or Reddit. See [Disclaimer](#disclaimer).
+the god Apollo, often joined as Phoebus Apollo. It replaced an earlier,
+more Apollo-like name so the app isn't confused with Apollo or Apollo
+Reborn.
 
 https://github.com/user-attachments/assets/0af89223-80c8-4dab-8c52-c2023812e959
 
@@ -248,14 +262,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents should also read
 
 ## Credits
 
-- [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn) by its
+- [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn), by its
   maintainers JeffreyCA, icpryde, jordanearle, nickclyde, DeltAndy123 and
-  IllIIllIllIllII, and many code and design contributors. Phoebus's
-  Reborn features are ported from their GPL-3.0 code, and its Liquid Glass
-  icons are theirs. [CREDITS.md](CREDITS.md) lists every contributor and
-  what came from Reborn.
+  IllIIllIllIllII and many code and design contributors. Phoebus's Reborn
+  features are ported from their GPL-3.0 code, and its Liquid Glass icons
+  are theirs. [CREDITS.md](CREDITS.md) lists every
+  contributor and what came from Reborn. Crediting them does not mean
+  they are involved with Phoebus.
 - [Apollo for Reddit](https://apolloapp.io) by Christian Selig, whose
   design and behaviour Phoebus recreates.
+- Some Phoebus-only features are inspired by features in
+  [RedReader](https://github.com/QuantumBadger/RedReader) (GPL-3.0) and
+  [Continuum](https://github.com/cygnusx-1-org/continuum) (AGPL-3.0). No
+  code is taken from either; [CREDITS.md](CREDITS.md#inspired-by) lists
+  which features.
 - [xtool](https://xtool.sh), which makes building iOS apps on Linux
   possible.
 - [AnimatedImage](https://github.com/noppefoxwolf/AnimatedImage) and
@@ -263,20 +283,44 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents should also read
 
 ## Disclaimer
 
-Phoebus is a personal, non-commercial project. Its core is an independent
-reimplementation: it contains no Apollo source code, binaries, artwork or
-private credentials. Its Apollo Reborn features contain code ported from
-Apollo Reborn under the GPL-3.0 (see [CREDITS.md](CREDITS.md)). Apollo's standard icons are extracted from Apollo's
-own IPA when you build. It is not affiliated with, authorised or endorsed by
-Christian Selig, the Apollo or Apollo Reborn projects, or Reddit. "Apollo"
-and "Reddit" are trademarks of their respective owners and are used here
-only to describe what Phoebus is compatible with.
+Phoebus is a personal, non-commercial project. It is not sold or
+advertised. It has no connection with, and is not authorised, endorsed or
+supported by, Apollo Reborn or its maintainers, Christian Selig or Apollo,
+or Reddit. Please don't contact them about Phoebus.
+
+What the repository contains, and where it comes from:
+
+- **Original code.** The interface, the Reddit API client, settings,
+  theming, media, gestures, widgets and extensions are written for
+  Phoebus. There is no Apollo source code and no Apollo binary.
+- **Code ported from Apollo Reborn.** Reborn's features are translated to
+  Swift from Reborn's GPL-3.0 source. That code remains the work of the
+  Apollo Reborn contributors (see [CREDITS.md](CREDITS.md)).
+- **Apollo Reborn files included as they are.** The Liquid Glass icon
+  sources in `Icons/LiquidGlass` (GPL-3.0).
+- **Reddit's achievement artwork.** The Badge Book images and catalog in
+  `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
+  trophy images, taken from the set Apollo Reborn bundles.
+- **Apollo's app icons are not in the repository.** The build extracts
+  them from an Apollo IPA that you supply (`PHOEBUS_APOLLO_IPA`, see
+  [docs/building-on-linux.md](docs/building-on-linux.md)).
+- **Apollo's interface glyphs are, for now.** Most of the images in
+  `Sources/PhoebusUI/Resources/StockIcons` are Apollo's own glyphs from
+  its asset catalog. Redistributing Apollo's resources isn't the plan:
+  they will be removed and replaced with original glyphs or SF Symbols.
+- **No credentials.** Phoebus does not include Apollo's Reddit client ID
+  or any other private key; you supply your own (see
+  [Configuration](#configuration)).
+
+"Apollo" and "Reddit" are trademarks of their respective owners and are
+used here only to describe what Phoebus recreates and works with.
 
 ## License
 
 Phoebus is free software, licensed under the GNU General Public License,
 version 3; see [LICENSE](LICENSE). It includes code ported from Apollo
 Reborn, and the Liquid Glass icon sources in `Icons/LiquidGlass`, both
-GPL-3.0 and copyright the Apollo Reborn contributors.
-Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash
+GPL-3.0 and copyright the Apollo Reborn contributors. Apollo's interface glyphs in `Sources/PhoebusUI/Resources/StockIcons` are
+not Phoebus's to license and are not covered by it (see
+[Disclaimer](#disclaimer)). Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash
 (MIT).

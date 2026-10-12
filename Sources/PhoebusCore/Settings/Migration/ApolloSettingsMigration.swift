@@ -305,6 +305,12 @@ public enum ApolloSettingsMigration {
             ai.provider = value; aiTouched = true
             note("AI Summary Provider")
         }
+        // Device Default is "", so an empty value is a real pick.
+        if let value = string("AISummaryLanguage"),
+           TranslationSettings.languageOptions.contains(where: { $0.code == value }) {
+            ai.summaryLanguage = value; aiTouched = true
+            note("AI Summary Language")
+        }
         let aiStrings: [(String, WritableKeyPath<ApolloAISettings, String?>, String)] = [
             ("OpenRouterAPIKey", \.openRouterAPIKey, "OpenRouter API key"),
             ("OpenRouterAIModel", \.openRouterModel, "OpenRouter model"),

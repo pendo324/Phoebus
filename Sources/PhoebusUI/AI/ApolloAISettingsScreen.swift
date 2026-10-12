@@ -275,14 +275,34 @@ public struct ApolloAISettingsScreen: View {
                                  display: { $0.displayName },
                                  showsChevron: true)
                 .disabled(!settings.summariesEnabled)
-                .apolloSearchRow("When Opening a Thread", lastBeforeFooter: true)
+                .apolloSearchRow("When Opening a Thread")
                 .accessibilityIdentifier("apolloAI.summaryMode")
+
+            // Reborn "Summary Language" (#1362). Titled just "Language" so
+            // "Device Default (English)" fits at large text sizes.
+            summaryLanguageRow
         } header: {
             Text("Summaries")
                 .apolloSectionHeader()
         } footer: {
             Text(ApolloAISettings.summariesFooter).apolloSectionFooter()
         }
+    }
+
+    private var summaryLanguageRow: some View {
+        let options = AISummaryLanguage.options(isCloud: settings.provider.isCloud)
+        let detail = AISummaryLanguage.detailText(
+            choice: settings.summaryLanguage, resolved: AISummaryLanguage.resolve(for: settings))
+        return ApolloSettingsPicker("Language", selection: $settings.summaryLanguage,
+                                    options: options.map(\.code),
+                                    display: { code in
+                                        code == settings.summaryLanguage
+                                            ? detail : options.first { $0.code == code }?.name ?? code
+                                    },
+                                    showsChevron: true)
+            .disabled(!settings.summariesEnabled)
+            .apolloSearchRow("Language", lastBeforeFooter: true)
+            .accessibilityIdentifier("apolloAI.summaryLanguage")
     }
 
     // MARK: - Availability

@@ -136,6 +136,9 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
     public var summaryMode: AISummaryMode
     /// `UDKeyAISummaryProvider`.
     public var provider: AIProvider
+    /// `AISummaryLanguage` (Reborn #1362): a language code from Translation's
+    /// list, "" for Device Default.
+    public var summaryLanguage: String
 
     /// Per-provider keys and models. Stored separately so switching
     /// back and forth never loses them.
@@ -159,7 +162,8 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
         postDetail: .balanced,
         commentDetail: .balanced,
         summaryMode: .generateOnOpen,
-        provider: .onDevice
+        provider: .onDevice,
+        summaryLanguage: ""
     )
 
     public init(
@@ -171,6 +175,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
         commentDetail: AISummaryDetail = .balanced,
         summaryMode: AISummaryMode = .generateOnOpen,
         provider: AIProvider,
+        summaryLanguage: String = "",
         openRouterAPIKey: String? = nil,
         openRouterModel: String? = nil,
         geminiAPIKey: String? = nil,
@@ -187,6 +192,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
         self.commentDetail = commentDetail
         self.summaryMode = summaryMode
         self.provider = provider
+        self.summaryLanguage = summaryLanguage
         self.openRouterAPIKey = openRouterAPIKey
         self.openRouterModel = openRouterModel
         self.geminiAPIKey = geminiAPIKey
@@ -262,7 +268,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
     }
 
     /// The Summaries section's footer, including its blank line.
-    public static let summariesFooter = "Minimum Post Length only applies to text posts, not linked articles. Brief, Balanced and In-depth set how much detail a summary goes into.\n\nWhen Opening a Thread: Generate on Open prepares summaries in the background and keeps them collapsed until you tap. Open Automatically expands them on their own. Tap to Summarize only starts when you tap a summary card."
+    public static let summariesFooter = "Minimum Post Length only applies to text posts, not linked articles. Brief, Balanced and In-depth set how much detail a summary goes into.\n\nWhen Opening a Thread: Generate on Open prepares summaries in the background and keeps them collapsed until you tap. Open Automatically expands them on their own. Tap to Summarize only starts when you tap a summary card.\n\nLanguage: summaries are written in this language, whatever language the post, article or comments are in. Device Default uses your device's language."
 
     /// The Maintenance section's footer.
     public static let maintenanceFooter = "Clearing the cache removes saved summaries and extracted article text. Phoebus AI logs contain only AI-specific Reborn diagnostics from the current app session."
@@ -290,6 +296,8 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
             .flatMap { $0 } ?? fallback.summaryMode
         provider = (try? container.decodeIfPresent(AIProvider.self, forKey: .provider))
             ?? fallback.provider
+        summaryLanguage = (try? container.decodeIfPresent(String.self, forKey: .summaryLanguage))
+            ?? fallback.summaryLanguage
         openRouterAPIKey = (try? container.decodeIfPresent(String.self, forKey: .openRouterAPIKey))
         openRouterModel = (try? container.decodeIfPresent(String.self, forKey: .openRouterModel))
         geminiAPIKey = (try? container.decodeIfPresent(String.self, forKey: .geminiAPIKey))
@@ -313,6 +321,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
         try container.encode(commentDetail, forKey: .commentDetail)
         try container.encode(summaryMode, forKey: .summaryMode)
         try container.encode(provider, forKey: .provider)
+        try container.encode(summaryLanguage, forKey: .summaryLanguage)
         try container.encodeIfPresent(openRouterAPIKey, forKey: .openRouterAPIKey)
         try container.encodeIfPresent(openRouterModel, forKey: .openRouterModel)
         try container.encodeIfPresent(geminiAPIKey, forKey: .geminiAPIKey)
@@ -325,6 +334,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case summariesEnabled, postSummariesEnabled, commentSummariesEnabled
         case postWordThreshold, postDetail, commentDetail, summaryMode, provider
+        case summaryLanguage
         case openRouterAPIKey, openRouterModel, geminiAPIKey, geminiModel
         case customAPIKey, customModel, customBaseURL
         case customEndpointURL

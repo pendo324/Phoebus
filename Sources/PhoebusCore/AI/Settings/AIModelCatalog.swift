@@ -243,6 +243,17 @@ public enum AISummaryCache {
         return text
     }
 
+    /// Reborn "Summary Language" (#1362): the language is part of a summary's
+    /// identity, so one cached in another language (or before summaries named
+    /// a language) regenerates instead of being shown again.
+    public static func postKey(post: String, detail: AISummaryDetail, language: AISummaryLanguage.Resolved?) -> String {
+        "\(post).post.\(detail.rawValue).\(language?.identifier ?? "")"
+    }
+
+    public static func commentsKey(post: String, detail: AISummaryDetail, count: Int, language: AISummaryLanguage.Resolved?) -> String {
+        "\(post).comments.\(detail.rawValue).\(count).\(language?.identifier ?? "")"
+    }
+
     /// - Returns: the number of cached summaries removed.
     @discardableResult
     public static func clear(in defaults: UserDefaults = .standard) -> Int {

@@ -85,7 +85,9 @@ public enum ApolloAIClient {
     private static func summarizeUnlogged(text: String, settings: ApolloAISettings,
                                           target: Target, session: URLSession) async throws -> String {
         let detail = target == .comments ? settings.commentDetail : settings.postDetail
-        let instructions = target.instructions(detail)
+        // Reborn "Summary Language" (#1362).
+        let instructions = AISummaryLanguage.led(
+            target.instructions(detail), by: AISummaryLanguage.resolve(for: settings))
         let maxTokens = target.responseTokens(detail)
         switch settings.provider {
         case .onDevice:

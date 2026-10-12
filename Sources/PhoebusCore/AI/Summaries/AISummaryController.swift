@@ -209,7 +209,8 @@ public final class AISummaryController {
 
     private func generatePostSummary() {
         let detail = settings.postDetail
-        let cacheKey = "\(post.name).post.\(detail.rawValue)"
+        let cacheKey = AISummaryCache.postKey(
+            post: post.name, detail: detail, language: AISummaryLanguage.resolve(for: settings))
         if let cached = AISummaryCache.summary(for: cacheKey) {
             postState = .ready(cached)
             applyExpandOnReady(isPost: true)
@@ -272,7 +273,9 @@ public final class AISummaryController {
         commentSourceCount = gathered.count
         // Keyed by how many comments were read, so a thread that has
         // grown gets a fresh summary.
-        let cacheKey = "\(post.name).comments.\(settings.commentDetail.rawValue).\(gathered.count)"
+        let cacheKey = AISummaryCache.commentsKey(
+            post: post.name, detail: settings.commentDetail, count: gathered.count,
+            language: AISummaryLanguage.resolve(for: settings))
         if let cached = AISummaryCache.summary(for: cacheKey) {
             commentState = .ready(cached)
             applyExpandOnReady(isPost: false)

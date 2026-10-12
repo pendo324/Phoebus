@@ -841,4 +841,19 @@ import PhoebusCore
     check("spoken rich flair leaves the images out", rich.spokenText == "Niners")
     check("an emoji-only plain flair has nothing to draw",
           FlairInfo(kind: .user, text: ":49ers:", parts: nil, subreddit: "nfl").runs.isEmpty)
+
+    // A post's author flair arrives rich too, so the byline draws its emoji.
+    let postJSON = """
+    {"id":"a","name":"t3_a","title":"t","author":"u","subreddit":"nfl",
+     "permalink":"/r/nfl/comments/a/t/","score":1,"num_comments":0,"created_utc":0,
+     "is_self":true,"over_18":false,"spoiler":false,"stickied":false,"saved":false,
+     "author_flair_text":":chargers: Chargers",
+     "author_flair_richtext":[{"e":"emoji","a":":chargers:","u":"https://emoji.redditmedia.com/chargers.png"},
+                              {"e":"text","t":" Chargers"}]}
+    """
+    let post = try? JSONDecoder.reddit.decode(RedditPost.self, from: Data(postJSON.utf8))
+    let parts = post?.authorFlairRichtext
+    check("a post decodes its author's rich flair",
+          FlairInfo.runs(text: post?.authorFlairText ?? "", parts: parts)
+            == [.emoji(URL(string: "https://emoji.redditmedia.com/chargers.png")!), .text(" Chargers")])
 }

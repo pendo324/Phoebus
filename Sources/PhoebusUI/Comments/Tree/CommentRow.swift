@@ -931,11 +931,16 @@ enum FlairRuns {
 /// corners) in #1A1A1A with #616269 text at the username's size, custom
 /// emoji as 16pt images. Reddit's `:flag-me:` codes are the emoji's
 /// names, so they are replaced by their images rather than printed.
+/// Posts draw their author's flair with it too, at `size` to suit their
+/// byline.
 struct CommentFlairPill: View {
     let text: String
     let parts: [FlairPart]?
     let textColor: Color?
     let fill: Color?
+    /// The text size; the pill and its emoji are 1.5pt taller.
+    var size: CGFloat = 14.5
+    var role: TextRole = .commentHeader
 
     private static let defaultFill = Color(red: 26 / 255, green: 26 / 255, blue: 26 / 255)
     private static let defaultText = Color(red: 97 / 255, green: 98 / 255, blue: 105 / 255)
@@ -952,12 +957,12 @@ struct CommentFlairPill: View {
                     switch run {
                     case .emoji(let url):
                         CachedAsyncImage(url: url)
-                            .frame(width: 16, height: 16)
+                            .frame(width: size + 1.5, height: size + 1.5)
                     case .text(let value):
                         let trimmed = value.trimmingCharacters(in: .whitespaces)
                         if !trimmed.isEmpty {
                             Text(trimmed)
-                                .apolloFont(size: 14.5, role: .commentHeader)
+                                .apolloFont(size: size, role: role)
                                 .lineLimit(1)
                                 .foregroundStyle(textColor ?? Self.defaultText)
                         }
@@ -966,7 +971,7 @@ struct CommentFlairPill: View {
             }
             .padding(.leading, runs.first.map { if case .emoji = $0 { return 4.7 } else { return 5.7 } } ?? 5.7)
             .padding(.trailing, 5.7)
-            .frame(height: 16)
+            .frame(height: size + 1.5)
             .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(fill ?? Self.defaultFill))
             .fixedSize(horizontal: false, vertical: true)
         }

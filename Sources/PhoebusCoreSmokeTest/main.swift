@@ -1616,5 +1616,7 @@ try await checkMarkNSFWAndSpoiler()
 
 try await checkAppUpdatePrompt()
 
+try await checkFlairInfo()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

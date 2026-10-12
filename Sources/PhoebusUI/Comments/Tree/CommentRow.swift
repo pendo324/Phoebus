@@ -70,6 +70,7 @@ struct CommentRow: View {
     @State private var showingAward = false
     @State private var showingRemindMe = false
     @State private var showingTagEditor = false
+    @State private var shownFlair: FlairInfo?
     @State private var isOwnComment = false
     /// Author-only "Comment Insights" (see the context menu item).
     @State private var showingInsights = false
@@ -372,6 +373,14 @@ struct CommentRow: View {
                     if general.showUserFlair, let authorFlair = node.comment.authorFlairText, !authorFlair.isEmpty {
                         CommentFlairPill(text: authorFlair, parts: node.comment.authorFlairRichtext,
                                          textColor: authorFlairTextColor, fill: authorFlairBackgroundColor)
+                            // Apollo's flair alert, with the flair in full.
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                FlairAlert.present(FlairInfo(kind: .user, text: authorFlair,
+                                                             parts: node.comment.authorFlairRichtext,
+                                                             subreddit: node.comment.subreddit), in: $shownFlair)
+                            }
+                            .accessibilityIdentifier("comment.flair.\(node.id)")
                             // Below the author's -1: a long flair truncates before the username.
                             .layoutPriority(-2)
                     }
@@ -632,6 +641,7 @@ struct CommentRow: View {
             }
         }
         .userTagEditor(isPresented: $showingTagEditor, username: displayAuthor)
+        .flairAlert($shownFlair)
         .task { await checkOwnership() }
         .alert("Delete Comment?", isPresented: $confirmingDelete) {
             Button("Delete", role: .destructive) { Task { await deleteComment() } }
@@ -913,10 +923,7 @@ enum FlairRuns {
     /// Rich parts when Reddit sent any, else the plain text with its
     /// `:emoji:` codes stripped.
     static func runs(text: String, parts: [FlairPart]?) -> [FlairPart.Kind] {
-        if let parts, !parts.isEmpty { return parts.map(\.kind) }
-        let stripped = text.replacingOccurrences(of: #":[A-Za-z0-9_+\-]+:"#, with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespaces)
-        return stripped.isEmpty ? [] : [.text(stripped)]
+        FlairInfo.runs(text: text, parts: parts)
     }
 }
 

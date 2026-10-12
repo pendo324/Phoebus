@@ -69,6 +69,7 @@ struct PostDetailHeader: View {
     @State private var editedText: String
     @Binding private var isDeleted: Bool
     @State private var showingTagEditor = false
+    @State private var shownFlair: FlairInfo?
     /// The body as last saved from the editor, shown until the post
     /// is reloaded (the post passed in still has the old text).
     @State private var savedEdit: String?
@@ -120,6 +121,7 @@ struct PostDetailHeader: View {
                 .contextMenu { overflowMenuItems }
         }
         .userTagEditor(isPresented: $showingTagEditor, username: post.author)
+        .flairAlert($shownFlair)
         // Each edit starts from the post as it stands, so Cancel or a discarded back swipe
         // doesn't leave the abandoned draft behind. Only on opening: saving closes the
         // editor before its request reads the draft.
@@ -161,6 +163,13 @@ struct PostDetailHeader: View {
                         .foregroundStyle(linkFlairTextColor ?? Color.apolloTertiaryText(
                             colorScheme: colorScheme, themeColors: apolloTheme))
                         .background(Capsule().fill(linkFlairBackgroundColor ?? Color.apolloFlairFill(colorScheme: colorScheme)))
+                        // Apollo's flair alert, with the flair in full.
+                        .contentShape(Capsule())
+                        .onTapGesture {
+                            FlairAlert.present(FlairInfo(kind: .post, text: flair, parts: post.linkFlairRichtext,
+                                                         subreddit: post.subreddit), in: $shownFlair)
+                        }
+                        .accessibilityIdentifier("postDetail.linkFlair")
                 }
                 }
                 }
@@ -316,6 +325,12 @@ struct PostDetailHeader: View {
                         .padding(.horizontal, 4)
                         .foregroundStyle(authorFlairTextColor ?? .secondary)
                         .background(Capsule().fill(authorFlairBackgroundColor ?? Color.secondary.opacity(0.15)))
+                        .contentShape(Capsule())
+                        .onTapGesture {
+                            FlairAlert.present(FlairInfo(kind: .user, text: authorFlair, parts: nil,
+                                                         subreddit: post.subreddit), in: $shownFlair)
+                        }
+                        .accessibilityIdentifier("postDetail.authorFlair")
                 }
                 if post.authorCakeday == true {
                     Text("🎂").accessibilityLabel("Cake day")

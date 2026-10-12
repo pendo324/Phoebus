@@ -48,6 +48,12 @@ Apollo or Reborn, add an entry here.
 
 ## Posts and comments
 
+- **The flair alert says what kind of flair it is and where it's from.**
+  Tapping a flair in a comment header, or the post's or author's flair in
+  the post header, opens Apollo's flair alert: "Flair", the flair in full
+  with its emoji, and OK. Phoebus adds a line under the flair, such as
+  "User flair in r/nfl" or "Post flair in r/nfl", which Apollo's alert
+  doesn't have. Feed rows don't open it: a tap there opens the post.
 - **Link posts have Other Discussions.** A link post's ••• menu in the
   comments view (and a crosspost's) has "Other Discussions", listing the
   other posts of the same link from Reddit's `/duplicates` endpoint as

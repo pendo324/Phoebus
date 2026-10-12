@@ -819,3 +819,26 @@ import PhoebusCore
               NavigationBarGeometry.maximumContentWidth(leftLimit: 200, rightLimit: 210) == 0)
     }
 }
+
+// MARK: - Flair alert
+
+// Apollo's flair alert shows a tapped flair in full; Phoebus adds which kind
+// of flair it is and where it's from.
+@MainActor func checkFlairInfo() async throws {
+    let user = FlairInfo(kind: .user, text: ":49ers: Niners fan since 1981", parts: nil, subreddit: "nfl")
+    check("flair alert title is Apollo's", FlairInfo.title == "Flair")
+    check("user flair names its subreddit", user.detail == "User flair in r/nfl")
+    check("post flair names its subreddit",
+          FlairInfo(kind: .post, text: "Highlights", parts: nil, subreddit: "nfl").detail == "Post flair in r/nfl")
+    check("flair with no subreddit names only its kind",
+          FlairInfo(kind: .user, text: "x", parts: nil, subreddit: nil).detail == "User flair")
+    check("plain flair drops its emoji codes", user.runs == [.text("Niners fan since 1981")])
+    check("spoken flair is its words", user.spokenText == "Niners fan since 1981")
+    let emoji = URL(string: "https://emoji.redditmedia.com/49ers.png")!
+    let rich = FlairInfo(kind: .user, text: ":49ers: Niners", parts: [FlairPart(kind: .emoji(emoji)), FlairPart(kind: .text(" Niners"))],
+                         subreddit: "nfl")
+    check("rich flair keeps its emoji images", rich.runs == [.emoji(emoji), .text(" Niners")])
+    check("spoken rich flair leaves the images out", rich.spokenText == "Niners")
+    check("an emoji-only plain flair has nothing to draw",
+          FlairInfo(kind: .user, text: ":49ers:", parts: nil, subreddit: "nfl").runs.isEmpty)
+}

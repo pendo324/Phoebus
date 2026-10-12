@@ -12,6 +12,10 @@ import PhoebusCore
 /// Left/Right minimize, holds the tab bar expanded with `.never` while a
 /// gesture is being let go by, as Reborn does: switching that policy also
 /// makes UIKit expand the bar.
+///
+/// A push, pop or stack replacement also brings the bars back (Reborn
+/// "Hide Bars on Scroll" navigation reveals, #1349), the same way a
+/// scroll-up reveal does.
 @MainActor
 final class TabBarScrollPolicy: ObservableObject {
     static let idleRevealDelay: TimeInterval = 30
@@ -19,6 +23,8 @@ final class TabBarScrollPolicy: ObservableObject {
     /// While true the native minimize behavior is `.never`.
     @Published private(set) var holdExpanded = false
     var classic = false
+    var hideBarsOnScroll = false
+    var hideStyle = 0
 
     private(set) var hidden = false
     /// After a Two-Gesture reveal: the next downward gesture is let go by.
@@ -41,6 +47,10 @@ final class TabBarScrollPolicy: ObservableObject {
         observe(.apolloScrollGestureEnded) { $0.gestureEnded() }
         observe(.apolloScrollDidScrollDown) { $0.scrolledDown() }
         observe(.apolloScrollDidScrollUp) { $0.scrolledUp() }
+        observers.append(center.addObserver(forName: .apolloNavigationWillChange, object: nil, queue: .main) { [weak self] note in
+            let byScreen = note.userInfo?[NavigationRevealUserInfo.tabBarHiddenByScreen] as? Bool ?? false
+            MainActor.assumeIsolated { self?.navigationChanged(tabBarHiddenByScreen: byScreen) }
+        })
     }
 
     func gestureBegan() {
@@ -78,6 +88,24 @@ final class TabBarScrollPolicy: ObservableObject {
         if !classic { holdAfterGesture = true }
     }
 
+    /// Reborn #1349. The next downward gesture collapses straight away: a
+    /// new screen starts fresh, so nothing is let go by.
+    func navigationChanged(tabBarHiddenByScreen: Bool) {
+        let decision = TabBarNavigationRevealPolicy.decide(
+            hideBarsOnScroll: hideBarsOnScroll, hideStyle: hideStyle, barsHidden: hidden,
+            tabBarHiddenByScreen: tabBarHiddenByScreen)
+        guard decision.reveal else { return }
+        hidden = false
+        consumeNext = false
+        holdAfterGesture = false
+        idleTimer?.invalidate()
+        NotificationCenter.default.post(name: .apolloBarsShouldShow, object: nil)
+        if decision.expandNativeMinimize {
+            holdExpanded = true
+            if classic { releaseHoldSoon() }
+        }
+    }
+
     private func reveal() {
         hidden = false
         idleTimer?.invalidate()
@@ -98,11 +126,13 @@ final class TabBarScrollPolicy: ObservableObject {
         reveal()
         // `.never` is the only public way to expand UIKit's minimized bar.
         holdExpanded = true
-        if classic {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                guard let self, !self.hidden, self.classic else { return }
-                self.holdExpanded = false
-            }
+        if classic { releaseHoldSoon() }
+    }
+
+    private func releaseHoldSoon() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self, !self.hidden, self.classic else { return }
+            self.holdExpanded = false
         }
     }
 }
@@ -114,4 +144,11 @@ extension Notification.Name {
     /// `TabBarScrollPolicy`'s decisions, for the bars it doesn't drive natively.
     static let apolloBarsShouldHide = Notification.Name("ApolloBarsShouldHide")
     static let apolloBarsShouldShow = Notification.Name("ApolloBarsShouldShow")
+    /// A tab's navigation stack is about to push, pop or be replaced.
+    static let apolloNavigationWillChange = Notification.Name("ApolloNavigationWillChange")
+}
+
+enum NavigationRevealUserInfo {
+    /// Whether the tab bar is hidden for a pushed screen rather than by scrolling.
+    static let tabBarHiddenByScreen = "tabBarHiddenByScreen"
 }

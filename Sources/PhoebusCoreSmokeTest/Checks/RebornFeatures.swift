@@ -549,6 +549,32 @@ import PhoebusCore
           !NavigationActionsPolicy.animatesCollapse(for: .resignActive))
 }
 
+// MARK: - Navigation reveals for Hide Bars on Scroll (Reborn #1349)
+//
+// A push, pop or stack replacement brings scroll-hidden bars back; a bar a
+// screen hides on purpose stays hidden.
+@MainActor func checkTabBarNavigationReveal() async throws {
+    typealias Policy = TabBarNavigationRevealPolicy
+    let fade = Policy.decide(hideBarsOnScroll: true, hideStyle: 2, barsHidden: true, tabBarHiddenByScreen: false)
+    check("navigating reveals bars that scrolling hid (Fade)", fade.reveal)
+    check("Fade needs no native minimize nudge", !fade.expandNativeMinimize)
+    let down = Policy.decide(hideBarsOnScroll: true, hideStyle: 3, barsHidden: true, tabBarHiddenByScreen: false)
+    check("navigating reveals bars that scrolling hid (Down)", down.reveal && !down.expandNativeMinimize)
+    for style in [0, 1] {
+        let native = Policy.decide(hideBarsOnScroll: true, hideStyle: style, barsHidden: true, tabBarHiddenByScreen: false)
+        check("Left/Right (\(style)) also expand UIKit's minimized bar", native.reveal && native.expandNativeMinimize)
+    }
+    check("bars that are already showing are left alone",
+          !Policy.decide(hideBarsOnScroll: true, hideStyle: 2, barsHidden: false, tabBarHiddenByScreen: false).reveal)
+    check("with Hide Bars on Scroll off nothing is revealed",
+          !Policy.decide(hideBarsOnScroll: false, hideStyle: 2, barsHidden: true, tabBarHiddenByScreen: false).reveal)
+    let deliberate = Policy.decide(hideBarsOnScroll: true, hideStyle: 0, barsHidden: true, tabBarHiddenByScreen: true)
+    check("a bar the screen hides on purpose is not expanded natively", !deliberate.expandNativeMinimize)
+    check("hide styles 0 and 1 are UIKit's minimize, 2 and 3 are not",
+          Policy.usesNativeMinimize(hideStyle: 0) && Policy.usesNativeMinimize(hideStyle: 1)
+          && !Policy.usesNativeMinimize(hideStyle: 2) && !Policy.usesNativeMinimize(hideStyle: 3))
+}
+
 // MARK: - Subreddit header bands
 //
 // Defaults: Subtitle and Description ON, Sidebar and User Flair buttons OFF.

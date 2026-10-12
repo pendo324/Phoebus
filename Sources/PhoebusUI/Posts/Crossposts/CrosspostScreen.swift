@@ -18,6 +18,7 @@ public struct CrosspostScreen: View {
     @State private var selectedFlair: RedditFlairOption?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    @State private var confirmingDismiss = false
     @State private var suggestions = CrosspostSuggestions()
     @Setting(SubredditSectionsSettingsStore.storage) private var sectionsSettings
     @Environment(\.dismiss) private var dismiss
@@ -33,7 +34,11 @@ public struct CrosspostScreen: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Button {
-                    dismiss()
+                    if hasEdits {
+                        confirmingDismiss = true
+                    } else {
+                        dismiss()
+                    }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
@@ -57,8 +62,25 @@ public struct CrosspostScreen: View {
             }
 
             // Title editor, separated from the options block below.
-            TextField("Title", text: $title)
-                .textFieldStyle(.roundedBorder)
+            // Reborn "Crosspost title" (#1290): multi-line field with a clear button.
+            HStack(alignment: .top, spacing: 6) {
+                TextField("Title", text: $title, axis: .vertical)
+                    .lineLimit(1...5)
+                    .accessibilityIdentifier("crosspost.title")
+                if !title.isEmpty {
+                    Button {
+                        title = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear title")
+                    .accessibilityIdentifier("crosspost.title.clear")
+                }
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.4)))
 
             // Options: destination-subreddit row + flair row.
             VStack(spacing: 0) {
@@ -134,11 +156,29 @@ public struct CrosspostScreen: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(targetSubreddit.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
+            .disabled(
+                targetSubreddit.trimmingCharacters(in: .whitespaces).isEmpty
+                    || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || isSubmitting
+            )
         }
         .padding(16)
         .task { await loadFlairs() }
         .task { await loadSuggestions() }
+        .interactiveDismissDisabled(hasEdits)
+        .alert("Dismiss Without Crossposting?", isPresented: $confirmingDismiss) {
+            Button("Dismiss", role: .destructive) { dismiss() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You have information added, would you like to dismiss without crossposting and lose the data?")
+        }
+    }
+
+    /// An untouched prefilled title doesn't count as added information.
+    private var hasEdits: Bool {
+        title != post.title
+            || !targetSubreddit.trimmingCharacters(in: .whitespaces).isEmpty
+            || selectedFlair != nil
     }
 
     @ViewBuilder

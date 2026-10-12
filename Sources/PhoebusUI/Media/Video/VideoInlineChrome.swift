@@ -24,6 +24,9 @@ struct VideoMuteBadge: View {
                         .fill(.black.opacity(0.55))
                 )
         }
+        // Plain: a default-styled button turns a `List` row into one whole
+        // button, so touching the badge highlighted the entire feed row.
+        .buttonStyle(.plain)
         .allowsHitTesting(isInteractive)
         .accessibilityIdentifier("video.inlineMuteButton")
         .accessibilityLabel(isMuted ? "Unmute" : "Mute")
@@ -61,6 +64,8 @@ struct VideoInlineSpeedMenu: View {
                 .background(Circle().fill(.black.opacity(0.5)))
             .accessibilityLabel("Playback Speed")
         }
+        // Plain for the same reason as the mute badge.
+        .buttonStyle(.plain)
         .padding(8)
         .accessibilityIdentifier("video.playbackSpeedMenu")
     }

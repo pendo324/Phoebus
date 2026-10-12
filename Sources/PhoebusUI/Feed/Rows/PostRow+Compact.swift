@@ -139,11 +139,9 @@ extension PostRow {
 
                     // The author's flair chip goes with the author's name: with Usernames
                     // off Apollo shows neither.
-                    if appearanceSettings.alwaysShowUsernames, generalSettings.showUserFlair,
-                       let authorFlair = post.authorFlairText, !authorFlair.isEmpty {
-                        CommentFlairPill(text: authorFlair, parts: post.authorFlairRichtext,
-                                         textColor: authorFlairTextColor, fill: authorFlairBackgroundColor,
-                                         size: 11.5, role: .postMeta)
+                    if appearanceSettings.alwaysShowUsernames, let authorFlair = feedAuthorFlair {
+                        FeedAuthorFlairPill(post: post, text: authorFlair, textColor: authorFlairTextColor,
+                                            fill: authorFlairBackgroundColor, size: 11.5)
                             .layoutPriority(-1)
                     }
                     // Reddit API field `author_cakeday`.
@@ -153,18 +151,25 @@ extension PostRow {
                 }
                 }
 
-                HStack(spacing: 10) {
-                    if showsAuthorInInfoRow {
-                        infoRowAuthor
+                Group {
+                    if showsAuthorInInfoRow, let authorFlair = feedAuthorFlair {
+                        // The flair after the name, or under the row if it
+                        // doesn't fit (`InfoRowFlairLayout`).
+                        InfoRowFlairLayout {
+                            infoRowAuthor
+                            FeedAuthorFlairPill(post: post, text: authorFlair, textColor: authorFlairTextColor,
+                                                fill: authorFlairBackgroundColor)
+                            compactInfoRowItems
+                        }
+                    } else {
+                        HStack(spacing: 10) {
+                            if showsAuthorInInfoRow {
+                                infoRowAuthor
+                            }
+                            compactInfoRowItems
+                            Spacer(minLength: 0)
+                        }
                     }
-                    if subredditLeadsInfoRow {
-                        infoRowSubreddit
-                    }
-                    infoRowStats
-                    // The ••• is INLINE, 10pt after the age, not
-                    // pushed to the trailing edge with a `Spacer`.
-                    moreOptionsButton
-                    Spacer(minLength: 0)
                 }
                 .lineLimit(1)
                 .fixedSize(horizontal: false, vertical: true)
@@ -216,6 +221,19 @@ extension PostRow {
         .contentShape(Rectangle())
         .highPriorityGesture(TapGesture().onEnded(onSubredditTap))
         .accessibilityIdentifier("feed.postRow.subredditLabel")
+    }
+
+    /// The compact info row after the author.
+    private var compactInfoRowItems: some View {
+        HStack(spacing: 10) {
+            if subredditLeadsInfoRow {
+                infoRowSubreddit
+            }
+            infoRowStats
+            // The ••• is INLINE, 10pt after the age, not
+            // pushed to the trailing edge with a `Spacer`.
+            moreOptionsButton
+        }
     }
 
     var infoRowAuthor: some View {

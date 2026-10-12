@@ -53,7 +53,13 @@ Apollo or Reborn, add an entry here.
   the post header, opens Apollo's flair alert: "Flair", the flair in full
   with its emoji, and OK. Phoebus adds a line under the flair, such as
   "User flair in r/nfl" or "Post flair in r/nfl", which Apollo's alert
-  doesn't have. Feed rows don't open it: a tap there opens the post.
+  doesn't have. Feed rows open it from the author's flair pill.
+- **Feed rows show the author's flair with its emoji, and wrap it.** In a
+  subreddit's feed the flair sits after the name in the info row, as in
+  Apollo; when it doesn't fit, it moves to its own line under the row
+  rather than truncating the name or the stats. Settings > Appearance >
+  Flair > Show Flair in Feeds (Phoebus-only, on by default) hides it in all
+  feed rows; User Flair still governs flair everywhere.
 - **Link posts have Other Discussions.** A link post's ••• menu in the
   comments view (and a crosspost's) has "Other Discussions", listing the
   other posts of the same link from Reddit's `/duplicates` endpoint as

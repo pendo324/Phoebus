@@ -257,6 +257,14 @@ struct PostRow: View {
         guard generalSettings.enableFlairColors else { return nil }
         return RedditFlairColor.validHex(from: post.linkFlairTextColorRaw).map(Color.init(hex:))
     }
+    /// The author's flair if feed rows show it (Show User Flair, then Show
+    /// Flair in Feeds).
+    var feedAuthorFlair: String? {
+        FeedAuthorFlair.isShown(showUserFlair: generalSettings.showUserFlair,
+                                showFlairInFeeds: generalSettings.showFlairInFeeds,
+                                flairText: post.authorFlairText) ? post.authorFlairText : nil
+    }
+
     var authorFlairBackgroundColor: Color? {
         guard generalSettings.enableFlairColors else { return nil }
         return RedditFlairColor.validHex(from: post.authorFlairBackgroundColor).map(Color.init(hex:))

@@ -857,3 +857,49 @@ import PhoebusCore
           FlairInfo.runs(text: post?.authorFlairText ?? "", parts: parts)
             == [.emoji(URL(string: "https://emoji.redditmedia.com/chargers.png")!), .text(" Chargers")])
 }
+
+// MARK: - Author flair in feed rows
+
+// After the name when everything fits, else on its own line; Show User Flair
+// governs, Show Flair in Feeds hides it in feeds only.
+@MainActor func checkFeedAuthorFlair() async throws {
+    check("Show Flair in Feeds defaults on", GeneralSettings.default.showFlairInFeeds)
+    let old = try? JSONDecoder().decode(GeneralSettings.self, from: Data(#"{"showUserFlair":true}"#.utf8))
+    check("settings saved before Show Flair in Feeds keep it on", old?.showFlairInFeeds == true)
+
+    check("feed flair shows with both settings on",
+          FeedAuthorFlair.isShown(showUserFlair: true, showFlairInFeeds: true, flairText: "Chargers"))
+    check("Show Flair in Feeds off hides feed flair",
+          !FeedAuthorFlair.isShown(showUserFlair: true, showFlairInFeeds: false, flairText: "Chargers"))
+    check("Show User Flair off hides feed flair whatever Show Flair in Feeds says",
+          !FeedAuthorFlair.isShown(showUserFlair: false, showFlairInFeeds: true, flairText: "Chargers"))
+    check("a blank flair isn't shown",
+          !FeedAuthorFlair.isShown(showUserFlair: true, showFlairInFeeds: true, flairText: "  "))
+
+    // 80 + 10 + 60 + 10 + 140 = 300.
+    check("flair that fits stays after the name",
+          FeedAuthorFlair.placement(authorWidth: 80, flairWidth: 60, restWidth: 140, spacing: 10, available: 300) == .inline)
+    check("flair that doesn't fit goes below",
+          FeedAuthorFlair.placement(authorWidth: 80, flairWidth: 61, restWidth: 140, spacing: 10, available: 300) == .below)
+    check("with the flair below, the name keeps its width",
+          FeedAuthorFlair.authorWidthBelow(authorWidth: 80, restWidth: 140, spacing: 10, available: 300) == 80)
+    check("with the flair below, a name too long for the stats truncates as before",
+          FeedAuthorFlair.authorWidthBelow(authorWidth: 200, restWidth: 140, spacing: 10, available: 300) == 150)
+
+    // Backups carry it with the rest of General settings.
+    let suite = UserDefaults(suiteName: "phoebus.smoke.feedFlair")!
+    suite.removePersistentDomain(forName: "phoebus.smoke.feedFlair")
+    var settings = GeneralSettings.default
+    settings.showFlairInFeeds = false
+    GeneralSettingsStore.storage.save(settings, to: suite)
+    check("General settings are in settings backups", SettingsDomainSnapshot.isBackedUp(GeneralSettingsStore.storage.key))
+    let snapshot = SettingsDomainSnapshot.capture(from: suite)
+    let roundTripped = try JSONDecoder().decode([String: JSONValue].self, from: JSONEncoder().encode(snapshot))
+    let restored = UserDefaults(suiteName: "phoebus.smoke.feedFlairRestore")!
+    restored.removePersistentDomain(forName: "phoebus.smoke.feedFlairRestore")
+    SettingsDomainSnapshot.restore(roundTripped, into: restored)
+    check("Show Flair in Feeds survives a backup round trip",
+          GeneralSettingsStore.storage.load(from: restored).showFlairInFeeds == false)
+    suite.removePersistentDomain(forName: "phoebus.smoke.feedFlair")
+    restored.removePersistentDomain(forName: "phoebus.smoke.feedFlairRestore")
+}

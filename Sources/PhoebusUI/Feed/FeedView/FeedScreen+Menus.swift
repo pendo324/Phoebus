@@ -27,7 +27,7 @@ extension FeedScreen {
     func feedPostMenuIDs(for post: RedditPost) -> [String] {
         var ids = ["save", "hide", "share", "copy-link"]
         if post.galleryImageURLs.count > 1 { ids.append("save-all-media") }
-        ids += ["crosspost", "mute-notifications", "filter-subreddit"]
+        ids += ["crosspost", "remind-me", "mute-notifications", "filter-subreddit"]
         ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
                                           signedInUsername: signedInUsername, isModerator: isModerator)
         if isModerator || post.author == signedInUsername { ids.append("post-flair") }
@@ -69,6 +69,9 @@ extension FeedScreen {
             }
         case "crosspost":
             Button { crosspostTarget = post } label: { Label("Crosspost", systemImage: "arrowshape.turn.up.right") }
+        case "remind-me":
+            // Reborn "Action Menus" (#1368): Remind Me In… is a catalogued row.
+            Button { remindTarget = post } label: { Label("Remind Me In…", systemImage: "alarm") }
         case "mute-notifications":
             Button {
                 MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))

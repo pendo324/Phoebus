@@ -122,26 +122,20 @@ public struct InterfaceSettingsScreen: View {
 
     // MARK: - Menus
 
-    /// Reborn #1131: Interface → Menus → Action Menus.
+    /// Reborn #1131, #1368: Interface → Menus → Customize Action Menus.
     @ViewBuilder private var menusSection: some View {
         Section {
             SettingsLink {
                 ActionMenusSettingsScreen()
             } label: {
-                HStack {
-                    Text("Action Menus")
-                    Spacer()
-                    Text(ActionMenuLayoutStore.interfaceSummary())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Text("Customize Action Menus")
             }
-            .apolloSearchRow("Action Menus", lastBeforeFooter: true)
+            .apolloSearchRow("Customize Action Menus", lastBeforeFooter: true)
         } header: {
             Text("Menus")
                 .apolloSectionHeader()
         } footer: {
-            Text("Reorder or hide the items in the ••• menus of feeds, posts and comments, and in the moderator menus.")
+            Text("Reorder and hide actions in the ••• menus on feeds, posts and comments, and in the moderator menus. Touching and holding a post or comment opens the same menu.")
                 .apolloSectionFooter()
         }
     }

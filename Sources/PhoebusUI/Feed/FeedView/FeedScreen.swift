@@ -56,6 +56,7 @@ public struct FeedScreen: View {
     /// one on `PostDetailScreen`'s toolbar, so a post can be
     /// crossposted directly from a feed row.
     @State var crosspostTarget: RedditPost?
+    @State var remindTarget: RedditPost?
     @State var insightsTargetPost: RedditPost?
     @Setting(GeneralSettingsStore.storage) var generalSettings
     /// Bumped by each `load()`; a response for an older one is dropped.
@@ -710,6 +711,11 @@ public struct FeedScreen: View {
                 CrosspostScreen(post: target, repository: repository) {
                     crosspostTarget = nil
                 }
+            }
+        }
+        .sheet(item: $remindTarget) { target in
+            NavigationStack {
+                RemindMeScreen(post: target) { remindTarget = nil }
             }
         }
         // Apollo's sort control is a full-width bottom action sheet titled

@@ -553,6 +553,7 @@ import PhoebusCore
             "ShowGIFProgressLocation": "media-viewer",
             "ShowDetailedProfiles": false,
             "GalleryAutoplayVideos": false, "GalleryAutoplayGIFs": false,
+            "TrueBlackKeyboardMode": 2,
             "TabBarCollapseSide": 4,                            // Reborn's Minimize (#1349)
         ], group: ["UsePureBlackDarkMode": true, "UsePurePUREBlackMode": true]))
         let g = GeneralSettingsStore.load()
@@ -585,6 +586,7 @@ import PhoebusCore
         check("ShowDetailedProfiles off imports as the Native profile style", ProfileLayoutSettingsStore.load().style == .native)
         check("gallery autoplay keys are imported",
               !GalleryAutoplayStore.load().playVideos && !GalleryAutoplayStore.load().playGIFs)
+        check("True Black Keyboard mode 2 imports as Light Mode Only", g.trueBlackKeyboardMode == .lightOnly)
         check("the import reports what it took", summary.applied.contains("Tap to Collapse")
               && summary.applied.contains("Comments Swipe Actions"))
         check("stock gesture vocabulary: toggle-read is mark read, unknown is none",

@@ -680,6 +680,8 @@ try await checkInboxReplyIsolatedCommentThread()
 
 try await checkApolloReborn370Parity3()
 
+try await checkTrueBlackKeyboard()
+
 try await checkExpandedMultiredditsStockApollo()
 
 try await checkMultiredditCopy()

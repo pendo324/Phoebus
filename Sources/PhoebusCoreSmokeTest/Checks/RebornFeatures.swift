@@ -454,6 +454,41 @@ import PhoebusCore
     check("an older saved blob defaults Hide Top Bar off", !topBarSparse.hideTopBarOnScroll)
 }
 
+// MARK: - True Black Keyboard (#1316)
+@MainActor func checkTrueBlackKeyboard() async throws {
+    check("True Black Keyboard defaults Off", GeneralSettings.default.trueBlackKeyboardMode == .off)
+    check("True Black Keyboard stores Reborn's 0...3",
+          TrueBlackKeyboardMode.allCases.map(\.rawValue) == [0, 1, 2, 3])
+    check("True Black Keyboard picker titles match Reborn's",
+          TrueBlackKeyboardMode.allCases.map(\.displayName) == ["Off", "Dark Mode Only", "Light Mode Only", "Always"])
+
+    func paints(_ mode: TrueBlackKeyboardMode, dark: Bool, darkKeys: Bool = true) -> Bool {
+        mode.paintsBlack(isDark: dark, darkKeysAvailable: darkKeys)
+    }
+    check("Off never paints black", !paints(.off, dark: true) && !paints(.off, dark: false))
+    check("Dark Mode Only paints only in dark", paints(.darkOnly, dark: true) && !paints(.darkOnly, dark: false))
+    check("Light Mode Only paints only in light", !paints(.lightOnly, dark: true) && paints(.lightOnly, dark: false))
+    check("Always paints in both", paints(.always, dark: true) && paints(.always, dark: false))
+
+    func darkKeys(_ mode: TrueBlackKeyboardMode, dark: Bool, available: Bool = true) -> Bool {
+        mode.usesDarkKeys(isDark: dark, darkKeysAvailable: available)
+    }
+    check("the dark key set is used only for a black keyboard under a light app",
+          darkKeys(.lightOnly, dark: false) && darkKeys(.always, dark: false)
+          && !darkKeys(.always, dark: true) && !darkKeys(.darkOnly, dark: true)
+          && !darkKeys(.off, dark: false) && !darkKeys(.darkOnly, dark: false))
+    check("without the dark key set a light app keeps the stock keyboard",
+          !paints(.always, dark: false, darkKeys: false) && !darkKeys(.always, dark: false, available: false)
+          && paints(.always, dark: true, darkKeys: false))
+
+    var general = GeneralSettings.default
+    general.trueBlackKeyboardMode = .always
+    let roundTrip = try! JSONDecoder().decode(GeneralSettings.self, from: try! JSONEncoder().encode(general))
+    check("True Black Keyboard mode survives a save/load", roundTrip.trueBlackKeyboardMode == .always)
+    check("an older saved blob defaults True Black Keyboard Off",
+          try! JSONDecoder().decode(GeneralSettings.self, from: Data("{}".utf8)).trueBlackKeyboardMode == .off)
+}
+
 // MARK: - ExpandedMultireddits (stock Apollo)
 //
 // `ExpandedMultireddits` is in Apollo's own registration dictionary and adds

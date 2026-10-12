@@ -669,6 +669,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// default off, Liquid Glass only): trades the native drag-to-switch-tab
     /// for left/right back/forward. Relaunch to apply, as upstream.
     public var tabBarSwipeNavigation: Bool = false
+    /// Reborn "True Black Keyboard" (#1316, `TrueBlackKeyboardMode`, default
+    /// Off): paints the system keyboard black; applies the next time it appears.
+    public var trueBlackKeyboardMode: TrueBlackKeyboardMode = .off
 
     // MARK: - Shortcuts section
 
@@ -1154,6 +1157,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         centerTitleGapCentering = try container.decode(.centerTitleGapCentering, default: d, \.centerTitleGapCentering)
         ipadTabBarBottom = try container.decode(.ipadTabBarBottom, default: d, \.ipadTabBarBottom)
         tabBarSwipeNavigation = try container.decode(.tabBarSwipeNavigation, default: d, \.tabBarSwipeNavigation)
+        trueBlackKeyboardMode = try container.decode(.trueBlackKeyboardMode, default: d, \.trueBlackKeyboardMode)
         enableFlairColors = try container.decode(.enableFlairColors, default: d, \.enableFlairColors)
         pipEnabled = try container.decode(.pipEnabled, default: d, \.pipEnabled)
         feedGalleryCarousel = try container.decode(.feedGalleryCarousel, default: d, \.feedGalleryCarousel)

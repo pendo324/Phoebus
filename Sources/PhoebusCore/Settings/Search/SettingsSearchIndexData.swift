@@ -148,6 +148,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Show Self Post Thumbnails", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Show Self Post Thumbnails"),
         SettingsSearchEntry(title: "Post Flair", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Post Flair"),
         SettingsSearchEntry(title: "User Flair", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "User Flair"),
+        SettingsSearchEntry(title: "Show Flair in Feeds", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Show Flair in Feeds"),
         SettingsSearchEntry(title: "Color Flairs", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Color Flairs"),
         SettingsSearchEntry(title: "Show Awards", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Show Awards"),
         SettingsSearchEntry(title: "Hide Post Scores", breadcrumb: "Settings → Appearance", screen: .appearance, rowTitle: "Hide Post Scores"),

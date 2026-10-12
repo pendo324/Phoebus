@@ -142,6 +142,11 @@ public struct AppearanceSettingsScreen: View {
                     .apolloSearchRow("Post Flair")
                 Toggle("User Flair", isOn: $generalSettings.showUserFlair)
                     .apolloSearchRow("User Flair")
+                // Phoebus-only: author flair in feed rows; User Flair still governs it.
+                Toggle("Show Flair in Feeds", isOn: $generalSettings.showFlairInFeeds)
+                    .disabled(!generalSettings.showUserFlair)
+                    .apolloSearchRow("Show Flair in Feeds")
+                    .accessibilityIdentifier("appearance.showFlairInFeeds")
                 Toggle("Color Flairs", isOn: $generalSettings.enableFlairColors)
                     .apolloSearchRow("Color Flairs")
             } header: {

@@ -1618,5 +1618,7 @@ try await checkAppUpdatePrompt()
 
 try await checkFlairInfo()
 
+try await checkFeedAuthorFlair()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

@@ -510,6 +510,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real Apollo "User Flair" (Settings > Appearance > Flair):
     /// show or hide author flair.
     public var showUserFlair: Bool
+    /// "Show Flair in Feeds": author flair in feed rows, under Show User
+    /// Flair. Phoebus-only; Apollo has no such key.
+    public var showFlairInFeeds: Bool
     /// Real key: `OpenTwitterLinksIn` ("Open Tweets in…").
     public var openTwitterLinksIn: TwitterLinkDestination
     /// Real key: `AllowSaveCategories` — master switch for the Saved
@@ -817,6 +820,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showAwards: true,
         showPostFlair: true,
         showUserFlair: true,
+        showFlairInFeeds: true,
 
         openTwitterLinksIn: .inApp,
         allowSaveCategories: true,
@@ -917,6 +921,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showAwards: Bool = true,
         showPostFlair: Bool = true,
         showUserFlair: Bool = true,
+        showFlairInFeeds: Bool = true,
         openTwitterLinksIn: TwitterLinkDestination = .inApp,
         allowSaveCategories: Bool = true,
         excludeSubscribedFromAllPopular: Bool = false,
@@ -1013,6 +1018,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.showAwards = showAwards
         self.showPostFlair = showPostFlair
         self.showUserFlair = showUserFlair
+        self.showFlairInFeeds = showFlairInFeeds
         self.openTwitterLinksIn = openTwitterLinksIn
         self.allowSaveCategories = allowSaveCategories
         self.excludeSubscribedFromAllPopular = excludeSubscribedFromAllPopular
@@ -1116,6 +1122,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         showAwards = try container.decode(.showAwards, default: d, \.showAwards)
         showPostFlair = try container.decode(.showPostFlair, default: d, \.showPostFlair)
         showUserFlair = try container.decode(.showUserFlair, default: d, \.showUserFlair)
+        showFlairInFeeds = try container.decode(.showFlairInFeeds, default: d, \.showFlairInFeeds)
         openTwitterLinksIn = try container.decode(.openTwitterLinksIn, default: d, \.openTwitterLinksIn)
         allowSaveCategories = try container.decode(.allowSaveCategories, default: d, \.allowSaveCategories)
         excludeSubscribedFromAllPopular = try container.decode(.excludeSubscribedFromAllPopular, default: d, \.excludeSubscribedFromAllPopular)

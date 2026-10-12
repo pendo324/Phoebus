@@ -228,10 +228,9 @@ extension PostRow {
                             .contentShape(Rectangle())
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
                         UserTagPill(username: post.author)
-                        if let authorFlair = post.authorFlairText, !authorFlair.isEmpty, generalSettings.showUserFlair {
-                            CommentFlairPill(text: authorFlair, parts: post.authorFlairRichtext,
-                                             textColor: authorFlairTextColor, fill: authorFlairBackgroundColor,
-                                             size: 12.5, role: .postMeta)
+                        if let authorFlair = feedAuthorFlair {
+                            FeedAuthorFlairPill(post: post, text: authorFlair, textColor: authorFlairTextColor,
+                                                fill: authorFlairBackgroundColor)
                                 .layoutPriority(-1)
                         }
                     }
@@ -242,14 +241,30 @@ extension PostRow {
                 // glyphs and 4pt icon->number gap as the compact row.
                 // The same info row as the compact row (`infoRowStats`), so
                 // the Info Row and Appearance settings apply here too.
-                HStack(spacing: 10) {
-                    if showsAuthorInInfoRow {
-                        infoRowAuthor
-                    }
-                    infoRowStats
-                    Spacer()
-                    if !(isAggregateFeed && !showsSubredditHeader) {
-                        trailingControls
+                Group {
+                    if showsAuthorInInfoRow, let authorFlair = feedAuthorFlair {
+                        // As in the compact row (`InfoRowFlairLayout`).
+                        InfoRowFlairLayout {
+                            infoRowAuthor
+                            FeedAuthorFlairPill(post: post, text: authorFlair, textColor: authorFlairTextColor,
+                                                fill: authorFlairBackgroundColor)
+                            infoRowStats
+                            if showsLargeTrailingControls {
+                                // One subview: the layout pins it to the edge.
+                                HStack(spacing: 10) { trailingControls }
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 10) {
+                            if showsAuthorInInfoRow {
+                                infoRowAuthor
+                            }
+                            infoRowStats
+                            Spacer()
+                            if showsLargeTrailingControls {
+                                trailingControls
+                            }
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -284,5 +299,11 @@ extension PostRow {
                                 .foregroundStyle(voteState == false ? .blue : Color.apolloIdleVoteArrow)
                         }
                     }
+    }
+}
+
+extension PostRow {
+    var showsLargeTrailingControls: Bool {
+        !(isAggregateFeed && !showsSubredditHeader)
     }
 }

@@ -824,6 +824,16 @@ let reorderedBlocks = SubredditSectionsPreview.blocks(for: sectionsReordered)
 check("reordering the sections reorders the preview's bands",
       reorderedBlocks.first?.key == "band.moderator")
 
+// "Show Subreddit Icons" (Reborn #1351) hides the sample rows' icons.
+let noIconBlocks = SubredditSectionsPreview.blocks(for: sectionsDefault, showIcons: false)
+check("the preview draws row icons by default",
+      sectionsBlocks.filter { $0.kind == .row }.allSatisfy(\.showIcon))
+check("...and drops them all when Show Subreddit Icons is off",
+      noIconBlocks.filter { $0.kind == .row }.allSatisfy { !$0.showIcon })
+check("...which changes each row's signature so it cross-fades",
+      sectionsBlocks.first { $0.key == "row.apolloapp" }?.signature
+        != noIconBlocks.first { $0.key == "row.apolloapp" }?.signature)
+
 try await checkSubredditSectionsEnhancementsModernDividers()
 
 try await checkRecentlyVisited()

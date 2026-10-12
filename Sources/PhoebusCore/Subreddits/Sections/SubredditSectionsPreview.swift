@@ -1,6 +1,6 @@
 import Foundation
 
-/// The block list a Subreddit Sections preview should render: sample names,
+/// The block list a Subreddit List Sections preview should render: sample names,
 /// colors, bands and heights follow Reborn's preview.
 ///
 /// Kept in PhoebusCore, separate from the view, because the interesting
@@ -37,6 +37,8 @@ public struct SubredditSectionsPreviewBlock: Sendable, Equatable, Identifiable {
     public let tint: Tint?
     /// Rows only.
     public let starred: Bool
+    /// Rows only: whether the row's icon is drawn ("Show Subreddit Icons").
+    public let showIcon: Bool
     /// Bands only: accent label + accent rule vs the classic grey
     /// band.
     public let modern: Bool
@@ -56,6 +58,7 @@ public struct SubredditSectionsPreviewBlock: Sendable, Equatable, Identifiable {
             subtitle: nil,
             tint: nil,
             starred: false,
+            showIcon: false,
             modern: modern,
             height: bandHeight
         )
@@ -67,16 +70,18 @@ public struct SubredditSectionsPreviewBlock: Sendable, Equatable, Identifiable {
         name: String,
         subtitle: String? = nil,
         tint: Tint,
-        starred: Bool = false
+        starred: Bool = false,
+        showIcon: Bool = true
     ) -> SubredditSectionsPreviewBlock {
         SubredditSectionsPreviewBlock(
             kind: .row,
             key: key,
-            signature: "row|\(name)|\(subtitle ?? "")|\(starred ? 1 : 0)",
+            signature: "row|\(name)|\(subtitle ?? "")|\(starred ? 1 : 0)|icon:\(showIcon ? 1 : 0)",
             title: name,
             subtitle: subtitle,
             tint: tint,
             starred: starred,
+            showIcon: showIcon,
             modern: false,
             height: (subtitle?.isEmpty == false) ? detailRowHeight : rowHeight
         )
@@ -91,8 +96,13 @@ public struct SubredditSectionsPreviewBlock: Sendable, Equatable, Identifiable {
 }
 
 public enum SubredditSectionsPreview {
-    /// The blocks the current settings call for.
-    public static func blocks(for settings: SubredditSectionsSettings) -> [SubredditSectionsPreviewBlock] {
+    /// The blocks the current settings call for. `showIcons` is the list's
+    /// "Show Subreddit Icons" preference (Reborn #1351), which lives with the
+    /// appearance settings rather than `SubredditSectionsSettings`.
+    public static func blocks(
+        for settings: SubredditSectionsSettings,
+        showIcons: Bool = true
+    ) -> [SubredditSectionsPreviewBlock] {
         let separate = settings.separateFollowedUsers
         // `modern` flag.
         let modern = settings.usesModernDividers
@@ -104,18 +114,18 @@ public enum SubredditSectionsPreview {
             switch token {
             case .favorites:
                 blocks.append(.band(key: "band.favorites", title: "FAVORITES", modern: modern))
-                blocks.append(.row(key: "row.apolloapp", name: "apolloapp", tint: .indigo, starred: true))
+                blocks.append(.row(key: "row.apolloapp", name: "apolloapp", tint: .indigo, starred: true, showIcon: showIcons))
             case .multireddits:
                 blocks.append(.band(key: "band.multireddits", title: "MULTIREDDITS", modern: modern))
-                blocks.append(.row(key: "row.multireddit", name: "My Multireddit", subtitle: multiredditSubtitle, tint: .teal))
+                blocks.append(.row(key: "row.multireddit", name: "My Multireddit", subtitle: multiredditSubtitle, tint: .teal, showIcon: showIcons))
             case .moderator:
                 blocks.append(.band(key: "band.moderator", title: "MODERATOR", modern: modern))
-                blocks.append(.row(key: "row.modclub", name: "modclub", tint: .green))
+                blocks.append(.row(key: "row.modclub", name: "modclub", tint: .green, showIcon: showIcons))
             case .following:
                 // The FOLLOWING band only exists when the separation toggle is on.
                 guard separate else { continue }
                 blocks.append(.band(key: "band.following", title: "FOLLOWING", modern: modern))
-                blocks.append(.row(key: "row.username", name: "u/username", tint: .orange))
+                blocks.append(.row(key: "row.username", name: "u/username", tint: .orange, showIcon: showIcons))
             }
         }
 
@@ -123,9 +133,9 @@ public enum SubredditSectionsPreview {
         // sits in its letter section, with the SAME "row.username" key, so it
         // slides between the two places when the toggle flips.
         blocks.append(.band(key: "band.letter", title: "U", modern: modern))
-        blocks.append(.row(key: "row.ukulele", name: "ukulele", tint: .purple))
+        blocks.append(.row(key: "row.ukulele", name: "ukulele", tint: .purple, showIcon: showIcons))
         if !separate {
-            blocks.append(.row(key: "row.username", name: "u/username", tint: .orange))
+            blocks.append(.row(key: "row.username", name: "u/username", tint: .orange, showIcon: showIcons))
         }
         return blocks
     }

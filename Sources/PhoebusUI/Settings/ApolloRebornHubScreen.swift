@@ -131,9 +131,9 @@ public struct ApolloRebornHubScreen: View {
             } label: {
                 HubRow(
                     title: "Profile Layout",
-                    subtitle: profileLayoutSettings.summaryText,
                     systemImage: "person.crop.circle.fill",
-                    tint: .teal
+                    tint: .teal,
+                    detail: profileLayoutSettings.summaryText
                 )
             }
             .apolloSettingsRowInsets()
@@ -161,12 +161,12 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 PollsSettingsScreen(accountManager: accountManager)
             } label: {
-                // "On" / "Off" from `UDKeyPollsEnabled`.
+                // "On" / "Off" from `UDKeyPollsEnabled`, as a trailing value.
                 HubRow(
                     title: "Polls",
-                    subtitle: generalSettings.pollsEnabled ? "On" : "Off",
                     systemImage: "chart.bar.fill",
-                    tint: .yellow)
+                    tint: .yellow,
+                    detail: generalSettings.pollsEnabled ? "On" : "Off")
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
@@ -174,9 +174,9 @@ public struct ApolloRebornHubScreen: View {
             } label: {
                 HubRow(
                     title: "Phoebus AI",
-                    subtitle: apolloAISettings.summaryText,
                     systemImage: "sparkles",
-                    tint: .indigo
+                    tint: .indigo,
+                    detail: apolloAISettings.summaryText
                 )
             }
             .apolloSettingsRowInsets()
@@ -548,6 +548,7 @@ struct HubRow: View {
                 Text(detail)
                     .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
                     .foregroundStyle(Color.apolloSettingsSecondary)
+                    .lineLimit(1)
             }
             // The 7x12 #464648 disclosure, same as the root's rows
             // (`SettingsNavigationRow` hides the system one).

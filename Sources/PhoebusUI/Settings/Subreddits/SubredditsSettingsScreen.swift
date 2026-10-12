@@ -57,9 +57,9 @@ public struct SubredditsSettingsScreen: View {
             SettingsLink {
                 SubredditSectionsSettingsScreen()
             } label: {
-                Text("Subreddit Sections")
+                Text("Subreddit List Sections")
             }
-            .apolloSearchRow("Subreddit Sections")
+            .apolloSearchRow("Subreddit List Sections")
             Toggle("Per-Account Favorites", isOn: Binding(get: { perAccountFavorites }, set: { on in
                 if FavoriteSubredditsStore.setPerAccountEnabled(on) { perAccountFavorites = on } else { showingAccountLoading = true }
             }))
@@ -184,10 +184,12 @@ struct ValueRow: View {
     var body: some View {
         HStack {
             Text(title)
+                .layoutPriority(1)
             Spacer()
             if !value.isEmpty {
                 Text(value)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
     }

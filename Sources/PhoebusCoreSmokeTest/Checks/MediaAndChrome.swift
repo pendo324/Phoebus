@@ -314,7 +314,7 @@ import PhoebusCore
     // (Toggle/Picker/...), and must match the link pattern whether or not
     // it uses parentheses.
     for linkRow in ["Is Phoebus Still Taking up Storage?", "Phoebus AI",
-                    "Subreddit Sections", "Backup & Restore"] {
+                    "Subreddit List Sections", "Backup & Restore"] {
         check("Settings Search can reach the \(linkRow) row",
               SettingsSearch.index.contains { $0.title == linkRow })
     }

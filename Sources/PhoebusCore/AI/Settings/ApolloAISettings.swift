@@ -330,23 +330,20 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
         case customEndpointURL
     }
 
-    /// The Apollo Reborn hub row's subtitle. The hub uses its own
-    /// provider names here, distinct from the picker's ("On-device AI"
-    /// vs "Apple On-Device", etc.).
+    /// The Apollo Reborn hub row's value, "On · OpenRouter" or "Off · On-device"
+    /// (Reborn #1351). The hub uses its own provider names here, distinct from
+    /// the picker's ("On-device" vs "Apple On-Device", etc.).
     public var summaryText: String {
-        guard summariesEnabled else {
-            return "On-device or cloud summaries and generation settings"
-        }
-        return "\(hubProviderName) enabled"
+        "\(summariesEnabled ? "On" : "Off") · \(hubProviderName)"
     }
 
     /// The hub's own name for the active provider - see `summaryText`.
     public var hubProviderName: String {
         switch provider {
-        case .onDevice: return "On-device AI"
-        case .openRouter: return "OpenRouter AI"
-        case .gemini: return "Gemini AI"
-        case .custom: return "Custom cloud AI"
+        case .onDevice: return "On-device"
+        case .openRouter: return "OpenRouter"
+        case .gemini: return "Gemini"
+        case .custom: return "Custom"
         }
     }
 }

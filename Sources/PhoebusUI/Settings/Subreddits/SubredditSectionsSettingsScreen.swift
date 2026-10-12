@@ -1,7 +1,7 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's "Subreddit Sections" screen: drag-to-reorder for the Subreddits-root
+/// Reborn's "Subreddit List Sections" screen: drag-to-reorder for the Subreddits-root
 /// list's special sections, a "Following" section toggle for followed users, and
 /// multireddit-description visibility. See `SubredditSectionsSettings.swift`.
 ///
@@ -9,6 +9,7 @@ import PhoebusCore
 /// Subreddits hub, rather than adding a standalone screen for a single toggle.
 public struct SubredditSectionsSettingsScreen: View {
     @Setting(SubredditSectionsSettingsStore.storage) private var settings
+    @Setting(AppearanceSettingsStore.storage) private var appearance
 
     public init() {}
 
@@ -16,9 +17,14 @@ public struct SubredditSectionsSettingsScreen: View {
         // Built around a live preview card, a miniature of the Subreddits list that stays
         // on screen while the toggles and drag-to-reorder rows scroll beneath it.
         SettingsPreviewScreenLayout(screen: .subredditSections) {
-            SubredditSectionsPreviewMock(settings: settings)
+            SubredditSectionsPreviewMock(settings: settings, showIcons: appearance.showSubredditIconsInSubredditList)
         } content: {
             Section {
+                // Moved here from Appearance (Reborn "Polish Subreddit Section
+                // Previews and Settings", #1351); same `ShowSubredditIconsInSubredditList` key.
+                Toggle("Show Subreddit Icons", isOn: $appearance.showSubredditIconsInSubredditList)
+                    .apolloSearchRow("Show Subreddit Icons")
+                    .accessibilityIdentifier("subredditSections.showIcons")
                 Toggle("Separate Followed Users", isOn: separateFollowingBinding)
                     .apolloSearchRow("Separate Followed Users")
                     .accessibilityIdentifier("subredditSections.separateFollowing")
@@ -45,7 +51,7 @@ public struct SubredditSectionsSettingsScreen: View {
                     .apolloPreviewScreenSectionHeader()
             } footer: {
                 // Verbatim footer.
-                Text("Followed users get their own Following section, reorderable from the list's Edit mode. Multireddit rows show a description or their subreddits. Enhancements add accent-colored dividers — the preview shows what each option changes.")
+                Text("Subreddit List Enhancements make the alphabet index and favorite stars easier to tap, and improve spacing around icons and the index.")
                     .apolloPreviewScreenSectionFooter()
             }
 
@@ -65,16 +71,12 @@ public struct SubredditSectionsSettingsScreen: View {
             } header: {
                 Text("Section Order")
                     .apolloPreviewScreenSectionHeader()
-            } footer: {
-                // Verbatim footer.
-                Text("Touch and hold a section, then drag it into the order you want the subreddit list to use. Home, Popular, All and Moderator Posts stay on top; the alphabetical list always comes last.")
-                    .apolloPreviewScreenSectionFooter()
             }
             .environment(\.editMode, .constant(.active))
 
         }
         .apolloSettingsSearchScroll()
-        .navigationTitle("Subreddit Sections")
+        .navigationTitle("Subreddit List Sections")
     }
 
     /// The Following row only appears in the reorder list while Separate Followed

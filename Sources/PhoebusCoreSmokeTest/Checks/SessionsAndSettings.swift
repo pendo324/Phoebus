@@ -831,22 +831,17 @@ import PhoebusCore
 @MainActor func checkApolloAISettingsFloatingPostTabsSettings() async throws {
     check("ApolloAISettings.default has summaries disabled", ApolloAISettings.default.summariesEnabled == false)
     check("ApolloAISettings.default provider is .onDevice", ApolloAISettings.default.provider == .onDevice)
-    // The disabled subtitle is "On-device or cloud summaries and generation
-    // settings", not "Off".
-    check("the disabled hub subtitle is the real descriptive one",
-          ApolloAISettings.default.summaryText
-              == "On-device or cloud summaries and generation settings")
+    // The hub value is "<On|Off> · <Provider>" (Reborn #1351).
+    check("the disabled hub value reads 'Off' with the provider",
+          ApolloAISettings.default.summaryText == "Off · On-device")
     var aiSettings = ApolloAISettings.default
     aiSettings.summariesEnabled = true
     aiSettings.provider = .openRouter
     aiSettings.openRouterAPIKey = "sk-test-123"
-    // The hub subtitle reads "<Provider> enabled", using the hub's own
-    // provider names, which differ from the picker's ("OpenRouter AI" vs
-    // "OpenRouter").
-    check("the enabled hub subtitle names the provider and says enabled",
-          aiSettings.summaryText == "OpenRouter AI enabled")
+    check("the enabled hub value says On and names the provider",
+          aiSettings.summaryText == "On · OpenRouter")
     check("the hub's provider names are its own, not the picker's",
-          ApolloAISettings.default.hubProviderName == "On-device AI"
+          ApolloAISettings.default.hubProviderName == "On-device"
           && AIProvider.onDevice.displayName == "Apple On-Device")
     if let encoded = try? JSONEncoder().encode(aiSettings), let decoded = try? JSONDecoder().decode(ApolloAISettings.self, from: encoded) {
         check("ApolloAISettings round-trips through Codable unchanged", decoded == aiSettings)

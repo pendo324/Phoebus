@@ -67,6 +67,7 @@ public final class CustomOAuthSession: NSObject {
         configuration.websiteDataStore = .nonPersistent()
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         self.webView = webView
 
         let container = UIViewController()
@@ -114,6 +115,7 @@ public final class CustomOAuthSession: NSObject {
         hostNavigationController?.presentingViewController?.dismiss(animated: true)
         hostNavigationController = nil
         webView?.navigationDelegate = nil
+        webView?.uiDelegate = nil
         webView = nil
         completionHandler(url, error)
     }
@@ -190,6 +192,16 @@ extension CustomOAuthSession: WKNavigationDelegate {
         Task { @MainActor in
             self.finish(url: nil, error: error)
         }
+    }
+}
+
+/// Reborn "Sign-in popups" (#1342, #1372): "Continue with Google" and
+/// "Continue with Apple" open their page with `window.open()`.
+extension CustomOAuthSession: WKUIDelegate {
+    public func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                        for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        guard !isFinished, let host = hostNavigationController else { return nil }
+        return WebAuthPopupViewController.present(over: host, configuration: configuration, navigationAction: navigationAction)
     }
 }
 

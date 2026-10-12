@@ -107,6 +107,7 @@ extension ApolloSettingsMigration {
         "FollowedUsersOrder", "HiddenModeratorSubreddits",
         // Open-in-app
         "OpenLinksInSteamApp", "OpenLinksInBlueskyApp", "OpenLinksInGitHubApp",
+        NitterInstances.enabledKey, NitterInstances.hostKey,
         // Media misc
         "ApolloGalleryVideosMuted", "ScrollEdgeEffectStyle",
         // Automatic backups
@@ -761,6 +762,13 @@ extension ApolloSettingsMigration {
         for key in ["OpenLinksInSteamApp", "OpenLinksInBlueskyApp", "OpenLinksInGitHubApp"] {
             take(key, key.replacingOccurrences(of: "OpenLinksIn", with: "Open in ")
                 .replacingOccurrences(of: "App", with: " App"), bool) { UserDefaults.standard.set($0, forKey: key) }
+        }
+        // Reborn "Open via Nitter" (#1334); a host that no longer validates is dropped.
+        take(NitterInstances.hostKey, "Nitter Instance", { NitterInstances.normalizeHost(string($0)) }) {
+            UserDefaults.standard.set($0, forKey: NitterInstances.hostKey)
+        }
+        take(NitterInstances.enabledKey, "Open via Nitter", bool) {
+            UserDefaults.standard.set($0, forKey: NitterInstances.enabledKey)
         }
         take("ApolloGalleryVideosMuted", "Gallery Videos Muted", bool) { GalleryMuteStore.isMuted = $0 }
         // Share as Image "Link" (#1278); the Boolean is its pre-menu form.

@@ -7,6 +7,8 @@ import Foundation
 ///    (subreddit/post/profile screen) instead of a web view.
 ///  - `openTwitterLinksIn` ("Open Tweets in…"): in-app browser vs the
 ///    X/Twitter app.
+///  - "Open via Nitter" (`NitterInstances`): x.com / twitter.com page links
+///    open on the chosen Nitter instance, ahead of any X client.
 ///  - `ExternalBrowserSettings.preferredBrowser` ("Open Links In").
 ///
 /// `LinkRouter.route` returns a decision rather than navigating, so it is a
@@ -44,7 +46,8 @@ public enum LinkRouter {
     public static func route(
         _ rawURL: URL,
         general: GeneralSettings = GeneralSettingsStore.load(),
-        browser: ExternalBrowserSettings = ExternalBrowserSettingsStore.load()
+        browser: ExternalBrowserSettings = ExternalBrowserSettingsStore.load(),
+        nitterHost: String? = NitterInstances.activeHost()
     ) -> LinkDestination {
         let url = absoluteRedditURL(rawURL)
         // 1. Reddit links Apollo can render itself.
@@ -61,7 +64,14 @@ public enum LinkRouter {
             }
         }
 
-        // 2. Tweets, when the user prefers a dedicated X client.
+        // 2. Reborn "Open via Nitter" (#1334): an explicit Nitter choice beats an
+        // X client. Nitter has no app, so it follows the general browser choice;
+        // pages Nitter can't serve fall through to the normal X routing.
+        if let nitterURL = NitterInstances.url(for: url, instanceHost: nitterHost) {
+            return browser.preferredBrowser == .inApp ? .inApp(nitterURL) : .externalBrowser(nitterURL)
+        }
+
+        // 3. Tweets, when the user prefers a dedicated X client.
         let twitterClients: [TwitterLinkDestination] = [.twitterApp, .twitterrific, .tweetbot, .aviary, .spring]
         if twitterClients.contains(general.openTwitterLinksIn), isTwitterURL(url) {
             return .twitterApp(url, client: general.openTwitterLinksIn)
@@ -73,7 +83,7 @@ public enum LinkRouter {
             if general.openTwitterLinksIn == .externalBrowser { return .externalBrowser(url) }
         }
 
-        // 3. The general "Open Links In" browser preference.
+        // 4. The general "Open Links In" browser preference.
         switch browser.preferredBrowser {
         case .inApp:
             return .inApp(url)

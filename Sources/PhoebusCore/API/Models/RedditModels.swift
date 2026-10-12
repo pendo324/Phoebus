@@ -39,6 +39,8 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     /// `:emoji:` codes draw as their images.
     public var linkFlairRichtext: [FlairPart]?
     public let authorFlairText: String?
+    /// The author's flair as rich parts (`author_flair_richtext`).
+    public var authorFlairRichtext: [FlairPart]?
     /// Reddit's per-subreddit flair colors: a moderator can assign a
     /// filled background + matching text color to any flair, distinct
     /// from its label text.
@@ -100,6 +102,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
         case linkFlairText = "link_flair_text"
         case linkFlairRichtext = "link_flair_richtext"
         case authorFlairText = "author_flair_text"
+        case authorFlairRichtext = "author_flair_richtext"
         case linkFlairBackgroundColor = "link_flair_background_color"
         case linkFlairTextColorRaw = "link_flair_text_color"
         case authorFlairBackgroundColor = "author_flair_background_color"

@@ -316,18 +316,15 @@ struct PostDetailHeader: View {
                 UserTagPill(username: post.author)
                 // "User Flair" toggle (Settings > Appearance > Flair).
                 if general.showUserFlair, let authorFlair = post.authorFlairText, !authorFlair.isEmpty {
-                    // One line: a long flair truncates rather than
-                    // wrapping into a tall pill beside the byline.
-                    Text(authorFlair)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    // The comment header's pill: one line, so a long flair truncates
+                    // rather than wrapping beside the byline.
+                    CommentFlairPill(text: authorFlair, parts: post.authorFlairRichtext,
+                                     textColor: authorFlairTextColor, fill: authorFlairBackgroundColor,
+                                     role: .other)
                         .layoutPriority(-1)
-                        .padding(.horizontal, 4)
-                        .foregroundStyle(authorFlairTextColor ?? .secondary)
-                        .background(Capsule().fill(authorFlairBackgroundColor ?? Color.secondary.opacity(0.15)))
-                        .contentShape(Capsule())
+                        .contentShape(Rectangle())
                         .onTapGesture {
-                            FlairAlert.present(FlairInfo(kind: .user, text: authorFlair, parts: nil,
+                            FlairAlert.present(FlairInfo(kind: .user, text: authorFlair, parts: post.authorFlairRichtext,
                                                          subreddit: post.subreddit), in: $shownFlair)
                         }
                         .accessibilityIdentifier("postDetail.authorFlair")

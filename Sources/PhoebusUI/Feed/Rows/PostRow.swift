@@ -489,7 +489,7 @@ extension RedditPost {
             && linkFlairText == other.linkFlairText && linkFlairRichtext == other.linkFlairRichtext
             && linkFlairBackgroundColor == other.linkFlairBackgroundColor
             && linkFlairTextColorRaw == other.linkFlairTextColorRaw
-            && authorFlairText == other.authorFlairText
+            && authorFlairText == other.authorFlairText && authorFlairRichtext == other.authorFlairRichtext
             && authorFlairBackgroundColor == other.authorFlairBackgroundColor
             && authorFlairTextColorRaw == other.authorFlairTextColorRaw
             && totalAwardsReceived == other.totalAwardsReceived && pollData == other.pollData

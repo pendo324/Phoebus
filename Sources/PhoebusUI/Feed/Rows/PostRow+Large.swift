@@ -229,13 +229,10 @@ extension PostRow {
                             .highPriorityGesture(TapGesture().onEnded(onAuthorTap))
                         UserTagPill(username: post.author)
                         if let authorFlair = post.authorFlairText, !authorFlair.isEmpty, generalSettings.showUserFlair {
-                            LinkFlairLabel(text: authorFlair, parts: nil)
-                                .font(.caption2)
-                                .lineLimit(1)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(authorFlairBackgroundColor ?? Color.secondary.opacity(0.2)))
-                                .foregroundStyle(authorFlairTextColor ?? .secondary)
+                            CommentFlairPill(text: authorFlair, parts: post.authorFlairRichtext,
+                                             textColor: authorFlairTextColor, fill: authorFlairBackgroundColor,
+                                             size: 12.5, role: .postMeta)
+                                .layoutPriority(-1)
                         }
                     }
                     .foregroundStyle(.secondary)

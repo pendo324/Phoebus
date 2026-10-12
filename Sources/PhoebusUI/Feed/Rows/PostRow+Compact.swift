@@ -141,13 +141,10 @@ extension PostRow {
                     // off Apollo shows neither.
                     if appearanceSettings.alwaysShowUsernames, generalSettings.showUserFlair,
                        let authorFlair = post.authorFlairText, !authorFlair.isEmpty {
-                        LinkFlairLabel(text: authorFlair, parts: nil)
-                            .font(.caption2)
-                            .lineLimit(1)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(authorFlairBackgroundColor ?? Color.secondary.opacity(0.2)))
-                            .foregroundStyle(authorFlairTextColor ?? .secondary)
+                        CommentFlairPill(text: authorFlair, parts: post.authorFlairRichtext,
+                                         textColor: authorFlairTextColor, fill: authorFlairBackgroundColor,
+                                         size: 11.5, role: .postMeta)
+                            .layoutPriority(-1)
                     }
                     // Reddit API field `author_cakeday`.
                     if post.authorCakeday == true {

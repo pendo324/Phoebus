@@ -32,6 +32,7 @@ public struct ApolloRebornHubScreen: View {
     private var anonymousInstallCount: Binding<Bool> {
         Binding(get: { !heartbeatDisabled }, set: { heartbeatDisabled = !$0 })
     }
+    @Setting(AppUpdatePolicy.automaticChecks) private var automaticUpdateChecks
     @State private var debugLogExport: URL?
     @State private var exportingLogs = false
 
@@ -418,6 +419,15 @@ public struct ApolloRebornHubScreen: View {
             HubToggleRow(title: "Anonymous Install Count", systemImage: "waveform.path.ecg", tint: .pink,
                          isOn: anonymousInstallCount)
                 .apolloSettingsRowInsets()
+            // Reborn "In-App Update Prompt" (#1343). Only builds with a release
+            // channel have an update source to check.
+            if BuildChannel.current != nil {
+                HubToggleRow(title: "Automatic Update Checks", systemImage: "arrow.down.circle", tint: .blue,
+                             isOn: $automaticUpdateChecks.binding)
+                    .apolloSettingsRowInsets()
+                    .apolloSearchRow("Automatic Update Checks") // search: requires releaseChannel
+                    .accessibilityIdentifier("settings.automaticUpdateChecks")
+            }
             SettingsNavigationRow {
                 CrashReportsScreen()
             } label: {
@@ -431,7 +441,8 @@ public struct ApolloRebornHubScreen: View {
         } footer: {
             // Reborn's row, but honest about this build: it has no
             // heartbeat to send, so the switch changes nothing.
-            Text("Phoebus does not send an install heartbeat; this switch is kept to match Apollo Reborn and has no effect. No Reddit activity, account details, or feature usage is collected.")
+            Text("Phoebus does not send an install heartbeat; this switch is kept to match Apollo Reborn and has no effect. No Reddit activity, account details, or feature usage is collected."
+                 + (BuildChannel.current != nil ? " Update checks read Phoebus's AltStore source from GitHub once a day, and GitHub only sees your IP address." : ""))
                 .apolloHubSectionFooter()
         }
     }
@@ -510,6 +521,12 @@ public struct ApolloRebornHubScreen: View {
                     .foregroundStyle(Color.apolloSettingsSecondary)
             }
             .apolloPlainSettingsRowInsets(rule: false)
+            CheckForUpdatesRow()
+                .apolloPlainSettingsRowInsets(rule: BuildChannel.current != nil)
+            if BuildChannel.current != nil {
+                UpdateInstallerRow()
+                    .apolloPlainSettingsRowInsets(rule: false)
+            }
         } header: {
             Text("About")
                 .apolloHubSectionHeader()

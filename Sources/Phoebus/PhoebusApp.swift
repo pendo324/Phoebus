@@ -16,6 +16,7 @@ struct PhoebusApp: App {
     @State private var themeRevision = 0
     @State private var checkedPersistedLogin = false
     @State private var pendingDeepLink: RedditURLTarget?
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Applies the "Automatic Switch Threshold" section: system
     /// following, the three switch modes, brightness threshold and
@@ -176,6 +177,12 @@ struct PhoebusApp: App {
             // SwiftUI's `dynamicTypeSize`. When on (default), no
             // modifier is applied, so the OS's own setting governs.
             .apolloTextSizeOverride()
+            // Reborn "In-App Update Prompt" (#1343): offered once a day on
+            // foreground, from the build channel's AltStore source.
+            .appUpdatePrompt()
+            .onChange(of: scenePhase, initial: true) { _, phase in
+                if phase == .active { AppUpdateCoordinator.shared.checkIfNeeded() }
+            }
             // Text Sizes & Fonts: per-role sizes and font families.
             .apolloTextScale()
             }

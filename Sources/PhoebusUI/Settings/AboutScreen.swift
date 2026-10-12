@@ -31,6 +31,16 @@ public struct AboutScreen: View {
                 .listRowBackground(Color.clear)
             }
 
+            // Reborn "In-App Update Prompt" (#1343).
+            Section {
+                CheckForUpdatesRow()
+                    .apolloSearchRow("Check for Updates")
+                if BuildChannel.current != nil {
+                    UpdateInstallerRow()
+                        .apolloSearchRow("Update Installer") // search: requires releaseChannel
+                }
+            }
+
             Section {
                 creditRow("Apollo Reborn", "The community project that keeps Apollo running. Phoebus's Apollo Reborn features are ported directly from its GPL-3.0 code, the work of the Apollo Reborn team and contributors, as are its Liquid Glass icons.")
                 SettingsNavigationRow {
@@ -53,6 +63,7 @@ public struct AboutScreen: View {
             }
         }
         .apolloSettingsListAppearance()
+        .apolloSettingsSearchScroll()
         .navigationTitle("About")
         .navigationBarTitleDisplayModeIfAvailable()
     }

@@ -1,0 +1,50 @@
+{
+  "name": "Phoebus Nightly",
+  "identifier": "dev.example.phoebus.nightly",
+  "apps": [
+    {
+      "name": "Some Other App",
+      "bundleIdentifier": "com.example.other",
+      "versions": [
+        {
+          "version": "9.9.9",
+          "buildVersion": "999",
+          "date": "2026-10-01T10:00:00+00:00",
+          "localizedDescription": "not Phoebus",
+          "downloadURL": "https://example.com/other.ipa",
+          "size": 1,
+          "sha256": "00",
+          "minOSVersion": "17.0"
+        }
+      ]
+    },
+    {
+      "name": "Phoebus",
+      "bundleIdentifier": "com.pendo324.Phoebus",
+      "developerName": "pendo324",
+      "appPermissions": {"entitlements": [], "privacy": {}},
+      "versions": [
+        {
+          "version": "1.4.0",
+          "buildVersion": "132",
+          "date": "2026-10-07T18:30:05+00:00",
+          "localizedDescription": "feat(updates): offer new versions in the app",
+          "downloadURL": "https://github.com/pendo324/Phoebus/releases/download/nightly/Phoebus-v1.4.0-abc1234.ipa",
+          "size": 36000000,
+          "sha256": "11",
+          "minOSVersion": "17.0"
+        },
+        {
+          "version": "1.4.0",
+          "buildVersion": "130",
+          "date": "2026-10-05T09:00:00+00:00",
+          "localizedDescription": "fix(inbox): older build",
+          "downloadURL": "https://github.com/pendo324/Phoebus/releases/download/nightly/Phoebus-v1.4.0-def5678.ipa",
+          "size": 35000000,
+          "sha256": "22",
+          "minOSVersion": "17.0"
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ extension SettingsSearch {
     public static let index: [SettingsSearchEntry] = [
         SettingsSearchEntry(title: "Apollo Reborn", breadcrumb: "Settings", screen: .apolloReborn),
         SettingsSearchEntry(title: "Wallpapers", breadcrumb: "Settings", screen: .wallpapers),
+        SettingsSearchEntry(title: "About", breadcrumb: "Settings", screen: .about),
         SettingsSearchEntry(title: "Gestures", breadcrumb: "Settings", screen: .gestures),
         SettingsSearchEntry(title: "General", breadcrumb: "Settings", screen: .general),
         SettingsSearchEntry(title: "Filters & Blocks", breadcrumb: "Settings", screen: .filters),
@@ -49,6 +50,9 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Customize Action Menus", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .actionMenus),
         SettingsSearchEntry(title: "Open Links In", breadcrumb: "Settings → Apollo Reborn → Open in App", screen: .externalBrowser),
         SettingsSearchEntry(title: "Buy Us a Coffee", breadcrumb: "Settings", screen: .settingsRoot, rowTitle: "Buy Us a Coffee"),
+        SettingsSearchEntry(title: "Automatic Update Checks", breadcrumb: "Settings → Apollo Reborn", screen: .apolloReborn, rowTitle: "Automatic Update Checks", requires: "releaseChannel"),
+        SettingsSearchEntry(title: "Check for Updates", breadcrumb: "Settings → About", screen: .about, rowTitle: "Check for Updates"),
+        SettingsSearchEntry(title: "Update Installer", breadcrumb: "Settings → About", screen: .about, rowTitle: "Update Installer", requires: "releaseChannel"),
         SettingsSearchEntry(title: "Disable Left Swipes", breadcrumb: "Settings → Gestures", screen: .gestures, rowTitle: "Disable Left Swipes"),
         SettingsSearchEntry(title: "Disable Right Swipes", breadcrumb: "Settings → Gestures", screen: .gestures, rowTitle: "Disable Right Swipes"),
         SettingsSearchEntry(title: "Disable Navigation Gestures", breadcrumb: "Settings → Gestures", screen: .gestures, rowTitle: "Disable Navigation Gestures"),

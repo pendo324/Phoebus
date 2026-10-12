@@ -14,9 +14,9 @@ public enum TabBarNavigationRevealPolicy {
     }
 
     /// Hide styles 0 (Left) and 1 (Right) use UIKit's own minimize; Fade
-    /// (2) and Down (3) animate the bar themselves.
+    /// (2), Down (3) and Minimize (4) animate the bar themselves.
     public static func usesNativeMinimize(hideStyle: Int) -> Bool {
-        hideStyle <= 1
+        TabBarHideStyle.usesNativeMinimize(hideStyle)
     }
 
     /// - Parameters:

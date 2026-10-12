@@ -30,7 +30,7 @@ extension ApolloSettingsMigration {
         "LoopVideosWithAudio", "ShowMediaViewerControlsWhenOpened", "VideoDeblurinatorEnabled",
         "UnmuteVideosWhenOpenedSetting", "ShowCommentsButton", "SharePostIncludesTitle",
         "DoomscrollDefeater3", "HapticFeedback", "LiveCommentsFollow",
-        "HideTabBarTitles", "ClassicTabBarScrollBehavior", "LGTitleGapCentering",
+        "HideTabBarTitles", "ClassicTabBarScrollBehavior", "TabBarCollapseSide", "LGTitleGapCentering",
         "CenterTitleBetweenButtons", "IPadTabBarBottom", "PictureInPictureEnabled",
         "FeedGalleryCarousel", "FeedGalleryEdgeSwipeNavigation", "SwipeUpForComments",
         "NSFWBlurOverride", "PreferredGIFFallbackFormat", "UnmuteFeedVideos",
@@ -297,6 +297,10 @@ extension ApolloSettingsMigration {
         take("LiveCommentsFollow", "Live Comments Follow", bool) { general.liveCommentsFollow = $0 }
         take("HideTabBarTitles", "Icon-Only Tab Bar", bool) { general.iconOnlyTabBar = $0 }
         take("ClassicTabBarScrollBehavior", "Classic Tab Bar Scrolling", bool) { general.classicTabBarScrollBehavior = $0 }
+        // Left/Right/Fade/Down/Minimize = 0...4 (Minimize is Reborn #1349).
+        take("TabBarCollapseSide", "Tab Bar Hide Style", { int($0).flatMap { TabBarHideStyle.all.contains($0) ? $0 : nil } }) {
+            general.tabBarHideStyle = $0
+        }
         // Older Reborn builds write `LGTitleGapCentering`, current ones
         // `CenterTitleBetweenButtons`. Either sets the same switch; the current
         // key wins.

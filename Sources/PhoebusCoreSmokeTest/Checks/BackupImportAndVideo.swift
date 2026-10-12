@@ -553,10 +553,14 @@ import PhoebusCore
             "ShowGIFProgressLocation": "media-viewer",
             "ShowDetailedProfiles": false,
             "GalleryAutoplayVideos": false, "GalleryAutoplayGIFs": false,
+            "TabBarCollapseSide": 4,                            // Reborn's Minimize (#1349)
         ], group: ["UsePureBlackDarkMode": true, "UsePurePUREBlackMode": true]))
         let g = GeneralSettingsStore.load()
         check("stock string 'automatically' turns on child auto-collapse", g.autoCollapseChildComments)
         check("tap-to-collapse type is imported", g.tapToCollapseType == .headers)
+        check("Reborn's Minimize hide style (4) is imported", g.tabBarHideStyle == 4)
+        _ = ApolloSettingsMigration.apply(.init(preferences: ["TabBarCollapseSide": 9]))
+        check("a hide style Reborn doesn't have keeps the current one", GeneralSettingsStore.load().tabBarHideStyle == 4)
         check("Reborn's string trending limit parses", g.trendingSubredditsLimit == 8)
         check("compact thumbnails hidden maps to the hidden size", g.thumbnailSize == .hidden)
         let lp = LinkPreviewSettingsStore.load()

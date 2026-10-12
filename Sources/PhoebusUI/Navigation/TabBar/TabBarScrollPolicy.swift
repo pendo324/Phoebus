@@ -8,7 +8,7 @@ import PhoebusCore
 /// re-expand after 30 seconds without scrolling.
 ///
 /// It turns the raw direction samples into `.apolloBarsShouldHide` / `Show`
-/// (for the Fade/Down styles and Hide Header on Scroll) and, for the native
+/// (for the Fade/Down/Minimize styles and Hide Header on Scroll) and, for the native
 /// Left/Right minimize, holds the tab bar expanded with `.never` while a
 /// gesture is being let go by, as Reborn does: switching that policy also
 /// makes UIKit expand the bar.
@@ -47,6 +47,7 @@ final class TabBarScrollPolicy: ObservableObject {
         observe(.apolloScrollGestureEnded) { $0.gestureEnded() }
         observe(.apolloScrollDidScrollDown) { $0.scrolledDown() }
         observe(.apolloScrollDidScrollUp) { $0.scrolledUp() }
+        observe(.apolloBarsExpandRequested) { $0.expandRequested() }
         observers.append(center.addObserver(forName: .apolloNavigationWillChange, object: nil, queue: .main) { [weak self] note in
             let byScreen = note.userInfo?[NavigationRevealUserInfo.tabBarHiddenByScreen] as? Bool ?? false
             MainActor.assumeIsolated { self?.navigationChanged(tabBarHiddenByScreen: byScreen) }
@@ -86,6 +87,13 @@ final class TabBarScrollPolicy: ObservableObject {
         // UIKit is already expanding the bar; the hold goes on once the
         // gesture ends, so the switch doesn't snap mid-animation.
         if !classic { holdAfterGesture = true }
+    }
+
+    /// The Minimize pill was tapped (Reborn #1349): brought back like a
+    /// scroll-up reveal, so Two-Gesture lets the next downward gesture go by.
+    func expandRequested() {
+        guard hidden else { return }
+        reveal()
     }
 
     /// Reborn #1349. The next downward gesture collapses straight away: a
@@ -144,6 +152,8 @@ extension Notification.Name {
     /// `TabBarScrollPolicy`'s decisions, for the bars it doesn't drive natively.
     static let apolloBarsShouldHide = Notification.Name("ApolloBarsShouldHide")
     static let apolloBarsShouldShow = Notification.Name("ApolloBarsShouldShow")
+    /// The user tapped the Minimize pill to get the tab bar back.
+    static let apolloBarsExpandRequested = Notification.Name("ApolloBarsExpandRequested")
     /// A tab's navigation stack is about to push, pop or be replaced.
     static let apolloNavigationWillChange = Notification.Name("ApolloNavigationWillChange")
 }

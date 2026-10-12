@@ -114,7 +114,7 @@ jobs:
           source scripts/xtool-env.sh
           echo "xtool=$XTOOL_COMMIT" >> "$GITHUB_OUTPUT"
           echo "sdk=$(sed -n 's/^DARWIN_SDK_SHA256=//p' scripts/ci/install-sdk.sh)" >> "$GITHUB_OUTPUT"
-          echo "apollo-ipa=$(sed -n 's/^DEFAULT_IPA_SHA256="\(.*\)"/\1/p' scripts/generate-icons.sh)" >> "$GITHUB_OUTPUT"
+          echo "apollo-ipa=$(sed -n 's/^APOLLO_IPA_SHA256="\(.*\)"/\1/p' scripts/generate-icons.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Darwin SDK
         id: sdk-cache
@@ -145,11 +145,30 @@ jobs:
           DOWNLOAD_AUTH_HEADER: "Authorization: Bearer ${{ steps.sdk-token.outputs.token }}"
 
       - name: Cache Apollo IPA
+        id: ipa-cache
         uses: actions/cache@v5
         with:
           path: /github/home/.cache/phoebus/apollobase.ipa
           key: ${{ inputs.ref && 'pr-' || '' }}apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
           restore-keys: apollo-ipa-${{ steps.pins.outputs.apollo-ipa }}
+
+      # Apollo's IPA is kept in the same private storage as the SDK.
+      - name: Token for the Apollo IPA download
+        id: ipa-token
+        if: steps.ipa-cache.outputs.cache-hit != 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.PHOEBUSBOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PHOEBUSBOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+
+      - name: Download Apollo IPA
+        if: steps.ipa-cache.outputs.cache-hit != 'true'
+        run: scripts/generate-icons.sh --download-only
+        env:
+          PHOEBUS_APOLLO_IPA: ${{ secrets.APOLLO_IPA_URL }}
+          PHOEBUS_APOLLO_IPA_AUTH_HEADER: "Authorization: Bearer ${{ steps.ipa-token.outputs.token }}"
 
       # The rendered icons, so they are not rendered again (and do not
       # change the resources) when their sources did not change.

@@ -120,6 +120,8 @@ listed in [docs/intentional-differences.md](docs/intentional-differences.md).
   `scripts/install-xtool.sh` builds for you, and a Darwin SDK built from
   **Xcode 27**. The project is developed and built on Linux; see
   [docs/building-on-linux.md](docs/building-on-linux.md).
+- To build: an Apollo IPA of your own, which the build extracts Apollo's
+  standard app icons from (see [Building](#building)).
 - Target platform: iOS 17 and later, with the iOS 26 design on iOS 26.
   Newer APIs are guarded (see [docs/conventions.md](docs/conventions.md),
   "Minimum iOS: 17").
@@ -132,6 +134,16 @@ All commands run from the repository root.
 xtool dev build            # produces xtool/Phoebus.app
 xtool dev build --ipa      # produces a .ipa
 xtool dev run              # builds and installs on a connected device
+```
+
+Apollo's standard app icons are not in the repository. The iOS build
+extracts them from an Apollo IPA that you supply: set
+`PHOEBUS_APOLLO_IPA` to its path (or to a URL, which is downloaded once
+and checked against the pinned SHA-256). Without it the build stops and
+says so.
+
+```bash
+export PHOEBUS_APOLLO_IPA=/path/to/apollo.ipa
 ```
 
 On Linux, see [docs/building-on-linux.md](docs/building-on-linux.md) for the

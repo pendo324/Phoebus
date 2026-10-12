@@ -349,6 +349,7 @@ struct GlassSearchTextField: UIViewRepresentable {
     var onSubmit: (() -> Void)? = nil
     var textAlignment: NSTextAlignment = .natural
     var font: UIFont = .preferredFont(forTextStyle: .body)
+    var returnKeyType: UIReturnKeyType = .search
 
     func makeUIView(context: Context) -> UITextField {
         let field = UITextField()
@@ -357,7 +358,7 @@ struct GlassSearchTextField: UIViewRepresentable {
         field.borderStyle = .none
         field.autocorrectionType = .no
         field.autocapitalizationType = .none
-        field.returnKeyType = .search
+        field.returnKeyType = returnKeyType
         field.clearButtonMode = .never
         field.font = font
         field.textAlignment = textAlignment

@@ -134,6 +134,48 @@ import PhoebusCore
           CrosspostSuggestions.make(recentlyVisited: [], crosspostable: [], source: "pics").isEmpty)
 }
 
+// MARK: - Subreddit switcher sheet (Reborn #1313)
+
+@MainActor func checkSubredditSwitcherSheetResults() async throws {
+    let favorites = ["Apple", "iOSProgramming"]
+    let local = ["apple", "AppleWatch", "gaming"]
+    check("an empty query lists the favorites under Favorites",
+          SubredditSwitcherResults.sections(query: "  ", favorites: favorites, local: local, remote: ["x"])
+            == [SubredditSwitcherSection(title: "Favorites", names: favorites)])
+    check("no favorites and no query lists nothing",
+          SubredditSwitcherResults.sections(query: "", favorites: [], local: local, remote: []).isEmpty)
+    let typed = SubredditSwitcherResults.sections(
+        query: "app", favorites: favorites, local: local, remote: ["Applehelp", "APPLE", "Snapple"])
+    check("a typed query lists local matches before remote ones, without repeats",
+          typed.count == 1 && typed[0].names == ["Apple", "AppleWatch", "Applehelp", "Snapple"])
+    let contained = SubredditSwitcherResults.sections(
+        query: "pro", favorites: favorites, local: ["programming", "AskProgramming"], remote: [])
+    check("prefix matches come ahead of mid-name matches",
+          contained.first?.names == ["programming", "iOSProgramming", "AskProgramming"])
+    check("a query that matches nothing lists nothing",
+          SubredditSwitcherResults.sections(query: "zzz", favorites: favorites, local: local, remote: []).isEmpty)
+
+    let names = SubredditSwitcherResults.favoriteNames(
+        ordered: ["zebra", "apple", "unknown"],
+        known: ["Apple"],
+        storedName: { $0 == "zebra" ? "Zebra" : nil },
+        sortAlphabetically: false)
+    check("favorites take display casing from subscriptions, then the stored name, in native order",
+          names == ["Zebra", "Apple", "unknown"])
+    check("Sort Favorites Alphabetically also orders the switcher's favorites",
+          SubredditSwitcherResults.favoriteNames(
+            ordered: ["zebra", "apple"], known: ["Apple", "Zebra"], storedName: { _ in nil },
+            sortAlphabetically: true) == ["Apple", "Zebra"])
+
+    check("Return goes to the typed name, trimmed", SubredditSwitcherResults.destination(for: " apple \n") == "apple")
+    check("Return drops a leading r/ or /r/",
+          SubredditSwitcherResults.destination(for: "r/apple") == "apple"
+            && SubredditSwitcherResults.destination(for: "/R/apple") == "apple")
+    check("Return on an empty or bare r/ entry goes nowhere",
+          SubredditSwitcherResults.destination(for: "  ") == nil
+            && SubredditSwitcherResults.destination(for: "r/") == nil)
+}
+
 // MARK: - Open in App / dedicated-app link routing
 
 // Host matching accepts subdomains of a claimed host.

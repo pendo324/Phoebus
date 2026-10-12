@@ -844,6 +844,8 @@ checkCrosspostSuggestions()
 
 try await checkQuarantineOptIn()
 
+try await checkSubredditSwitcherSheetResults()
+
 try await checkOpenInAppDedicatedAppLink()
 
 try await checkThemeGalleryTokenCompilerApolloReborn()

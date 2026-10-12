@@ -84,13 +84,14 @@ public struct FeedScreen: View {
 
     @State var searchQuery = ""
     @State var searchSubmitted = false
-    @State var jumpBarActive = false
+    @State var showingSubredditSwitcher = false
+    /// The switcher's pick, pushed once its sheet has gone.
+    @State var pendingSwitcherName: String?
     /// Reborn "Center Title Between Buttons" offset. Screen-owned
     /// `@State` rather than read from a shared store: a `.toolbar` item
     /// does not observe an external `ObservableObject`, so the title
     /// would not re-render on a store-driven value.
     @State var titleCenteringOffset: CGFloat = 0
-    @State var jumpBarText = ""
     // See `JumpDestination`'s doc comment: SwiftUI dispatches
     // `.navigationDestination(item:)` by VALUE TYPE not binding identity,
     // so two `String?` destinations on one stack would collide.
@@ -209,39 +210,20 @@ public struct FeedScreen: View {
     }
 
     public var body: some View {
-        crashTrackedBody.onAppear {
+        feedBody.onAppear {
             CrashRecorder.record(.openedFeed)
             recordRecentlyVisited()
         }
     }
 
     /// Recently Visited (Phoebus-only): every route into a feed lands here,
-    /// so one call covers list rows, search, deep links and the jump bar.
+    /// so one call covers list rows, search, deep links and the switcher.
     private func recordRecentlyVisited() {
         if let multiredditPath {
             RecentlyVisitedStore.recordMultireddit(path: multiredditPath,
                                                    name: multiredditDisplayName ?? multiredditPath)
         } else {
             RecentlyVisitedStore.recordSubreddit(subreddit)
-        }
-    }
-
-    @ViewBuilder private var crashTrackedBody: some View {
-        // `JumpBarResultsList` is a ZStack sibling of `feedBody`, not an
-        // `.overlay` on the List: an `.overlay` anchored to a `List`
-        // can resolve to a zero-size overlay in some SwiftUI/List
-        // content-size timing cases, silently dropping its content.
-        ZStack(alignment: .top) {
-        feedBody
-        if jumpBarActive {
-            // No top padding here: the ZStack's content area is already
-            // positioned below the nav bar/toolbar by NavigationStack
-            // itself, so extra padding would add a redundant gap.
-            JumpBarResultsList(repository: repository, query: jumpBarText) { name in
-                jumpDestination = .subreddit(name)
-                jumpBarActive = false
-            }
-        }
         }
     }
 
@@ -494,9 +476,8 @@ public struct FeedScreen: View {
                     forwardAnchorRowIndex = posts.firstIndex { $0.id == post.id }
                 }
         }
-        // Apollo's toolbar title is a "Jump Bar": an inline transformation of
-        // the title into a full-width text field docked in the nav bar, with
-        // ghost-text autocomplete.
+        // Apollo's toolbar title is the quick-switcher: tapping it opens
+        // `SubredditSwitcherSheet` (Reborn #1313).
         .navigationTitle(navigationTitleText)
         //
         // It lives in the inline nav bar, never a large title: in `.large`
@@ -505,33 +486,27 @@ public struct FeedScreen: View {
         .apolloMeasuresTitleCentering(key: "feed", offset: $titleCenteringOffset)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                if jumpBarActive {
-                    JumpBarField(repository: repository, isActive: $jumpBarActive, text: $jumpBarText) { name in
-                        jumpDestination = .subreddit(name)
+                Button {
+                    showingSubredditSwitcher = true
+                } label: {
+                    HStack(spacing: 4) {
+                        // Width budget: see `navigationTitleMaxWidth`.
+                        Text(navigationTitleDisplayText)
+                            .fontWeight(.semibold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
                     }
-                } else {
-                    Button {
-                        jumpBarActive = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            // Width budget: see `navigationTitleMaxWidth`.
-                            Text(navigationTitleDisplayText)
-                                .fontWeight(.semibold)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                            Image(systemName: "chevron.down")
-                                .font(.caption2)
-                        }
-                        .frame(maxWidth: FeedScreen.navigationTitleMaxWidth)
-                        .foregroundStyle(.primary)
-                    }
-                    .disabled(multiredditDisplayName != nil)
-                    // Reborn "Center Title Between Buttons"; see
-                    // `CenterTitleBetweenButtonsModifier`. Inert unless the setting is on.
-                    .offset(x: titleCenteringOffset)
-                    .accessibilityIdentifier("feed.titleJumpBarButton")
-                .apolloGlassBarTint()
+                    .frame(maxWidth: FeedScreen.navigationTitleMaxWidth)
+                    .foregroundStyle(.primary)
                 }
+                .disabled(multiredditDisplayName != nil)
+                // Reborn "Center Title Between Buttons"; see
+                // `CenterTitleBetweenButtonsModifier`. Inert unless the setting is on.
+                .offset(x: titleCenteringOffset)
+                .accessibilityIdentifier("feed.titleJumpBarButton")
+                .apolloGlassBarTint()
             }
         }
         .navigationDestination(item: $jumpDestination) { destination in
@@ -543,28 +518,23 @@ public struct FeedScreen: View {
             }
         }
         .apolloTracksForwardNavigation($jumpDestination)
-        .onChange(of: jumpBarActive) { _, active in
-            if !active { jumpBarText = "" }
+        .sheet(isPresented: $showingSubredditSwitcher, onDismiss: {
+            guard let name = pendingSwitcherName else { return }
+            pendingSwitcherName = nil
+            jumpDestination = .subreddit(name)
+        }) {
+            SubredditSwitcherSheet(repository: repository, current: subreddit) { name in
+                pendingSwitcherName = name
+                showingSubredditSwitcher = false
+            } onDone: {
+                showingSubredditSwitcher = false
+            }
         }
         // The back button is icon only: a bare circular chevron. Liquid Glass
         // collapses it to its glyph (44pt circle); older iOS shows the
         // "< Subreddits" text form.
         .navigationBarBackButtonHidden(multiredditDisplayName == nil)
         .toolbar {
-            // While the Jump Bar is active the back circle stays and a glass X
-            // circle replaces the trailing sort/••• pair.
-            if jumpBarActive {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        jumpBarActive = false
-                    } label: {
-                        Image(systemName: "xmark")
-                            .apolloFont(size: 17, weight: .semibold)
-                    }
-                    .accessibilityIdentifier("jumpBar.cancel")
-                    .accessibilityLabel("Cancel")
-                }
-            }
             // The feed's own back circle, with the Return Button after it in
             // the same glass group (in a separate toolbar it would land before it).
             ToolbarItemGroup(placement: .topBarLeading) {
@@ -574,7 +544,6 @@ public struct FeedScreen: View {
                 }
                 ScrollReturnArrow(owner: returnOwner)
             }
-            if !jumpBarActive {
             // The feed toolbar shows two trailing icons: sort and
             // "•••". The sort icon changes with the active sort; tapping
             // it opens "Sort by…" as a sheet or UIMenu depending on
@@ -597,7 +566,6 @@ public struct FeedScreen: View {
                 .accessibilityIdentifier("feed.overflowButton")
                 .apolloGlassBarTint()
             }
-            } // !jumpBarActive
         }
         // Apollo's per-subreddit "•••" overflow sheet, also the home
         // for Search/Gallery View/Submit Post since they have no own

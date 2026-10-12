@@ -664,7 +664,8 @@ struct RedGifsVideoView: View {
             do {
                 resolvedURL = try await RedGifsClient.shared.resolvePlayableURL(forID: gifID)
             } catch {
-                errorMessage = "Couldn't load RedGifs video"
+                // Reborn #1359: say why instead of a generic RedGIFs error.
+                errorMessage = (error as? RedGifsError)?.errorDescription ?? "Couldn't load RedGifs video"
             }
         }
     }

@@ -624,6 +624,41 @@ import PhoebusCore
           RedGifsClient.isRejectedToken(status: 401) && !RedGifsClient.isRejectedToken(status: 404)
             && !RedGifsClient.isRejectedToken(status: 200))
 
+    // Reborn #1359: a RedGIFs post says why it failed to load.
+    do {
+        let deletedBody = Data(#"{"error":{"code":"GifDeleted","description":"gone"}}"#.utf8)
+        let notFoundBody = Data(#"{"error":{"code":"GifNotFound"}}"#.utf8)
+        let imageBody = Data(#"{"gif":{"type":2,"duration":null}}"#.utf8)
+        let videoBody = Data(#"{"gif":{"type":1,"duration":21.9}}"#.utf8)
+        check("RedGIFs: 410 is deleted, 404 not found, 451 region-blocked",
+              RedGifsError.failure(status: 410, data: Data()) == .deleted
+                && RedGifsError.failure(status: 404, data: Data()) == .notFound
+                && RedGifsError.failure(status: 451, data: Data()) == .regionBlocked)
+        check("RedGIFs: other error statuses carry the status, 2xx does not fail",
+              RedGifsError.failure(status: 503, data: Data()) == .httpStatus(503)
+                && RedGifsError.failure(status: 401, data: Data()) == .httpStatus(401)
+                && RedGifsError.failure(status: 200, data: videoBody) == nil)
+        check("RedGIFs: the body's error code wins over the status",
+              RedGifsError.failure(status: 404, data: deletedBody) == .deleted
+                && RedGifsError.failure(status: 410, data: notFoundBody) == .notFound)
+        check("RedGIFs: an image record is named, not left to fail decoding",
+              RedGifsError.failure(status: 200, data: imageBody) == .image)
+        check("RedGIFs: network failures are unreachable, cancellation is not",
+              RedGifsError.failure(transport: URLError(.notConnectedToInternet)) == .unreachable
+                && RedGifsError.failure(transport: URLError(.cannotFindHost)) == .unreachable
+                && RedGifsError.failure(transport: URLError(.serverCertificateUntrusted)) == .unreachable
+                && RedGifsError.failure(transport: URLError(.cancelled)) == nil
+                && RedGifsError.failure(transport: DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: ""))) == nil)
+        check("RedGIFs: failure messages use Reborn's wording",
+              RedGifsError.deleted.errorDescription == "Removed from RedGIFs"
+                && RedGifsError.notFound.errorDescription == "Not found on RedGIFs"
+                && RedGifsError.regionBlocked.errorDescription == "RedGIFs isn't available in your region"
+                && RedGifsError.unreachable.errorDescription == "Can't reach RedGIFs"
+                && RedGifsError.image.errorDescription == "Can't show RedGIFs images"
+                && RedGifsError.httpStatus(503).errorDescription == "RedGIFs error (HTTP 503)"
+                && RedGifsError.noPlayableURL.errorDescription == nil)
+    }
+
     // Floating in-app Picture in Picture.
     do {
         typealias P = PictureInPicturePolicy

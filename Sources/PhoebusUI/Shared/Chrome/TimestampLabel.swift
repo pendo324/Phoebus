@@ -18,13 +18,17 @@ public struct TimestampLabel: View {
     let text: String?
     /// Adds "Edited <time>" under the creation time (Show Edited Marker).
     let edited: RedditEditedTime?
+    /// How far the tap reaches past the label (see `hitArea`).
+    let hitInsets: EdgeInsets
     @State private var showingAbsolute = false
 
-    public init(_ date: Date, showsIcon: Bool = false, text: String? = nil, edited: RedditEditedTime? = nil) {
+    public init(_ date: Date, showsIcon: Bool = false, text: String? = nil, edited: RedditEditedTime? = nil,
+                hitInsets: EdgeInsets = EdgeInsets()) {
         self.date = date
         self.showsIcon = showsIcon
         self.text = text
         self.edited = edited
+        self.hitInsets = hitInsets
     }
 
     @ViewBuilder
@@ -43,7 +47,9 @@ public struct TimestampLabel: View {
 
     public var body: some View {
         content
+            .hitArea(hitInsets)
             .onTapGesture { showingAbsolute = true }
+            .hitAreaLayout(hitInsets)
             .alert("Created", isPresented: $showingAbsolute) {
                 Button("OK") {}
             } message: {

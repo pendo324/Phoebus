@@ -9,13 +9,16 @@ struct EditedIndicator: View {
     /// Off when the caller attaches its own tap (the post info row's
     /// Popup / Overlay).
     var showsDetailOnTap = true
+    /// How far the tap reaches past the glyph (see `hitArea`).
+    var hitInsets: EdgeInsets = .zero
     @State private var showingDetail = false
 
     var body: some View {
         if showsDetailOnTap {
             glyph
-                .contentShape(Rectangle())
+                .hitArea(hitInsets)
                 .onTapGesture { showingDetail = true }
+                .hitAreaLayout(hitInsets)
                 .alert(EditedMarker.lines(edited).title, isPresented: $showingDetail) {
                     Button("OK") {}
                 } message: {

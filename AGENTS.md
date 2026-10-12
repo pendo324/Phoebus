@@ -167,7 +167,14 @@ returned by real code.
 - **No Apollo client ID.** Phoebus never uses Apollo's Reddit client ID or
   any private credential. API keys come from the user.
 - **No copyrighted binaries.** Do not commit Apollo's app or its
-  artwork; only the assets already bundled in the repo.
+  artwork. The Apollo glyphs in `Resources/StockIcons` are being removed:
+  add no new uses of them (prefer SF Symbols) and no new Apollo artwork.
+- **Credit Reborn without notifying anyone.** Phoebus is not affiliated
+  with Apollo Reborn. In commits, PR descriptions and docs, name Reborn
+  contributors without an @, write Reborn PRs and issues as plain text in
+  backticks (`` `Apollo-Reborn#1305` ``), never link them, and don't add
+  `Co-authored-by` trailers for Reborn authors. See CREDITS.md,
+  "Attribution style".
 - **Record deliberate differences** in
   [docs/intentional-differences.md](docs/intentional-differences.md).
 - Keep version bumps (`Config/Phoebus/Info.plist`) in their own commit.

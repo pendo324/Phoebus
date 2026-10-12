@@ -99,15 +99,29 @@ saying what differs and why.
 ## Porting from Apollo Reborn
 
 Apollo Reborn is GPL-3.0, like Phoebus, so its code may be ported. When
-you port a Reborn feature, name the Reborn feature (and issue, if any) in
-a code comment and the Reborn source file in the commit message, and add
-anyone not yet listed to [CREDITS.md](CREDITS.md).
+you port a Reborn feature, name the Reborn feature (and PR or issue
+number, if any) in a code comment and the Reborn source file in the
+commit message, and add anyone not yet listed to
+[CREDITS.md](CREDITS.md).
+
+Phoebus is not affiliated with Apollo Reborn, so credit its contributors
+in a form that doesn't notify them (see CREDITS.md, "Attribution
+style"):
+
+- Write contributors' names without an @.
+- Write Reborn PR and issue numbers as plain text in backticks
+  (`` `Apollo-Reborn#1305` ``), never as links.
+- Don't add `Co-authored-by` trailers for Reborn authors.
+- Don't ask Reborn's maintainers for help with Phoebus.
 
 ## Apollo's assets and credentials
 
-Do not add Apollo's app binaries, artwork or private credentials. Only the assets already bundled in this repository may be
-used. Never use Apollo's Reddit client ID; API keys belong to the person
-running the app.
+Do not add Apollo's app binaries, artwork or private credentials. The
+Apollo interface glyphs in `Sources/PhoebusUI/Resources/StockIcons` are
+being removed, so don't add new uses of them; prefer SF Symbols or
+original artwork. Apollo's app icons come from the builder's own IPA at
+build time and are never committed. Never use Apollo's Reddit client ID;
+API keys belong to the person running the app.
 
 ## Conduct
 

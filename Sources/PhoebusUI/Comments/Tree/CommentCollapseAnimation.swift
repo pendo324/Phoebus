@@ -50,6 +50,7 @@ enum CommentCollapseAnimation {
         withAnimation(.easeInOut(duration: duration)) { change() }
         fanOutDue = true
         DispatchQueue.main.async {
+            holdsOffset = false
             riseHeader()
             // Normally already run by the list's layout pass (`installLayoutHook`).
             fanOutRepliesIfDue()
@@ -137,9 +138,17 @@ enum CommentCollapseAnimation {
         fanOutReplies()
     }
 
+    /// While an expand's batch is applied, the list's own offset changes
+    /// are dropped. UIKit keeps the row after the toggled comment in place
+    /// through the batch, and the toggled row is a new one (`rowGeneration`),
+    /// so expanding a comment below the post header scrolled down past all
+    /// its replies. The toggled comment stays put instead.
+    private static var holdsOffset = false
+
     /// Starts the fan-out at the end of the list's layout pass that applies
     /// the batch, so it lands in the same frame; started any later, the
-    /// replies show at their final places for a frame first.
+    /// replies show at their final places for a frame first. Also drops
+    /// offset changes while `holdsOffset`.
     private static func installLayoutHook(on cls: AnyClass) {
         guard installed.insert(ObjectIdentifier(cls)).inserted else { return }
         let selector = #selector(UIView.layoutSubviews)
@@ -150,10 +159,22 @@ enum CommentCollapseAnimation {
             original(view, selector)
             MainActor.assumeIsolated {
                 guard fanOutDue, pending.collectionView === view else { return }
+                holdsOffset = false
                 fanOutRepliesIfDue()
             }
         }
         replace(cls, selector, method, block)
+
+        let offsetSel = #selector(setter: UIScrollView.contentOffset)
+        guard let offsetMethod = class_getInstanceMethod(cls, offsetSel) else { return }
+        typealias SetOffset = @convention(c) (UIScrollView, Selector, CGPoint) -> Void
+        let setOffset = unsafeBitCast(method_getImplementation(offsetMethod), to: SetOffset.self)
+        let offsetBlock: @convention(block) (UIScrollView, CGPoint) -> Void = { view, offset in
+            let held = MainActor.assumeIsolated { holdsOffset && pending.collectionView === view }
+            guard !held else { return }
+            setOffset(view, offsetSel, offset)
+        }
+        replace(cls, offsetSel, offsetMethod, offsetBlock)
     }
 
     private static func replace(_ cls: AnyClass, _ selector: Selector, _ method: Method, _ block: Any) {
@@ -181,6 +202,7 @@ enum CommentCollapseAnimation {
         update.toggledOld = update.deleted.first
         update.toggledRow = update.inserted.first
         update.isCollapse = update.deleted.count >= update.inserted.count
+        holdsOffset = !update.isCollapse
         if let list = layout.collectionView {
             // Only what is on screen: rows past the bottom are capped by
             // `capTravel` anyway.

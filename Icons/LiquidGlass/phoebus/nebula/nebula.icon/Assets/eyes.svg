@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="eye-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(390.00 700.50) scale(123.20 154.00)">
+      <stop offset="0.0000" stop-color="#f7fa7c"/>
+      <stop offset="0.4297" stop-color="#f7fa7c"/>
+      <stop offset="0.4453" stop-color="#f7f66e"/>
+      <stop offset="0.4609" stop-color="#f6f154"/>
+      <stop offset="0.4922" stop-color="#f7e20c"/>
+      <stop offset="0.5078" stop-color="#f7d800"/>
+      <stop offset="0.6016" stop-color="#f59d00"/>
+      <stop offset="0.6797" stop-color="#f47a00"/>
+      <stop offset="0.7422" stop-color="#de6400"/>
+      <stop offset="0.8359" stop-color="#cb5500"/>
+      <stop offset="0.9766" stop-color="#b54900"/>
+      <stop offset="0.9922" stop-color="#ea8c00"/>
+      <stop offset="1.0000" stop-color="#ea8c00"/>
+    </radialGradient>
+    <radialGradient id="eye-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(638.50 700.50) scale(121.60 152.00)">
+      <stop offset="0.0000" stop-color="#fbf96f"/>
+      <stop offset="0.4297" stop-color="#fbf96f"/>
+      <stop offset="0.4453" stop-color="#faf56b"/>
+      <stop offset="0.4766" stop-color="#f8e725"/>
+      <stop offset="0.4922" stop-color="#f8de0b"/>
+      <stop offset="0.5078" stop-color="#f8d301"/>
+      <stop offset="0.5703" stop-color="#f5ad00"/>
+      <stop offset="0.6641" stop-color="#f98300"/>
+      <stop offset="0.7422" stop-color="#e06500"/>
+      <stop offset="0.8047" stop-color="#d35900"/>
+      <stop offset="0.9141" stop-color="#c14f00"/>
+      <stop offset="0.9766" stop-color="#bc4e00"/>
+      <stop offset="0.9922" stop-color="#e37d00"/>
+      <stop offset="1.0000" stop-color="#e37d00"/>
+    </radialGradient>
+  </defs>
+  <path d="M384.50 545.70C368.90 547.80 352.30 554.80 341.40 563.80C329.20 573.80 318.50 591.40 315.40 606.50C312.90 618.80 313.30 637.10 316.30 649.10C319.00 659.60 323.90 672.10 325.50 672.70C326.10 672.90 328.10 670.40 329.90 667.30C335.80 657.50 344.50 649.80 356.20 644.10C369.90 637.60 378.60 635.60 392.50 635.70C418.50 636.10 439.80 647.00 451.80 666.00L455.90 672.40L457.90 667.70C459.00 665.10 461.10 659.20 462.40 654.70C473.20 618.50 464.70 583.80 440.00 563.30C424.70 550.60 401.80 543.40 384.50 545.70Z" fill="url(#eye-0)"/>
+  <path d="M621.00 549.00C590.70 557.10 569.20 581.70 563.90 614.50C562.30 624.70 563.30 643.20 566.00 653.00C568.00 660.60 572.90 672.00 574.00 672.00C574.30 672.00 576.50 669.10 578.80 665.60C587.00 653.10 599.80 644.40 616.50 639.80C627.70 636.70 647.10 636.80 658.50 639.80C675.60 644.50 689.10 654.10 698.50 668.30L702.40 674.10L704.10 670.80C707.10 665.00 711.70 650.70 713.00 643.30C713.80 638.70 714.10 631.50 713.80 622.80C712.80 599.00 705.60 582.40 689.60 567.30C675.20 553.60 661.50 548.00 641.00 547.40C630.80 547.10 627.10 547.40 621.00 549.00Z" fill="url(#eye-1)"/>
+</svg>

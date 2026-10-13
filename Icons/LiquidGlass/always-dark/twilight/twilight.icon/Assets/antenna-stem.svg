@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="socket" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(0.00 0.00) rotate(0.00) scale(18.41 52.14)">
+      <stop offset="0.0000" stop-color="#bd6f01"/>
+      <stop offset="0.7125" stop-color="#bd6e02"/>
+      <stop offset="0.7292" stop-color="#c06e01"/>
+      <stop offset="0.7375" stop-color="#c77402"/>
+      <stop offset="0.7542" stop-color="#c06f02"/>
+      <stop offset="0.7625" stop-color="#c77703"/>
+      <stop offset="0.7708" stop-color="#be6e03"/>
+      <stop offset="0.7792" stop-color="#c47603"/>
+      <stop offset="0.7875" stop-color="#c27407"/>
+      <stop offset="0.7958" stop-color="#e9a406"/>
+      <stop offset="0.8042" stop-color="#c27604"/>
+      <stop offset="0.8125" stop-color="#c57408"/>
+      <stop offset="0.8208" stop-color="#c79207"/>
+      <stop offset="0.8292" stop-color="#c37107"/>
+      <stop offset="0.8375" stop-color="#efb907"/>
+      <stop offset="0.8458" stop-color="#e8a70b"/>
+      <stop offset="0.8542" stop-color="#f1ba07" stop-opacity="0.984"/>
+      <stop offset="0.8625" stop-color="#de9806"/>
+      <stop offset="0.8708" stop-color="#eca205" stop-opacity="0.876"/>
+      <stop offset="0.8792" stop-color="#e6a806" stop-opacity="0.992"/>
+      <stop offset="0.8875" stop-color="#e7ac08" stop-opacity="0.702"/>
+      <stop offset="0.8958" stop-color="#e9b210" stop-opacity="0.643"/>
+      <stop offset="0.9042" stop-color="#e6b206" stop-opacity="0.573"/>
+      <stop offset="0.9125" stop-color="#e8a904" stop-opacity="0.269"/>
+      <stop offset="0.9208" stop-color="#eab704" stop-opacity="0.380"/>
+      <stop offset="0.9292" stop-color="#eca402" stop-opacity="0.259"/>
+      <stop offset="0.9375" stop-color="#e99202" stop-opacity="0.331"/>
+      <stop offset="0.9458" stop-color="#f1a602" stop-opacity="0.227"/>
+      <stop offset="0.9542" stop-color="#f29b00" stop-opacity="0.188"/>
+      <stop offset="0.9625" stop-color="#eca202" stop-opacity="0.180"/>
+      <stop offset="0.9708" stop-color="#bf7001" stop-opacity="0.308"/>
+      <stop offset="0.9792" stop-color="#e99501" stop-opacity="0.200"/>
+      <stop offset="0.9875" stop-color="#be6e02" stop-opacity="0.133"/>
+      <stop offset="1.0000" stop-color="#bf6f00" stop-opacity="0.153"/>
+    </radialGradient>
+    <radialGradient id="socket-well" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(0.00 0.00) rotate(0.00) scale(16.35 34.52)">
+      <stop offset="0.0000" stop-color="#be6f01"/>
+      <stop offset="0.4292" stop-color="#be6e01"/>
+      <stop offset="0.4458" stop-color="#ba6c01"/>
+      <stop offset="0.4542" stop-color="#be6e02"/>
+      <stop offset="0.8208" stop-color="#bb6c01"/>
+      <stop offset="0.9292" stop-color="#bf6e02"/>
+      <stop offset="0.9458" stop-color="#b86902"/>
+      <stop offset="0.9542" stop-color="#be6e02"/>
+      <stop offset="0.9625" stop-color="#bc6b03"/>
+      <stop offset="0.9708" stop-color="#bf7003"/>
+      <stop offset="0.9792" stop-color="#be6b03"/>
+      <stop offset="0.9875" stop-color="#bc6c03"/>
+      <stop offset="1.0000" stop-color="#c27502"/>
+    </radialGradient>
+    <linearGradient id="stem" gradientUnits="userSpaceOnUse" x1="477.8" y1="278.0" x2="540.9" y2="240.1">
+      <stop offset="1.0000" stop-color="#bf6d04"/>
+      <stop offset="1.0000" stop-color="#be6f02"/>
+      <stop offset="1.0000" stop-color="#ad5e02"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="0" cy="0" rx="18.41" ry="52.14" transform="translate(511.12 319.36) rotate(90.38)" fill="url(#socket)"/>
+  <ellipse cx="0" cy="0" rx="16.35" ry="34.52" transform="translate(511.23 320.11) rotate(91.07)" fill="url(#socket-well)"/>
+  <path d="M497.60 206.50C497.30 208.10 496.40 217.40 495.60 227.00C491.90 269.30 489.80 292.90 489.20 297.90L488.50 303.30L480.50 306.40L472.50 309.50L491.70 309.80C502.30 309.90 519.70 309.90 530.20 309.80L549.50 309.50L542.10 306.80C538.10 305.30 534.40 304.20 534.00 304.50C533.20 305.00 532.50 301.00 531.40 289.50C531.10 285.60 530.60 281.10 530.30 279.50C529.30 272.50 528.00 259.30 526.60 241.50C525.70 231.00 524.50 218.20 523.90 213.00L522.80 203.50L510.50 203.50L498.10 203.50L497.60 206.50Z" fill="url(#stem)"/>
+</svg>

@@ -1,0 +1,33 @@
+{
+  "comment": "Phoebus's app icon set, in picker order. Read by scripts/generate/gen-phoebus-icons.py, which writes Icons/LiquidGlass/<group>/<id>/<id>.icon and Icons/LiquidGlass/icons.json. group: the App Icon picker pack the icon is in. day/night: a colourway below, \"sunburst\" (the original rays), \"cream\" (a plain cream fill with the halo) or \"system\" (iOS's own dark icon background). style: the foreground groups in foreground.json. night_dim < 1 shows the day colourway a step deeper at night.",
+  "icons": [
+    {"id": "phoebus", "name": "Phoebus", "group": "phoebus", "style": "Glass", "day": "sunburst", "night": "system"},
+    {"id": "dusk", "name": "Dusk", "group": "phoebus", "style": "Glass", "day": "sunburst", "night": "twilight"},
+    {"id": "classic", "name": "Classic", "group": "phoebus", "style": "Flat", "day": "sunburst", "night": "sunburst"},
+    {"id": "sky", "name": "Sky", "group": "phoebus", "style": "Glass", "day": "azure", "night": "navy",
+     "laurel_fix": {"vignette": {"colour": "#0A3F94", "opacity": 0.65}, "edge": {"colour": "#174209", "width": 4, "sigma": 1.0}}},
+    {"id": "lagoon", "name": "Lagoon", "group": "phoebus", "style": "Glass", "day": "lagoon", "night": "teal",
+     "laurel_fix": {"vignette": {"colour": "#023631", "opacity": 0.75}, "edge": {"colour": "#174209", "width": 4, "sigma": 1.0}}},
+    {"id": "nebula", "name": "Nebula", "group": "phoebus", "style": "Glass", "day": "lavender", "night": "violet"},
+    {"id": "cloud", "name": "Cloud", "group": "phoebus", "style": "Light", "day": "cream", "night": "slate"},
+    {"id": "midnight", "name": "Midnight", "group": "always-dark", "style": "Glass", "day": "navy", "night": "navy", "night_dim": 0.8},
+    {"id": "twilight", "name": "Twilight", "group": "always-dark", "style": "Glass", "day": "twilight", "night": "twilight", "night_dim": 0.8},
+    {"id": "graphite", "name": "Graphite", "group": "always-dark", "style": "Glass", "day": "slate", "night": "slate", "night_dim": 0.8}
+  ],
+  "fills": {
+    "sunburst": ["#FCC21B", "#EE7A0C"],
+    "cream": ["#FFF8EC", "#FFE3BF"],
+    "cream-night": ["#F3E7D7", "#E8D2B4"]
+  },
+  "colourways": {
+    "azure":    {"gap": ["#3D9BF2", "#0A3F94"], "ray": ["#6CB9FF", "#1A5DBA"], "glow": ["#FFFFFF", 0.34]},
+    "lagoon":   {"gap": ["#27B3AA", "#03423D"], "ray": ["#5CD6CB", "#096A63"], "glow": ["#FFFFFF", 0.34]},
+    "lavender": {"gap": ["#A894EC", "#5536B0"], "ray": ["#C7B8FA", "#7556D2"], "glow": ["#FFFFFF", 0.36]},
+    "navy":     {"gap": ["#14235C", "#060B22"], "ray": ["#26408F", "#0E1A48"], "glow": ["#5B7CE6", 0.42], "night": true},
+    "twilight": {"gap": ["#2A1E5C", "#0A0A24"], "ray": ["#43327F", "#181543"], "glow": ["#FF9A55", 0.30], "night": true},
+    "teal":     {"gap": ["#0A3A46", "#021418"], "ray": ["#136674", "#072C33"], "glow": ["#38C2BC", 0.32], "night": true},
+    "violet":   {"gap": ["#2B1152", "#0E051C"], "ray": ["#561F86", "#220B3B"], "glow": ["#C155DE", 0.32], "night": true},
+    "slate":    {"gap": ["#262E3B", "#0D1015"], "ray": ["#3D4A5D", "#1A2029"], "glow": ["#9DB3D3", 0.26], "night": true}
+  },
+  "laurel_centres": [[158.8, 567.6], [862.8, 566.9]]
+}

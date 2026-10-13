@@ -15,7 +15,7 @@ enum ProfileMenuRow: Hashable {
         }
     }
 
-    /// Apollo's own row glyphs, at their own size.
+    /// The rows' `option-*` glyphs, at their own size.
     var icon: String? {
         switch self {
         case .tab(.posts): return "option-posts"

@@ -27,15 +27,18 @@ Please don't contact them about Phoebus.
   backups and the theme gallery. Code comments name the Reborn
   feature or issue a piece of code comes from.
 - **Some Apollo Reborn files are included as they are.** The Liquid Glass
-  icon sources in `Icons/LiquidGlass` come from Apollo Reborn.
+  icon sources in `Icons/LiquidGlass` and the two settings-hub images in
+  `Sources/PhoebusUI/Resources/StockIcons` (`apollo-reborn-options-icon`,
+  `reborn-github`) come from Apollo Reborn.
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.
 - **No Apollo artwork.** The interface glyphs are SF Symbols, the
   open-source icons listed under [Icons](#icons), and drawings original
-  to Phoebus (the subreddit tag, the SpongeText and Text Faces glyphs,
-  and the SF compositions for the slashed vote arrows, collapse to root,
-  hide posts above, parent comment, multireddit and subreddit wiki).
+  to Phoebus (the subreddit tag, the upvote-ratio smiley, the SpongeText
+  and Text Faces glyphs, and the SF compositions for the slashed vote
+  arrows, collapse to root, hide posts above, parent comment,
+  multireddit and subreddit wiki).
   Apollo's app icons are not in the repository (see
   [Build-time inputs](#build-time-inputs)).
 
@@ -215,7 +218,23 @@ people on Reborn's side. This page keeps the full list of who to thank.
 A few interface glyphs are open-source icons, bundled as vector PDFs in
 `Sources/PhoebusUI/Resources/Glyphs` with their source SVGs and full
 licence texts (`LICENSES.md` there). Everything else is an SF Symbol,
-used by name and not redistributed, or drawn for Phoebus.
+used by name and not redistributed, or drawn for Phoebus. The bundled
+files:
+
+| File | Icon | Kit | Licence |
+|---|---|---|---|
+| `lucide-arrow-up-wide-narrow.pdf` | `arrow-up-wide-narrow` (sort by Top) | Lucide | ISC |
+| `lucide-swords.pdf` | `swords` (sort by Controversial) | Lucide | ISC |
+| `lucide-bold.pdf` | `bold` | Lucide | ISC |
+| `lucide-italic.pdf` | `italic` | Lucide | ISC; derived from Feather, MIT |
+| `lucide-quote.pdf` | `quote` | Lucide | ISC |
+| `lucide-heading.pdf` | `heading` | Lucide | ISC |
+| `phosphor-checks.pdf` | `checks` regular (Mark All Read) | Phosphor | MIT |
+| `phosphor-reddit-logo-light.pdf` | `reddit-logo` light (Reddit link button) | Phosphor | MIT |
+| `tabler-shield-star.pdf` | `shield-star` at stroke 1.5 (moderator menu row) | Tabler Icons | MIT |
+| `tabler-shield-star-orb.pdf` | `shield-star` at stroke 2.25 (moderator orb) | Tabler Icons | MIT |
+| `fontawesome-twitter.pdf` | `twitter` brand icon (Twitter link button) | Font Awesome Free | CC BY 4.0 |
+| `simpleicons-wikipedia.pdf` | `wikipedia` (Wikipedia link button) | Simple Icons | CC0 1.0 |
 
 - **Phosphor Icons** (`checks`, `reddit-logo` light), from
   [phosphor-icons/core](https://github.com/phosphor-icons/core) v2.1.1.

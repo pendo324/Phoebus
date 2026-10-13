@@ -651,7 +651,7 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
     /// matching real Apollo.
     static let iconInset: CGFloat = 30
 
-    /// The `slide-*` glyphs: thin outlines, except Reply's, which is
+    /// The `slide-*` glyphs: outlines at SF regular, except Reply's, which is
     /// solid. An action that would undo something shows the undo glyph,
     /// as Apollo does: un-upvote on an upvoted post, unsave on a saved
     /// one, mark unread on a read message.

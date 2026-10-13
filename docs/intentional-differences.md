@@ -225,12 +225,27 @@ Apollo or Reborn, add an entry here.
   Apollo's artwork, so the info row, vote arrows, swipe actions, menus,
   tab bar, composer toolbar, link buttons, inbox and feed orbs use SF
   Symbols, a few open-source icons (see CREDITS.md) and drawings of its
-  own, sized to the slots Apollo's glyphs filled. Shapes and line
-  weights differ from Apollo's: the sort menu's Top and Controversial
-  are Lucide's arrow-and-bars and crossed swords, the subreddit tag and
-  the SpongeText ("aAa") and Text Faces ("ಠ_ಠ") glyphs are redrawn, and
-  the settings profile preview shows a person glyph instead of Apollo's
-  avatar.
+  own, sized to look as large as Apollo's in the same slots. Shapes and
+  line weights differ from Apollo's:
+  - The swipe-action glyphs are SF regular weight, a little heavier than
+    Apollo's thin outlines, so they read at the same size.
+  - The sort menu's Top and Controversial are Lucide's arrow-and-bars
+    and crossed swords, Mark All Read is Phosphor's double check, and
+    the moderator menu row and orb are Tabler's shield with a star.
+  - Link buttons use the brand's own mark only for links to that
+    service: an outline Snoo (Phosphor `reddit-logo`) for Reddit posts,
+    the Twitter bird (Font Awesome) and the Wikipedia W (Simple Icons).
+    Other web links get a generic compass (`location.north.circle.fill`;
+    Safari's icon is reserved for Apple's app), and xkcd links two
+    figures (`figure.2`), since xkcd has no openly licensed mark.
+  - The subreddit "r" tag is Phoebus's own drawing, not a trace of
+    Apollo's.
+  - SpongeText ("aAa") and Text Faces ("ಠ_ಠ") are drawn as text.
+  - The settings profile preview shows SF `person.crop.circle.fill` on a
+    tinted circle instead of Apollo's avatar.
+- **The Inbox tab is filled on the glass tab bar.** On iOS 26's glass
+  tab bar the Inbox tab uses `envelope.fill`; the other tabs, and every
+  tab on the classic tab bar, stay outline as in Apollo.
 
 - **Deleting your own post asks first.** Delete Post in the post's ••• menu
   shows a "Delete Post?" alert. Apollo's strings hold no such prompt, but a

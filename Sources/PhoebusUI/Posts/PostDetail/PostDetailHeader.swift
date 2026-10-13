@@ -345,7 +345,7 @@ struct PostDetailHeader: View {
                 colorScheme: colorScheme, themeColors: apolloTheme))
             .accessibilityIdentifier("postDetail.byline")
 
-            // Score, upvote ratio, age, in Apollo's own glyphs
+            // Score, upvote ratio, age, in the info-row glyphs
             // (`posts-points`, `posts-liked`, `posts-clock`) at 13pt
             // with 9pt cluster gaps. See `StockIcon`.
             HStack(spacing: 9) {

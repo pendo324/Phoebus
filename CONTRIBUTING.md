@@ -119,8 +119,13 @@ style"):
 Do not add Apollo's app binaries, artwork or private credentials.
 Interface glyphs are SF Symbols, open-source icons with compatible
 licences (`Sources/PhoebusUI/Resources/Glyphs`, credited in
-[CREDITS.md](CREDITS.md)) or original drawings; see `StockGlyph` and
-`StockIcon`. Apollo's app icons come from the builder's own IPA at
+[CREDITS.md](CREDITS.md)) or original drawings. To add an icon, prefer
+an SF Symbol available on iOS 17, then an icon from a kit already
+bundled there, and never Apollo's art: add a recipe to `StockGlyph`,
+regenerate kit PDFs with `scripts/generate/gen-glyph-pdfs.sh`, credit
+any new kit, and keep the smoke checks passing (see
+[docs/components.md](docs/components.md), "Add an interface glyph").
+Apollo's app icons come from the builder's own IPA at
 build time and are never committed. Never use Apollo's Reddit client ID;
 API keys belong to the person running the app.
 

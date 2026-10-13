@@ -335,7 +335,9 @@ struct MainTabView: View {
         LiquidGlassTabBar(
             tabs: [
                 .init(id: 0, title: "Posts", systemImage: "doc.text", stockIcon: "tab-bar-posts") { postsTab },
-                .init(id: 1, title: "Inbox", systemImage: "envelope", stockIcon: "tab-bar-inbox",
+                // iOS 26's glass tab bar takes the filled envelope.
+                .init(id: 1, title: "Inbox", systemImage: "envelope",
+                      stockIcon: LiquidGlass.isAvailable ? "tab-bar-inbox-glass" : "tab-bar-inbox",
                       badge: InboxBadge.badgeText(inboxBadge.unreadCount)) { inboxTab },
                 .init(id: 2, title: profileTabTitle, systemImage: "person.circle", stockIcon: "tab-bar-profile", customIcon: profileTabIcon) { profileTab },
                 .init(id: 3, title: "Search", systemImage: "magnifyingglass", stockIcon: "tab-bar-search") { searchTab },

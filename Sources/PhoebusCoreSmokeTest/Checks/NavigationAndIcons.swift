@@ -859,7 +859,7 @@ import PhoebusCore
 // `Resources/Glyphs`; none of Apollo's glyph files remain.
 @MainActor func checkStockGlyphs() async throws {
     let drawn = [
-        "tab-bar-posts", "tab-bar-inbox", "tab-bar-profile", "tab-bar-search", "tab-bar-settings",
+        "tab-bar-posts", "tab-bar-inbox", "tab-bar-inbox-glass", "tab-bar-profile", "tab-bar-search", "tab-bar-settings",
         "orb-home", "orb-popular", "orb-all", "orb-moderator",
         "posts-points", "posts-comments", "posts-clock", "posts-liked",
         "inline-upvote", "inline-downvote", "inline-more-options", "inline-sticky", "inline-locked",

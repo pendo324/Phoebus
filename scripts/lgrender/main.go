@@ -8,7 +8,7 @@
 //
 //	lgrender -root . [-apollo-ipa apollo.ipa]   render every icon in Icons/LiquidGlass/icons.json,
 //	                                            and extract the standard icons from Apollo's IPA
-//	lgrender -icon X.icon -appearance default|dark|clear-light|clear-dark -size 180 -o out.png
+//	lgrender -icon X.icon -appearance default|dark|clear-light|clear-dark|tinted -size 180 -o out.png
 package main
 
 import (
@@ -125,7 +125,10 @@ func pickFill(list []specialized[rawFill], appearance string, plain rawFill) raw
 
 // MARK: colour
 
-type rgba struct{ r, g, b, a float64 } // linear-light sRGB, straight alpha
+// rgba is a gamma-encoded sRGB colour, straight alpha. Colours are blended
+// gamma-encoded, as Apple's renderer does: a faint glow over a dark
+// background stays faint.
+type rgba struct{ r, g, b, a float64 }
 
 func srgbToLinear(c float64) float64 {
 	if c <= 0.04045 {
@@ -150,19 +153,19 @@ func parseColor(s string) rgba {
 	}
 	switch {
 	case strings.Contains(space, "gray") && len(v) >= 2:
-		l := srgbToLinear(v[0])
-		return rgba{l, l, l, v[1]}
+		return rgba{v[0], v[0], v[0], v[1]}
 	case space == "display-p3" && len(v) >= 4:
 		r, g, b := srgbToLinear(v[0]), srgbToLinear(v[1]), srgbToLinear(v[2])
 		// Display P3 to sRGB primaries, both D65, in linear light.
+		enc := func(c float64) float64 { return linearToSRGB(math.Max(0, c)) }
 		return rgba{
-			1.2249*r - 0.2247*g + 0*b,
-			-0.0420*r + 1.0419*g + 0*b,
-			-0.0197*r - 0.0786*g + 1.0979*b,
+			enc(1.2249*r - 0.2247*g + 0*b),
+			enc(-0.0420*r + 1.0419*g + 0*b),
+			enc(-0.0197*r - 0.0786*g + 1.0979*b),
 			v[3],
 		}
 	case len(v) >= 4:
-		return rgba{srgbToLinear(v[0]), srgbToLinear(v[1]), srgbToLinear(v[2]), v[3]}
+		return rgba{v[0], v[1], v[2], v[3]}
 	}
 	return rgba{1, 1, 1, 1}
 }
@@ -239,7 +242,8 @@ func namedPaint(name, appearance string) paint {
 	dark := strings.Contains(appearance, "dark")
 	switch name {
 	case "system-dark":
-		return linear(parseColor("srgb:0.2,0.2,0.21,1"), parseColor("srgb:0.07,0.07,0.08,1"), 0.5, 0, 0.5, 1)
+		// Measured in Apple's renders: #2F2F2F at the top to #151515.
+		return linear(parseColor("srgb:0.184,0.184,0.184,1"), parseColor("srgb:0.082,0.082,0.082,1"), 0.5, 0, 0.5, 1)
 	case "system-light":
 		return linear(parseColor("srgb:1,1,1,1"), parseColor("srgb:0.86,0.86,0.88,1"), 0.5, 0, 0.5, 1)
 	case "none":
@@ -255,7 +259,7 @@ func namedPaint(name, appearance string) paint {
 
 type canvas struct {
 	w, h int
-	px   []rgba // premultiplied, linear light
+	px   []rgba // premultiplied
 }
 
 func newCanvas(n int) *canvas { return &canvas{n, n, make([]rgba, n*n)} }
@@ -411,7 +415,7 @@ func rasterize(path string, zoom float64) (image.Image, error) {
 	return img, nil
 }
 
-func drawLayer(bundle string, l layer, appearance string, n int, clear bool) (*canvas, error) {
+func drawLayer(bundle string, l layer, appearance string, n int) (*canvas, error) {
 	pos := appicon.Position{Scale: 1}
 	if p, ok := pick(l.Positions, appearance, l.Position); ok {
 		pos = p
@@ -456,7 +460,7 @@ func drawLayer(bundle string, l layer, appearance string, n int, clear bool) (*c
 			if fill != nil {
 				col = fill(float64(x)/float64(max(b.Dx(), 1)), float64(y)/float64(max(b.Dy(), 1)))
 			} else {
-				col = rgba{srgbToLinear(float64(sr) / float64(sa)), srgbToLinear(float64(sg) / float64(sa)), srgbToLinear(float64(sb) / float64(sa)), 1}
+				col = rgba{float64(sr) / float64(sa), float64(sg) / float64(sa), float64(sb) / float64(sa), 1}
 			}
 			fa := a * col.a
 			*c.at(tx, ty) = rgba{col.r * fa, col.g * fa, col.b * fa, fa}
@@ -492,21 +496,10 @@ func glassLight(c *canvas, strength float64) {
 	}
 }
 
-// toClear turns a group's colours into the clear look's greys: bright
-// artwork towards white, dark artwork towards the background.
-func toClear(c *canvas, dark bool) {
-	lo, span := 0.30, 0.70
-	if dark {
-		lo, span = 0.04, 0.55
-	}
-	for i, p := range c.px {
-		if p.a <= 0 {
-			continue
-		}
-		l := (0.2126*p.r + 0.7152*p.g + 0.0722*p.b) / p.a
-		v := (lo + span*math.Pow(l, 0.6)) * p.a
-		c.px[i] = rgba{v, v, v, p.a}
-	}
+// mono reports whether an appearance is drawn from the tinted (mono) look:
+// iOS derives the clear and tinted icons from it.
+func mono(appearance string) bool {
+	return strings.HasPrefix(appearance, "clear") || appearance == "tinted"
 }
 
 func render(bundle, appearance string, n int) (image.Image, error) {
@@ -518,26 +511,20 @@ func render(bundle, appearance string, n int) (image.Image, error) {
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, err
 	}
-	clear := strings.HasPrefix(appearance, "clear")
+	isMono := mono(appearance)
 	look := appearance // the specializations to read
-	if clear {
-		look = strings.TrimPrefix(appearance, "clear-")
-		if look == "light" {
-			look = ""
-		}
-	}
-	if look == "default" {
+	switch {
+	case isMono:
+		look = "tinted"
+	case look == "default":
 		look = ""
 	}
 
 	out := newCanvas(n)
 	var bg paint
-	if clear {
-		if look == "dark" {
-			bg = linear(parseColor("srgb:0.24,0.24,0.25,1"), parseColor("srgb:0.13,0.13,0.14,1"), 0.5, 0, 0.5, 1)
-		} else {
-			bg = linear(parseColor("srgb:0.66,0.66,0.67,1"), parseColor("srgb:0.55,0.55,0.56,1"), 0.5, 0, 0.5, 1)
-		}
+	if isMono {
+		// The mono look is drawn in greys over black; the fill is not used.
+		bg = func(float64, float64) rgba { return rgba{0, 0, 0, 1} }
 	} else {
 		raw := pickFill(m.Fills, look, m.Fill)
 		// Dark mode draws the system's dark background unless the icon
@@ -576,30 +563,37 @@ func render(bundle, appearance string, n int) (image.Image, error) {
 			if opacity <= 0 {
 				continue
 			}
-			lc, err := drawLayer(bundle, l, look, n, clear)
+			lc, err := drawLayer(bundle, l, look, n)
 			if err != nil {
 				return nil, err
 			}
 			anyGlass = anyGlass || l.Glass
-			over(gc, lc, pickString(l.BlendModes, look, l.BlendMode), math.Min(1, opacity))
+			opacity = math.Min(1, opacity)
+			if strings.EqualFold(filepath.Ext(l.Image), ".svg") {
+				// Apple's renderer fades a vector layer by about the square
+				// of its opacity.
+				opacity *= opacity
+			}
+			over(gc, lc, pickString(l.BlendModes, look, l.BlendMode), opacity)
 		}
 		specular := false
 		if s, ok := pick(g.Speculars, look, g.Specular); ok {
 			specular = s
 		}
-		if anyGlass || specular || clear {
-			glassLight(gc, 0.35)
+		if !isMono && (anyGlass || specular) {
+			glassLight(gc, 0.15)
 		}
 		groupOpacity := 1.0
 		if o, ok := pick(g.Opacities, look, g.Opacity); ok {
 			groupOpacity = math.Min(1, o)
 		}
 		// Glass lets the background through by its translucency; flat
-		// layers stay opaque.
-		if t, ok := pick(g.Translucencys, look, g.Translucency); ok && t.Enabled && (anyGlass || clear) {
-			groupOpacity *= 1 - t.Value*0.8
+		// layers stay opaque. Fitted to Apple's renders, where a low
+		// translucency barely shows.
+		if t, ok := pick(g.Translucencys, look, g.Translucency); ok && t.Enabled && anyGlass {
+			groupOpacity *= 1 - t.Value*t.Value
 		}
-		if sh, ok := pick(g.Shadows, look, g.Shadow); ok && sh.Opacity > 0 {
+		if sh, ok := pick(g.Shadows, look, g.Shadow); ok && sh.Opacity > 0 && sh.Kind != "none" && !isMono {
 			alpha := make([]float64, len(gc.px))
 			for i, p := range gc.px {
 				alpha[i] = p.a
@@ -619,10 +613,12 @@ func render(bundle, appearance string, n int) (image.Image, error) {
 			}
 			over(out, sc, "normal", 1)
 		}
-		if clear {
-			toClear(gc, look == "dark")
-		}
 		over(out, gc, pickString(g.BlendModes, look, g.BlendMode), groupOpacity)
+	}
+	if isMono {
+		fromMono(out, appearance)
+	} else {
+		rim(out)
 	}
 
 	img := image.NewNRGBA(image.Rect(0, 0, n, n))
@@ -633,12 +629,79 @@ func render(bundle, appearance string, n int) (image.Image, error) {
 				continue
 			}
 			to := func(v float64) uint8 {
-				return uint8(math.Round(math.Max(0, math.Min(1, linearToSRGB(v/p.a))) * 255))
+				return uint8(math.Round(math.Max(0, math.Min(1, v/p.a)) * 255))
 			}
 			img.SetNRGBA(x, y, color.NRGBA{to(p.r), to(p.g), to(p.b), uint8(math.Round(math.Min(1, p.a) * 255))})
 		}
 	}
 	return img, nil
+}
+
+// rim adds the light edge Apple's renderer gives every icon: a white wash,
+// in gamma-encoded colour, fading out over 19pt of a 1024pt icon and
+// strongest at the top left and bottom right. Fitted to Apple's renders.
+func rim(c *canvas) {
+	n := c.w
+	for y := 0; y < n; y++ {
+		v := (float64(y)+0.5)/float64(n)*2 - 1
+		for x := 0; x < n; x++ {
+			u := (float64(x)+0.5)/float64(n)*2 - 1
+			// Distance in from the icon's edge (a superellipse, n = 5), in
+			// 1024ths of the side.
+			d := (1 - math.Pow(math.Pow(math.Abs(u), 5)+math.Pow(math.Abs(v), 5), 0.2)) * 512
+			if d < 0 || d >= 19 {
+				continue
+			}
+			phi := math.Atan2(-v, u) - 0.75*math.Pi
+			k := (1 - d/19) * 1.2 * (0.294 + 0.249*math.Cos(2*phi) + 0.097*math.Cos(phi))
+			p := c.at(x, y)
+			p.r += (p.a - p.r) * k
+			p.g += (p.a - p.g) * k
+			p.b += (p.a - p.b) * k
+		}
+	}
+}
+
+// fromMono turns the mono look into the clear or tinted icon: the
+// artwork's lightness becomes white glass over a frosted backdrop (clear)
+// or the tint colour over a dark tinted plate (tinted, with an amber tint).
+// The backdrop and tint stand in for the wallpaper and the user's colour.
+func fromMono(c *canvas, appearance string) {
+	n := c.w
+	tint := [3]float64{1.0, 0.64, 0.20}
+	vgrad := func(top, bottom [3]float64, t float64) [3]float64 {
+		return [3]float64{top[0] + (bottom[0]-top[0])*t, top[1] + (bottom[1]-top[1])*t, top[2] + (bottom[2]-top[2])*t}
+	}
+	for y := 0; y < n; y++ {
+		t := float64(y) / float64(n-1)
+		for x := 0; x < n; x++ {
+			p := c.at(x, y)
+			lin := func(ch float64) float64 { return srgbToLinear(math.Min(1, ch)) }
+			l := linearToSRGB(math.Min(1, 0.2126*lin(p.r)+0.7152*lin(p.g)+0.0722*lin(p.b)))
+			var v [3]float64 // sRGB
+			switch appearance {
+			case "clear-light":
+				bg := vgrad([3]float64{0.80, 0.82, 0.86}, [3]float64{0.70, 0.72, 0.77}, t)
+				for i := range v {
+					v[i] = bg[i]*(1-0.78*l) + 0.78*l
+				}
+			case "clear-dark":
+				bg := vgrad([3]float64{0.25, 0.26, 0.29}, [3]float64{0.13, 0.14, 0.16}, t)
+				white := [3]float64{0.96, 0.96, 0.98}
+				for i := range v {
+					v[i] = bg[i]*(1-0.85*l) + 0.85*l*white[i]
+				}
+			default:
+				plate := vgrad([3]float64{tint[0] * 0.20, tint[1] * 0.20, tint[2] * 0.20},
+					[3]float64{tint[0] * 0.08, tint[1] * 0.08, tint[2] * 0.08}, t)
+				for i := range v {
+					ink := tint[i]*(0.55+0.45*l) + (1-tint[i])*0.35*l*l*l
+					v[i] = plate[i]*(1-l) + ink*l
+				}
+			}
+			*p = rgba{v[0], v[1], v[2], 1}
+		}
+	}
 }
 
 // renderAt renders at a working size, then reduces to size for smooth edges.
@@ -673,7 +736,7 @@ func main() {
 	force := flag.Bool("force", false, "with -root, re-render icons that are up to date")
 	apolloIPA := flag.String("apollo-ipa", "", "with -root, also extract the standard icons from this Apollo IPA")
 	icon := flag.String("icon", "", ".icon bundle")
-	appearance := flag.String("appearance", "default", "default, dark, clear-light or clear-dark")
+	appearance := flag.String("appearance", "default", "default, dark, clear-light, clear-dark or tinted")
 	size := flag.Int("size", 180, "output size in pixels")
 	outPath := flag.String("o", "", "output PNG")
 	flag.Parse()

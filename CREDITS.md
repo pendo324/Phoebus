@@ -26,10 +26,9 @@ Please don't contact them about Phoebus.
   link previews, AI summaries, translation, deleted-comment recovery,
   backups and the theme gallery. Code comments name the Reborn
   feature or issue a piece of code comes from.
-- **Some Apollo Reborn files are included as they are.** The Liquid Glass
-  icon sources in `Icons/LiquidGlass` and the two settings-hub images in
-  `Sources/PhoebusUI/Resources/StockIcons` (`apollo-reborn-options-icon`,
-  `reborn-github`) come from Apollo Reborn.
+- **Some Apollo Reborn files are included as they are.** The two
+  settings-hub images in `Sources/PhoebusUI/Resources/StockIcons`
+  (`apollo-reborn-options-icon`, `reborn-github`) come from Apollo Reborn.
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.
@@ -39,8 +38,8 @@ Please don't contact them about Phoebus.
   and Text Faces glyphs, and the SF compositions for the slashed vote
   arrows, collapse to root, hide posts above, parent comment,
   multireddit and subreddit wiki).
-  Apollo's app icons are not in the repository (see
-  [Build-time inputs](#build-time-inputs)).
+- **Phoebus's own app icons.** The app icons are original Phoebus
+  artwork, not Apollo's or Reborn's (see [App icons](#app-icons)).
 
 Because Phoebus contains code derived from Apollo Reborn, it is licensed
 under the GNU GPL version 3 as well (see [LICENSE](LICENSE)). The Apollo
@@ -141,7 +140,6 @@ says who wrote what.
 | Chat drafts | `Apollo-Reborn#1207` | Thetromboneman1 |
 | API-Key-Free avatar lookups within the session limit | `Apollo-Reborn#1220` | icpryde |
 | Unmute Videos in Feed: one audible video, muted under fullscreen | `Apollo-Reborn#1250`, `Apollo-Reborn#1252` | icpryde |
-| Toon Bot icons | `Apollo-Reborn#1253` | IllIIllIllIllII |
 | Image menu anchored at the press | `Apollo-Reborn#1254` | IllIIllIllIllII |
 | Google Search | `Apollo-Reborn#1260` | icpryde |
 | Interactive posts: permission prompt and subscription sync | `Apollo-Reborn#1264` | icpryde |
@@ -194,14 +192,15 @@ idea in its own code. Each one is described in
   relative comment ages, the own-username highlight, and text sizes and
   fonts.
 
-## Build-time inputs
+## App icons
 
-Apollo's standard app icons are Apollo's artwork, so they are not in the
-repository. `scripts/generate-icons.sh` extracts them (the `AppIcon-*`
-images of each icon listed in `xtool.yml`) from an Apollo IPA that
-whoever builds Phoebus supplies through `PHOEBUS_APOLLO_IPA`, a path or a
-URL (see [docs/building-on-linux.md](docs/building-on-linux.md)). The IPA
-and the extracted images are never committed.
+The app icons (Phoebus, Dusk, Classic, Sky, Lagoon, Nebula, Cloud,
+Midnight, Twilight and Graphite) are original Phoebus artwork. Their
+layers in `Icons/source/layers` (the antenna, head, ring, eyes, laurels and
+sunburst) were built from artwork by the project's owner, pendo324, and
+`scripts/generate/gen-phoebus-icons.py` composes them into each icon's
+day and night looks. They are part of Phoebus and share its licence. No
+Apollo or Apollo Reborn icon artwork is in the repository or the build.
 
 ## Attribution style
 

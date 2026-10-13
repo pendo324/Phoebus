@@ -125,8 +125,9 @@ bundled there, and never Apollo's art: add a recipe to `StockGlyph`,
 regenerate kit PDFs with `scripts/generate/gen-glyph-pdfs.sh`, credit
 any new kit, and keep the smoke checks passing (see
 [docs/components.md](docs/components.md), "Add an interface glyph").
-Apollo's app icons come from the builder's own IPA at
-build time and are never committed. Never use Apollo's Reddit client ID;
+The app icons are Phoebus's own: edit `Icons/source` and regenerate with
+`scripts/generate/gen-phoebus-icons.py` (see
+[docs/building-on-linux.md](docs/building-on-linux.md), "App icons"). Never use Apollo's Reddit client ID;
 API keys belong to the person running the app.
 
 ## Conduct

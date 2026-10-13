@@ -221,6 +221,15 @@ Apollo or Reborn, add an entry here.
 
 ## Settings and interface
 
+- **The app icons are Phoebus's own, not Apollo's or Reborn's.**
+  Apollo's icons and Reborn's Liquid Glass packs are their artists' work,
+  so Phoebus ships neither. Reborn's picker is unchanged, but its Liquid
+  Glass packs are Phoebus's two, Phoebus and Always Dark, and there are no
+  standard packs; the standard "Default" entry (search) is the primary
+  icon, Phoebus.
+  - As before, System is the icon's default look: icons shipped as PNGs
+    can't follow the phone's appearance, so the home screen shows the
+    default look in dark mode too.
 - **The interface glyphs are not Apollo's.** Phoebus ships none of
   Apollo's artwork, so the info row, vote arrows, swipe actions, menus,
   tab bar, composer toolbar, link buttons, inbox and feed orbs use SF

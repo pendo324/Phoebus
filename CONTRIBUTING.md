@@ -116,10 +116,11 @@ style"):
 
 ## Apollo's assets and credentials
 
-Do not add Apollo's app binaries, artwork or private credentials. The
-Apollo interface glyphs in `Sources/PhoebusUI/Resources/StockIcons` are
-being removed, so don't add new uses of them; prefer SF Symbols or
-original artwork. Apollo's app icons come from the builder's own IPA at
+Do not add Apollo's app binaries, artwork or private credentials.
+Interface glyphs are SF Symbols, open-source icons with compatible
+licences (`Sources/PhoebusUI/Resources/Glyphs`, credited in
+[CREDITS.md](CREDITS.md)) or original drawings; see `StockGlyph` and
+`StockIcon`. Apollo's app icons come from the builder's own IPA at
 build time and are never committed. Never use Apollo's Reddit client ID;
 API keys belong to the person running the app.
 

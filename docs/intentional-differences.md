@@ -221,6 +221,17 @@ Apollo or Reborn, add an entry here.
 
 ## Settings and interface
 
+- **The interface glyphs are not Apollo's.** Phoebus ships none of
+  Apollo's artwork, so the info row, vote arrows, swipe actions, menus,
+  tab bar, composer toolbar, link buttons, inbox and feed orbs use SF
+  Symbols, a few open-source icons (see CREDITS.md) and drawings of its
+  own, sized to the slots Apollo's glyphs filled. Shapes and line
+  weights differ from Apollo's: the sort menu's Top and Controversial
+  are Lucide's arrow-and-bars and crossed swords, the subreddit tag and
+  the SpongeText ("aAa") and Text Faces ("ಠ_ಠ") glyphs are redrawn, and
+  the settings profile preview shows a person glyph instead of Apollo's
+  avatar.
+
 - **Deleting your own post asks first.** Delete Post in the post's ••• menu
   shows a "Delete Post?" alert. Apollo's strings hold no such prompt, but a
   delete cannot be undone.

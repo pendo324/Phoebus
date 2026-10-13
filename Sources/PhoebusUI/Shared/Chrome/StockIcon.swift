@@ -188,8 +188,8 @@ enum GlyphRenderer {
         case let .asset(name, ink):
             drawPDF(name, fittedTo: CGSize(width: ink.width * k, height: ink.height * k),
                     centredIn: rect, color: color, cg: cg)
-        case let .composed(composition, size):
-            drawComposition(composition, size: size * k, in: rect, color: color, cg: cg)
+        case let .composed(composition, size, weight):
+            drawComposition(composition, size: size * k, weight: weight, in: rect, color: color, cg: cg)
         case let .text(string, size, weight, rounded):
             drawText(string, font: font(size * k, weight.fontWeightUIKit, rounded: rounded),
                      inkCentredAt: CGPoint(x: rect.midX, y: rect.midY), color: color, cg: cg)
@@ -311,10 +311,10 @@ enum GlyphRenderer {
 
     // MARK: - Compositions
 
-    static func drawComposition(_ composition: StockGlyph.Composition, size p: CGFloat, in rect: CGRect,
-                                color: UIColor, cg: CGContext) {
-        // SF Symbols' light stroke is 1/16 of the point size.
-        let s = p * 0.0625
+    static func drawComposition(_ composition: StockGlyph.Composition, size p: CGFloat,
+                                weight: StockGlyph.Weight, in rect: CGRect, color: UIColor, cg: CGContext) {
+        // SF Symbols' stroke: 1/16 of the point size at light, about 0.075 at regular.
+        let s = p * (weight == .regular ? 0.075 : 0.0625)
         let centre = CGPoint(x: rect.midX, y: rect.midY)
         cg.saveGState()
         defer { cg.restoreGState() }
@@ -326,7 +326,7 @@ enum GlyphRenderer {
             // A slash from the arrow's top-left to its bottom-right with a
             // one-stroke gap on its upper-right side, as SF's `.slash` symbols.
             let arrow = composition == .slashedUpArrow ? "arrow.up" : "arrow.down"
-            guard let image = symbol(arrow, p, .light, color: color) else { return }
+            guard let image = symbol(arrow, p, weight, color: color) else { return }
             let ink = drawCentred(image, at: centre)
             let half = (ink.height - s) / 2
             let a = CGPoint(x: ink.midX - half, y: ink.minY + s / 2)
@@ -339,21 +339,21 @@ enum GlyphRenderer {
             cg.setLineWidth(s)
             cg.strokeLineSegments(between: [a, b])
         case .parentComment:
-            guard let bubble = symbol("bubble", p, .light, color: color),
-                  let chevron = symbol("chevron.up", p * 0.5, .light, color: color) else { return }
+            guard let bubble = symbol("bubble", p, weight, color: color),
+                  let chevron = symbol("chevron.up", p * 0.5, weight, color: color) else { return }
             drawCentred(bubble, at: centre)
             drawCentred(chevron, at: CGPoint(x: centre.x, y: centre.y - p * 0.07))
         case .collapseToRoot:
             // The collapse glyph moved down so it and the bar above are centred.
-            guard let chevron = symbol("chevron.up", p, .light, color: color) else { return }
+            guard let chevron = symbol("chevron.up", p, weight, color: color) else { return }
             let ink = drawCentred(chevron, at: CGPoint(x: centre.x, y: centre.y + s * 1.25))
             cg.setLineWidth(s)
             let y = ink.minY - s * 2
             cg.strokeLineSegments(between: [CGPoint(x: ink.minX + s / 2, y: y), CGPoint(x: ink.maxX - s / 2, y: y)])
         case .hideAbove:
             // An eye under a small chevron and a bar: everything above goes.
-            guard let eye = symbol("eye", p, .light, color: color),
-                  let chevron = symbol("chevron.up", p * 0.4, .light, color: color) else { return }
+            guard let eye = symbol("eye", p, weight, color: color),
+                  let chevron = symbol("chevron.up", p * 0.4, weight, color: color) else { return }
             let eyeInk = inkBounds(of: eye)
             let chevronInk = inkBounds(of: chevron)
             let gap = s * 1.5

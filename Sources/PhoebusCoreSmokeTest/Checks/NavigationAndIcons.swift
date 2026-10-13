@@ -975,6 +975,25 @@ import PhoebusCore
               LiquidGlassIconAppearanceStore.load(UserDefaults(suiteName: "smoke.lgicon.empty")!)
                   == .system)
 
+        // Changing the menu re-applies the Liquid Glass icon in use at once
+        // (Reborn's LGSelectPreferredAppearance).
+        check("a new appearance re-applies the icon in use under the new name",
+              LiquidGlassIconAppearance.system.iconChange(to: .light, activeIconID: "dusk")
+                  == .some("LGIcon-dusk__apollo_light")
+              && LiquidGlassIconAppearance.light.iconChange(to: .dark, activeIconID: "dusk")
+                  == .some("LGIcon-dusk__apollo_dark")
+              && LiquidGlassIconAppearance.dark.iconChange(to: .system, activeIconID: "dusk")
+                  == .some("LGIcon-dusk"))
+        check("Phoebus in System is the primary icon",
+              LiquidGlassIconAppearance.light.iconChange(to: .system, activeIconID: "phoebus") == .some(nil)
+              && LiquidGlassIconAppearance.system.iconChange(to: .dark, activeIconID: "phoebus")
+                  == .some("LGIcon-phoebus__apollo_dark"))
+        check("the same appearance changes nothing",
+              LiquidGlassIconAppearance.dark.iconChange(to: .dark, activeIconID: "dusk") == .none)
+        check("with no Liquid Glass icon in use the mode only waits for the next pick",
+              LiquidGlassIconAppearance.system.iconChange(to: .dark, activeIconID: nil) == .none
+              && LiquidGlassIconAppearance.system.iconChange(to: .dark, activeIconID: "not-an-icon") == .none)
+
         // Daily Spotlight. The lineup must be STABLE within a day (the row
         // is persisted by the tweak for exactly this reason) and must span
         // at least three packs.

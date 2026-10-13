@@ -1,6 +1,7 @@
 # Build image for Phoebus IPAs: Ubuntu 24.04 with the swift.org Swift
-# toolchain, Go (for the icon renderer), the packages the build needs and
-# the pinned xtool fork. Built and pushed by .github/workflows/build-image.yml
+# toolchain, Go (for the icon renderer), the packages the build needs, the
+# pinned xtool fork and actool at a pinned commit (it compiles the app icons'
+# asset catalog; PHOEBUS_ACTOOL). Built and pushed by .github/workflows/build-image.yml
 # as ghcr.io/<owner>/phoebus-builder; the IPA workflow runs inside it.
 #
 # The Darwin SDK is not in the image: it comes from Xcode, which may not be
@@ -11,6 +12,14 @@
 #   docker build -f docker/build.Dockerfile \
 #     --build-context xtool-src=<clone> --build-arg XTOOL_REPO=/xtool-src .
 FROM scratch AS xtool-src
+
+# actool, a reimplementation of Apple's asset catalog compiler that runs on
+# Linux, built at a pinned commit; only the binary goes into the image.
+FROM rust:1.98.0-slim-bookworm AS actool
+ARG ACTOOL_REPO=https://github.com/pendo324/actool
+ARG ACTOOL_REV=cfc176caf4004242b6445daff1d616928345186a
+RUN cargo install --locked --git "$ACTOOL_REPO" --rev "$ACTOOL_REV" --root /actool actool \
+    && rm -rf /usr/local/cargo/registry /usr/local/cargo/git
 
 FROM ubuntu:24.04
 ARG XTOOL_REPO=https://github.com/pendo324/xtool
@@ -32,5 +41,9 @@ RUN --mount=type=bind,from=xtool-src,target=/xtool-src \
     && PKG_CONFIG_PATH=/tmp/limd/lib/pkgconfig XTOOL_BUNDLE_LIBS_FROM=/tmp/limd/lib \
        XTOOL_REPO="$XTOOL_REPO" /phoebus/scripts/install-xtool.sh \
     && rm -rf /tmp/limd /root/.cache /root/.swiftpm
+
+# Last, so moving the actool pin rebuilds only this layer.
+COPY --from=actool /actool/bin/actool /usr/local/bin/actool
+ENV PHOEBUS_ACTOOL=/usr/local/bin/actool
 
 WORKDIR /io

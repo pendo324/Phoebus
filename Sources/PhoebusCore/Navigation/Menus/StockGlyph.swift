@@ -101,6 +101,8 @@ public enum StockGlyph {
         // Tab bar.
         "tab-bar-posts": .init(20, 24, .symbol("doc.text", size: 23, weight: .light)),
         "tab-bar-inbox": .init(26, 17, .symbol("envelope", size: 20.5, weight: .light)),
+        // The Inbox tab in iOS 26's glass tab bar, filled.
+        "tab-bar-inbox-glass": .init(26, 17, .symbol("envelope.fill", size: 20.5, weight: .light)),
         "tab-bar-profile": .init(25, 25, .symbol("person.crop.circle", size: 25, weight: .light)),
         "tab-bar-search": .init(23, 24, .symbol("magnifyingglass", size: 25, weight: .light)),
         "tab-bar-settings": .init(26, 26, .symbol("gear", size: 25, weight: .light)),

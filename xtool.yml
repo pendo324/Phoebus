@@ -4,66 +4,11 @@ product: Phoebus
 entitlementsPath: Config/Phoebus/Phoebus.entitlements
 infoPath: Config/Phoebus/Info.plist
 resources:
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus60x60@2x.png
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus60x60@3x.png
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/phoebus/LGIcon-phoebus__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk60x60@2x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk60x60@3x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/dusk/LGIcon-dusk__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic60x60@2x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic60x60@3x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/classic/LGIcon-classic__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky60x60@2x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky60x60@3x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/sky/LGIcon-sky__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon60x60@2x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon60x60@3x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/lagoon/LGIcon-lagoon__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula60x60@2x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula60x60@3x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/nebula/LGIcon-nebula__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud60x60@2x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud60x60@3x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/phoebus/cloud/LGIcon-cloud__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight60x60@2x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight60x60@3x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/always-dark/midnight/LGIcon-midnight__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight60x60@2x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight60x60@3x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/always-dark/twilight/LGIcon-twilight__apollo_light60x60@3x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite60x60@2x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite60x60@3x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite__apollo_dark60x60@2x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite__apollo_dark60x60@3x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite__apollo_light60x60@2x.png
-  - Icons/LiquidGlass/always-dark/graphite/LGIcon-graphite__apollo_light60x60@3x.png
+  # The compiled app icons (scripts/compile-app-icons.sh); xtool copies them
+  # to the app's root, where iOS looks for them.
+  - Icons/Catalog/Assets.car
+  - Icons/Catalog/LGIcon-phoebus60x60@2x.png
+  - Icons/Catalog/LGIcon-phoebus76x76@2x~ipad.png
 extensions:
   - product: PhoebusWidget
     infoPath: Config/PhoebusWidget/Info.plist

@@ -824,13 +824,12 @@ import PhoebusCore
 // MARK: - Artwork
 //
 // Phoebus's own icons, the Liquid Glass packs: every icon the picker offers
-// has its Icon Composer bundle, is declared in Info.plist in each appearance
-// and shipped by xtool.yml, and nothing else is; the rendered PNGs and
-// previews once a build has rendered them.
+// has its Icon Composer bundle and its Light and Dark variants, and, once
+// compiled, an icon in the asset catalog for each appearance the picker
+// sets; xtool.yml ships the catalog and nothing else of the icons.
 @MainActor func checkRealArtwork() async throws {
     let fm = FileManager.default
     let root = "Icons/LiquidGlass"
-    let suffixes = ["", "__apollo_light", "__apollo_dark"]
 
     let catalogData = (try? Data(contentsOf: URL(fileURLWithPath: "\(root)/icons.json"))) ?? Data()
     let catalog = ((try? JSONSerialization.jsonObject(with: catalogData)) as? [String: Any])?["icons"] as? [[String: Any]] ?? []
@@ -839,47 +838,59 @@ import PhoebusCore
               == LiquidGlassIconOption.all.map { [$0.id, $0.groupID] })
     check("every icon is previewed in all four looks",
           catalog.allSatisfy { ($0["appearances"] as? [String]) == ["default", "dark", "clear-light", "clear-dark"] })
-    check("every icon has its Icon Composer bundle",
-          LiquidGlassIconOption.all.allSatisfy { fm.fileExists(atPath: "\(root)/\($0.groupID)/\($0.id)/\($0.id).icon/icon.json") })
+    check("every icon has a bundle for each appearance the picker sets (System, Light, Dark)",
+          LiquidGlassIconOption.all.allSatisfy { option in
+              LiquidGlassIconAppearance.allCases.allSatisfy { mode in
+                  fm.fileExists(atPath: "\(root)/\(option.groupID)/\(option.id)/\(mode.alternateIconName(for: option.id)).icon/icon.json")
+              }
+          })
     let packs = Set((try? fm.contentsOfDirectory(atPath: root)) ?? []).subtracting(["icons.json"])
     check("Icons/LiquidGlass holds only Phoebus's packs (no Apollo or Reborn icons)",
           packs == Set(LiquidGlassIconGroup.all.map(\.id)))
     check("no standard icons remain", !fm.fileExists(atPath: "Icons/Standard"))
+    check("the primary icon is Phoebus in its System look",
+          LiquidGlassIconAppearance.system.appIconName(for: "phoebus") == nil
+          && LiquidGlassIconOption.primaryIconName == "LGIcon-phoebus"
+          && LiquidGlassIconAppearance.light.appIconName(for: "phoebus") == "LGIcon-phoebus__apollo_light"
+          && LiquidGlassIconAppearance.system.appIconName(for: "dusk") == "LGIcon-dusk")
 
     let plistData = (try? Data(contentsOf: URL(fileURLWithPath: "Config/Phoebus/Info.plist"))) ?? Data()
     let plist = (try? PropertyListSerialization.propertyList(from: plistData, format: nil)) as? [String: Any] ?? [:]
-    let icons = plist["CFBundleIcons"] as? [String: Any] ?? [:]
-    let primary = (icons["CFBundlePrimaryIcon"] as? [String: Any])?["CFBundleIconFiles"] as? [String]
-    check("the primary icon is the Phoebus icon's default look", primary == [AppIconOption.original.iconFileName])
-    let alternates = (icons["CFBundleAlternateIcons"] as? [String: [String: Any]] ?? [:])
-        .mapValues { $0["CFBundleIconFiles"] as? [String] ?? [] }
-    var expected: [String: [String]] = [:]
-    for option in LiquidGlassIconOption.all {
-        for mode in LiquidGlassIconAppearance.allCases {
-            let name = "LGIcon-" + mode.alternateIconName(for: option.id)
-            expected[name] = [name + "60x60"]
-        }
-    }
-    check("Info.plist declares exactly the picker's alternate icons, in every appearance", alternates == expected)
+    check("Info.plist leaves the icons to the compiled catalog",
+          plist["CFBundleIcons"] == nil && plist["CFBundleIcons~ipad"] == nil)
 
     let xtool = (try? String(contentsOfFile: "xtool.yml", encoding: .utf8)) ?? ""
     let shipped = Set(xtool.split(separator: "\n").compactMap { line -> String? in
         let item = line.trimmingCharacters(in: .whitespaces)
         return item.hasPrefix("- Icons/") ? String(item.dropFirst(2)) : nil
     })
-    let files = LiquidGlassIconOption.all.flatMap { option in
-        suffixes.flatMap { suffix in
-            ["@2x", "@3x"].map { "\(root)/\(option.groupID)/\(option.id)/LGIcon-\(option.id)\(suffix)60x60\($0).png" }
-        }
-    }
-    check("xtool.yml ships every appearance of every icon at 2x and 3x, and no other icons", shipped == Set(files))
+    check("xtool.yml ships the compiled catalog and the primary icon's PNGs, and no other icons",
+          shipped == ["Icons/Catalog/Assets.car", "Icons/Catalog/\(AppIconOption.original.iconFileName)@2x.png",
+                      "Icons/Catalog/LGIcon-phoebus76x76@2x~ipad.png"])
 
-    // Rendered by scripts/generate-icons.sh, so only checked once a build has run it.
-    guard LiquidGlassIconOption.all.allSatisfy({ fm.fileExists(atPath: "\(root)/\($0.groupID)/\($0.id)/.rendered") }) else {
-        print("  (app icons not rendered yet; run scripts/generate-icons.sh to check them)")
+    // Compiled by scripts/generate-icons.sh, so only checked once a build has run it.
+    let partialData = try? Data(contentsOf: URL(fileURLWithPath: "Icons/Catalog/partial.plist"))
+    guard let partialData, fm.fileExists(atPath: "Icons/Catalog/Assets.car") else {
+        print("  (app icons not compiled yet; run scripts/generate-icons.sh to check them)")
         return
     }
-    check("every icon is rendered in every appearance at both scales", files.allSatisfy { fm.fileExists(atPath: $0) })
+    let partial = (try? PropertyListSerialization.propertyList(from: partialData, format: nil)) as? [String: Any] ?? [:]
+    for key in ["CFBundleIcons", "CFBundleIcons~ipad"] {
+        let icons = partial[key] as? [String: Any] ?? [:]
+        let primary = icons["CFBundlePrimaryIcon"] as? [String: Any]
+        check("\(key): the primary icon is \(LiquidGlassIconOption.primaryIconName)",
+              primary?["CFBundleIconName"] as? String == LiquidGlassIconOption.primaryIconName)
+        let alternates = (icons["CFBundleAlternateIcons"] as? [String: [String: Any]] ?? [:])
+            .mapValues { $0["CFBundleIconName"] as? String }
+        let names = LiquidGlassIconOption.all.flatMap { option in
+            LiquidGlassIconAppearance.allCases.compactMap { $0.appIconName(for: option.id) }
+        }
+        check("\(key): every picker icon in every appearance is an alternate icon of the catalog, and nothing else",
+              alternates == Dictionary(uniqueKeysWithValues: names.map { ($0, $0) }))
+    }
+    check("the primary icon's loose PNG is compiled",
+          fm.fileExists(atPath: "Icons/Catalog/\(AppIconOption.original.iconFileName)@2x.png"))
+
     let previews = "Sources/PhoebusUI/Resources/LiquidGlassIcons"
     check("every icon has its four picker previews", LiquidGlassIconOption.all.allSatisfy { option in
         ["", "--dark", "--clear-light", "--clear-dark"].allSatisfy { fm.fileExists(atPath: "\(previews)/\(option.id)\($0).png") }

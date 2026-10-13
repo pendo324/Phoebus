@@ -1,8 +1,9 @@
 #!/bin/bash
-# Renders the app icons from their Icon Composer sources
+# Renders the App Icon picker's previews of the app icons
 # (Icons/LiquidGlass/<pack>/<id>/<id>.icon, listed in
-# Icons/LiquidGlass/icons.json), beside each source, and the App Icon
-# picker's previews in Sources/PhoebusUI/Resources/LiquidGlassIcons. Icons
+# Icons/LiquidGlass/icons.json) into Sources/PhoebusUI/Resources/LiquidGlassIcons
+# with scripts/lgrender, then compiles the icons themselves into an asset
+# catalog (scripts/compile-app-icons.sh, which needs PHOEBUS_ACTOOL). Icons
 # whose source is unchanged are skipped. Needs Go and rsvg-convert (librsvg).
 #
 # The sources themselves are generated from Icons/source by
@@ -22,3 +23,4 @@ done
 bin=.build/lgrender
 (cd scripts/lgrender && go build -o "../../$bin" .)
 "$bin" -root . "$@"
+scripts/compile-app-icons.sh "$@"

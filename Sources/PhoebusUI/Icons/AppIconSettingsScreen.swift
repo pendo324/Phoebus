@@ -424,7 +424,7 @@ public struct AppIconSettingsScreen: View {
         }
         do {
             try await Self.setAlternateIcon(
-                named: "LGIcon-" + mode.alternateIconName(for: id))
+                named: mode.appIconName(for: id))
             selectedLiquidGlassID = id
             LiquidGlassActiveIconStore.save(id)
             errorMessage = nil

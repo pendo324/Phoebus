@@ -151,6 +151,40 @@ def p3(hex_srgb, alpha=1.0):
     return "display-p3:%.5f,%.5f,%.5f,%.5f" % (enc(p[0]), enc(p[1]), enc(p[2]), alpha)
 
 
+def specialize(node, change):
+    """Applies change to every `*-specializations` list in an icon.json tree."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key.endswith("-specializations") and isinstance(value, list):
+                node[key] = change(value)
+            else:
+                specialize(value, change)
+    elif isinstance(node, list):
+        for item in node:
+            specialize(item, change)
+    return node
+
+
+def light_only(entries):
+    """The day look in every appearance: the dark entries go."""
+    return [e for e in entries if e.get("appearance") != "dark"]
+
+
+def dark_only(entries):
+    """The night look in every appearance: the dark entry is the default too."""
+    dark = next((e for e in entries if e.get("appearance") == "dark"), None)
+    if dark is None:
+        return entries
+    rest = [e for e in entries if "appearance" in e]
+    return [{"value": dark["value"]}] + rest
+
+
+def visible(layer):
+    """Whether a layer shows in any appearance."""
+    opacities = layer.get("opacity-specializations")
+    return opacities is None or any(e["value"] != 0 for e in opacities)
+
+
 def backdrop_layer(name, image, default, dark):
     return {"image-name": image, "name": name, "glass": False, "hidden": False,
             "position": {"scale": 1, "translation-in-points": [0, 0]},
@@ -242,10 +276,21 @@ class Generator:
                "groups": groups,
                "supported-platforms": self.foreground["supported-platforms"]}
 
-        path = ICONS / "LiquidGlass" / icon["group"] / icon["id"] / (icon["id"] + ".icon")
+        # The icon follows the system; the App Icon picker's Light and Dark
+        # choices are variants that keep one look in every appearance. Their
+        # tinted (mono) look is the icon's own.
+        folder = ICONS / "LiquidGlass" / icon["group"] / icon["id"]
+        self.write(folder / (icon["id"] + ".icon"), doc, files)
+        for suffix, change in (("__apollo_light", light_only), ("__apollo_dark", dark_only)):
+            variant = specialize(json.loads(json.dumps(doc)), change)
+            for g in variant["groups"]:
+                g["layers"] = [layer for layer in g["layers"] if visible(layer)]
+            self.write(folder / (icon["id"] + suffix + ".icon"), variant, files)
+
+    def write(self, path, doc, files):
         shutil.rmtree(path, ignore_errors=True)
         (path / "Assets").mkdir(parents=True)
-        for g in groups:
+        for g in doc["groups"]:
             for layer in g["layers"]:
                 name = layer["image-name"]
                 if name in files:

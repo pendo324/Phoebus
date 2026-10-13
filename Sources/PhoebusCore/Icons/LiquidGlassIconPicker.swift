@@ -36,6 +36,13 @@ public enum LiquidGlassIconAppearance: Int, Sendable, CaseIterable {
         }
     }
 
+    /// The name to set as the app's icon for a pack icon in this mode
+    /// (`LGIcon-` and `alternateIconName(for:)`), nil for the primary icon.
+    public func appIconName(for iconID: String) -> String? {
+        let name = "LGIcon-" + alternateIconName(for: iconID)
+        return name == LiquidGlassIconOption.primaryIconName ? nil : name
+    }
+
     /// The preview variant this mode shows: Light shows "default",
     /// Dark shows "dark", and System follows the phone.
     public func previewVariant(systemIsDark: Bool) -> String {

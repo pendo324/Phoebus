@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="ball" gradientUnits="userSpaceOnUse" cx="510.2" cy="164.3" r="38.1" fx="508.2" fy="156.3">
+      <stop offset="0.0000" stop-color="#fcfeba"/>
+      <stop offset="0.1146" stop-color="#fcfeb7"/>
+      <stop offset="0.1354" stop-color="#fcfdae"/>
+      <stop offset="0.1562" stop-color="#fcfdac"/>
+      <stop offset="0.2396" stop-color="#fdfa94"/>
+      <stop offset="0.3229" stop-color="#fdf372"/>
+      <stop offset="0.3854" stop-color="#fcee5d"/>
+      <stop offset="0.5104" stop-color="#fcdf27"/>
+      <stop offset="0.5938" stop-color="#fbd40f"/>
+      <stop offset="0.7604" stop-color="#f9bf07"/>
+      <stop offset="0.8438" stop-color="#f7ae05"/>
+      <stop offset="0.9479" stop-color="#f3a205"/>
+      <stop offset="0.9688" stop-color="#f1a408"/>
+      <stop offset="0.9896" stop-color="#e9970a"/>
+      <stop offset="1.0000" stop-color="#e9970a"/>
+    </radialGradient>
+  </defs>
+  <circle cx="510.2" cy="164.3" r="38.6" fill="url(#ball)"/>
+</svg>

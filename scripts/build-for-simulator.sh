@@ -20,6 +20,7 @@ scripts/generate-icons.sh
 export PHOEBUS_LINK_PLATFORM=ios-simulator
 "${SANDBOX[@]}" "$XTOOL" dev build --triple "$TRIPLE"
 scripts/add-appintents-metadata.sh "$TRIPLE" debug
+scripts/add-app-icons.py xtool/Phoebus.app
 scripts/check-app.py xtool/Phoebus.app
 
 echo "Built xtool/Phoebus.app for $TRIPLE"

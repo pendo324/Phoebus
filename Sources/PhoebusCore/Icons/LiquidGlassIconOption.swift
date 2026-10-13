@@ -25,6 +25,10 @@ public struct LiquidGlassIconOption: Sendable, Equatable, Identifiable {
         "LGIcon-\(id)"
     }
 
+    /// The primary icon: Phoebus in its System look. The asset catalog lists
+    /// it as the primary icon only, not among the alternate icons.
+    public static let primaryIconName = "LGIcon-phoebus"
+
     /// Phoebus's own icons, in `Icons/source/set.json`'s order. Phoebus is
     /// also the primary icon.
     public static let all: [LiquidGlassIconOption] = [

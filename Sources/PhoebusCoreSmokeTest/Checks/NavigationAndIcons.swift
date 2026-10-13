@@ -823,33 +823,67 @@ import PhoebusCore
 
 // MARK: - Artwork
 //
-// Apollo's standard icons, extracted from its IPA at build time.
+// Phoebus's own icons, the Liquid Glass packs: every icon the picker offers
+// has its Icon Composer bundle, is declared in Info.plist in each appearance
+// and shipped by xtool.yml, and nothing else is; the rendered PNGs and
+// previews once a build has rendered them.
 @MainActor func checkRealArtwork() async throws {
-    do {
-        let fm = FileManager.default
+    let fm = FileManager.default
+    let root = "Icons/LiquidGlass"
+    let suffixes = ["", "__apollo_light", "__apollo_dark"]
 
-        // Base catalog: one folder per icon, each at 2x and 3x. Extracted
-        // from Apollo's IPA by scripts/generate-icons.sh, so only checked
-        // once a build has run it.
-        let iconDirectory = "Icons/Standard"
-        guard fm.fileExists(atPath: "\(iconDirectory)/.extracted") else {
-            print("  (standard icons not extracted yet; run scripts/generate-icons.sh to check them)")
-            return
-        }
-        let icons = (try? fm.subpathsOfDirectory(atPath: iconDirectory)) ?? []
-        check("every base app icon ships at both scales",
-              icons.filter { $0.hasSuffix("@2x.png") }.count == AppIconOption.all.count
-              && icons.filter { $0.hasSuffix("@3x.png") }.count == AppIconOption.all.count)
-        // Apple ships these as CgBI PNGs, which standard decoders reject.
-        // An extracted file must be a plain PNG with no CgBI chunk left.
-        if let sample = try? Data(contentsOf: URL(fileURLWithPath: "\(iconDirectory)/magma/AppIcon-magma60x60@3x.png")) {
-            check("icons are converted out of Apple's CgBI format",
-                  sample.starts(with: Data([0x89, 0x50, 0x4E, 0x47]))
-                  && sample.range(of: Data("CgBI".utf8)) == nil)
-        } else {
-            check("icons are converted out of Apple's CgBI format", false)
+    let catalogData = (try? Data(contentsOf: URL(fileURLWithPath: "\(root)/icons.json"))) ?? Data()
+    let catalog = ((try? JSONSerialization.jsonObject(with: catalogData)) as? [String: Any])?["icons"] as? [[String: Any]] ?? []
+    check("Icons/LiquidGlass/icons.json lists the picker's icons and packs in order",
+          catalog.map { [$0["id"] as? String, $0["group"] as? String] }
+              == LiquidGlassIconOption.all.map { [$0.id, $0.groupID] })
+    check("every icon is previewed in all four looks",
+          catalog.allSatisfy { ($0["appearances"] as? [String]) == ["default", "dark", "clear-light", "clear-dark"] })
+    check("every icon has its Icon Composer bundle",
+          LiquidGlassIconOption.all.allSatisfy { fm.fileExists(atPath: "\(root)/\($0.groupID)/\($0.id)/\($0.id).icon/icon.json") })
+    let packs = Set((try? fm.contentsOfDirectory(atPath: root)) ?? []).subtracting(["icons.json"])
+    check("Icons/LiquidGlass holds only Phoebus's packs (no Apollo or Reborn icons)",
+          packs == Set(LiquidGlassIconGroup.all.map(\.id)))
+    check("no standard icons remain", !fm.fileExists(atPath: "Icons/Standard"))
+
+    let plistData = (try? Data(contentsOf: URL(fileURLWithPath: "Config/Phoebus/Info.plist"))) ?? Data()
+    let plist = (try? PropertyListSerialization.propertyList(from: plistData, format: nil)) as? [String: Any] ?? [:]
+    let icons = plist["CFBundleIcons"] as? [String: Any] ?? [:]
+    let primary = (icons["CFBundlePrimaryIcon"] as? [String: Any])?["CFBundleIconFiles"] as? [String]
+    check("the primary icon is the Phoebus icon's default look", primary == [AppIconOption.original.iconFileName])
+    let alternates = (icons["CFBundleAlternateIcons"] as? [String: [String: Any]] ?? [:])
+        .mapValues { $0["CFBundleIconFiles"] as? [String] ?? [] }
+    var expected: [String: [String]] = [:]
+    for option in LiquidGlassIconOption.all {
+        for mode in LiquidGlassIconAppearance.allCases {
+            let name = "LGIcon-" + mode.alternateIconName(for: option.id)
+            expected[name] = [name + "60x60"]
         }
     }
+    check("Info.plist declares exactly the picker's alternate icons, in every appearance", alternates == expected)
+
+    let xtool = (try? String(contentsOfFile: "xtool.yml", encoding: .utf8)) ?? ""
+    let shipped = Set(xtool.split(separator: "\n").compactMap { line -> String? in
+        let item = line.trimmingCharacters(in: .whitespaces)
+        return item.hasPrefix("- Icons/") ? String(item.dropFirst(2)) : nil
+    })
+    let files = LiquidGlassIconOption.all.flatMap { option in
+        suffixes.flatMap { suffix in
+            ["@2x", "@3x"].map { "\(root)/\(option.groupID)/\(option.id)/LGIcon-\(option.id)\(suffix)60x60\($0).png" }
+        }
+    }
+    check("xtool.yml ships every appearance of every icon at 2x and 3x, and no other icons", shipped == Set(files))
+
+    // Rendered by scripts/generate-icons.sh, so only checked once a build has run it.
+    guard LiquidGlassIconOption.all.allSatisfy({ fm.fileExists(atPath: "\(root)/\($0.groupID)/\($0.id)/.rendered") }) else {
+        print("  (app icons not rendered yet; run scripts/generate-icons.sh to check them)")
+        return
+    }
+    check("every icon is rendered in every appearance at both scales", files.allSatisfy { fm.fileExists(atPath: $0) })
+    let previews = "Sources/PhoebusUI/Resources/LiquidGlassIcons"
+    check("every icon has its four picker previews", LiquidGlassIconOption.all.allSatisfy { option in
+        ["", "--dark", "--clear-light", "--clear-dark"].allSatisfy { fm.fileExists(atPath: "\(previews)/\(option.id)\($0).png") }
+    })
 }
 
 // MARK: - Interface glyphs
@@ -946,15 +980,15 @@ import PhoebusCore
               spotlight.allSatisfy { id in
                   LiquidGlassIconOption.all.contains { $0.id == id }
               })
-        // Checked across a year of days, not one: a random 5 of 76 icons usually
-        // spans 3 groups by chance, so a single sample proves nothing about the
-        // "at least 3 packs" rule.
-        check("every day's lineup spans at least three packs",
+        // Checked across a year of days, not one: a random 5 of 10 icons usually
+        // spans both packs by chance, so a single sample proves nothing about the
+        // "at least 3 packs" rule (every pack when there are fewer).
+        check("every day's lineup spans at least three packs, or all of them",
               (0..<365).allSatisfy { offset in
                   let ids = LiquidGlassDailySpotlight.icons(forDay: 20_260_101 + offset)
                   return Set(ids.compactMap { id in
                       LiquidGlassIconOption.all.first { $0.id == id }?.groupID
-                  }).count >= 3
+                  }).count >= min(3, LiquidGlassIconGroup.all.count)
               })
         check("the active icon is excluded from the lineup",
               !LiquidGlassDailySpotlight.icons(forDay: day, excluding: [spotlight[0]])
@@ -969,34 +1003,26 @@ import PhoebusCore
         // the port matches the tweak.
         check("the spotlight generator's output is pinned",
               LiquidGlassDailySpotlight.icons(forDay: 20_260_307)
-                  == ["aloppo-v2", "bajader-rtr", "LG-rule-of-two",
-                      "helios-ultra", "LG-trans"])
-        // Pinned for the 78-icon catalog (Toon Bot, #1253): the lineup draws from
-        // the catalog, so adding icons moves every day's picks, as it does upstream.
+                  == ["midnight", "cloud", "nebula", "classic", "graphite"])
+        // Pinned for Phoebus's ten icons: the lineup draws from the catalog, so
+        // adding icons moves every day's picks, as it does upstream.
 
         check("Daily Spotlight uses the tweak's own defaults keys",
               LiquidGlassDailySpotlight.dayDefaultsKey == "ApolloLGDailyFeaturedDay"
               && LiquidGlassDailySpotlight.idsDefaultsKey == "ApolloLGDailyFeaturedIDs")
 
-        // Pack cards. Reborn presents Apollo's own icons as four named packs, not
-        // one flat list.
-        check("the four standard packs are named as the tweak names them",
-              StandardIconPack.all.map(\.title) == ["Originals", "Community", "Ultra", "Sekrit"])
-        check("the standard packs carry Apollo's counts (Ultra: 81, SPCA and Reborn's 8)",
-              StandardIconPack.all.map(\.iconCount) == [32, 19, 90, 22])
-        check("each standard pack carries three cover icons",
-              StandardIconPack.all.allSatisfy { $0.coverIconIDs.count == 3 })
-        check("Originals' covers are the tweak's own three",
-              StandardIconPack.all[0].coverIconIDs == ["gold", "calico", "teal"])
+        // Pack cards.
+        check("each pack carries three cover icons",
+              LiquidGlassIconGroup.all.allSatisfy { $0.coverIconIDs.count == 3 })
         // A group's cover icons are an editorial pick, NOT its first three
         // members - deriving them would silently show the wrong art.
         check("a Liquid Glass group's covers are the registry's pick",
               LiquidGlassIconGroup.all[0].coverIconIDs
-                  == ["apollo-classic", "halo-glass", "AppIcon"])
+                  == ["nebula", "sky", "phoebus"])
         check("the covers are not simply the group's first three icons",
               LiquidGlassIconGroup.all[0].coverIconIDs
                   != LiquidGlassIconOption.all
-                      .filter { $0.groupID == "original" }.prefix(3).map(\.id))
+                      .filter { $0.groupID == "phoebus" }.prefix(3).map(\.id))
         check("every cover icon actually belongs to its own group",
               LiquidGlassIconGroup.all.allSatisfy { group in
                   group.coverIconIDs.allSatisfy { want in

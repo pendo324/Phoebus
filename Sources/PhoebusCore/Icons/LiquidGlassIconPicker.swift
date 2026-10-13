@@ -183,12 +183,9 @@ public enum LiquidGlassDailySpotlight {
     }
 }
 
-/// Apollo's own (non-Liquid-Glass) icons, which Reborn presents as four
-/// packs rather than one flat list.
-///
-/// Names, counts, and cover icon IDs are verbatim from Reborn. The counts
-/// are Reborn's hardcoded numbers, since the flat `AppIconOption.all` has
-/// no section information to derive them from.
+/// Apollo's own (non-Liquid-Glass) icons, which Reborn presents as packs
+/// below the Liquid Glass ones. Phoebus ships none of Apollo's icons, so
+/// there are no standard packs.
 public struct StandardIconPack: Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String
@@ -217,43 +214,7 @@ public struct StandardIconPack: Sendable, Equatable, Identifiable {
         self.coverIconIDs = coverIconIDs
     }
 
-    public static let all: [StandardIconPack] = [
-        StandardIconPack(id: "originals", title: "Originals", screenTitle: "Originals", sectionTitle: "Original Icons", iconIDs: [
-            "original", "morty", "duck", "antenna", "spaceship", "burnt-orange", "green", "dark", "orange",
-            "purple", "white", "pink", "gold", "crimson", "blueberry", "calico", "castro", "teal", "brown",
-            "sunset", "gravel-juice", "gray", "chosen-one", "enter-the-state", "rule-of-two",
-            "galactic-zoomer", "six-colors", "stonewall", "trans", "pride", "clearly-combustion",
-            "dino-spoon"
-        ], coverIconIDs: ["gold", "calico", "teal"]),
-        StandardIconPack(id: "community", title: "Community", screenTitle: "Community Pack", sectionTitle: "Community Icons", iconIDs: [
-            "neon-glow", "bluesteroid", "poe-the-space-ghost", "ones-and-zeroes", "blast-off", "retrowave",
-            "glitch", "pie-in-the-sky", "knight", "launched", "magma", "apollo-san", "rimuru", "surprised",
-            "canvas-painting", "floaty-boy", "nelson", "broby", "no-space"
-        ], coverIconIDs: ["apollo-san", "rimuru", "surprised"]),
-        StandardIconPack(id: "ultra", title: "Ultra", screenTitle: "Ultra", sectionTitle: "Ultra Icons", iconIDs: [
-            "hyper-suit-4000", "the-adventurer", "ye-snow-guardian", "the-orbit-of-gargantua", "ice-bot",
-            "cuddleb0t", "the-little-prince", "the-little-prince-ii", "wish-maker", "wish-maker-ii",
-            "ducky-buddy", "mechapollo", "the-copper-giant", "jackopollo", "void-emperor",
-            "sir-yule-treemas", "decade-of-frosting", "apollobot", "stringfish", "floating", "forest-spirit",
-            "mechapollo2", "castiel", "demogorgon", "rosso", "apolloween", "smiles", "explorer-of-smiles-ii",
-            "george", "space-shanty", "roary", "sasageyo", "detective", "tapioca", "coconut-head",
-            "gorilla-gus", "gorilla-gus-ii", "apollo-a1", "chippie", "gordon-ramesses", "dr-spaceman",
-            "santapollo", "diving-for-upvotes", "icarusbot", "midasbot", "mr-neep-neep", "neptunebot",
-            "shadowbot", "jonybot", "year-of-the-tiger", "macrodata-refinement", "waving-yolkstronaut",
-            "starry-eyed", "stuart-from-saturn", "scan-lines", "sea-are-tea", "obsidian", "shakey-shakey",
-            "frankenpollo", "apollopy", "under-the-tree", "under-the-tree-ii", "under-the-tree-iii",
-            "apollomoji", "notebook", "year-of-the-rabbit", "throckmorton", "squingus", "blorbo",
-            "low-battery", "eggius-cuniculus", "apollos6", "felt-and-feels", "mr-banks", "mr-eyes",
-            "mr-moustache", "palette", "mighty-apollo", "royalty", "food-bank", "planetary-pod",
-            "macaroni-and-apollo", "metal-cap", "cheese-rock", "upvote-eater", "rainbow-visor",
-            "in-the-jungle", "space-paws", "grumpy-space-paws", "spca"
-        ], coverIconIDs: ["wish-maker", "in-the-jungle", "the-little-prince"]),
-        StandardIconPack(id: "sekrit", title: "Sekrit", screenTitle: "Sekrit", sectionTitle: "Sekrit Icons", iconIDs: [
-            "atp", "phil", "canada", "ukraine", "murica", "usa2", "uk", "ernest", "slothkun", "sus",
-            "dave2d", "red-black-white", "camera-pool", "peachy", "sandals", "andru", "rene", "tld",
-            "snazzy", "apollobook-pro", "beans", "eap"
-        ], coverIconIDs: ["beans", "sus", "apollobook-pro"]),
-    ]
+    public static let all: [StandardIconPack] = []
 }
 
 /// The Liquid Glass icon last applied (Reborn tracks it separately):

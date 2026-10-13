@@ -6,8 +6,7 @@
 //
 // Usage:
 //
-//	lgrender -root . [-apollo-ipa apollo.ipa]   render every icon in Icons/LiquidGlass/icons.json,
-//	                                            and extract the standard icons from Apollo's IPA
+//	lgrender -root .   render every icon in Icons/icons.json
 //	lgrender -icon X.icon -appearance default|dark|clear-light|clear-dark|tinted -size 180 -o out.png
 package main
 
@@ -732,20 +731,15 @@ func writePNG(path string, img image.Image) error {
 }
 
 func main() {
-	root := flag.String("root", "", "repository root: render every icon listed in Icons/LiquidGlass/icons.json")
+	root := flag.String("root", "", "repository root: render every icon listed in Icons/icons.json")
 	force := flag.Bool("force", false, "with -root, re-render icons that are up to date")
-	apolloIPA := flag.String("apollo-ipa", "", "with -root, also extract the standard icons from this Apollo IPA")
 	icon := flag.String("icon", "", ".icon bundle")
 	appearance := flag.String("appearance", "default", "default, dark, clear-light, clear-dark or tinted")
 	size := flag.Int("size", 180, "output size in pixels")
 	outPath := flag.String("o", "", "output PNG")
 	flag.Parse()
 	if *root != "" {
-		err := renderAll(*root, *force)
-		if err == nil && *apolloIPA != "" {
-			err = extractApolloIcons(*root, *apolloIPA, *force)
-		}
-		if err != nil {
+		if err := renderAll(*root, *force); err != nil {
 			fmt.Fprintln(os.Stderr, "lgrender:", err)
 			os.Exit(1)
 		}

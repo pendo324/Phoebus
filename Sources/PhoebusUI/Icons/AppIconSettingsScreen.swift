@@ -4,12 +4,11 @@ import PhoebusCore
 import UIKit
 #endif
 
-/// Apollo's App Icon picker + Community Icon Pack screen: the full 155-icon
-/// catalog (`AppIconOption.all`, matching `Info.plist`) in a searchable grid.
-///
-/// Reborn's categorized, attributed "Liquid Glass" grid (85 icons, per-icon
-/// designer attribution, 4 groups; `LiquidGlassIconOption`) sits above the flat
-/// grid.
+/// Apollo's App Icon picker, as Reborn lays it out: a Daily Spotlight, the
+/// "Liquid Glass" icon packs (`LiquidGlassIconOption`, per-icon designer
+/// attribution), Apollo's standard packs below them, and search across both.
+/// Phoebus's packs are its own: Phoebus and Always Dark; it has no standard
+/// packs, only the primary icon (`AppIconOption.all`).
 
 public struct AppIconSettingsScreen: View {
     /// Shared with the pushed pack screens, so a pick there checks itself at once.
@@ -65,21 +64,24 @@ public struct AppIconSettingsScreen: View {
                                      coverIconIDs: coverIcons(for: group),
                                      isLiquidGlass: true)
                              })
-                packsSection(title: "Standard Icon Packs",
-                             cards: StandardIconPack.all.map { pack in
-                                 PackCardModel(
-                                     id: pack.id,
-                                     title: pack.title,
-                                     iconCount: pack.iconCount,
-                                     coverIconIDs: pack.coverIconIDs,
-                                     isLiquidGlass: false)
-                             })
+                // Phoebus has no standard packs (none of Apollo's icons).
+                if !StandardIconPack.all.isEmpty {
+                    packsSection(title: "Standard Icon Packs",
+                                 cards: StandardIconPack.all.map { pack in
+                                     PackCardModel(
+                                         id: pack.id,
+                                         title: pack.title,
+                                         iconCount: pack.iconCount,
+                                         coverIconIDs: pack.coverIconIDs,
+                                         isLiquidGlass: false)
+                                 })
+                }
             } else {
                 searchResults
             }
         }
         // Filters the loaded icon grid; bottom bar on glass.
-        .apolloGlassSearchField(text: $query, prompt: "Search \(AppIconOption.all.count) icons")
+        .apolloGlassSearchField(text: $query, prompt: "Search \(LiquidGlassIconOption.all.count) icons")
         .navigationTitle("App Icon")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { appearanceMenu } }
@@ -536,10 +538,9 @@ private struct IconPreview: View {
     /// alternate icons must live.
     #if canImport(UIKit)
     private static func preview(for option: AppIconOption) -> UIImage? {
-        // The default icon is stored under its slug, not "original".
-        let slug = option.id == "original" ? "Original" : option.id
+        // The default icon is Phoebus's own art, not "original".
         for scale in ["@3x", "@2x"] {
-            if let path = Bundle.main.path(forResource: "AppIcon-\(slug)60x60\(scale)",
+            if let path = Bundle.main.path(forResource: "\(option.iconFileName)\(scale)",
                                            ofType: "png"),
                let image = UIImage(contentsOfFile: path) {
                 return image

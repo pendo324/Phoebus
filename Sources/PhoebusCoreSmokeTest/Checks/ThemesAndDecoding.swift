@@ -95,15 +95,15 @@ import PhoebusCore
 @MainActor func checkAppIconPickerCommunityIconPack() async throws {
     check("AppIconStore defaults to .original", AppIconStore.load() == .original)
     check("AppIconOption.original has a nil alternateIconName (primary icon)", AppIconOption.original.alternateIconName == nil)
-    check("AppIconOption.all has the real 155-icon catalog, Reborn's 8 Ultra additions and Original (164 total)", AppIconOption.all.count == 164)
-    check("AppIconOption.all entries have unique IDs", Set(AppIconOption.all.map(\.id)).count == AppIconOption.all.count)
-    check("AppIconOption's alternateIconName matches the real AppIcon-<id> Info.plist key convention", AppIconOption.all.first(where: { $0.id == "obsidian" })?.alternateIconName == "AppIcon-obsidian")
-    check("AppIconOption includes a real Apollo icon name", AppIconOption.all.contains(where: { $0.id == "gorilla-gus" }))
-    let obsidianIcon = AppIconOption.all.first(where: { $0.id == "obsidian" })!
-    AppIconStore.save(obsidianIcon)
-    check("AppIconStore persists a selection", AppIconStore.load() == obsidianIcon)
+    check("AppIconOption.all is the primary icon alone; none of Apollo's icons ship", AppIconOption.all == [.original])
+    check("the primary icon's art is the Phoebus pack icon's default look", AppIconOption.original.iconFileName == "LGIcon-phoebus60x60")
+    let scratch = UserDefaults(suiteName: "smoke.appicon")!
+    scratch.removePersistentDomain(forName: "smoke.appicon")
+    scratch.set("obsidian", forKey: "com.pendo324.Phoebus.selectedAppIcon")
+    check("an Apollo icon chosen before falls back to .original", AppIconStore.storage.load(from: scratch) == .original)
     AppIconStore.save(.original)
-    check("AppIconStore round-trips back to .original", AppIconStore.load() == .original)
+    check("AppIconStore round-trips .original", AppIconStore.load() == .original)
+    scratch.removePersistentDomain(forName: "smoke.appicon")
 }
 
 // --- Subreddits root loads from disk instantly ---

@@ -201,7 +201,7 @@ flowchart LR
 | True Black Keyboard | UI `TrueBlackKeyboard`, `InterfaceSettingsScreen`; Core `TrueBlackKeyboardMode` | Reborn #1316 (`TrueBlackKeyboardMode`, Off / Dark Mode Only / Light Mode Only / Always, Interface → Display & Navigation): the system keyboard's backdrop is repainted pure black and a light-mode app gets the dark key set, installed once at launch from `ApolloAppDelegate`. The Core mode decides when to paint and when to use dark keys | Uses private UIKit classes (`UIKBBackdropView`, `UIKBRenderConfig`) looked up by name; a missing class or selector leaves the stock keyboard. Applies the next time the keyboard appears; only checkable on a device or simulator |
 | Link routing | Core `LinkRouter`, `NitterInstances`, `RedditURLTarget`, `ShareLink*`, `ExternalBrowser`, `SafariDarkLoadingPolicy`; UI `InAppSafariView` | Which Reddit URLs open natively, share-link normalisation, external browser choice, in-app Safari. Reborn "Open via Nitter" (#1334): `LinkRouter.route` rewrites x.com / twitter.com page links onto the chosen Nitter instance ahead of the X-client step (keys `OpenTwitterLinksViaNitter`, `NitterInstanceHost`; picker list from status.d420.de, fetched on open, cached 15 min); tweet preview cards are a separate pipeline and unchanged | |
 | Sign-in prompts | UI `SignInRequiredPresenter`; Core `SignInRequiredCopy` | Apollo's "Sign In to X" alerts | |
-| Icons | UI `StockIcon`, `GlyphRenderer`, `ApolloIconImage`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `StockGlyph`, `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Interface glyphs, by Apollo's asset names (`StockIcon("posts-points")`), and the app icon picker incl. Liquid Glass packs. See "Interface glyphs" below | No Apollo artwork. `Resources/StockIcons` holds only Reborn's two hub images (`apollo-reborn-options-icon`, `reborn-github`), to be replaced separately |
+| Icons | UI `StockIcon`, `GlyphRenderer`, `ApolloIconImage`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `StockGlyph`, `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Interface glyphs, by Apollo's asset names (`StockIcon("posts-points")`), and Reborn's app icon picker with its Liquid Glass packs, filled with Phoebus's own icons. See "Interface glyphs" and "App icons" below | No Apollo artwork. `Resources/StockIcons` holds only Reborn's two hub images (`apollo-reborn-options-icon`, `reborn-github`), to be replaced separately |
 | Menus | UI `ApolloActionSheet`, `ApolloUIKitMenuButton`; Core `ApolloMenuSectioning`, `ActionMenuLayout`; UI `ActionMenusSettingsScreen` | Apollo's bottom action sheet; real `UIMenu` hosted in SwiftUI; Reborn Action Menus (#1131): each ••• menu is a list of id-keyed rows passed through `ActionMenuLayoutStore.arrange(_:for:)`; touch and hold on a feed post, a comment, or the title area of the post header (#1282) shows the same arranged rows. Customize Action Menus (#1368, built on #1300 by AcornElf): a saved order equal to the default counts as default, Reset Menu… offers Reset Order Only / Reset Order and Visibility, All Menus says where an action is hidden, and `remind-me` (Remind Me In…) is catalogued in Post, Post with Comments and Comment | Rows not in Reborn's catalogue ride with the catalogued row before them |
 
 ### Interface glyphs
@@ -258,6 +258,30 @@ flowchart LR
   glyphs keep the 34x30 slot, the bundled PDFs match the recipes and
   keep their source SVGs and `LICENSES.md`, the Font Awesome licence
   comment is kept, and `StockIcons` holds only Reborn's two images.
+
+### App icons
+
+- **Packs.** The picker is Reborn's (Daily Spotlight, Liquid Glass pack
+  cards, pushed pack grids, the Light / Dark / System menu, search), with
+  Phoebus's two packs in `LiquidGlassIconOption`/`LiquidGlassIconGroup`:
+  Phoebus (Phoebus, Dusk, Classic, Sky, Lagoon, Nebula, Cloud) and Always
+  Dark (Midnight, Twilight, Graphite). There are no standard packs
+  (`StandardIconPack.all` is empty, so that section is not drawn) and
+  `AppIconOption.all` is the primary icon alone, "Default", whose art is
+  Phoebus's default look.
+- **Sources.** `Icons/source` holds the shared SVG layers, the foreground
+  styles and `set.json` (order, names, packs, each icon's day and night
+  backdrop); `scripts/generate/gen-phoebus-icons.py` writes the bundles,
+  `Icons/LiquidGlass/<pack>/<id>/<id>.icon`, and `Icons/LiquidGlass/icons.json`.
+  Edit the sources and regenerate; never edit the bundles.
+- **Build.** `scripts/generate-icons.sh` renders each bundle with
+  `scripts/lgrender`: `LGIcon-<id>` (System) and `LGIcon-<id>__apollo_light`
+  (Light) in the default look, `LGIcon-<id>__apollo_dark` (Dark) in the dark
+  look, at 2x and 3x beside the bundle, plus the picker's four previews per
+  icon in `Resources/LiquidGlassIcons`. `xtool.yml` ships the PNGs and
+  `Info.plist` declares the alternates; the primary icon is
+  `LGIcon-phoebus60x60`. `checkRealArtwork` checks that the catalog,
+  `icons.json`, the bundles, `Info.plist` and `xtool.yml` agree.
 
 ## 2. Feeds and subreddits
 
@@ -728,6 +752,8 @@ short:
   toggle-only.
 - Reborn themes are not imported (`ApolloRebornCustomThemes`); the
   theme format differs.
+- The app icons are Phoebus's own two packs, Phoebus and Always Dark; no
+  Apollo or Reborn icons.
 - Backup excludes `NewCommentsTracker` state.
 - Swipe Up for Comments defaults off (Reborn #1134).
 - Hide Post Scores / Hide Comment Scores are Phoebus additions (inspired

@@ -14,10 +14,9 @@ apply and why, and how the Darwin SDK is made. The CI builds are in
 | Swift 6.4 | Use the official toolchain from swift.org, which has the layout `usr/bin`, `usr/lib/swift`. Distro packages that put the tools somewhere else need the workaround under "swift-autolink-extract" below. |
 | xtool | A fork with fixes that are not in a release yet, built by `scripts/install-xtool.sh`. See "The xtool fork" below. |
 | Darwin SDK | Built from **Xcode 27** (the SDK's Swift must match the toolchain: Xcode 27 for Swift 6.4) and installed with the forked xtool: `scripts/install-xtool.sh <Xcode.xip>`. Apple does not allow Xcode to be redistributed, so you supply the `.xip` yourself (an Apple ID is needed to download it). |
-| Go and rsvg-convert | Render the Liquid Glass icons from their vector sources during the iOS build (`scripts/generate-icons.sh`). rsvg-convert is librsvg's command-line tool (`librsvg2-bin` on Debian and Ubuntu). |
-| Apollo's IPA | The standard icons are Apollo's artwork and are not in the repository; the iOS build extracts them from an Apollo IPA that you supply. Set `PHOEBUS_APOLLO_IPA` to its path, or to a URL that is downloaded once (about 100 MB) into `~/.cache/phoebus/apollobase.ipa` and must match the SHA-256 pinned in `scripts/generate-icons.sh` (`APOLLO_IPA_SHA256`); `PHOEBUS_APOLLO_IPA_AUTH_HEADER` is sent with the download if set. Once it is cached the variable can be left unset. Without either, the iOS build stops and says so. |
+| Go and rsvg-convert | Render the app icons from their vector sources during the iOS build (`scripts/generate-icons.sh`). rsvg-convert is librsvg's command-line tool (`librsvg2-bin` on Debian and Ubuntu). |
 | Python 3 | Only for the generators in `scripts/generate/` and `scripts/code-unchanged.py`. |
-| Network | The first resolve fetches KSCrash from GitHub; the first iOS build downloads Apollo's IPA if `PHOEBUS_APOLLO_IPA` is a URL. |
+| Network | The first resolve fetches KSCrash from GitHub. |
 
 Dependencies:
 
@@ -51,10 +50,11 @@ root. Run them as `scripts/<name>`.
 | `check-app.py <app or ipa>` | Checks a built app for what can go wrong without failing the build: extensions linked as stubs, executables that disagree on platform or minimum OS, extensions with their own `Frameworks/`, declared icons missing from the bundle, malformed version strings. Warns when the widget has no `Metadata.appintents`. |
 | `smoke.sh` | Builds and runs `PhoebusCoreSmokeTest` on the host and checks the exit status and the `ALL CHECKS PASSED` line (a crash must not look like a pass). Then runs `build-for-simulator.sh`, unless `SMOKE_SKIP_IOS=1`. Also checks the App Intents metadata generator (`appintents-metadata.py --self-test`). Exit codes: 1 failed assertions, 2 build failed, 3 crashed mid-run, 4 no terminator line, 5 iOS build failed, 6 App Intents metadata differs from Apple's, 7 settings search index stale. Also runs the search index generator's `--check`. |
 | `code-unchanged.py [rev] [paths]` | Compares Swift files with all comments stripped between a git revision and the working tree; proves that an edit changed only comments. |
-| `generate-icons.sh [--force]` | Renders the Liquid Glass alternate icons and the App Icon picker's previews from the Icon Composer sources in `Icons/LiquidGlass`, and extracts the standard icons from Apollo's IPA (`PHOEBUS_APOLLO_IPA`, see "Requirements") into `Icons/Standard`, with `scripts/lgrender`. Unchanged icons are skipped. Run it before any `xtool dev build` you invoke yourself. `--download-only` only fetches the IPA into the cache. |
+| `generate-icons.sh [--force]` | Renders the app icons (the Liquid Glass alternate icons) and the App Icon picker's previews from the Icon Composer sources in `Icons/LiquidGlass`, with `scripts/lgrender`. Unchanged icons are skipped. Run it before any `xtool dev build` you invoke yourself. |
 | `xtool-env.sh` | Sourced by the build scripts. Sets `XTOOL`, `SANDBOX` and `SWIFT_BUILD` (see "Local overrides"). |
 | `generate/gen-settings-search-index.py [--check] <Screens dir> <out.swift>` | Regenerates `SettingsSearchIndexData.swift` from the settings screens. `--check` writes nothing and exits 1 if the file is stale; `smoke.sh` runs it. |
 | `generate/gen-theme-gallery.py <themes dir> <out.swift>` | Regenerates `ThemeGalleryData.swift` from the theme JSON files. |
+| `generate/gen-phoebus-icons.py` | Regenerates the app icons' Icon Composer bundles and `Icons/LiquidGlass/icons.json` from `Icons/source`; see "App icons". |
 | `generate/check-segmented-controls.py` | Audit: every segmented picker has a matching case count. |
 
 Typical loop:
@@ -225,26 +225,46 @@ Limits to keep in mind when writing intents:
   that `@DeferredProperty` builds; it supports `system.open` and
   `system.searchInApp` and stops on any other schema.
 
-## Liquid Glass icons
+## App icons
 
-The Liquid Glass icons are kept as their Icon Composer sources: a folder
-of SVG (and a few bitmap) layers plus an `icon.json` describing the fill,
-layer placement, opacity, blend modes, shadows and glass. Apple's renderer
-for that format only runs on a Mac with a GPU, so `scripts/lgrender`
-composites them on Linux: it rasterizes each layer with rsvg-convert and
-draws the fill, placement, opacity, blend modes and shadows as described.
-Glass, translucency and specular highlights are approximated, so the
-results are close to Apple's rendering rather than identical. Every icon
-is rendered in its Default, Dark, Clear Light and Clear Dark looks where it
-has them.
+The app icons are Phoebus's own set, not Apollo's or Reborn's. They are
+generated from `Icons/source` by `scripts/generate/gen-phoebus-icons.py`:
 
-The standard icons are Apollo's own PNGs. Apollo's bundle ships them as
-loose `app-icon-<device>-<name>.png` files in Apple's CgBI PNG variant
-(raw deflate, BGRA, premultiplied alpha), which `lgrender` converts back to
-standard PNGs. The names don't always match the sizes, so each icon is
-taken by measured size (120 and 180 px), reducing a larger file where
-there is no exact one. Reborn's additions that Apollo never shipped are
-rendered from their Liquid Glass sources in `Icons/LiquidGlass/ultra`.
+- `layers/` holds the shared artwork as SVG: the antenna, head, ring,
+  eyes and laurels, the sunburst, the halo, and the laurels' silhouette.
+- `foreground.json` holds the foreground groups in three styles: Glass,
+  Flat (no glass effects) and Light (for a light backdrop).
+- `set.json` lists the icons in picker order, each a day look (the
+  default appearance) and a night look (dark): the sunburst, a cream fill,
+  iOS's own dark icon background (`system-dark`), or a colourway, which
+  repaints the sunburst's wedges (`sunburst-wedges.json`) between two
+  gradients with a glow behind the head.
+
+Edit those, not the bundles: the generator rewrites
+`Icons/LiquidGlass/<pack>/<id>/<id>.icon` (which Icon Composer opens) and
+`Icons/LiquidGlass/icons.json`; the pack is the App Icon picker's (Phoebus
+or Always Dark). Every bundle carries its
+own copy of the shared layers; git stores identical files once.
+
+Apple's renderer for the `.icon` format only runs on a Mac, so
+`scripts/lgrender` composites the bundles on Linux: it rasterizes each layer
+with rsvg-convert (filters such as blurs included) and draws the fill,
+placement, per-appearance opacity, fill and blend mode, shadows and
+translucency as `icon.json` describes, blending gamma-encoded as Apple
+does, then adds the light rim Apple's renderer puts on every icon. Glass
+and specular highlights are approximated, so the results are close to
+Apple's rather than identical: about 5–6/255 mean difference from Apple's
+renders in the default and dark looks, under 1/255 for the flat Classic.
+Clear Light and Clear Dark (the picker's previews) and `-appearance tinted`
+are drawn from the tinted (mono) specialisations, as iOS derives them.
+
+Each icon ships as loose PNGs, one alternate icon per entry of the picker's
+appearance menu: `LGIcon-<id>__apollo_light` (Light) and `LGIcon-<id>`
+(System) in the default look, `LGIcon-<id>__apollo_dark` (Dark) in the dark
+look. Loose PNGs can't switch with the system's appearance (that needs an
+asset catalog, which only Xcode's actool compiles), so System shows the
+default look in both modes. The primary icon is Phoebus's default look
+(`LGIcon-phoebus60x60`).
 
 ## CI
 

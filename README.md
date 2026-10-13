@@ -135,8 +135,6 @@ listed in [docs/intentional-differences.md](docs/intentional-differences.md).
   `scripts/install-xtool.sh` builds for you, and a Darwin SDK built from
   **Xcode 27**. The project is developed and built on Linux; see
   [docs/building-on-linux.md](docs/building-on-linux.md).
-- To build: an Apollo IPA of your own, which the build extracts Apollo's
-  standard app icons from (see [Building](#building)).
 - Target platform: iOS 17 and later, with the iOS 26 design on iOS 26.
   Newer APIs are guarded (see [docs/conventions.md](docs/conventions.md),
   "Minimum iOS: 17").
@@ -151,15 +149,8 @@ xtool dev build --ipa      # produces a .ipa
 xtool dev run              # builds and installs on a connected device
 ```
 
-Apollo's standard app icons are not in the repository. The iOS build
-extracts them from an Apollo IPA that you supply: set
-`PHOEBUS_APOLLO_IPA` to its path (or to a URL, which is downloaded once
-and checked against the pinned SHA-256). Without it the build stops and
-says so.
-
-```bash
-export PHOEBUS_APOLLO_IPA=/path/to/apollo.ipa
-```
+The app icons are rendered from their sources in `Icons` first
+(`scripts/generate-icons.sh`, which the build scripts run for you).
 
 On Linux, see [docs/building-on-linux.md](docs/building-on-linux.md) for the
 toolchain requirements, the workarounds the scripts apply and how to
@@ -215,8 +206,8 @@ API used without an availability guard.
 | `Sources/PhoebusCoreSmokeTest` | The test suite: `main.swift` plus `Checks/<Area>.swift`. |
 | `Tests/Fixtures` | JSON fixtures read by the tests. |
 | `Config/` | Per-target `Info.plist`, entitlements and the App Intents protocol list. |
-| `Icons/Standard/<id>/` | The standard alternate icons, one folder per icon, listed in `xtool.yml`. Apollo's artwork, extracted from its IPA at build time and not checked in. |
-| `Icons/LiquidGlass/<group>/<id>/` | The Liquid Glass icons as Icon Composer sources (`<id>.icon`), rendered to PNGs at build time by `scripts/generate-icons.sh`; `icons.json` lists them. |
+| `Icons/LiquidGlass/<pack>/<id>/` | Phoebus's app icons, the App Icon picker's Liquid Glass packs, as Icon Composer bundles (`<id>.icon`), rendered to PNGs at build time by `scripts/generate-icons.sh`; `icons.json` lists them. |
+| `Icons/source/` | The icons' shared SVG layers and set definition, from which `scripts/generate/gen-phoebus-icons.py` generates the bundles. |
 | `scripts/` | Build, smoke-test and check scripts; `scripts/generate/` holds the generators and audits. |
 | `docs/` | Architecture, conventions, components, gestures, protocol notes, building on Linux and releases. |
 
@@ -266,8 +257,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Coding agents should also read
 - [Apollo Reborn](https://github.com/Apollo-Reborn/Apollo-Reborn), by its
   maintainers JeffreyCA, icpryde, jordanearle, nickclyde, DeltAndy123 and
   IllIIllIllIllII and many code and design contributors. Phoebus's Reborn
-  features are ported from their GPL-3.0 code, and its Liquid Glass icons
-  are theirs. [CREDITS.md](CREDITS.md) lists every
+  features are ported from their GPL-3.0 code. [CREDITS.md](CREDITS.md) lists every
   contributor and what came from Reborn. Crediting them does not mean
   they are involved with Phoebus.
 - [Apollo for Reddit](https://apolloapp.io) by Christian Selig, whose
@@ -297,21 +287,19 @@ What the repository contains, and where it comes from:
 - **Code ported from Apollo Reborn.** Reborn's features are translated to
   Swift from Reborn's GPL-3.0 source. That code remains the work of the
   Apollo Reborn contributors (see [CREDITS.md](CREDITS.md)).
-- **Apollo Reborn files included as they are.** The Liquid Glass icon
-  sources in `Icons/LiquidGlass` and the two Reborn settings-hub images in
-  `Sources/PhoebusUI/Resources/StockIcons` (GPL-3.0).
+- **Apollo Reborn files included as they are.** The two Reborn
+  settings-hub images in `Sources/PhoebusUI/Resources/StockIcons`
+  (GPL-3.0).
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.
-- **Apollo's app icons are not in the repository.** The build extracts
-  them from an Apollo IPA that you supply (`PHOEBUS_APOLLO_IPA`, see
-  [docs/building-on-linux.md](docs/building-on-linux.md)).
+- **Phoebus's own app icons.** The app icons in `Icons` are original
+  Phoebus artwork, not Apollo's or Reborn's icons.
 - **No Apollo artwork.** The interface glyphs are SF Symbols (used by
   name, not redistributed), a few open-source icons (listed in
   [CREDITS.md](CREDITS.md), bundled in `Sources/PhoebusUI/Resources/Glyphs`
   with their licences) and drawings original to Phoebus. None of
-  Apollo's artwork is in the repository; Apollo's app icons are still
-  extracted at build time from an IPA you supply (above).
+  Apollo's artwork is in the repository or the build.
 - **No credentials.** Phoebus does not include Apollo's Reddit client ID
   or any other private key; you supply your own (see
   [Configuration](#configuration)).
@@ -323,8 +311,7 @@ used here only to describe what Phoebus recreates and works with.
 
 Phoebus is free software, licensed under the GNU General Public License,
 version 3; see [LICENSE](LICENSE). It includes code ported from Apollo
-Reborn, and the Liquid Glass icon sources in `Icons/LiquidGlass`, both
-GPL-3.0 and copyright the Apollo Reborn contributors. The open-source
+Reborn, GPL-3.0 and copyright the Apollo Reborn contributors. The open-source
 icons in `Sources/PhoebusUI/Resources/Glyphs` keep their own licenses
 (MIT, ISC, CC BY 4.0 and CC0; see `LICENSES.md` there and
 [CREDITS.md](CREDITS.md)). Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash

@@ -42,11 +42,13 @@ Sources/
   PhoebusWidget/, PhoebusOpenIn/, PhoebusSafari/
   PhoebusCoreSmokeTest/main.swift, Checks/*.swift
 Config/            Per-target Info.plist and entitlements, and the App Intents protocol list
-Icons/             Standard/ and LiquidGlass/ alternate-icon PNGs, listed one by one in xtool.yml
+Icons/             LiquidGlass/<pack>/<id>/<id>.icon, Phoebus's app icons (PNGs rendered beside them
+                   at build time, listed one by one in xtool.yml), and source/ (the shared
+                   layers and set.json the bundles are generated from)
 SafariExtension/   Web extension resources and their JavaScript tests
 Tests/Fixtures/    JSON fixtures read by the smoke tests
 scripts/           build-for-simulator.sh, smoke.sh, xtool-env.sh, generate-icons.sh, code-unchanged.py
-scripts/generate/  Python generators and audit helpers, and the icon tooling
+scripts/generate/  Python generators and audit helpers, and the icon tooling (gen-phoebus-icons.py)
 Config/Phoebus/Info.plist  App Info.plist; its version is a placeholder, stamped from the release tags at build time
 xtool.yml          Bundle id com.pendo324.Phoebus and the resources list
 ```

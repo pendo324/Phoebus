@@ -31,12 +31,13 @@ Please don't contact them about Phoebus.
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.
-- **Some of Apollo's own resources are included, for now.** Most of the
-  images in `Sources/PhoebusUI/Resources/StockIcons` are Apollo's
-  interface glyphs from its asset catalog. Redistributing Apollo's
-  resources is not the long-term plan: they will be removed and replaced
-  with original glyphs or SF Symbols. Apollo's app icons are not in the
-  repository (see [Build-time inputs](#build-time-inputs)).
+- **No Apollo artwork.** The interface glyphs are SF Symbols, the
+  open-source icons listed under [Icons](#icons), and drawings original
+  to Phoebus (the subreddit tag, the SpongeText and Text Faces glyphs,
+  and the SF compositions for the slashed vote arrows, collapse to root,
+  hide posts above, parent comment, multireddit and subreddit wiki).
+  Apollo's app icons are not in the repository (see
+  [Build-time inputs](#build-time-inputs)).
 
 Because Phoebus contains code derived from Apollo Reborn, it is licensed
 under the GNU GPL version 3 as well (see [LICENSE](LICENSE)). The Apollo
@@ -208,6 +209,35 @@ in backticks, as `Apollo-Reborn#1305`. Contributors are named without an @
 and without links to Reborn's pull requests or issues, and Reborn
 authors are not added as `Co-authored-by`, since each of those notifies
 people on Reborn's side. This page keeps the full list of who to thank.
+
+## Icons
+
+A few interface glyphs are open-source icons, bundled as vector PDFs in
+`Sources/PhoebusUI/Resources/Glyphs` with their source SVGs and full
+licence texts (`LICENSES.md` there). Everything else is an SF Symbol,
+used by name and not redistributed, or drawn for Phoebus.
+
+- **Phosphor Icons** (`checks`, `reddit-logo` light), from
+  [phosphor-icons/core](https://github.com/phosphor-icons/core) v2.1.1.
+  MIT License, Copyright (c) 2023 Phosphor Icons.
+- **Lucide** (`swords`, `arrow-up-wide-narrow`, `bold`, `italic`, `quote`,
+  `heading`), from [lucide-icons/lucide](https://github.com/lucide-icons/lucide)
+  (`lucide-static` 1.55.0). ISC License, Copyright (c) 2026 Lucide Icons
+  and Contributors. `italic` is derived from Feather: MIT License,
+  Copyright (c) 2013-present Cole Bemis.
+- **Tabler Icons** (`shield-star`, also redrawn at stroke 2.25 for the
+  moderator orb), from [tabler/tabler-icons](https://github.com/tabler/tabler-icons)
+  3.49.0. MIT License, Copyright (c) 2020-2026 Paweł Kuna.
+- **Font Awesome Free** (brand icon `twitter`), from
+  [Font Awesome](https://fontawesome.com) 7.3.1 by Fonticons, Inc.,
+  licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Simple Icons** (`wikipedia`), from
+  [simple-icons](https://github.com/simple-icons/simple-icons) 16.35.0,
+  CC0 1.0.
+- Reddit, the Snoo, Twitter and Wikipedia are trademarks of their
+  respective owners (Reddit, Inc.; X Corp.; Wikimedia Foundation). They
+  are used only to label links to those services and do not imply any
+  affiliation or endorsement.
 
 ## Tools and libraries
 

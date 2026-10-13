@@ -34,7 +34,8 @@ Sources/
                     Feed/Rows, Posts/PostDetail, Media/Viewer, Settings/General...)
     Shared/         The design system and helpers: Chrome, Style, Layout, UIKit, Utilities
     Navigation/     Page swipes, row swipes, tab bar, navigation bar
-    Resources/      BadgeBook/, LiquidGlassIcons/ (rendered at build time), StockIcons/
+    Resources/      BadgeBook/, Glyphs/ (open-source kit icons), LiquidGlassIcons/ (rendered
+                    at build time), StockIcons/ (Reborn's hub artwork)
   Phoebus/          PhoebusApp.swift, AppIntents.swift, Siri*.swift
   PhoebusWidget/, PhoebusOpenIn/, PhoebusSafari/
   PhoebusCoreSmokeTest/main.swift, Checks/*.swift

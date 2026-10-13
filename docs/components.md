@@ -201,7 +201,7 @@ flowchart LR
 | True Black Keyboard | UI `TrueBlackKeyboard`, `InterfaceSettingsScreen`; Core `TrueBlackKeyboardMode` | Reborn #1316 (`TrueBlackKeyboardMode`, Off / Dark Mode Only / Light Mode Only / Always, Interface → Display & Navigation): the system keyboard's backdrop is repainted pure black and a light-mode app gets the dark key set, installed once at launch from `ApolloAppDelegate`. The Core mode decides when to paint and when to use dark keys | Uses private UIKit classes (`UIKBBackdropView`, `UIKBRenderConfig`) looked up by name; a missing class or selector leaves the stock keyboard. Applies the next time the keyboard appears; only checkable on a device or simulator |
 | Link routing | Core `LinkRouter`, `NitterInstances`, `RedditURLTarget`, `ShareLink*`, `ExternalBrowser`, `SafariDarkLoadingPolicy`; UI `InAppSafariView` | Which Reddit URLs open natively, share-link normalisation, external browser choice, in-app Safari. Reborn "Open via Nitter" (#1334): `LinkRouter.route` rewrites x.com / twitter.com page links onto the chosen Nitter instance ahead of the X-client step (keys `OpenTwitterLinksViaNitter`, `NitterInstanceHost`; picker list from status.d420.de, fetched on open, cached 15 min); tweet preview cards are a separate pipeline and unchanged | |
 | Sign-in prompts | UI `SignInRequiredPresenter`; Core `SignInRequiredCopy` | Apollo's "Sign In to X" alerts | |
-| Icons | UI `StockIcon`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Apollo's vector glyphs (`Resources/StockIcons`), app icon picker incl. Liquid Glass packs | |
+| Icons | UI `StockIcon`, `GlyphRenderer`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `StockGlyph`, `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Interface glyphs by Apollo's asset names (`StockIcon("posts-points")`): Core `StockGlyph` maps each name to its slot and recipe (an SF Symbol at a size and weight, a kit PDF in `Resources/Glyphs`, an SF composition or a drawing in code, text, or a feed orb); `StockIcon` draws it, `StockIcon.image(_:)` / `uiImage(_:)` give a template image for menus and UIKit; app icon picker incl. Liquid Glass packs | No Apollo artwork. Kit PDFs come from `Resources/Glyphs/source/*.svg` via `scripts/generate/gen-glyph-pdfs.sh`, licences in `Resources/Glyphs/LICENSES.md`. `Resources/StockIcons` holds only Reborn's hub artwork |
 | Menus | UI `ApolloActionSheet`, `ApolloUIKitMenuButton`; Core `ApolloMenuSectioning`, `ActionMenuLayout`; UI `ActionMenusSettingsScreen` | Apollo's bottom action sheet; real `UIMenu` hosted in SwiftUI; Reborn Action Menus (#1131): each ••• menu is a list of id-keyed rows passed through `ActionMenuLayoutStore.arrange(_:for:)`; touch and hold on a feed post, a comment, or the title area of the post header (#1282) shows the same arranged rows. Customize Action Menus (#1368, built on #1300 by AcornElf): a saved order equal to the default counts as default, Reset Menu… offers Reset Order Only / Reset Order and Visibility, All Menus says where an action is hidden, and `remind-me` (Remind Me In…) is catalogued in Post, Post with Comments and Comment | Rows not in Reborn's catalogue ride with the catalogued row before them |
 
 ## 2. Feeds and subreddits
@@ -602,6 +602,16 @@ generator with `--check` and fails (exit 7) when the committed file differs.
 3. Every screen's `handleSwipeAction` already routes through
    `ContentActions.perform`, so nothing per-screen changes unless it
    uses a new hook.
+
+### Add an interface glyph
+
+1. Add its name to `StockGlyph`'s table (Core) with the slot it fills and
+   a recipe: prefer an SF Symbol available on iOS 17.0, sized so its ink
+   fits the slot.
+2. For an open-source kit icon, put the cropped SVG in
+   `Resources/Glyphs/source/`, run `scripts/generate/gen-glyph-pdfs.sh`,
+   and add its licence to `Resources/Glyphs/LICENSES.md` and CREDITS.md.
+3. Add the name to `checkStockGlyphs`'s list of drawn names.
 
 ### Import another Reborn key
 

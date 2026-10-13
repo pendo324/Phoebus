@@ -304,10 +304,11 @@ What the repository contains, and where it comes from:
 - **Apollo's app icons are not in the repository.** The build extracts
   them from an Apollo IPA that you supply (`PHOEBUS_APOLLO_IPA`, see
   [docs/building-on-linux.md](docs/building-on-linux.md)).
-- **Apollo's interface glyphs are, for now.** Most of the images in
-  `Sources/PhoebusUI/Resources/StockIcons` are Apollo's own glyphs from
-  its asset catalog. Redistributing Apollo's resources isn't the plan:
-  they will be removed and replaced with original glyphs or SF Symbols.
+- **No Apollo artwork.** The interface glyphs are SF Symbols, a few
+  open-source icons (listed in [CREDITS.md](CREDITS.md), bundled in
+  `Sources/PhoebusUI/Resources/Glyphs`) and drawings original to
+  Phoebus. None of Apollo's artwork is in the repository; Apollo's app
+  icons are still extracted at build time from an IPA you supply (above).
 - **No credentials.** Phoebus does not include Apollo's Reddit client ID
   or any other private key; you supply your own (see
   [Configuration](#configuration)).
@@ -320,7 +321,8 @@ used here only to describe what Phoebus recreates and works with.
 Phoebus is free software, licensed under the GNU General Public License,
 version 3; see [LICENSE](LICENSE). It includes code ported from Apollo
 Reborn, and the Liquid Glass icon sources in `Icons/LiquidGlass`, both
-GPL-3.0 and copyright the Apollo Reborn contributors. Apollo's interface glyphs in `Sources/PhoebusUI/Resources/StockIcons` are
-not Phoebus's to license and are not covered by it (see
-[Disclaimer](#disclaimer)). Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash
+GPL-3.0 and copyright the Apollo Reborn contributors. The open-source
+icons in `Sources/PhoebusUI/Resources/Glyphs` keep their own licenses
+(MIT, ISC, CC BY 4.0 and CC0; see `LICENSES.md` there and
+[CREDITS.md](CREDITS.md)). Dependencies keep their own licenses: AnimatedImage (MIT) and KSCrash
 (MIT).

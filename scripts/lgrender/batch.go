@@ -179,6 +179,40 @@ func renderAll(root string, force bool) error {
 	if len(failures) > 0 {
 		return fmt.Errorf("%d icon(s) failed: %v", len(failures), failures)
 	}
-	fmt.Printf("lgrender: %d of %d icons rendered, the rest up to date\n", rendered, len(c.Icons))
+	removed, err := pruneStale(root, c, appearances)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("lgrender: %d of %d icons rendered, the rest up to date; %d stale preview(s) removed\n",
+		rendered, len(c.Icons), removed)
 	return nil
+}
+
+// pruneStale deletes previews of icons icons.json no longer lists. The
+// previews folder is build output the app bundles whole, so leftovers from a
+// removed icon would otherwise ship.
+func pruneStale(root string, c catalog, appearances map[string][]string) (int, error) {
+	keep := map[string]bool{}
+	for _, icon := range c.Icons {
+		for _, o := range outputs(root, icon.ID, appearances[icon.ID]) {
+			keep[filepath.Base(o.path)] = true
+		}
+	}
+	dir := filepath.Join(root, "Sources", "PhoebusUI", "Resources", "LiquidGlassIcons")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || filepath.Ext(name) != ".png" || keep[name] {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
 }

@@ -43,6 +43,19 @@ public enum LiquidGlassIconAppearance: Int, Sendable, CaseIterable {
         return name == LiquidGlassIconOption.primaryIconName ? nil : name
     }
 
+    /// What choosing `new` in the menu does to the home screen icon, as
+    /// Reborn's `LGSelectPreferredAppearance` does: with a Liquid Glass icon
+    /// in use, the name to set for it in the new mode (nil for the primary
+    /// icon); `.none` when there's nothing to re-apply (the same mode, no
+    /// Liquid Glass icon in use, or a name that doesn't change). The mode is
+    /// saved either way.
+    public func iconChange(to new: Self, activeIconID: String?) -> String?? {
+        guard new != self, let id = activeIconID,
+              LiquidGlassIconOption.all.contains(where: { $0.id == id }) else { return .none }
+        let target = new.appIconName(for: id)
+        return target == appIconName(for: id) ? .none : .some(target)
+    }
+
     /// The preview variant this mode shows: Light shows "default",
     /// Dark shows "dark", and System follows the phone.
     public func previewVariant(systemIsDark: Bool) -> String {

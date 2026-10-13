@@ -20,6 +20,8 @@ public struct AppIconSettingsScreen: View {
     @State private var errorMessage: String?
     @State private var query = ""
     @Setting(LiquidGlassIconAppearanceStore.storage) private var appearance
+    /// An appearance change waiting on iOS; a second one is ignored, as Reborn does.
+    @State private var changingAppearance = false
 
     public init() {}
 
@@ -87,31 +89,13 @@ public struct AppIconSettingsScreen: View {
         .toolbar { ToolbarItem(placement: .topBarTrailing) { appearanceMenu } }
     }
 
-    /// Reborn puts this in the nav bar as a menu-backed bar button titled "<Mode> v",
-    /// with a `UIMenu` titled "Icon Appearance" whose selected row is checked.
+    /// Reborn's menu-backed bar button titled "<Mode> v". Its own view, observing
+    /// the setting itself, so its title follows a choice at once on the pushed
+    /// pack screens too, whose content doesn't observe the setting.
     private var appearanceMenu: some View {
-        Menu {
-            // `.inline`: this Picker is the menu's content, so the three modes render as
-            // one checkmarked group.
-            Picker("Icon Appearance", selection: $appearance.binding) {
-                ForEach(LiquidGlassIconAppearance.allCases, id: \.self) { mode in
-                    Label(mode.title, systemImage: mode.systemImageName)
-                        .tag(mode)
-                }
-            }
-            .pickerStyle(.inline)
-        } label: {
-            Text("\(appearance.title) \u{25BE}")
+        AppIconAppearanceMenu { mode in
+            Task { await selectAppearance(mode) }
         }
-        .accessibilityLabel("Icon appearance")
-        .accessibilityIdentifier("appIcon.appearanceMenu")
-        .onChange(of: appearance) { _, mode in
-            LiquidGlassIconAppearanceStore.save(mode)
-            // Re-apply the active icon in the new appearance so the choice takes effect.
-            if let active = selectedLiquidGlassID {
-                Task { await applyLiquidGlass(id: active, mode: mode) }
-            }
-                }
     }
 
     /// The horizontal "Daily Spotlight" strip: 130pt tall, 128x112
@@ -409,6 +393,30 @@ public struct AppIconSettingsScreen: View {
         return Array(resolved.prefix(3))
     }
 
+    /// Reborn's `LGSelectPreferredAppearance`: saves the new mode and re-applies
+    /// the Liquid Glass icon in use in it, with iOS's confirmation; with none in
+    /// use the mode applies to the next icon picked. If the icon can't be
+    /// switched, the mode goes back, as Reborn keeps it only on success.
+    private func selectAppearance(_ mode: LiquidGlassIconAppearance) async {
+        let previous = appearance
+        guard mode != previous, !changingAppearance else { return }
+        $appearance.update { $0 = mode }
+        guard case .some(let name) = previous.iconChange(to: mode, activeIconID: selectedLiquidGlassID) else {
+            return
+        }
+        #if canImport(UIKit)
+        changingAppearance = true
+        defer { changingAppearance = false }
+        do {
+            try await Self.setAlternateIcon(named: name)
+            errorMessage = nil
+        } catch {
+            $appearance.update { $0 = previous }
+            errorMessage = "Couldn't switch icons: \(error.localizedDescription)"
+        }
+        #endif
+    }
+
     private func selectLiquidGlass(_ icon: LiquidGlassIconOption) async {
         await applyLiquidGlass(id: icon.id, mode: appearance)
     }
@@ -483,6 +491,32 @@ public struct AppIconSettingsScreen: View {
         }
     }
     #endif
+}
+
+/// The "Icon Appearance" menu: Light, Dark and System, the current one checked.
+/// Picking one hands it to `choose`, which saves it and re-applies the icon.
+private struct AppIconAppearanceMenu: View {
+    @Setting(LiquidGlassIconAppearanceStore.storage) private var appearance
+    let choose: @MainActor @Sendable (LiquidGlassIconAppearance) -> Void
+
+    var body: some View {
+        Menu {
+            // `.inline`: this Picker is the menu's content, so the three modes render as
+            // one checkmarked group.
+            Picker("Icon Appearance", selection: Binding(get: { appearance }, set: choose)) {
+                ForEach(LiquidGlassIconAppearance.allCases, id: \.self) { mode in
+                    Label(mode.title, systemImage: mode.systemImageName)
+                        .tag(mode)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Text("\(appearance.title) \u{25BE}")
+        }
+        .accessibilityLabel("Icon appearance")
+        .accessibilityValue(appearance.title)
+        .accessibilityIdentifier("appIcon.appearanceMenu")
+    }
 }
 
 /// One pack card's data, and the value a tap pushes.

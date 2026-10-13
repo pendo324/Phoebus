@@ -16,7 +16,7 @@ import (
 
 // rendererVersion is part of every icon's stamp, so a change to the
 // renderer re-renders everything. Bump it with any change to the output.
-const rendererVersion = "1"
+const rendererVersion = "2"
 
 // catalog is Icons/LiquidGlass/icons.json.
 type catalog struct {

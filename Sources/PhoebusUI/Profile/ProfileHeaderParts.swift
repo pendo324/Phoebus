@@ -66,7 +66,7 @@ struct ProfileMenuRowView: View {
             HStack(spacing: 0) {
                 Group {
                     if let icon = row.icon {
-                        StockPNG.image(icon)
+                        StockIcon.image(icon)
                     } else {
                         Image(systemName: row.systemImage).font(.system(size: 20))
                     }

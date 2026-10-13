@@ -363,26 +363,17 @@ struct ProfileLayoutPreviewMock: View {
     }
 }
 
-/// The fixture avatar: Reborn reuses the widget's bundled Apollo avatar so
-/// the preview needs no network or cached Reddit profile image. Falls back
-/// to a person glyph.
+/// The fixture avatar, so the preview needs no network or cached Reddit
+/// profile image. Reborn shows the widget's bundled Apollo avatar here;
+/// Phoebus ships no Apollo artwork, so it draws a person glyph instead.
 private struct PreviewAvatarArt: View {
     var body: some View {
-        #if canImport(UIKit)
-        if let url = Bundle.module.url(forResource: "apollo-avatar@3x", withExtension: "png",
-                                       subdirectory: "StockIcons"),
-           let image = UIImage(contentsOfFile: url.path) {
-            Image(uiImage: image).resizable().scaledToFill()
-        } else {
-            placeholder
-        }
-        #else
-        placeholder
-        #endif
-    }
-
-    private var placeholder: some View {
-        Color(.tertiarySystemFill)
-            .overlay(Image(systemName: "person.fill").foregroundStyle(.secondary))
+        Color.apolloAccent.opacity(0.18)
+            .overlay(
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(Color.apolloAccent)
+            )
     }
 }

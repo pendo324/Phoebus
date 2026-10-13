@@ -1505,6 +1505,8 @@ try await checkSubredditHeaderActionClusterTabRe()
 
 try await checkRealArtwork()
 
+try await checkStockGlyphs()
+
 try await checkIconSwitchingTheFeedSRestorable()
 
 try await checkInlineImgurAlbumsV290()

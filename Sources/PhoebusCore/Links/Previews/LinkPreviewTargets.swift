@@ -33,7 +33,7 @@ public enum RedditLinkTarget: Equatable, Sendable {
 }
 
 /// Apollo's link-button icon for a link, by what it points at.
-public enum LinkButtonIcon: String, Sendable {
+public enum LinkButtonIcon: String, CaseIterable, Sendable {
     case safari = "link-button-safari"
     case twitter = "link-button-twitter"
     case wikipedia = "link-button-wikipedia"

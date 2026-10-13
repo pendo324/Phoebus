@@ -98,10 +98,11 @@ let package = Package(
                 .product(name: "Recording", package: "KSCrash", condition: .when(platforms: [.iOS])),
             ],
             // Preview art for the App Icon picker.
-            // Apollo-style vector glyphs (info row, vote arrows); see
-            // `Shared/Chrome/StockIcon.swift`.
+            // Open-source kit icons drawn by `Shared/Chrome/StockIcon.swift`,
+            // and Reborn's own artwork for the Reborn settings hub.
             resources: [
                 .copy("Resources/LiquidGlassIcons"),
+                .copy("Resources/Glyphs"),
                 .copy("Resources/StockIcons"),
                 .copy("Resources/BadgeBook"),
             ],

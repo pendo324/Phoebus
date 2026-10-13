@@ -413,7 +413,7 @@ struct ApolloLinkButton: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            StockPNG.image(LinkButtonIcon.forURL(url).rawValue)
+            StockIcon.image(LinkButtonIcon.forURL(url).rawValue)
                 .foregroundStyle(Color(hex: colorScheme == .dark ? "75787F" : "9A9DA3"))
                 .frame(width: 50)
             Rectangle()
@@ -438,19 +438,5 @@ struct ApolloLinkButton: View {
         .frame(maxWidth: .infinity)
         .background(Color.apolloFlairFill(colorScheme: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-/// Apollo's template PNGs in `StockIcons`, at their own point size.
-enum StockPNG {
-    static func image(_ name: String) -> Image {
-        #if canImport(UIKit)
-        if let url = Bundle.module.url(forResource: "\(name)@3x", withExtension: "png", subdirectory: "StockIcons"),
-           let data = try? Data(contentsOf: url),
-           let image = UIImage(data: data, scale: 3) {
-            return Image(uiImage: image.withRenderingMode(.alwaysTemplate))
-        }
-        #endif
-        return Image(systemName: "safari")
     }
 }

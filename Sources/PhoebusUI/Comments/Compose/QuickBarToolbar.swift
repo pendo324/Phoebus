@@ -96,7 +96,7 @@ public struct QuickBarToolbar: View {
 
     private func glyph(_ name: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            StockPNG.image(name)
+            StockIcon.image(name)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
         }
@@ -105,7 +105,7 @@ public struct QuickBarToolbar: View {
 
     private func menuRow(_ title: String, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label { Text(title) } icon: { StockPNG.image(icon) }
+            Label { Text(title) } icon: { StockIcon.image(icon) }
         }
     }
 }

@@ -476,10 +476,10 @@ struct ChatMirrorRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: 6) {
-                    StockPNG.image(InboxRowText.Kind.message.glyph)
+                    StockIcon.image(InboxRowText.Kind.message.glyph)
                         .foregroundStyle(Color(hex: "75787E"))
                     if isUnread {
-                        StockPNG.image("inbox-highlighted")
+                        StockIcon.image("inbox-highlighted")
                             .foregroundStyle(Color(hex: "E26F2C"))
                     }
                 }
@@ -579,10 +579,10 @@ struct MessageRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: 6) {
-                    StockPNG.image(InboxRowText.kind(of: message).glyph)
+                    StockIcon.image(InboxRowText.kind(of: message).glyph)
                         .foregroundStyle(Color(hex: "75787E"))
                     if isNew {
-                        StockPNG.image("inbox-highlighted")
+                        StockIcon.image("inbox-highlighted")
                             .foregroundStyle(Color(hex: "E26F2C"))
                     }
                 }

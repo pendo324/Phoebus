@@ -43,7 +43,14 @@ maintainers can run the full suite or a build on one by commenting (see
   packages the build needs (`scripts/ci/setup-linux.sh`);
 - the pinned xtool fork (`scripts/install-xtool.sh`), built against a
   libimobiledevice from `scripts/ci/build-libimobiledevice.sh`, since
-  Ubuntu's is older than xtool needs.
+  Ubuntu's is older than xtool needs;
+- actool, the reimplementation of Apple's asset catalog compiler that the
+  iOS build compiles the app icons with, built in a Rust stage from
+  [pendo324/actool](https://github.com/pendo324/actool) at the commit
+  pinned in `ACTOOL_REV`, and installed as `/usr/local/bin/actool` with
+  `PHOEBUS_ACTOOL` set. Moving the pin rebuilds only its layer; push it to
+  `main` and `build-image.yml` publishes the new image, which the builds
+  then pick up through `:latest`.
 
 `build-image.yml` pushes it to `ghcr.io/<owner>/phoebus-builder` as
 `:latest` and `:<commit>` when the Dockerfile or a script it copies changes

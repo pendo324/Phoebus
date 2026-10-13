@@ -119,6 +119,14 @@ See docs/components.md, "Separate Settings per Account".
 
 Full recipes are in [docs/components.md](docs/components.md), "Recipes".
 
+**An icon**: prefer an SF Symbol available on iOS 17, then an icon from
+a kit already in `Resources/Glyphs`; never Apollo's art. Add a recipe to
+`StockGlyph` (Core) sized optically, regenerate kit PDFs with
+`scripts/generate/gen-glyph-pdfs.sh` (licence in `LICENSES.md` and
+CREDITS.md), add the name to `checkStockGlyphs`, and check on the
+simulator that it isn't clipped. See docs/components.md, "Interface
+glyphs".
+
 **A setting**
 1. Add the property with a default to the settings struct in
    its `PhoebusCore/<Feature>/` folder; decoding must tolerate its absence
@@ -169,7 +177,8 @@ returned by real code.
 - **No copyrighted binaries.** Do not commit Apollo's app or its
   artwork. Interface glyphs are SF Symbols, open-source kit icons in
   `Resources/Glyphs` (licence in its `LICENSES.md`, credit in
-  CREDITS.md) or drawn in code; add a glyph as a `StockGlyph` recipe.
+  CREDITS.md) or drawn in code. `Resources/StockIcons` holds only
+  Reborn's two hub images, to be replaced separately.
 - **Credit Reborn without notifying anyone.** Phoebus is not affiliated
   with Apollo Reborn. In commits, PR descriptions and docs, name Reborn
   contributors without an @, write Reborn PRs and issues as plain text in

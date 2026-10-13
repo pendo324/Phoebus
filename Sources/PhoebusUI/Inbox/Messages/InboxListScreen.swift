@@ -5,7 +5,7 @@ import PhoebusCore
 /// pushed on top of it when the tab opens (see `InboxScreen`). Four
 /// groups, as in Apollo: Inbox (All) and Unread; Post Replies, Comment
 /// Replies and Mentions; Direct Chat and Messages; Moderator Mail.
-/// Icons are Apollo's own `option-*` glyphs, Moderator Mail's in
+/// Icons are the `option-*` glyphs (see `StockGlyph`), Moderator Mail's in
 /// moderator green.
 public struct InboxListScreen: View {
     let repository: RedditRepository

@@ -12,9 +12,10 @@ app, so that it can keep existing more sustainably.
 - **Apollo Reborn's features are ported directly from Apollo Reborn's
   GPL-3.0 source code**, translated to Swift. They are the work of the
   Apollo Reborn team and contributors; see [CREDITS.md](CREDITS.md).
-- **Some files are not original to Phoebus**, including, for now, some of
-  Apollo's interface glyphs. [Disclaimer](#disclaimer) lists exactly what
-  is included and where it comes from.
+- **Some files are not original to Phoebus**: Apollo Reborn's Liquid
+  Glass icon sources and hub images, Reddit's achievement artwork, and a
+  few open-source icons. [Disclaimer](#disclaimer) lists exactly what is
+  included and where it comes from.
 
 > [!IMPORTANT]
 > **Phoebus is not affiliated with Apollo Reborn.** It has no connection
@@ -297,18 +298,20 @@ What the repository contains, and where it comes from:
   Swift from Reborn's GPL-3.0 source. That code remains the work of the
   Apollo Reborn contributors (see [CREDITS.md](CREDITS.md)).
 - **Apollo Reborn files included as they are.** The Liquid Glass icon
-  sources in `Icons/LiquidGlass` (GPL-3.0).
+  sources in `Icons/LiquidGlass` and the two Reborn settings-hub images in
+  `Sources/PhoebusUI/Resources/StockIcons` (GPL-3.0).
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.
 - **Apollo's app icons are not in the repository.** The build extracts
   them from an Apollo IPA that you supply (`PHOEBUS_APOLLO_IPA`, see
   [docs/building-on-linux.md](docs/building-on-linux.md)).
-- **No Apollo artwork.** The interface glyphs are SF Symbols, a few
-  open-source icons (listed in [CREDITS.md](CREDITS.md), bundled in
-  `Sources/PhoebusUI/Resources/Glyphs`) and drawings original to
-  Phoebus. None of Apollo's artwork is in the repository; Apollo's app
-  icons are still extracted at build time from an IPA you supply (above).
+- **No Apollo artwork.** The interface glyphs are SF Symbols (used by
+  name, not redistributed), a few open-source icons (listed in
+  [CREDITS.md](CREDITS.md), bundled in `Sources/PhoebusUI/Resources/Glyphs`
+  with their licences) and drawings original to Phoebus. None of
+  Apollo's artwork is in the repository; Apollo's app icons are still
+  extracted at build time from an IPA you supply (above).
 - **No credentials.** Phoebus does not include Apollo's Reddit client ID
   or any other private key; you supply your own (see
   [Configuration](#configuration)).

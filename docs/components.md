@@ -201,8 +201,63 @@ flowchart LR
 | True Black Keyboard | UI `TrueBlackKeyboard`, `InterfaceSettingsScreen`; Core `TrueBlackKeyboardMode` | Reborn #1316 (`TrueBlackKeyboardMode`, Off / Dark Mode Only / Light Mode Only / Always, Interface → Display & Navigation): the system keyboard's backdrop is repainted pure black and a light-mode app gets the dark key set, installed once at launch from `ApolloAppDelegate`. The Core mode decides when to paint and when to use dark keys | Uses private UIKit classes (`UIKBBackdropView`, `UIKBRenderConfig`) looked up by name; a missing class or selector leaves the stock keyboard. Applies the next time the keyboard appears; only checkable on a device or simulator |
 | Link routing | Core `LinkRouter`, `NitterInstances`, `RedditURLTarget`, `ShareLink*`, `ExternalBrowser`, `SafariDarkLoadingPolicy`; UI `InAppSafariView` | Which Reddit URLs open natively, share-link normalisation, external browser choice, in-app Safari. Reborn "Open via Nitter" (#1334): `LinkRouter.route` rewrites x.com / twitter.com page links onto the chosen Nitter instance ahead of the X-client step (keys `OpenTwitterLinksViaNitter`, `NitterInstanceHost`; picker list from status.d420.de, fetched on open, cached 15 min); tweet preview cards are a separate pipeline and unchanged | |
 | Sign-in prompts | UI `SignInRequiredPresenter`; Core `SignInRequiredCopy` | Apollo's "Sign In to X" alerts | |
-| Icons | UI `StockIcon`, `GlyphRenderer`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `StockGlyph`, `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Interface glyphs by Apollo's asset names (`StockIcon("posts-points")`): Core `StockGlyph` maps each name to its slot and recipe (an SF Symbol at a size and weight, a kit PDF in `Resources/Glyphs`, an SF composition or a drawing in code, text, or a feed orb); `StockIcon` draws it, `StockIcon.image(_:)` / `uiImage(_:)` give a template image for menus and UIKit; app icon picker incl. Liquid Glass packs | No Apollo artwork. Kit PDFs come from `Resources/Glyphs/source/*.svg` via `scripts/generate/gen-glyph-pdfs.sh`, licences in `Resources/Glyphs/LICENSES.md`. `Resources/StockIcons` holds only Reborn's hub artwork |
+| Icons | UI `StockIcon`, `GlyphRenderer`, `ApolloIconImage`, `AppIconArtwork`, `LiquidGlassIconCards`; Core `StockGlyph`, `ApolloMenuIcon`, `AppIconOption`, `LiquidGlassIcon*` | Interface glyphs, by Apollo's asset names (`StockIcon("posts-points")`), and the app icon picker incl. Liquid Glass packs. See "Interface glyphs" below | No Apollo artwork. `Resources/StockIcons` holds only Reborn's two hub images (`apollo-reborn-options-icon`, `reborn-github`), to be replaced separately |
 | Menus | UI `ApolloActionSheet`, `ApolloUIKitMenuButton`; Core `ApolloMenuSectioning`, `ActionMenuLayout`; UI `ActionMenusSettingsScreen` | Apollo's bottom action sheet; real `UIMenu` hosted in SwiftUI; Reborn Action Menus (#1131): each ••• menu is a list of id-keyed rows passed through `ActionMenuLayoutStore.arrange(_:for:)`; touch and hold on a feed post, a comment, or the title area of the post header (#1282) shows the same arranged rows. Customize Action Menus (#1368, built on #1300 by AcornElf): a saved order equal to the default counts as default, Reset Menu… offers Reset Order Only / Reset Order and Visibility, All Menus says where an action is hidden, and `remind-me` (Remind Me In…) is catalogued in Post, Post with Comments and Comment | Rows not in Reborn's catalogue ride with the catalogued row before them |
+
+### Interface glyphs
+
+- **Recipe table.** Core `StockGlyph` maps each glyph name to the frame
+  Apollo's glyph filled (`frame`, so rows keep their layout) and a
+  `Recipe`:
+  - `.symbol(name, size:, weight:, rotation:)`: an SF Symbol (iOS 17.0
+    names only), drawn natively by `StockIcon`.
+  - `.asset(name, ink:)`: an open-source kit icon, a vector PDF in
+    `Resources/Glyphs` fitted into the `ink` box. The PDFs are generated
+    by `scripts/generate/gen-glyph-pdfs.sh` from the cropped SVGs in
+    `Resources/Glyphs/source/` (stroke width set, colour black, viewBox
+    cropped to the ink); licences in `Resources/Glyphs/LICENSES.md`.
+  - `.composed(composition, size:, weight:)`: drawn in code from SF
+    Symbols, paths and text: slashed up/down vote arrows, parent comment
+    (bubble + chevron), collapse to root (chevron + bar), hide posts
+    above (eye + chevron + bar), multireddit (circle with an m knocked
+    out), subreddit wiki (book with an outlined serif W knocked out), the
+    subreddit "r" tag (outline and solid, Phoebus's own drawing) and the
+    upvote-ratio smiley (iOS 26 draws SF `face.smiling` filled).
+  - `.text(string, ...)`: SpongeText "aAa" (SF Pro Rounded Light) and
+    Text Faces "ಠ_ಠ".
+  - `.orb(inner, rgb:)`: the Subreddits list's Home / Popular / All /
+    Moderator badges, a white glyph on a disc in Apollo's orb colours
+    (the moderator orb is Tabler `shield-star` at stroke 2.25). The only
+    full-colour glyphs.
+- **Drawing.** `StockIcon(name, size:)` draws SF recipes as
+  `Image(systemName:)` at a fixed point size (no Dynamic Type), and
+  everything else through `GlyphRenderer` into a cached template
+  `UIImage`. A `size` other than the frame scales the whole glyph. The
+  glyph sits on its bottom edge in baseline-aligned stacks.
+  `StockIcon.image(_:)` (a plain `Image`, for SwiftUI menus) and
+  `StockIcon.uiImage(_:)` (for UIKit and `UIMenu`) give the glyph as a
+  template image at its frame; `ApolloIconImage` takes either a glyph
+  name or an SF Symbol name.
+- **Optical sizing.** A symbol's point size makes its ink match Apollo's
+  ink along the longer side, measured at the symbol's real size (not
+  scaled to a canvas), capped so the ink stays inside the frame. Glyphs
+  drawn as images are clipped at the frame, so nothing may exceed it;
+  no smoke check can measure SF ink on Linux, so check new sizes on the
+  simulator. Line glyphs whose strokes read lighter than Apollo's go a
+  weight up: the swipe actions are SF regular (compositions included,
+  strokes 0.075 of the point size; light is 1/16). Menu rows, the post
+  quick bar and the tab bar are light; the info row, composer, link
+  buttons and inbox glyphs are regular.
+- **Tab bar.** Both tab bars draw `tab-bar-*` glyphs as pre-rendered
+  images (`LiquidGlassTabBar.tabLabel`), so the system can't apply its
+  own fill. On the glass tab bar (`LiquidGlass.isAvailable`, iOS 26) the
+  Inbox tab uses `tab-bar-inbox-glass`, SF `envelope.fill`; the other
+  tabs and the classic tab bar are outline.
+- **Smoke** (`checkStockGlyphs`): every name a view draws has a recipe
+  and every recipe is drawn, only the orbs are full colour, the swipe
+  glyphs keep the 34x30 slot, the bundled PDFs match the recipes and
+  keep their source SVGs and `LICENSES.md`, the Font Awesome licence
+  comment is kept, and `StockIcons` holds only Reborn's two images.
 
 ## 2. Feeds and subreddits
 
@@ -605,15 +660,30 @@ generator with `--check` and fails (exit 7) when the committed file differs.
 
 ### Add an interface glyph
 
-1. Add its name to `StockGlyph`'s table (Core) with the slot it fills and
-   a recipe: prefer an SF Symbol available on iOS 17.0, sized optically
-   (its ink's longer side matches the glyph it stands beside or replaces,
-   inside the slot; a glyph drawn as an image is clipped at the slot) and
-   a weight up if its strokes read lighter than its neighbours'.
-2. For an open-source kit icon, put the cropped SVG in
-   `Resources/Glyphs/source/`, run `scripts/generate/gen-glyph-pdfs.sh`,
-   and add its licence to `Resources/Glyphs/LICENSES.md` and CREDITS.md.
-3. Add the name to `checkStockGlyphs`'s list of drawn names.
+Never use Apollo's artwork. In order of preference:
+
+1. An SF Symbol available on iOS 17.0 (the SF Symbols app shows each
+   symbol's availability; avoid symbols Apple restricts to its own
+   products, such as `safari`), as a `.symbol` recipe.
+2. An icon from a kit already bundled in `Resources/Glyphs` (Lucide,
+   Phosphor, Tabler; Font Awesome and Simple Icons only for a brand's own
+   links), as an `.asset` recipe.
+3. A `.composed` drawing in `GlyphRenderer`, built from SF Symbols.
+
+Then:
+
+1. Add the name to `StockGlyph`'s table (Core) with its frame and
+   recipe, sized optically (see "Interface glyphs": the ink's longer side
+   matches the glyph it replaces or sits beside, measured at real size,
+   inside the frame) and a weight up if its strokes read lighter than its
+   neighbours'.
+2. For a kit icon, put the SVG in `Resources/Glyphs/source/` with its
+   stroke width set, colour black and viewBox cropped to the ink (keep
+   any licence comment), run `scripts/generate/gen-glyph-pdfs.sh`, and
+   add the licence to `Resources/Glyphs/LICENSES.md` and the Icons
+   section of CREDITS.md.
+3. Add the name to `checkStockGlyphs`'s list of drawn names; smoke must
+   pass. Check on the simulator that the glyph isn't clipped.
 
 ### Import another Reborn key
 

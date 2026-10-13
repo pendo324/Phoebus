@@ -856,7 +856,7 @@ import PhoebusCore
 //
 // Every glyph name a view draws through `StockIcon` resolves to a recipe,
 // and the recipes draw only from the open-source kit PDFs in
-// `Resources/Glyphs`.
+// `Resources/Glyphs`; none of Apollo's glyph files remain.
 @MainActor func checkStockGlyphs() async throws {
     let drawn = [
         "tab-bar-posts", "tab-bar-inbox", "tab-bar-profile", "tab-bar-search", "tab-bar-settings",
@@ -905,6 +905,9 @@ import PhoebusCore
     let twitter = (try? String(contentsOfFile: "\(glyphs)/source/fontawesome-twitter.svg", encoding: .utf8)) ?? ""
     check("the Font Awesome icon keeps its licence comment", twitter.contains("License - https://fontawesome.com/license/free"))
     check("the kit licences ship next to the glyphs", fm.fileExists(atPath: "\(glyphs)/LICENSES.md"))
+    let stock = Set((try? fm.contentsOfDirectory(atPath: "Sources/PhoebusUI/Resources/StockIcons")) ?? [])
+    check("no Apollo glyph files remain, only Reborn's own artwork",
+          stock == ["apollo-reborn-options-icon.png", "reborn-github.png"])
 }
 
 // MARK: - Icon switching + the feed's restorable state

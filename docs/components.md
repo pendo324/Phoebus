@@ -606,8 +606,10 @@ generator with `--check` and fails (exit 7) when the committed file differs.
 ### Add an interface glyph
 
 1. Add its name to `StockGlyph`'s table (Core) with the slot it fills and
-   a recipe: prefer an SF Symbol available on iOS 17.0, sized so its ink
-   fits the slot.
+   a recipe: prefer an SF Symbol available on iOS 17.0, sized optically
+   (its ink's longer side matches the glyph it stands beside or replaces,
+   inside the slot; a glyph drawn as an image is clipped at the slot) and
+   a weight up if its strokes read lighter than its neighbours'.
 2. For an open-source kit icon, put the cropped SVG in
    `Resources/Glyphs/source/`, run `scripts/generate/gen-glyph-pdfs.sh`,
    and add its licence to `Resources/Glyphs/LICENSES.md` and CREDITS.md.

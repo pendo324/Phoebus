@@ -23,6 +23,7 @@ source scripts/xtool-env.sh
 
 PHOEBUS_LINK_PLATFORM=$platform "${SANDBOX[@]}" "$XTOOL" dev build --triple "$triple" --configuration "$config"
 scripts/add-appintents-metadata.sh "$triple" "$config"
+scripts/add-app-icons.py xtool/Phoebus.app
 rm -rf "$out"
 mkdir -p "$(dirname "$out")"
 cp -a xtool/Phoebus.app "$out"

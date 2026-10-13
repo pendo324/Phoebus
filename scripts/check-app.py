@@ -13,7 +13,8 @@ Checked:
 - extensions have an NSExtension point, an identifier under the app's,
   and no Frameworks/ of their own (the libraries belong to the app);
 - the version strings are numeric;
-- every icon file Info.plist declares is in the bundle;
+- every icon file Info.plist declares is in the bundle, and Assets.car when
+  it names catalog icons;
 - the app and the widget extension carry Metadata.appintents (a warning
   only; scripts/add-appintents-metadata.sh adds them after the build).
 
@@ -130,6 +131,9 @@ def main():
                if not any(app.glob(f"{f}*.png"))]
     if missing:
         fail(f"{len(missing)} declared icon files are missing, e.g. {missing[0]} (run scripts/generate-icons.sh)")
+    named = [icon["CFBundleIconName"] for icon in declared if "CFBundleIconName" in icon]
+    if named and not (app / "Assets.car").exists():
+        fail(f"{len(named)} icons are named in an asset catalog, but there is no Assets.car (run scripts/generate-icons.sh)")
 
     for appex in sorted((app / "PlugIns").glob("*.appex")):
         ainfo = plistlib.loads((appex / "Info.plist").read_bytes())

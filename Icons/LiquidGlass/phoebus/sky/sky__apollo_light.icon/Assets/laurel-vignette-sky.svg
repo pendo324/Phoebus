@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="v0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(158.8 567.6) scale(190 300)"><stop offset="0" stop-color="#0A3F94" stop-opacity="0.65"/><stop offset="0.55" stop-color="#0A3F94" stop-opacity="0.39"/><stop offset="1" stop-color="#0A3F94" stop-opacity="0"/></radialGradient>
+    <radialGradient id="v1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(862.8 566.9) scale(190 300)"><stop offset="0" stop-color="#0A3F94" stop-opacity="0.65"/><stop offset="0.55" stop-color="#0A3F94" stop-opacity="0.39"/><stop offset="1" stop-color="#0A3F94" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#v0)"/>
+  <rect width="1024" height="1024" fill="url(#v1)"/>
+</svg>

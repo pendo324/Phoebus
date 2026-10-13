@@ -14,7 +14,8 @@ apply and why, and how the Darwin SDK is made. The CI builds are in
 | Swift 6.4 | Use the official toolchain from swift.org, which has the layout `usr/bin`, `usr/lib/swift`. Distro packages that put the tools somewhere else need the workaround under "swift-autolink-extract" below. |
 | xtool | A fork with fixes that are not in a release yet, built by `scripts/install-xtool.sh`. See "The xtool fork" below. |
 | Darwin SDK | Built from **Xcode 27** (the SDK's Swift must match the toolchain: Xcode 27 for Swift 6.4) and installed with the forked xtool: `scripts/install-xtool.sh <Xcode.xip>`. Apple does not allow Xcode to be redistributed, so you supply the `.xip` yourself (an Apple ID is needed to download it). |
-| Go and rsvg-convert | Render the app icons from their vector sources during the iOS build (`scripts/generate-icons.sh`). rsvg-convert is librsvg's command-line tool (`librsvg2-bin` on Debian and Ubuntu). |
+| Go and rsvg-convert | Render the App Icon picker's previews from the icons' vector sources during the iOS build (`scripts/generate-icons.sh`). rsvg-convert is librsvg's command-line tool (`librsvg2-bin` on Debian and Ubuntu). |
+| actool | Compiles the app icons into an asset catalog during the iOS build (`scripts/compile-app-icons.sh`). Apple's actool only runs on a Mac; this is a reimplementation that runs on Linux, [pendo324/actool](https://github.com/pendo324/actool), pinned by commit in `docker/build.Dockerfile` (`ACTOOL_REV`). Install that commit with `cargo install --locked --git https://github.com/pendo324/actool --rev <ACTOOL_REV> actool` (or `cargo build --release --locked` in a clone checked out at it) and set `PHOEBUS_ACTOOL` to the binary. The build image has it at `/usr/local/bin/actool`. Without it the iOS build stops and says so. |
 | Python 3 | Only for the generators in `scripts/generate/` and `scripts/code-unchanged.py`. |
 | Network | The first resolve fetches KSCrash from GitHub. |
 
@@ -50,11 +51,13 @@ root. Run them as `scripts/<name>`.
 | `check-app.py <app or ipa>` | Checks a built app for what can go wrong without failing the build: extensions linked as stubs, executables that disagree on platform or minimum OS, extensions with their own `Frameworks/`, declared icons missing from the bundle, malformed version strings. Warns when the widget has no `Metadata.appintents`. |
 | `smoke.sh` | Builds and runs `PhoebusCoreSmokeTest` on the host and checks the exit status and the `ALL CHECKS PASSED` line (a crash must not look like a pass). Then runs `build-for-simulator.sh`, unless `SMOKE_SKIP_IOS=1`. Also checks the App Intents metadata generator (`appintents-metadata.py --self-test`). Exit codes: 1 failed assertions, 2 build failed, 3 crashed mid-run, 4 no terminator line, 5 iOS build failed, 6 App Intents metadata differs from Apple's, 7 settings search index stale. Also runs the search index generator's `--check`. |
 | `code-unchanged.py [rev] [paths]` | Compares Swift files with all comments stripped between a git revision and the working tree; proves that an edit changed only comments. |
-| `generate-icons.sh [--force]` | Renders the app icons (the Liquid Glass alternate icons) and the App Icon picker's previews from the Icon Composer sources in `Icons/LiquidGlass`, with `scripts/lgrender`. Unchanged icons are skipped. Run it before any `xtool dev build` you invoke yourself. |
+| `generate-icons.sh [--force]` | Renders the App Icon picker's previews from the Icon Composer sources in `Icons/LiquidGlass` with `scripts/lgrender`, then compiles the app icons (`compile-app-icons.sh`). Unchanged icons are skipped. Run it before any `xtool dev build` you invoke yourself, and `add-app-icons.py` after. |
+| `compile-app-icons.sh [--force]` | Compiles every icon and its Light and Dark variants into `Icons/Catalog` with `PHOEBUS_ACTOOL`: `Assets.car`, the primary icon's two PNGs (`xtool.yml` ships these three) and `partial.plist`. Skipped when nothing changed. |
+| `add-app-icons.py <app>` | After the build: checks that the catalog is at the app's root and merges `CFBundleIcons` and `CFBundleIcons~ipad` from `partial.plist` into the app's `Info.plist`. `build-for-simulator.sh` and `build-app.sh` run it. |
 | `xtool-env.sh` | Sourced by the build scripts. Sets `XTOOL`, `SANDBOX` and `SWIFT_BUILD` (see "Local overrides"). |
 | `generate/gen-settings-search-index.py [--check] <Screens dir> <out.swift>` | Regenerates `SettingsSearchIndexData.swift` from the settings screens. `--check` writes nothing and exits 1 if the file is stale; `smoke.sh` runs it. |
 | `generate/gen-theme-gallery.py <themes dir> <out.swift>` | Regenerates `ThemeGalleryData.swift` from the theme JSON files. |
-| `generate/gen-phoebus-icons.py` | Regenerates the app icons' Icon Composer bundles and `Icons/LiquidGlass/icons.json` from `Icons/source`; see "App icons". |
+| `generate/gen-phoebus-icons.py` | Regenerates the app icons' Icon Composer bundles, their Light and Dark variants and `Icons/LiquidGlass/icons.json` from `Icons/source`; see "App icons". |
 | `generate/check-segmented-controls.py` | Audit: every segmented picker has a matching case count. |
 
 Typical loop:
@@ -258,13 +261,31 @@ renders in the default and dark looks, under 1/255 for the flat Classic.
 Clear Light and Clear Dark (the picker's previews) and `-appearance tinted`
 are drawn from the tinted (mono) specialisations, as iOS derives them.
 
-Each icon ships as loose PNGs, one alternate icon per entry of the picker's
-appearance menu: `LGIcon-<id>__apollo_light` (Light) and `LGIcon-<id>`
-(System) in the default look, `LGIcon-<id>__apollo_dark` (Dark) in the dark
-look. Loose PNGs can't switch with the system's appearance (that needs an
-asset catalog, which only Xcode's actool compiles), so System shows the
-default look in both modes. The primary icon is Phoebus's default look
-(`LGIcon-phoebus60x60`).
+The app icons ship as an asset catalog (`Assets.car`), compiled from the
+bundles by actool (`scripts/compile-app-icons.sh`, see "Requirements"), with
+one icon per entry of the picker's appearance menu:
+
+- `LGIcon-<id>` (System) is the icon itself, `<id>.icon`: it follows the
+  phone's appearance (light, dark and tinted on iOS 18; iOS 26 also draws
+  its glass live from the catalog's layers).
+- `LGIcon-<id>__apollo_light` (Light) and `LGIcon-<id>__apollo_dark`
+  (Dark) are variants the generator writes beside it: Light drops every dark
+  specialisation, Dark makes the dark look the default too. Both keep the
+  icon's tinted (mono) look.
+
+actool names each icon after its bundle, so the build links the bundles
+under those names. The primary icon is `LGIcon-phoebus` (Phoebus, System);
+iOS lists it only as the primary icon, so the picker sets no alternate icon
+for it.
+
+The catalog holds 30 icons, each with 1024 pt images in Any, Dark and
+Tintable for phone and pad, and is about 11 MB. actool stores each
+distinct image once: phone and pad are identical, a Light or Dark variant's
+images are the icon's own Any or Dark (and its tinted look), several icons
+share a day look and most share the tinted one, and the layer SVGs are the
+same in every icon, so the 30 icons hold 19 distinct images. The Light and
+Dark variants together add about 0.3 MB. (Apple's actool writes every copy:
+47.8 MB for the ten icons alone.)
 
 ## CI
 

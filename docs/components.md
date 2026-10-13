@@ -274,14 +274,18 @@ flowchart LR
   backdrop); `scripts/generate/gen-phoebus-icons.py` writes the bundles,
   `Icons/LiquidGlass/<pack>/<id>/<id>.icon`, and `Icons/LiquidGlass/icons.json`.
   Edit the sources and regenerate; never edit the bundles.
-- **Build.** `scripts/generate-icons.sh` renders each bundle with
-  `scripts/lgrender`: `LGIcon-<id>` (System) and `LGIcon-<id>__apollo_light`
-  (Light) in the default look, `LGIcon-<id>__apollo_dark` (Dark) in the dark
-  look, at 2x and 3x beside the bundle, plus the picker's four previews per
-  icon in `Resources/LiquidGlassIcons`. `xtool.yml` ships the PNGs and
-  `Info.plist` declares the alternates; the primary icon is
-  `LGIcon-phoebus60x60`. `checkRealArtwork` checks that the catalog,
-  `icons.json`, the bundles, `Info.plist` and `xtool.yml` agree.
+- **Build.** `scripts/generate-icons.sh` renders the picker's four
+  previews per icon with `scripts/lgrender` into `Resources/LiquidGlassIcons`,
+  then `scripts/compile-app-icons.sh` compiles every icon with actool
+  (`PHOEBUS_ACTOOL`) into `Icons/Catalog/Assets.car`: `LGIcon-<id>` (System,
+  follows the phone), `LGIcon-<id>__apollo_light` and `__apollo_dark` (the
+  generator's single-look variants). `xtool.yml` ships the catalog and the
+  primary icon's PNGs; after the build `scripts/add-app-icons.py` merges the
+  catalog's `CFBundleIcons`/`CFBundleIcons~ipad` into the app's
+  `Info.plist`. The primary icon is `LGIcon-phoebus`, which iOS doesn't list
+  as an alternate, so `LiquidGlassIconAppearance.appIconName(for:)` gives nil
+  for it. `checkRealArtwork` checks the catalog, `icons.json`, the bundles and
+  variants, the partial plist and `xtool.yml` agree.
 
 ## 2. Feeds and subreddits
 

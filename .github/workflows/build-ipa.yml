@@ -149,7 +149,6 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            Icons/LiquidGlass/*/*/*.png
             Icons/LiquidGlass/*/*/.rendered
             Sources/PhoebusUI/Resources/LiquidGlassIcons/*.png
           key: ${{ inputs.ref && 'pr-' || '' }}icons-${{ hashFiles('Icons/**/*.json', 'Icons/**/*.svg', 'scripts/lgrender/**') }}

@@ -86,7 +86,8 @@ affect the build.
    one variant: `device` (release), `simulator-x86_64` and `simulator-arm64`
    (debug, which compiles incrementally). Each job installs the SDK
    (`scripts/ci/install-sdk.sh`) and renders the icons
-   (`scripts/generate-icons.sh`) first.
+   (`scripts/generate-icons.sh`, which compiles them with the image's
+   actool) first.
 3. **package** numbers the builds with the workflow's run number
    (`scripts/stamp-version.py`, which also sets the version and the build
    channel), merges the two simulator builds into

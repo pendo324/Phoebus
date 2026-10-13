@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"sort"
 	"sync"
 )
@@ -35,21 +34,11 @@ type output struct {
 	size             int
 }
 
-// outputs lists an icon's files: the alternate app icons beside its source
-// (`LGIcon-<id>` for System, `__apollo_light` and `__apollo_dark` for the
-// picker's Light and Dark, at 2x and 3x), and the picker's 104px previews.
-func outputs(root, dir, id string, appearances []string) []output {
-	has := func(a string) bool { return slices.Contains(appearances, a) }
+// outputs lists an icon's files: the App Icon picker's 104px previews, one
+// per appearance. The app icons themselves are compiled into an asset
+// catalog (scripts/compile-app-icons.sh).
+func outputs(root, id string, appearances []string) []output {
 	var out []output
-	names := map[string]string{"": "default", "__apollo_light": "default"}
-	if has("dark") {
-		names["__apollo_dark"] = "dark"
-	}
-	for suffix, look := range names {
-		for scale, px := range map[string]int{"@2x": 120, "@3x": 180} {
-			out = append(out, output{filepath.Join(dir, "LGIcon-"+id+suffix+"60x60"+scale+".png"), look, px})
-		}
-	}
 	previews := filepath.Join(root, "Sources", "PhoebusUI", "Resources", "LiquidGlassIcons")
 	for _, look := range appearances {
 		name := id + ".png"
@@ -163,7 +152,7 @@ func renderAll(root string, force bool) error {
 			defer wg.Done()
 			for j := range jobs {
 				bundle := filepath.Join(j.dir, j.id+".icon")
-				outs := outputs(root, j.dir, j.id, appearances[j.id])
+				outs := outputs(root, j.id, appearances[j.id])
 				want, err := stamp(bundle, outs)
 				stampPath := filepath.Join(j.dir, ".rendered")
 				if err == nil && (force || !upToDate(stampPath, want, outs)) {

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="w0" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#5cd6cb"/><stop offset="0.35" stop-color="#39a99f"/><stop offset="0.70" stop-color="#1b827a"/><stop offset="1.00" stop-color="#096a63"/></radialGradient>
+    <radialGradient id="w1" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#3cc1b7"/><stop offset="0.35" stop-color="#25928a"/><stop offset="0.70" stop-color="#116a64"/><stop offset="1.00" stop-color="#05524c"/></radialGradient>
+    <radialGradient id="w2" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#30b9b0"/><stop offset="0.35" stop-color="#1e8a82"/><stop offset="0.70" stop-color="#0e615b"/><stop offset="1.00" stop-color="#044943"/></radialGradient>
+    <radialGradient id="w3" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#59d4c9"/><stop offset="0.35" stop-color="#37a69d"/><stop offset="0.70" stop-color="#1a7f78"/><stop offset="1.00" stop-color="#096861"/></radialGradient>
+    <radialGradient id="w4" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#36bdb3"/><stop offset="0.35" stop-color="#218e86"/><stop offset="0.70" stop-color="#0f665f"/><stop offset="1.00" stop-color="#054d48"/></radialGradient>
+    <radialGradient id="w5" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#27b3aa"/><stop offset="0.35" stop-color="#18847c"/><stop offset="0.70" stop-color="#0b5b55"/><stop offset="1.00" stop-color="#03423d"/></radialGradient>
+    <radialGradient id="w6" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#3bc0b7"/><stop offset="0.35" stop-color="#25928a"/><stop offset="0.70" stop-color="#116a63"/><stop offset="1.00" stop-color="#05514b"/></radialGradient>
+    <radialGradient id="w7" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#32bab1"/><stop offset="0.35" stop-color="#1f8b84"/><stop offset="0.70" stop-color="#0e635d"/><stop offset="1.00" stop-color="#044a45"/></radialGradient>
+    <radialGradient id="w8" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#36bdb4"/><stop offset="0.35" stop-color="#228e86"/><stop offset="0.70" stop-color="#106660"/><stop offset="1.00" stop-color="#054e48"/></radialGradient>
+    <radialGradient id="w9" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#2db7ae"/><stop offset="0.35" stop-color="#1c8880"/><stop offset="0.70" stop-color="#0d6059"/><stop offset="1.00" stop-color="#044742"/></radialGradient>
+    <radialGradient id="w10" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#43c6bb"/><stop offset="0.35" stop-color="#2a978f"/><stop offset="0.70" stop-color="#146f69"/><stop offset="1.00" stop-color="#065751"/></radialGradient>
+    <radialGradient id="w11" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#31b9b0"/><stop offset="0.35" stop-color="#1e8a83"/><stop offset="0.70" stop-color="#0e625c"/><stop offset="1.00" stop-color="#044944"/></radialGradient>
+    <radialGradient id="w12" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#47c8be"/><stop offset="0.35" stop-color="#2c9a91"/><stop offset="0.70" stop-color="#15726b"/><stop offset="1.00" stop-color="#075a54"/></radialGradient>
+    <radialGradient id="w13" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#40c4ba"/><stop offset="0.35" stop-color="#28958d"/><stop offset="0.70" stop-color="#136e67"/><stop offset="1.00" stop-color="#06554f"/></radialGradient>
+    <radialGradient id="w14" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#50cec3"/><stop offset="0.35" stop-color="#31a097"/><stop offset="0.70" stop-color="#187971"/><stop offset="1.00" stop-color="#08615a"/></radialGradient>
+    <radialGradient id="w15" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#38beb5"/><stop offset="0.35" stop-color="#238f87"/><stop offset="0.70" stop-color="#106761"/><stop offset="1.00" stop-color="#054f49"/></radialGradient>
+    <radialGradient id="w16" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#39bfb5"/><stop offset="0.35" stop-color="#239088"/><stop offset="0.70" stop-color="#106862"/><stop offset="1.00" stop-color="#05504a"/></radialGradient>
+    <radialGradient id="w17" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#2bb6ad"/><stop offset="0.35" stop-color="#1b877f"/><stop offset="0.70" stop-color="#0c5e58"/><stop offset="1.00" stop-color="#034540"/></radialGradient>
+    <radialGradient id="w18" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#3ec2b9"/><stop offset="0.35" stop-color="#27948c"/><stop offset="0.70" stop-color="#126c65"/><stop offset="1.00" stop-color="#06544e"/></radialGradient>
+    <radialGradient id="w19" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#3ac0b6"/><stop offset="0.35" stop-color="#249189"/><stop offset="0.70" stop-color="#116962"/><stop offset="1.00" stop-color="#05504b"/></radialGradient>
+    <radialGradient id="w20" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#2cb6ad"/><stop offset="0.35" stop-color="#1b8780"/><stop offset="0.70" stop-color="#0d5f59"/><stop offset="1.00" stop-color="#044641"/></radialGradient>
+    <radialGradient id="w21" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#4acac0"/><stop offset="0.35" stop-color="#2e9c93"/><stop offset="0.70" stop-color="#16756d"/><stop offset="1.00" stop-color="#075c56"/></radialGradient>
+    <radialGradient id="w22" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#3fc3b9"/><stop offset="0.35" stop-color="#27958c"/><stop offset="0.70" stop-color="#126d66"/><stop offset="1.00" stop-color="#06544e"/></radialGradient>
+    <radialGradient id="w23" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#37beb4"/><stop offset="0.35" stop-color="#228f87"/><stop offset="0.70" stop-color="#106760"/><stop offset="1.00" stop-color="#054e48"/></radialGradient>
+    <radialGradient id="w24" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#54d1c6"/><stop offset="0.35" stop-color="#34a39a"/><stop offset="0.70" stop-color="#197c74"/><stop offset="1.00" stop-color="#08645d"/></radialGradient>
+    <radialGradient id="w25" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#2ab5ac"/><stop offset="0.35" stop-color="#1a867e"/><stop offset="0.70" stop-color="#0c5d57"/><stop offset="1.00" stop-color="#03443f"/></radialGradient>
+    <radialGradient id="w26" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="760"><stop offset="0.00" stop-color="#33bbb2"/><stop offset="0.35" stop-color="#208c84"/><stop offset="0.70" stop-color="#0f645d"/><stop offset="1.00" stop-color="#044b46"/></radialGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="512" cy="492" r="560"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.340"/><stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.187"/><stop offset="0.7" stop-color="#FFFFFF" stop-opacity="0.051"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#03423D"/>
+  <path d="M512.00 512.00 L841.20 -537.58 L937.38 -502.42 L1029.88 -458.47 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L1026.96 -460.02 L1179.14 -362.60 Z" fill="url(#w1)"/>
+  <path d="M512.00 512.00 L1176.51 -364.60 L1264.13 -290.68 L1343.59 -208.04 L1414.01 -117.58 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L1412.12 -120.28 L1488.47 5.54 Z" fill="url(#w2)"/>
+  <path d="M512.00 512.00 L1486.95 2.61 L1541.23 123.82 Z" fill="url(#w3)"/>
+  <path d="M512.00 512.00 L1540.06 120.74 L1558.67 173.65 Z" fill="url(#w4)"/>
+  <path d="M512.00 512.00 L1557.65 170.51 L1593.88 313.16 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L1593.28 309.92 L1608.36 422.56 Z" fill="url(#w6)"/>
+  <path d="M512.00 512.00 L1608.08 419.27 L1611.93 524.00 L1605.80 628.62 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L1606.15 625.34 L1591.33 724.25 L1567.59 821.40 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L1568.52 818.23 L1526.42 937.38 L1470.94 1050.92 Z" fill="url(#w7)"/>
+  <path d="M512.00 512.00 L1472.55 1048.04 L1389.51 1175.31 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L1391.49 1172.68 L1288.65 1290.98 Z" fill="url(#w8)"/>
+  <path d="M512.00 512.00 L1290.98 1288.65 L1172.68 1391.49 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L1175.31 1389.51 L1149.43 1408.48 Z" fill="url(#w9)"/>
+  <path d="M512.00 512.00 L1152.12 1406.57 L1064.73 1463.05 Z" fill="url(#w10)"/>
+  <path d="M512.00 512.00 L1067.58 1461.39 L1009.92 1492.86 Z" fill="url(#w11)"/>
+  <path d="M512.00 512.00 L1012.86 1491.36 L850.35 1558.67 Z" fill="url(#w12)"/>
+  <path d="M512.00 512.00 L853.49 1557.65 L776.51 1579.72 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L779.71 1578.92 L677.70 1599.45 Z" fill="url(#w7)"/>
+  <path d="M512.00 512.00 L680.97 1598.95 L548.74 1611.39 Z" fill="url(#w13)"/>
+  <path d="M512.00 512.00 L552.04 1611.27 L404.93 1606.78 Z" fill="url(#w7)"/>
+  <path d="M512.00 512.00 L408.21 1607.09 L297.40 1590.86 L188.81 1563.45 Z" fill="url(#w14)"/>
+  <path d="M512.00 512.00 L191.97 1564.42 L120.74 1540.06 Z" fill="url(#w7)"/>
+  <path d="M512.00 512.00 L123.82 1541.23 L-26.92 1470.94 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L-24.04 1472.55 L-143.63 1395.26 Z" fill="url(#w15)"/>
+  <path d="M512.00 512.00 L-140.98 1397.22 L-256.75 1298.78 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L-254.39 1301.08 L-367.49 1172.68 Z" fill="url(#w7)"/>
+  <path d="M512.00 512.00 L-365.51 1175.31 L-441.45 1060.57 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L-439.80 1063.43 L-487.96 970.35 L-527.04 873.10 Z" fill="url(#w16)"/>
+  <path d="M512.00 512.00 L-525.95 876.22 L-555.33 778.11 L-575.45 677.70 Z" fill="url(#w17)"/>
+  <path d="M512.00 512.00 L-574.95 680.97 L-586.32 572.71 Z" fill="url(#w18)"/>
+  <path d="M512.00 512.00 L-586.14 576.01 L-583.67 414.49 Z" fill="url(#w5)"/>
+  <path d="M512.00 512.00 L-583.96 417.77 L-561.57 272.31 Z" fill="url(#w19)"/>
+  <path d="M512.00 512.00 L-562.28 275.53 L-538.03 184.23 Z" fill="url(#w20)"/>
+  <path d="M512.00 512.00 L-539.01 187.38 L-501.49 84.41 L-453.91 -14.32 Z" fill="url(#w21)"/>
+  <path d="M512.00 512.00 L-455.49 -11.42 L-371.26 -143.63 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L-373.22 -140.98 L-264.65 -266.98 Z" fill="url(#w22)"/>
+  <path d="M512.00 512.00 L-266.98 -264.65 L-215.65 -312.94 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L-218.12 -310.76 L-77.64 -416.62 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L-80.42 -414.84 L70.49 -495.51 Z" fill="url(#w23)"/>
+  <path d="M512.00 512.00 L67.47 -494.18 L174.36 -534.90 L284.91 -564.30 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L281.68 -563.62 L393.89 -581.64 Z" fill="url(#w23)"/>
+  <path d="M512.00 512.00 L390.61 -581.28 L475.26 -587.39 Z" fill="url(#w24)"/>
+  <path d="M512.00 512.00 L471.96 -587.27 L623.85 -582.30 Z" fill="url(#w25)"/>
+  <path d="M512.00 512.00 L620.57 -582.63 L737.62 -564.61 Z" fill="url(#w0)"/>
+  <path d="M512.00 512.00 L734.39 -565.28 L844.35 -536.59 Z" fill="url(#w26)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+</svg>

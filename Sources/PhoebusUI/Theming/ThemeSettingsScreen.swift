@@ -887,12 +887,12 @@ struct BrightnessThresholdRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            StockPNG.image("low-brightness")
+            StockIcon.image("low-brightness")
                 .foregroundStyle(.secondary)
             GeometryReader { geo in
                 let track = geo.size.width - thumbInset * 2
                 ZStack(alignment: .topLeading) {
-                    StockPNG.image("brightness-pin")
+                    StockIcon.image("brightness-pin")
                         .foregroundStyle(Color.apolloAccent)
                         .offset(x: thumbInset + track * screenBrightness - 6, y: 0)
                         .accessibilityHidden(true)
@@ -909,7 +909,7 @@ struct BrightnessThresholdRow: View {
                 }
             }
             .frame(height: 54)
-            StockPNG.image("high-brightness")
+            StockIcon.image("high-brightness")
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)

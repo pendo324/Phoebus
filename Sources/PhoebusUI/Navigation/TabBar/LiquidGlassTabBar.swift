@@ -19,8 +19,8 @@ public struct LiquidGlassTabBar: View {
         /// original-colour bitmap (`ProfileTabAvatar`). `nil` for every
         /// other tab, and until the avatar has loaded.
         public let customIcon: UIImage?
-        /// Apollo's own tab glyph (`tab-bar-*` in `StockIcons`), drawn
-        /// in place of the SF Symbol when present.
+        /// The named tab glyph (`tab-bar-*`, see `StockIcon`), drawn in
+        /// place of the SF Symbol when present.
         public let stockIcon: String?
         /// Badge on the tab (the Inbox's unread count).
         public let badge: String?

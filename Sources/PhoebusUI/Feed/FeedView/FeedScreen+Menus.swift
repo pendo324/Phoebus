@@ -498,8 +498,8 @@ extension FeedScreen {
         return ActionMenuLayoutStore.arrange(keyed.map(\.key), for: .feed).compactMap { byKey[$0] }
     }
 
-    /// Per-sort icons: Apollo's own `option-sort-*` glyphs (bundled in
-    /// `StockIcons`), shown on the nav-bar sort button and its menu.
+    /// Per-sort icons: the named `option-sort-*` glyphs (see `StockIcon`),
+    /// shown on the nav-bar sort button and its menu.
     var sortIconName: String {
         Self.iconName(forSort: sort)
     }

@@ -69,7 +69,7 @@ struct CrosspostCardView: View {
                     .padding(.top, 12)
             }
             HStack(spacing: 0) {
-                StockPNG.image("crosspost")
+                StockIcon.image("crosspost")
                     .padding(.trailing, 7)
                 SubredditIconView(subreddit: parent.subreddit, repository: repository, size: 24)
                     .padding(.trailing, 10)
@@ -90,7 +90,7 @@ struct CrosspostCardView: View {
 
     private var chip: some View {
         HStack(spacing: 0) {
-            StockPNG.image("crosspost-small")
+            StockIcon.image("crosspost-small")
                 .padding(.trailing, 8)
             Text(SubredditCapitalization.display(parent.subreddit))
                 .lineLimit(1)

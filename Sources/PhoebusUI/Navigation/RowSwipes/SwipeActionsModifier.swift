@@ -651,23 +651,13 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
     /// matching real Apollo.
     static let iconInset: CGFloat = 30
 
-    /// Apollo's own `slide-*` glyphs: thin outlines, except Reply's,
-    /// which is solid. An action that would undo something shows the
-    /// undo glyph, as Apollo does: un-upvote on an upvoted post, unsave
-    /// on a saved one, mark unread on a read message.
-    @ViewBuilder
+    /// The `slide-*` glyphs: thin outlines, except Reply's, which is
+    /// solid. An action that would undo something shows the undo glyph,
+    /// as Apollo does: un-upvote on an upvoted post, unsave on a saved
+    /// one, mark unread on a read message.
     private func icon(for action: SwipeAction) -> some View {
-        let name = Self.iconName(for: action, subject: subject, votes: votes)
-        // The glyphs added with stock's full action list ship as PNGs.
-        if Self.pngIcons.contains(name) {
-            StockPNG.image(name).foregroundStyle(.white)
-        } else {
-            StockIcon(name).foregroundStyle(.white)
-        }
+        StockIcon(Self.iconName(for: action, subject: subject, votes: votes)).foregroundStyle(.white)
     }
-
-    static let pngIcons: Set<String> = ["slide-hide-above-hollow", "slide-parent-comment-hollow", "slide-author-hollow",
-                                        "slide-subreddit-hollow", "slide-select-mode-hollow", "slide-collapse-root-hollow"]
 
     static func iconName(for action: SwipeAction, subject: SwipeSubject?, votes: VoteStateStore) -> String {
         let vote = subject.flatMap { votes.vote(for: $0.fullname, serverValue: $0.likes) }

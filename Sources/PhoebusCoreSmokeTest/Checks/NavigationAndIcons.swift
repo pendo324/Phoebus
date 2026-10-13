@@ -852,6 +852,61 @@ import PhoebusCore
     }
 }
 
+// MARK: - Interface glyphs
+//
+// Every glyph name a view draws through `StockIcon` resolves to a recipe,
+// and the recipes draw only from the open-source kit PDFs in
+// `Resources/Glyphs`.
+@MainActor func checkStockGlyphs() async throws {
+    let drawn = [
+        "tab-bar-posts", "tab-bar-inbox", "tab-bar-profile", "tab-bar-search", "tab-bar-settings",
+        "orb-home", "orb-popular", "orb-all", "orb-moderator",
+        "posts-points", "posts-comments", "posts-clock", "posts-liked",
+        "inline-upvote", "inline-downvote", "inline-more-options", "inline-sticky", "inline-locked",
+        "option-upvote", "option-downvote", "option-save", "option-reply", "option-share",
+        "option-sort-best", "option-sort-hot", "option-sort-new", "option-sort-top", "option-sort-rising",
+        "option-sort-controversial", "option-more",
+        "option-inbox", "option-unread-box", "option-posts", "option-comments", "option-author", "option-mail",
+        "option-moderator", "option-mark-all-read", "option-hide-read", "option-friends", "option-hide", "option-trophy",
+        "option-bold", "option-italic", "option-link", "option-photo", "option-subreddit", "option-code",
+        "option-header", "option-horizontal-rule", "option-ordered-list", "option-unordered-list", "option-preview",
+        "option-quote", "option-spoiler", "option-spongetext", "option-strikethrough", "option-superscript",
+        "option-text-faces",
+        "slide-upvote-hollow", "slide-unupvote-hollow", "slide-downvote-hollow", "slide-undownvote-hollow",
+        "slide-save-hollow", "slide-unsave-hollow", "slide-reply-solid", "slide-share-hollow", "slide-hide-hollow",
+        "slide-collapse-hollow", "slide-collapse-root-hollow", "slide-read-hollow", "slide-unread-hollow",
+        "slide-author-hollow", "slide-hide-above-hollow", "slide-parent-comment-hollow", "slide-select-mode-hollow",
+        "slide-subreddit-hollow",
+        "inbox-highlighted", "low-brightness", "high-brightness", "brightness-pin",
+        "self-post-indicator", "hide-read-posts-button-eye", "crosspost", "crosspost-small", "safari-vc-comments",
+    ] + LinkButtonIcon.allCases.map(\.rawValue)
+      + [InboxRowText.Kind.commentReply, .postReply, .mention, .message].map(\.glyph)
+    let missing = drawn.filter { StockGlyph.glyph($0) == nil }
+    check("every glyph name a view draws has a recipe (missing: \(missing))", missing.isEmpty)
+    check("every recipe is one a view draws", Set(StockGlyph.names) == Set(drawn))
+    check("Apollo's two unreferenced glyphs are dropped",
+          StockGlyph.glyph("slide-root-collapse-solid") == nil && StockGlyph.glyph("option-gif") == nil)
+    check("only the feed orbs are full colour",
+          StockGlyph.names.filter { StockGlyph.glyph($0)!.isColored } == ["orb-all", "orb-home", "orb-moderator", "orb-popular"])
+    check("the swipe glyphs keep Apollo's 34x30 slot",
+          drawn.filter { $0.hasPrefix("slide-") }.allSatisfy { StockGlyph.glyph($0)?.frame == CGSize(width: 34, height: 30) })
+    check("the info row arrow keeps its 10x12.01 slot",
+          StockGlyph.glyph("posts-points")?.frame == CGSize(width: 10, height: 12.01))
+
+    let fm = FileManager.default
+    let glyphs = "Sources/PhoebusUI/Resources/\(StockGlyph.assetDirectory)"
+    let shipped = Set(((try? fm.contentsOfDirectory(atPath: glyphs)) ?? [])
+        .filter { $0.hasSuffix(".pdf") }.map { String($0.dropLast(4)) })
+    check("every kit glyph a recipe draws is bundled",
+          StockGlyph.assetNames.isSubset(of: shipped) && !StockGlyph.assetNames.isEmpty)
+    check("every bundled kit glyph is drawn", shipped == StockGlyph.assetNames)
+    check("every bundled kit glyph keeps its source SVG",
+          shipped.allSatisfy { fm.fileExists(atPath: "\(glyphs)/source/\($0).svg") })
+    let twitter = (try? String(contentsOfFile: "\(glyphs)/source/fontawesome-twitter.svg", encoding: .utf8)) ?? ""
+    check("the Font Awesome icon keeps its licence comment", twitter.contains("License - https://fontawesome.com/license/free"))
+    check("the kit licences ship next to the glyphs", fm.fileExists(atPath: "\(glyphs)/LICENSES.md"))
+}
+
 // MARK: - Icon switching + the feed's restorable state
 @MainActor func checkIconSwitchingTheFeedSRestorable() async throws {
     do {

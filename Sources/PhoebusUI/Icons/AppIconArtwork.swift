@@ -20,11 +20,11 @@ public enum AppIconArtwork {
 
     public static func artwork(for id: String) -> Image? {
         #if canImport(UIKit)
-        // The default icon ships under its real slug, not "original", the
-        // same mapping the picker's loader uses.
-        let slug = id == "original" ? "Original" : id
+        // The default icon is Phoebus's own art, the same mapping the picker's
+        // loader uses.
+        let name = AppIconOption.all.first { $0.id == id }?.iconFileName ?? "AppIcon-\(id)60x60"
         for scale in ["@3x", "@2x"] {
-            if let path = Bundle.main.path(forResource: "AppIcon-\(slug)60x60\(scale)",
+            if let path = Bundle.main.path(forResource: "\(name)\(scale)",
                                            ofType: "png"),
                let image = UIImage(contentsOfFile: path) {
                 return Image(uiImage: image)

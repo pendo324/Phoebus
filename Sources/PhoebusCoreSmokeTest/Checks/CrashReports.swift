@@ -456,14 +456,9 @@ import PhoebusCore
 }
 
 @MainActor func checkStandardIconPacks() async throws {
-    let packs = StandardIconPack.all
-    check("standard packs hold Apollo's counts", packs.map(\.iconCount) == [32, 19, 90, 22])
-    let ids = packs.flatMap(\.iconIDs)
-    check("no icon sits in two packs", Set(ids).count == ids.count)
-    check("every pack icon is a known icon", packs.allSatisfy { $0.icons.count == $0.iconCount })
-    check("packs keep Apollo's names and credits",
-          AppIconOption.all.first { $0.id == "morty" }?.displayName == "Wubalubadubdub"
-          && AppIconOption.all.first { $0.id == "the-adventurer" }?.artist == "David Lanham")
+    // Phoebus ships none of Apollo's icons, so there are no standard packs.
+    check("there are no standard packs", StandardIconPack.all.isEmpty)
+    check("the standard catalog is the primary icon alone", AppIconOption.all == [.original])
 }
 
 // Reborn "Summary Language" (#1362).

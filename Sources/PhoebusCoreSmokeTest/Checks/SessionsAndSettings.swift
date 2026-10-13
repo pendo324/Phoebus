@@ -687,13 +687,17 @@ import PhoebusCore
     check("CustomSubredditSourceSettings migrates old persisted data (missing showRandNSFWInSearch defaults false, preserves randomSourceURL)", migratedSourceSettings.showRandNSFWInSearch == false && migratedSourceSettings.randomSourceURL == "https://example.com/random.json")
 }
 
-// --- Liquid Glass App Icon catalog ---
-// Toon Bot and Happy Toon Bot joined Concepts in Reborn (#1253).
+// --- Liquid Glass App Icon catalog: Phoebus's own packs ---
 @MainActor func checkRealGapFixLiquidGlassApp() async throws {
-    check("LiquidGlassIconOption.all has the real 78-icon count", LiquidGlassIconOption.all.count == 78)
+    check("LiquidGlassIconOption.all has Phoebus's ten icons", LiquidGlassIconOption.all.count == 10)
     check("LiquidGlassIconOption.all has no duplicate IDs", Set(LiquidGlassIconOption.all.map(\.id)).count == LiquidGlassIconOption.all.count)
-    check("LiquidGlassIconOption includes the real 'Canon by iGerman00' entry from the reference screenshot", LiquidGlassIconOption.all.contains { $0.displayName == "Canon" && $0.designer == "iGerman00" })
-    check("LiquidGlassIconGroup.all has the real 4 groups in order", LiquidGlassIconGroup.all.map(\.id) == ["original", "classics", "helios", "concepts"])
+    check("the Phoebus pack is Phoebus, Dusk, Classic, Sky, Lagoon, Nebula and Cloud, in order",
+          LiquidGlassIconOption.all.filter { $0.groupID == "phoebus" }.map(\.displayName)
+              == ["Phoebus", "Dusk", "Classic", "Sky", "Lagoon", "Nebula", "Cloud"])
+    check("the Always Dark pack is Midnight, Twilight and Graphite",
+          LiquidGlassIconOption.all.filter { $0.groupID == "always-dark" }.map(\.displayName) == ["Midnight", "Twilight", "Graphite"])
+    check("LiquidGlassIconGroup.all is Phoebus then Always Dark",
+          LiquidGlassIconGroup.all.map(\.title) == ["Phoebus", "Always Dark"])
     let groupedLG = LiquidGlassIconOption.groupedByGroup
     check("LiquidGlassIconOption.groupedByGroup covers every icon exactly once", groupedLG.reduce(0) { $0 + $1.icons.count } == LiquidGlassIconOption.all.count)
 }

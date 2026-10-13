@@ -414,8 +414,8 @@ import PhoebusCore
 
     // Reborn source checks.
     do {
-        check("Concepts cover shows Happy Toon Bot",
-              LiquidGlassIconGroup.all.first { $0.id == "concepts" }?.coverIconIDs == ["paulo1manso-modern", "bajader-rtr", "toon-bot-2"])
+        check("the Phoebus pack's cover shows Phoebus in front",
+              LiquidGlassIconGroup.all.first { $0.id == "phoebus" }?.coverIconIDs.last == "phoebus")
     }
 
     // Reborn #1264: subscriptions stay in sync everywhere.

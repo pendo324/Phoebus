@@ -5,7 +5,7 @@ import PhoebusCore
 /// deterministic, production-shaped mock of the subreddit header, fed
 /// by a static fixture rather than the live subreddit cache.
 ///
-/// Fixture: display name "ApolloReborn", 6,300 subscribers, subscribed,
+/// Fixture: display name "Phoebus", 6,300 subscribers, subscribed,
 /// about text "This subreddit is for the ongoing work for the CustomAPI
 /// of the Apollo Reddit Client."
 ///
@@ -75,7 +75,7 @@ struct SubredditLayoutPreviewMock: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 17))
                     .foregroundStyle(.secondary)
-                Text("Search r/ApolloReborn")
+                Text("Search r/Phoebus")
                     .font(.system(size: 17))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
@@ -84,7 +84,7 @@ struct SubredditLayoutPreviewMock: View {
             .frame(height: 36)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color(.tertiarySystemFill)))
-            Text("r/ApolloReborn")
+            Text("r/Phoebus")
                 .font(.system(size: 17, weight: .semibold))
             Divider()
         }
@@ -111,7 +111,7 @@ struct SubredditLayoutPreviewMock: View {
             }
 
             if settings.subredditShowDisplayName {
-                Text("ApolloReborn")
+                Text("Phoebus")
                     .font(.system(size: 28, weight: .bold))
                     .padding(.top, 0)
             }

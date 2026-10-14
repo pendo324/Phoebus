@@ -222,8 +222,8 @@ import PhoebusCore
     // Settings Shortcuts (Reborn #1150).
     do {
         UserDefaults.standard.removeObject(forKey: SettingsShortcutsStore.key)
-        check("settings shortcuts default to Reborn's five",
-              SettingsShortcutsStore.load() == ["theme-manager", "automatic-backups", "feature-requests", "bug-reports", "buy-coffee"])
+        check("settings shortcuts default to the hub's four",
+              SettingsShortcutsStore.load() == ["theme-manager", "automatic-backups", "feature-requests", "bug-reports"])
         UserDefaults.standard.set(["inline-media", "bogus", "general", "general"], forKey: SettingsShortcutsStore.key)
         check("saved shortcuts are migrated, validated and de-duplicated",
               SettingsShortcutsStore.load() == ["media", "general"])

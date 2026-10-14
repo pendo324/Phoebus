@@ -52,7 +52,7 @@ public enum SettingsShortcutsStore {
     /// Display title for a shortcut or route ID.
     public static func title(_ id: String) -> String {
         switch id {
-        case "reborn": return "All Settings"
+        case "reborn": return "Modern Settings"
         case "accounts-api-keys": return "Accounts & API Keys"
         case "posts-feeds": return "Posts & Feeds"
         case "comments": return "Comments"

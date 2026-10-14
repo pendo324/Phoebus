@@ -189,7 +189,7 @@ public struct MediaSettingsScreen: View {
                                      set: { host in
                                          if host == .imgChest, !hasKey(customAPI.imgChestAPIKey) {
                                              keyRequired = ("Image Chest API Key Required",
-                                                            "Add your Image Chest API key under Apollo Reborn → Accounts & API Keys first, then select Image Chest as the upload host.")
+                                                            "Add your Image Chest API key under All Settings → Accounts & API Keys first, then select Image Chest as the upload host.")
                                          } else {
                                              $settings.mediaUploadHost.wrappedValue = host
                                          }
@@ -203,10 +203,10 @@ public struct MediaSettingsScreen: View {
                                      set: { host in
                                          if host == .imgur, !hasKey(customAPI.imgurClientID) {
                                              keyRequired = ("Imgur API Key Required",
-                                                            "Add your Imgur API key under Apollo Reborn → Accounts & API Keys first, then select Imgur as the comment link host.")
+                                                            "Add your Imgur API key under All Settings → Accounts & API Keys first, then select Imgur as the comment link host.")
                                          } else if host == .imgChest, !hasKey(customAPI.imgChestAPIKey) {
                                              keyRequired = ("Image Chest API Key Required",
-                                                            "Add your Image Chest API key under Apollo Reborn → Accounts & API Keys first, then select Image Chest as the comment link host.")
+                                                            "Add your Image Chest API key under All Settings → Accounts & API Keys first, then select Image Chest as the comment link host.")
                                          } else {
                                              $settings.commentLinkHost.wrappedValue = host
                                          }

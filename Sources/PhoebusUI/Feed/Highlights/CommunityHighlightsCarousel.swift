@@ -241,17 +241,17 @@ struct HighlightCard: View {
     }
 }
 
-/// Subreddit Layout's preview of the carousel, with Reborn's sample
-/// posts: two cards in Partial, six in Full, and a note in Off.
+/// Subreddit Layout's preview of the carousel, with sample posts: two
+/// cards in Partial, six in Full, and a note in Off.
 struct CommunityHighlightsPreview: View {
     let mode: SubredditLayoutSettings.CommunityHighlightsMode
 
     private static let samples: [(String, String, Int, Bool)] = [
-        ("Welcome to Apollo Reborn!", "Discussion", 314, false),
-        ("v3.0.0 - A new chapter: Apollo Reborn", "Release", 823, true),
-        ("Help wanted: Apollo Reborn is looking for artists!", "Discussion", 612, false),
-        ("We have flairs! Let us know if you have contributed to Apollo for a special flair!", "Guide", 1219, false),
-        ("Thank you to all the developers that keep this going!", "Discussion", 69, false),
+        ("Welcome to the community!", "Discussion", 314, false),
+        ("v1.2.0 - Release notes are in", "Release", 823, true),
+        ("Help wanted: looking for artists!", "Discussion", 612, false),
+        ("We have flairs! Let us know if you have contributed for a special flair!", "Guide", 1219, false),
+        ("Thank you to everyone who keeps this going!", "Discussion", 69, false),
         ("FULL DISPLAY SHOWS UP TO 6 COMMUNITY HIGHLIGHTS", "Sneek Peak", 420, false),
     ]
 

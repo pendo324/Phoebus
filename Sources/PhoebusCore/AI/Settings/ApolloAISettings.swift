@@ -271,7 +271,7 @@ public struct ApolloAISettings: Codable, Sendable, Equatable {
     public static let summariesFooter = "Minimum Post Length only applies to text posts, not linked articles. Brief, Balanced and In-depth set how much detail a summary goes into.\n\nWhen Opening a Thread: Generate on Open prepares summaries in the background and keeps them collapsed until you tap. Open Automatically expands them on their own. Tap to Summarize only starts when you tap a summary card.\n\nLanguage: summaries are written in this language, whatever language the post, article or comments are in. Device Default uses your device's language."
 
     /// The Maintenance section's footer.
-    public static let maintenanceFooter = "Clearing the cache removes saved summaries and extracted article text. Phoebus AI logs contain only AI-specific Reborn diagnostics from the current app session."
+    public static let maintenanceFooter = "Clearing the cache removes saved summaries and extracted article text. Phoebus AI logs contain only AI-specific diagnostics from the current app session."
 
     /// Decoding tolerates settings written before any field existed, so
     /// an older payload keeps working.

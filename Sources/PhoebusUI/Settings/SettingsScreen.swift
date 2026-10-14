@@ -83,7 +83,9 @@ public struct SettingsScreen: View {
                     // fields live in the hub's Setup -> Accounts & API Keys sub-screen.
                     ApolloRebornHubScreen(accountManager: accountManager)
                 } label: {
-                    SettingsIconRow(title: "All Settings", systemImage: "gearshape.2.fill", tint: .purple)
+                    // The hub is indexed under its own title, so this row is not.
+                    // search: skip
+                    SettingsIconRow(title: "Modern Settings", systemImage: "gearshape.2.fill", tint: .purple)
                 }
                 .apolloSettingsRowInsets()
             }
@@ -195,8 +197,8 @@ public struct SettingsScreen: View {
 }
 
 /// Same tile+title row as `SettingsRow` below, for rows promoted onto the root
-/// Settings list that aren't backed by a `SettingsSection` case (All Settings,
-/// Wallpapers).
+/// Settings list that aren't backed by a `SettingsSection` case (Modern
+/// Settings, Wallpapers).
 struct SettingsIconRow: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var apolloTheme

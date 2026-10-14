@@ -86,7 +86,7 @@ public struct NotificationsSettingsScreen: View {
             } footer: {
                 Text(backendLive
                      ? (PushDeviceIdentity.usesAPNS(settings: notificationBackendSettings) ? "Delivered by your notification backend as push notifications: replies, mentions and messages for this account." : "Delivered by your notification backend through Bark: replies, mentions and messages for this account.")
-                     : "Apollo delivered these through a push server that no longer exists. Set up a backend under Settings › Apollo Reborn › Notification Backend and register this device to get them.")
+                     : "Apollo delivered these through a push server that no longer exists. Set up a backend under Settings › All Settings › Notification Backend and register this device to get them.")
                     .apolloSectionFooter()
             }
 
@@ -211,7 +211,7 @@ struct WatchersSection: View {
     }
 
     private var unavailable: some View {
-        Text("Subreddit watchers and trending alerts need a notification backend. Set one up under Settings › Apollo Reborn › Notification Backend and register this device.")
+        Text("Subreddit watchers and trending alerts need a notification backend. Set one up under Settings › All Settings › Notification Backend and register this device.")
             .apolloFont(size: ApolloSettingsRowMetrics.footerPointSize)
             .foregroundStyle(Color.apolloSettingsSecondary)
             .apolloPlainSettingsRowInsets(rule: false)

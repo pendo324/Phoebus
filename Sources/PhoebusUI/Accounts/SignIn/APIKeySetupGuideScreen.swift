@@ -17,13 +17,13 @@ public struct APIKeySetupGuideScreen: View {
                 step(3, "Choose SDK (not API).")
                 VStack(alignment: .leading, spacing: 4) {
                     stepText(4, "Fill in the form:")
-                    bullet("App name: Apollo Reborn (any name is fine)")
+                    bullet("App name: Phoebus (any name is fine)")
                     bullet("Platform: iOS")
                     bullet("App description: Phoebus API Key (or anything brief)")
                 }
                 step(5, "Check the box to agree to the terms, then click Create API Key.")
                 step(6, "On your dashboard, click your new API key to copy it.")
-                step(7, "Paste it into Giphy API Key under Apollo Reborn → Accounts & API Keys.")
+                step(7, "Paste it into Giphy API Key under All Settings → Accounts & API Keys.")
 
                 Divider()
 
@@ -34,7 +34,7 @@ public struct APIKeySetupGuideScreen: View {
                     .font(.subheadline)
                 step(2, "After signing in, open the menu from your profile picture and choose API.")
                 step(3, "Click Create API Token, give it a name, then click Create.")
-                step(4, "Copy the token and paste it into Image Chest API Key under Apollo Reborn → Accounts & API Keys.")
+                step(4, "Copy the token and paste it into Image Chest API Key under All Settings → Accounts & API Keys.")
             }
             .padding()
         }

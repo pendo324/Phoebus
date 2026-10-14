@@ -53,10 +53,10 @@ public struct SubredditNotificationsSheet: View {
                     if let errorMessage {
                         Text(errorMessage).foregroundStyle(.red)
                     } else if isConfigured {
-                        Text("Apollo's own notification server is gone, so this registers with the backend configured in Settings › Apollo Reborn › Notification Backend.")
+                        Text("Apollo's own notification server is gone, so this registers with the backend configured in Settings › All Settings › Notification Backend.")
                     .apolloSectionFooter()
                     } else {
-                        Text("Set up a notification backend in Settings › Apollo Reborn › Notification Backend and register this device first. Apollo's original server (apolloapp.io) no longer exists, so subreddit notifications need a self-hosted one.")
+                        Text("Set up a notification backend in Settings › All Settings › Notification Backend and register this device first. Apollo's original server (apolloapp.io) no longer exists, so subreddit notifications need a self-hosted one.")
                     }
                 }
             }

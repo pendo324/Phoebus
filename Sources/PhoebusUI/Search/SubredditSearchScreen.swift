@@ -410,7 +410,7 @@ public struct SubredditSearchScreen: View {
     private func openRandomNSFWSubreddit() async {
         guard let sourceURL = CustomSubredditSourceStore.load().effectiveRandomNSFWSourceURL else {
             ApolloToast.showError("Random NSFW Source Required",
-                                  detail: "Configure a Random NSFW source in Apollo Reborn settings.")
+                                  detail: "Configure a Random NSFW source in Settings.")
             return
         }
         isLoadingRandom = true

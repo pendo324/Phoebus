@@ -29,7 +29,7 @@ public struct PollsSettingsScreen: View {
                 Toggle("Polls", isOn: $settings.pollsEnabled)
                     .apolloSearchRow("Polls", lastBeforeFooter: true)
             } footer: {
-                Text("Vote in polls and create your own, right inside Phoebus. Reddit's official app API doesn't offer polls, so Apollo Reborn handles them through your reddit.com web session — captured automatically when you sign in, so there's usually nothing to set up.\n\nExperimental — if anything looks off, please report it.")
+                Text("Vote in polls and create your own, right inside Phoebus. Reddit's official app API doesn't offer polls, so they're handled through your reddit.com web session — captured automatically when you sign in, so there's usually nothing to set up.\n\nExperimental — if anything looks off, please report it.")
                     .apolloSectionFooter()
             }
 

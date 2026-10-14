@@ -5,7 +5,7 @@ import PhoebusCore
 import UIKit
 #endif
 
-/// Reborn's "Apollo Reborn" settings hub, with its seven sections in order:
+/// The settings hub, ported from Reborn's flat form, with its seven sections in order:
 /// Setup, Features, Shortcuts, Data, Advanced, Privacy, About.
 ///
 /// Reborn's flat form is the *Accounts & API Keys* sub-screen the Setup section
@@ -55,7 +55,7 @@ public struct ApolloRebornHubScreen: View {
         // Offsets the hub header's -21 top pull so the first header cap sits where
         // Apollo's does.
         .safeAreaPadding(.top, 7)
-        .navigationTitle("Apollo Reborn")
+        .navigationTitle("Modern Settings")
         .onAppear { crashReportCount = CrashManager.shared.pendingReportIDs.count }
         .onReceive(NotificationCenter.default.publisher(for: .phoebusCrashReportsChanged)) { _ in
             crashReportCount = CrashManager.shared.pendingReportIDs.count
@@ -309,7 +309,7 @@ public struct ApolloRebornHubScreen: View {
             Text("Data")
                 .apolloHubSectionHeader()
         } footer: {
-            Text("Back up or restore your Reborn settings and API keys, or clear cached data.")
+            Text("Back up or restore your settings and API keys, or clear cached data.")
                     .apolloHubSectionFooter()
         }
         // Restore Settings: asks Local or Cloud.
@@ -411,8 +411,7 @@ public struct ApolloRebornHubScreen: View {
 
     /// Privacy: "Anonymous Install Count" (a switch, `waveform.path.ecg` on pink)
     /// and "Crash Reports" (a push, `bandage` on orange, with the pending count as
-    /// its detail). The footer is an attributed string whose "privacy policy" is a
-    /// link.
+    /// its detail). The footer is this app's privacy statement.
 
     private var privacySection: some View {
         Section {
@@ -439,9 +438,9 @@ public struct ApolloRebornHubScreen: View {
             Text("Privacy")
                 .apolloHubSectionHeader()
         } footer: {
-            // Reborn's row, but honest about this build: it has no
+            // The ported row, but honest about this build: there is no
             // heartbeat to send, so the switch changes nothing.
-            Text("Phoebus does not send an install heartbeat; this switch is kept to match Apollo Reborn and has no effect. No Reddit activity, account details, or feature usage is collected."
+            Text("Phoebus does not send an install heartbeat, so this switch has no effect. No Reddit activity, account details, or feature usage is collected."
                  + (BuildChannel.current != nil ? " Update checks read Phoebus's AltStore source from GitHub once a day, and GitHub only sees your IP address." : ""))
                 .apolloHubSectionFooter()
         }
@@ -450,8 +449,9 @@ public struct ApolloRebornHubScreen: View {
     // MARK: - About
 
     /// About, in order: Feature Requests, Bug Reports, Open Source on GitHub,
-    /// Apollo Reborn Subreddit, Privacy Policy, Version. Feature requests, bug
-    /// reports and the GitHub row go to Phoebus's own repo.
+    /// Version. Feature requests, bug reports and the GitHub row go to
+    /// Phoebus's own repo. The ported privacy-policy row goes to the Privacy
+    /// section's own footer, which describes what this app actually sends.
     private var aboutSection: some View {
         Section {
             HubLinkRow(
@@ -475,8 +475,7 @@ public struct ApolloRebornHubScreen: View {
                 }
             }
             .apolloSettingsRowInsets()
-            // The GitHub row draws the SF Symbol mark on its tile; the subreddit row
-            // shows r/ApolloReborn's own icon with 👽 as the placeholder.
+            // The GitHub row draws the SF Symbol mark on its tile.
             HubLinkRow(
                 title: "Open Source on GitHub",
                 subtitle: "@pendo324",
@@ -484,20 +483,6 @@ public struct ApolloRebornHubScreen: View {
                 tint: .black,
                 url: "https://github.com/pendo324/Phoebus",
                 artwork: .symbol("chevron.left.forwardslash.chevron.right")
-            )
-            HubLinkRow(
-                title: "Apollo Reborn Subreddit",
-                subtitle: "r/ApolloReborn",
-                emoji: "👽",
-                tint: .orange,
-                url: "https://reddit.com/r/ApolloReborn/",
-                artwork: .subreddit("ApolloReborn", accountManager.repository)
-            )
-            HubLinkRow(
-                title: "Privacy Policy",
-                emoji: "🔒",
-                tint: .green,
-                url: "https://apolloreborn.app/privacy"
             )
             // A plain value row: no tile, title at the row's leading edge, "v3.7.1"-style
             // detail trailing.
@@ -520,7 +505,7 @@ public struct ApolloRebornHubScreen: View {
             Text("About")
                 .apolloHubSectionHeader()
         } footer: {
-            Text("Request features, report bugs, or browse the source. Apollo Reborn is free and open source.")
+            Text("Request features, report bugs, or browse the source. Phoebus is free and open source.")
                     .apolloHubSectionFooter()
         }
     }
@@ -637,8 +622,6 @@ struct HubEmojiRow: View {
                         .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize,
                                       weight: ApolloSettingsRowMetrics.tileGlyphWeight))
                         .foregroundStyle(.white)
-                case .subreddit(let name, let repository):
-                    HubSubredditIcon(subreddit: name, repository: repository)
                 case nil:
                     EmptyView()
                 }
@@ -667,38 +650,10 @@ struct HubEmojiRow: View {
     }
 }
 
-/// The subreddit row's tile: the subreddit's community icon filling the
-/// rounded tile, as Apollo shows r/ApolloReborn's, over the emoji placeholder
-/// until it loads. Feeds keep the classic `icon_img` only.
-struct HubSubredditIcon: View {
-    let subreddit: String
-    let repository: RedditRepository
-    @State private var url: URL?
-
-    var body: some View {
-        Group {
-            if let url {
-                CachedAsyncImage(url: url, contentMode: .fill)
-                    .clipShape(RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius, style: .continuous))
-            } else {
-                Color.clear
-            }
-        }
-        .task(id: subreddit) {
-            guard let info = try? await repository.fetchSubredditInfo(name: subreddit) else { return }
-            let raw = [info.communityIcon, info.iconImage].compactMap { $0 }.first { !$0.isEmpty }
-            url = raw.flatMap { URL(string: $0.replacingOccurrences(of: "&amp;", with: "&")) }
-        }
-    }
-}
-
-/// An About row that opens an external URL.
 /// Artwork for a hub row that is not an emoji tile.
 enum HubRowArtwork {
     /// An SF Symbol drawn on the row's tile.
     case symbol(String)
-    /// A subreddit's live icon, with the emoji tile as placeholder.
-    case subreddit(String, RedditRepository)
 }
 
 struct HubLinkRow: View {

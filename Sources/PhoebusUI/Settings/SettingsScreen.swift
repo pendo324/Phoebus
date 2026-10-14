@@ -188,7 +188,7 @@ public struct SettingsScreen: View {
 
 /// Same tile+title row as `SettingsRow` below, for rows promoted onto the root
 /// Settings list that aren't backed by a `SettingsSection` case (Modern
-/// Settings, Wallpapers).
+/// Settings).
 struct SettingsIconRow: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var apolloTheme
@@ -234,16 +234,11 @@ struct SettingsIconRow: View {
 /// The trailing accessory a root row draws for itself.
 enum SettingsRowAccessory {
     case chevron
-    case download
 
     @ViewBuilder var view: some View {
         switch self {
         case .chevron:
             ApolloSettingsChevron()
-        case .download:
-            Image(systemName: "arrow.down.to.line")
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(.tertiary)
         }
     }
 }

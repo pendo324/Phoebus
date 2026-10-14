@@ -17,3 +17,6 @@ DerivedData/
 /Icons/Catalog/
 /Icons/LiquidGlass/*/*/.rendered
 /Sources/PhoebusUI/Resources/LiquidGlassIcons/*.png
+
+# Local screenshot scratch output (not part of the build)
+/shots/

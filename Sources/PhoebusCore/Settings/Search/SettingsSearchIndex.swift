@@ -70,7 +70,6 @@ public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case subredditSections
     case subreddits
     case apolloAI
-    case wallpapers
     case themeGallery
     /// `Settings → Apollo Reborn → Backup Settings`.
     case automaticBackup

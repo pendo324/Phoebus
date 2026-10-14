@@ -82,7 +82,7 @@ SCREEN_CASES = {
     "SubredditSectionsSettingsScreen": "subredditSections",
     "SubredditsSettingsScreen": "subreddits",
     "ApolloAISettingsScreen": "apolloAI",
-    "WallpapersSettingsScreen": "wallpapers",
+    
     "AutomaticBackupSettingsScreen": "automaticBackup",
     "AccountsAPIKeysScreen": "accountsAPIKeys",
     "ClearTweakCachesScreen": "clearTweakCaches",

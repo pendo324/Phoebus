@@ -115,18 +115,8 @@ public struct SettingsScreen: View {
                 }
             }
 
-            // Section 2: Wallpapers, About.
+            // Section 2: About.
             Section {
-                SettingsNavigationRow {
-                    WallpapersSettingsScreen()
-                } label: {
-                    // Row 0's accessory is a download glyph, not a chevron.
-                    SettingsIconRow(title: "Wallpapers",
-                                    systemImage: "photo.on.rectangle.angled",
-                                    tint: .red,
-                                    accessory: .download)
-                }
-                .apolloSettingsRowInsets()
                 SettingsNavigationRow {
                     AboutScreen()
                 } label: {

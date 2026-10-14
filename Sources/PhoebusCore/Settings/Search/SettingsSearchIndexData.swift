@@ -7,7 +7,6 @@ extension SettingsSearch {
     /// Every searchable settings row, in tap order from the root.
     public static let index: [SettingsSearchEntry] = [
         SettingsSearchEntry(title: "Modern Settings", breadcrumb: "Settings", screen: .apolloReborn),
-        SettingsSearchEntry(title: "Wallpapers", breadcrumb: "Settings", screen: .wallpapers),
         SettingsSearchEntry(title: "About", breadcrumb: "Settings", screen: .about),
         SettingsSearchEntry(title: "Gestures", breadcrumb: "Settings", screen: .gestures),
         SettingsSearchEntry(title: "General", breadcrumb: "Settings", screen: .general),

@@ -112,7 +112,7 @@ struct SettingsSearchDestination: View {
         case .subredditSections: SubredditSectionsSettingsScreen()
         case .subreddits: SubredditsSettingsScreen()
         case .apolloAI: ApolloAISettingsScreen()
-        case .wallpapers: WallpapersSettingsScreen()
+        
         case .automaticBackup: AutomaticBackupSettingsScreen()
         case .accountsAPIKeys: AccountsAPIKeysScreen(accountManager: accountManager)
         case .clearTweakCaches: ClearTweakCachesScreen()

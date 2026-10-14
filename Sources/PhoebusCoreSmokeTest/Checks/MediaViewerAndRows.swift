@@ -240,9 +240,8 @@ import PhoebusCore
                 && !SettingsShortcutsStore.catalog.contains("profile-layout")
                 && SettingsShortcutsStore.title("user-profiles") == "User Profiles")
         UserDefaults.standard.removeObject(forKey: SettingsShortcutsStore.key)
-        // Reborn's 27 routes, less Pixel Pals.
-        check("the catalog has Reborn's routes and a limit of 15",
-              SettingsShortcutsStore.catalog.count == 26 && SettingsShortcutsStore.limit == 15)
+        check("the catalog has every route it offers and a limit of 15",
+              SettingsShortcutsStore.catalog.count == 25 && SettingsShortcutsStore.limit == 15)
     }
 
     // Swipe Tab Bar to Navigate (Reborn #1075).

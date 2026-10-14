@@ -660,23 +660,6 @@ import PhoebusCore
     check("OpenGraphParser extracts og:video", OpenGraphParser.parse(html: "<meta property=\"og:video\" content=\"https://cdn.example.com/clip.mp4\">").videoURLString == "https://cdn.example.com/clip.mp4")
 }
 
-// --- "Buy Us a Coffee" contributor-JSON parsing ---
-@MainActor func checkRealGapFixBuyUsA() async throws {
-    let contributorsJSON = """
-    {"contributors": [
-        {"role":"maintainer","github":"JeffreyCA","buyMeACoffeeUrl":"https://buymeacoffee.com/jeffreyca"},
-        {"role":"maintainer","github":"icpryde"},
-        {"role":"code","github":"EthanArbuckle","buyMeACoffeeUrl":""}
-    ]}
-    """.data(using: .utf8)!
-    let parsedContributors = try! ApolloContributorsClient.parse(data: contributorsJSON)
-    check("ApolloContributorsClient.parse decodes all real fields", parsedContributors.count == 3 && parsedContributors[0].buyMeACoffeeURL == "https://buymeacoffee.com/jeffreyca")
-    check("ApolloContributorsClient.buyCoffeeEntries filters out empty/missing coffee links", ApolloContributorsClient.buyCoffeeEntries(from: parsedContributors).count == 1)
-    check("ApolloContributor.resolvedDisplayName applies the real icpryde -> iCpryde special case", parsedContributors[1].resolvedDisplayName == "iCpryde")
-    let grouped = ApolloContributorsClient.groupedByRole(parsedContributors)
-    check("ApolloContributorsClient.groupedByRole groups by real role", grouped.first?.title == "Maintainers" && grouped.first?.contributors.count == 2)
-}
-
 // --- CustomSubredditSourceSettings decode migration for persisted data
 // missing showRandNSFWInSearch ---
 @MainActor func checkRealGapFixCustomSubredditSourceSettingsDecodeMigration() async throws {

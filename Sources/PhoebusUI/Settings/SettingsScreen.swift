@@ -73,28 +73,17 @@ public struct SettingsScreen: View {
             }
             .apolloListSectionSpacingZero()
 
-            // Section 0: "Apollo Reborn", "Buy Us a Coffee". Saved
-            // Categories / Translation / Tag Filters / Picture-in-Picture
-            // are NOT root rows: Reborn splices them into General and
-            // Filters & Blocks instead - see `GeneralSettingsScreen`
-            // and `FiltersSettingsScreen`.
+            // Section 0: the settings hub. Saved Categories / Translation /
+            // Tag Filters / Picture-in-Picture are NOT root rows: the hub
+            // splices them into General and Filters & Blocks instead - see
+            // `GeneralSettingsScreen` and `FiltersSettingsScreen`.
             Section {
                 SettingsNavigationRow {
-                    // The "Apollo Reborn" root row opens the full seven-section hub. The API key
+                    // The root row opens the full seven-section hub. The API key
                     // fields live in the hub's Setup -> Accounts & API Keys sub-screen.
                     ApolloRebornHubScreen(accountManager: accountManager)
                 } label: {
-                    // Reborn's artwork for its root row (`apollo-reborn-options-icon`).
-                    SettingsIconRow(title: "Apollo Reborn", systemImage: "gearshape.2.fill", tint: .purple,
-                                    artwork: StockArtwork.image("apollo-reborn-options-icon"))
-                }
-                .apolloSettingsRowInsets()
-                SettingsNavigationRow {
-                    BuyUsACoffeeScreen()
-                } label: {
-                    SettingsIconRow(title: "Buy Us a Coffee",
-                                    systemImage: "cup.and.saucer.fill",
-                                    tint: .yellow)
+                    SettingsIconRow(title: "All Settings", systemImage: "gearshape.2.fill", tint: .purple)
                 }
                 .apolloSettingsRowInsets()
             }
@@ -206,8 +195,8 @@ public struct SettingsScreen: View {
 }
 
 /// Same tile+title row as `SettingsRow` below, for rows promoted onto the root
-/// Settings list that aren't backed by a `SettingsSection` case (Apollo Reborn,
-/// Buy Us a Coffee, Wallpapers).
+/// Settings list that aren't backed by a `SettingsSection` case (All Settings,
+/// Wallpapers).
 struct SettingsIconRow: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var apolloTheme

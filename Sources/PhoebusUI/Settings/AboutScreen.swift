@@ -42,17 +42,7 @@ public struct AboutScreen: View {
             }
 
             Section {
-                creditRow("Apollo Reborn", "The community project that keeps Apollo running. Phoebus's Apollo Reborn features are ported directly from its GPL-3.0 code, the work of the Apollo Reborn team and contributors, as are its Liquid Glass icons.")
-                SettingsNavigationRow {
-                    ThanksToScreen()
-                } label: {
-                    HStack {
-                        Text("Apollo Reborn Contributors")
-                        Spacer()
-                        ApolloSettingsChevron()
-                    }
-                }
-                .apolloPlainSettingsRowInsets()
+                creditRow("Apollo Reborn", "The community project that keeps Apollo running. Phoebus's Apollo Reborn features are ported directly from its GPL-3.0 code, the work of the Apollo Reborn team and contributors, as are its Liquid Glass icons. Their names are in the app's CREDITS.md.")
                 creditRow("Apollo", "The original Reddit app by Christian Selig, whose design and behaviour Phoebus recreates.")
             } header: {
                 Text("Credits")
@@ -75,52 +65,5 @@ public struct AboutScreen: View {
         }
         .padding(.vertical, 8)
         .apolloPlainSettingsRowInsets()
-    }
-}
-
-/// "Thanks To": Apollo Reborn's contributors, grouped as Reborn credits
-/// them (`RebornContributors`), with "Loading contributors…" /
-/// "Couldn't load contributors" states.
-struct ThanksToScreen: View {
-    @State private var groups: [RebornContributors.Group]?
-    @State private var failed = false
-
-    var body: some View {
-        List {
-            if let groups {
-                ForEach(groups, id: \.title) { group in
-                    Section {
-                        // Dynamic rows use the same 32/32 geometry as static ones; these
-                        // sections have no footer, so every row keeps its rule.
-                        ForEach(group.names, id: \.self) {
-                            Text($0).apolloPlainSettingsRowInsets()
-                        }
-                    } header: {
-                        Text(group.title)
-                            .apolloSectionHeader()
-                    }
-                }
-            } else {
-                Section {
-                    Text(failed ? "Couldn't load contributors" : "Loading contributors…")
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text("Contributors")
-                        .apolloSectionHeader()
-                }
-            }
-        }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Thanks To")
-        .navigationBarTitleDisplayModeIfAvailable()
-        .task {
-            guard groups == nil else { return }
-            if let (data, _) = try? await URLSession.shared.data(from: RebornContributors.sourceURL),
-               let parsed = RebornContributors.parse(data) {
-                groups = parsed
-            } else {
-                failed = true
-            }
-        }
     }
 }

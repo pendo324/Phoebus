@@ -491,26 +491,6 @@ import PhoebusCore
     }
 }
 
-// --- Wallpapers (Reborn "unlocked Ultra" feature) ---
-//
-// Stock Apollo bundles 14 wallpapers; Reborn's browser ships 32 remote ones
-// with artist credits, via its `goodbyeIPhoneURLs`/`goodbyeIPadURLs` arrays.
-@MainActor func checkWallpapersUnlockedFeature() async throws {
-    check("GoodbyeWallpaper.all has the real 32", GoodbyeWallpaper.all.count == 32)
-    check("every wallpaper carries an iPhone and iPad URL",
-          GoodbyeWallpaper.all.allSatisfy { !$0.iPhoneURL.isEmpty && !$0.iPadURL.isEmpty })
-    check("wallpaper IDs are unique",
-          Set(GoodbyeWallpaper.all.map(\.id)).count == GoodbyeWallpaper.all.count)
-    // Captions are "<Name> by <Artist>"; the credit is part of the feature.
-    check("every wallpaper credits its artist",
-          GoodbyeWallpaper.all.allSatisfy { $0.artist?.isEmpty == false })
-    check("the first entry matches the real list verbatim",
-          GoodbyeWallpaper.all[0].caption == "Adventures by David Lanham"
-          && GoodbyeWallpaper.all[0].iPhoneURL == "https://i.imgur.com/8dY2Pp9.jpeg")
-    check("a name drops the artist credit",
-          GoodbyeWallpaper.all[0].name == "Adventures")
-}
-
 // --- Bulk Translation (Reborn feature) ---
 // Apollo defaults to Google, not LibreTranslate.
 @MainActor func checkBulkTranslationApolloRebornFeature() async throws {

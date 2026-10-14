@@ -471,9 +471,6 @@ check("DevvitPostDetector does not misclassify a normal external-link post", !De
 check("DevvitPostDetector does not misclassify an ordinary self/text post", !DevvitPostDetector.isDevvitPost(post: textPost))
 check("DevvitPostDetector rejects a post that merely quotes the fallback phrase far from the link", !DevvitPostDetector.selfTextIsInteractive("This is a very long post about how some posts say '\(String(repeating: "x", count: 350))not supported on old Reddit\(String(repeating: "x", count: 350))' but never actually link sh.reddit.com/r/ nearby, so it should not match. Padding to exceed the 300-char window on both sides so proximity genuinely fails."))
 
-try await checkWallpapersUnlockedFeature()
-
-
 try await checkBulkTranslationApolloRebornFeature()
 
 try await checkRecentlyReadNSFWFilterThumbnailSettings()

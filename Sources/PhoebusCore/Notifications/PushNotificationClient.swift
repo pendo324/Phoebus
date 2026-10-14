@@ -106,8 +106,12 @@ public enum PushNotificationClient {
                     sound: sound ?? "traloop")
     }
 
-    /// Stock Apollo icon, hosted by Apollo-Reborn for Bark.
-    public static let defaultIconURL = "https://raw.githubusercontent.com/Apollo-Reborn/Apollo-Reborn/main/assets/bark-icons/default.png"
+    /// Bark fetches the notification icon by URL, so it has to be hosted.
+    /// This is Phoebus's own icon, published as `phoebus-icon.png` on the
+    /// project's public site (the `pendo324/phoebus-site` GitHub Pages
+    /// repository); replacing that file needs no rebuild. See
+    /// docs/components.md.
+    public static let defaultIconURL = "https://pendo324.github.io/phoebus-site/phoebus-icon.png"
 
     /// The push URL the backend should POST to: the Bark URL, with
     /// `?sound=` pinned to the chosen notification sound when one is

@@ -727,6 +727,9 @@ import PhoebusCore
         check("the chosen sound is pinned as ?sound=",
               P.effectiveBarkURL(URL(string: "https://api.day.app/K")!, soundID: "diabolicalDoorbell").absoluteString
                   == "https://api.day.app/K?sound=diabolicalDoorbell")
+        check("the Bark notification icon is Phoebus's own, served from its public site",
+              P.defaultIconURL == "https://pendo324.github.io/phoebus-site/phoebus-icon.png"
+              && P.testMessage(sound: nil).icon == P.defaultIconURL)
         check("Bark sound ids are Apollo's camelCase names",
               NotificationSound.diabolicalDoorbell.barkSoundID == "diabolicalDoorbell" && NotificationSound.defaultSound.barkSoundID == nil && NotificationSound.none.barkSoundID == "silence")
         check("a Bark 200 needs code 200 in the body",

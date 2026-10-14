@@ -286,6 +286,16 @@ flowchart LR
   as an alternate, so `LiquidGlassIconAppearance.appIconName(for:)` gives nil
   for it. `checkRealArtwork` checks the catalog, `icons.json`, the bundles and
   variants, the partial plist and `xtool.yml` agree.
+- **Notification icon.** Bark fetches its notification icon by URL, so it
+  has to be hosted: `PushNotificationClient.defaultIconURL` is
+  `https://pendo324.github.io/phoebus-site/phoebus-icon.png`, a 180x180
+  render of the primary icon made with `scripts/lgrender`. It is published
+  from the project's public site, the `pendo324/phoebus-site` GitHub Pages
+  repository, which also carries the unaffiliation note and `privacy.html`.
+  To replace the icon, render `Icons/LiquidGlass/phoebus/phoebus/phoebus.icon`
+  at 180px and commit it over the same filename in that repository: the URL
+  is a constant here, so a new icon needs no app rebuild. It is not a
+  setting; the app's own icon is not a preference.
 
 ## 2. Feeds and subreddits
 

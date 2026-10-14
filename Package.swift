@@ -97,13 +97,11 @@ let package = Package(
                 .product(name: "AnimatedImage", package: "AnimatedImage"),
                 .product(name: "Recording", package: "KSCrash", condition: .when(platforms: [.iOS])),
             ],
-            // Preview art for the App Icon picker.
-            // Open-source kit icons drawn by `Shared/Chrome/StockIcon.swift`,
-            // and Reborn's own artwork for the Reborn settings hub.
+            // Preview art for the App Icon picker, and the open-source kit
+            // icons drawn by `Shared/Chrome/StockIcon.swift`.
             resources: [
                 .copy("Resources/LiquidGlassIcons"),
                 .copy("Resources/Glyphs"),
-                .copy("Resources/StockIcons"),
                 .copy("Resources/BadgeBook"),
             ],
             linkerSettings: weakSwiftUICore

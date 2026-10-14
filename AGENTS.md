@@ -177,8 +177,8 @@ returned by real code.
 - **No copyrighted binaries.** Do not commit Apollo's app or its
   artwork. Interface glyphs are SF Symbols, open-source kit icons in
   `Resources/Glyphs` (licence in its `LICENSES.md`, credit in
-  CREDITS.md) or drawn in code. `Resources/StockIcons` holds only
-  Reborn's two hub images, to be replaced separately.
+  CREDITS.md) or drawn in code. No other project's artwork ships in the
+  app.
 - **Credit Reborn without notifying anyone.** Phoebus is not affiliated
   with Apollo Reborn. In commits, PR descriptions and docs, name Reborn
   contributors without an @, write Reborn PRs and issues as plain text in

@@ -950,9 +950,9 @@ import PhoebusCore
     let twitter = (try? String(contentsOfFile: "\(glyphs)/source/fontawesome-twitter.svg", encoding: .utf8)) ?? ""
     check("the Font Awesome icon keeps its licence comment", twitter.contains("License - https://fontawesome.com/license/free"))
     check("the kit licences ship next to the glyphs", fm.fileExists(atPath: "\(glyphs)/LICENSES.md"))
-    let stock = Set((try? fm.contentsOfDirectory(atPath: "Sources/PhoebusUI/Resources/StockIcons")) ?? [])
-    check("no Apollo glyph files remain, only Reborn's own artwork",
-          stock == ["apollo-reborn-options-icon.png", "reborn-github.png"])
+    // The hub used to draw Reborn's own two PNGs; its rows use tiles now.
+    check("no Apollo or Reborn artwork is bundled in Resources",
+          !fm.fileExists(atPath: "Sources/PhoebusUI/Resources/StockIcons"))
 }
 
 // MARK: - Icon switching + the feed's restorable state

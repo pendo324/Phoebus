@@ -36,8 +36,7 @@ Sources/
     Navigation/     Page swipes, row swipes, tab bar, navigation bar
     Resources/      BadgeBook/, Glyphs/ (open-source kit icon PDFs, their source/ SVGs
                     and LICENSES.md; see StockGlyph), LiquidGlassIcons/ (rendered at
-                    build time), StockIcons/ (only Reborn's two hub images, to be
-                    replaced separately)
+                    build time)
   Phoebus/          PhoebusApp.swift, AppIntents.swift, Siri*.swift
   PhoebusWidget/, PhoebusOpenIn/, PhoebusSafari/
   PhoebusCoreSmokeTest/main.swift, Checks/*.swift

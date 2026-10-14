@@ -171,6 +171,14 @@ says who wrote what.
 whose design and behaviour Phoebus recreates. Phoebus is not affiliated
 with or endorsed by Christian Selig.
 
+The one Apollo feature Phoebus deliberately leaves out is the "Goodbye"
+wallpaper collection: it is Apollo's curation of other artists'
+photographs (one of them by Christian Selig), fetched from Imgur rather
+than from the artists' own hosts. Shipping a browser for it would mean
+republishing other people's artwork from a third-party host, so the
+Settings row and the collection are removed. See
+[docs/intentional-differences.md](docs/intentional-differences.md).
+
 ## Inspired by
 
 Some Phoebus-only features are inspired by features in other open-source

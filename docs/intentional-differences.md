@@ -257,6 +257,15 @@ Apollo or Reborn, add an entry here.
 - **The Inbox tab is filled on the glass tab bar.** On iOS 26's glass
   tab bar the Inbox tab uses `envelope.fill`; the other tabs, and every
   tab on the classic tab bar, stay outline as in Apollo.
+- **There is no Wallpapers screen.** The Settings row and the
+  collection behind it are gone. Apollo's "Goodbye" set is a curation
+  of other people's photographs, one of them by Christian Selig, hosted
+  on Imgur rather than the artists' own hosts; shipping a browser for
+  it would mean republishing another artist's work from a third-party
+  host on someone else's behalf. The old Apollo and Reborn backup keys
+  (`UnlockedWallpapers`, `WallpaperPromptMostRecent2`) are still
+  imported, so a backup from either app restores everything else
+  cleanly.
 
 - **Deleting your own post asks first.** Delete Post in the post's ••• menu
   shows a "Delete Post?" alert. Apollo's strings hold no such prompt, but a

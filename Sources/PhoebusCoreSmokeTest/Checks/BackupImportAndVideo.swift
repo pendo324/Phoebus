@@ -610,6 +610,141 @@ import PhoebusCore
     }
 }
 
+// --- A backup from before the Wallpapers removal still imports ---
+//
+// The Goodbye wallpaper collection is gone from the app, but the two keys a
+// real backup carries for it are still in `notImported`, so an old backup
+// restores everything else instead of reporting a partial import. Nothing maps
+// to a setting the removed screen owned, so their presence must be inert:
+// applied, not merely tolerated.
+@MainActor func checkABackupFromBeforeTheWallpapersWasRemoved() async throws {
+    do {
+        func storedZip(_ files: [(String, Data)]) -> Data {
+            var local = Data()
+            var central = Data()
+            func put16(_ v: Int, into d: inout Data) {
+                d.append(UInt8(v & 0xFF)); d.append(UInt8((v >> 8) & 0xFF))
+            }
+            func put32(_ v: Int, into d: inout Data) {
+                d.append(UInt8(v & 0xFF)); d.append(UInt8((v >> 8) & 0xFF))
+                d.append(UInt8((v >> 16) & 0xFF)); d.append(UInt8((v >> 24) & 0xFF))
+            }
+            for (name, body) in files {
+                let nameBytes = Data(name.utf8)
+                let offset = local.count
+                put32(0x0403_4b50, into: &local)
+                put16(20, into: &local); put16(0, into: &local); put16(0, into: &local)
+                put16(0, into: &local); put16(0, into: &local)
+                put32(0, into: &local)
+                put32(body.count, into: &local); put32(body.count, into: &local)
+                put16(nameBytes.count, into: &local); put16(0, into: &local)
+                local.append(nameBytes); local.append(body)
+
+                put32(0x0201_4b50, into: &central)
+                put16(20, into: &central); put16(20, into: &central); put16(0, into: &central)
+                put16(0, into: &central); put16(0, into: &central); put16(0, into: &central)
+                put32(0, into: &central)
+                put32(body.count, into: &central); put32(body.count, into: &central)
+                put16(nameBytes.count, into: &central); put16(0, into: &central)
+                put16(0, into: &central); put16(0, into: &central); put16(0, into: &central)
+                put32(0, into: &central); put32(offset, into: &central)
+                central.append(nameBytes)
+            }
+            var out = local
+            let centralOffset = out.count
+            out.append(central)
+            put32(0x0605_4b50, into: &out)
+            put16(0, into: &out); put16(0, into: &out)
+            put16(files.count, into: &out); put16(files.count, into: &out)
+            put32(central.count, into: &out); put32(centralOffset, into: &out)
+            put16(0, into: &out)
+            return out
+        }
+        func plistData(_ dict: [String: Any]) -> Data {
+            try! PropertyListSerialization.data(fromPropertyList: dict, format: .xml, options: 0)
+        }
+
+        // The real key names and value types Apollo and Reborn write, read
+        // from a genuine `.apollobackup` export: `UnlockedWallpapers` is a
+        // plist boolean and `WallpaperPromptMostRecent2` a date. Alongside
+        // them, settings the importer does map, a key this app has never
+        // heard of, and a value of the wrong type.
+        let zip = storedZip([(ApolloBackupImport.mainPlistName, plistData([
+            "UnlockedWallpapers": true,
+            "WallpaperPromptMostRecent2": Date(timeIntervalSince1970: 1_700_000_000),
+            "DefaultPostsSort": "top",
+            "ShowSubredditHeaders": true,
+            "PollsEnabled": false,
+            "ShowPageEndings": true,
+            "LinkPreviewBodyMode": 2,
+            "SomeKeyWeDoNotKnow": 42,
+            "LinkPreviewCommentsMode": "not-a-number",   // wrong type on purpose
+        ]))])
+        let payload = try! ApolloBackupImport.read(zipData: zip)
+
+        // The archive still parses with the wallpaper keys in it.
+        check("a backup carrying the wallpaper keys still reads",
+              payload.preferences["UnlockedWallpapers"] as? Bool == true)
+        check("...including its wallpaper prompt date",
+              payload.preferences["WallpaperPromptMostRecent2"] is Date)
+        check("...and its other keys, so nothing was dropped",
+              payload.preferences["DefaultPostsSort"] as? String == "top")
+
+        // Both keys stay in the deliberate-skip table, with their reasons, so
+        // they are recognised rather than merely tolerated as strays.
+        check("the wallpaper unlock key is still a known, deliberate skip",
+              ApolloSettingsMigration.notImported["UnlockedWallpapers"] != nil)
+        check("...and so is the wallpaper prompt timestamp",
+              ApolloSettingsMigration.notImported["WallpaperPromptMostRecent2"] != nil)
+
+        // Snapshot every store the import touches, so the suite leaves no state.
+        let g0 = GeneralSettingsStore.load(), a0 = AppearanceSettingsStore.load()
+        let lp0 = LinkPreviewSettingsStore.load(), sl0 = SubredditLayoutSettingsStore.load()
+
+        let summary = ApolloSettingsMigration.apply(payload)
+
+        // The wall of known keys survives: the wallpaper keys are inert, and
+        // the real settings around them import normally.
+        check("the wallpaper keys import to nothing at all",
+              !summary.applied.contains { $0.lowercased().contains("wallpaper") })
+        check("the settings beside them still import",
+              GeneralSettingsStore.load().defaultPostsSort == .top
+              && SubredditLayoutSettingsStore.load().showSubredditHeaders
+              && !GeneralSettingsStore.load().pollsEnabled)
+        check("...every mapped key in the backup is reported",
+              summary.applied.contains("Default post sort")
+              && summary.applied.contains("Show Subreddit Headers")
+              && summary.applied.contains("Polls")
+              && summary.applied.contains("Show Page Endings"))
+        check("a wrongly typed value is ignored without failing the import",
+              summary.applied.contains("Link Previews in Posts")
+              && !summary.applied.contains("Link Previews in Comments"))
+
+        // An unknown key is skipped, and the import still succeeds: this is
+        // what the user sees, "Imported N settings: ...", not a failure.
+        check("the unknown key is counted as skipped, not fatal",
+              summary.skippedUnknown == 3)
+        check("the import is not empty, so the screen reports a success",
+              !summary.isEmpty)
+        check("nothing was counted as analytics-excluded",
+              summary.skippedExcluded == 0)
+
+        // The summary the UI shows is built from `applied`, so a backup with
+        // only the wallpaper keys and unknowns must not claim a partial import.
+        let onlyWallpaper = ApolloSettingsMigration.apply(.init(preferences: [
+            "UnlockedWallpapers": true,
+            "WallpaperPromptMostRecent2": Date(timeIntervalSince1970: 1_700_000_000),
+        ]))
+        check("a backup with only the wallpaper keys imports nothing",
+              onlyWallpaper.applied.isEmpty)
+        check("...which is the 'nothing this app can use yet' message",
+              onlyWallpaper.isEmpty)
+
+        GeneralSettingsStore.save(g0); AppearanceSettingsStore.save(a0)
+        LinkPreviewSettingsStore.save(lp0); SubredditLayoutSettingsStore.save(sl0)
+    }
+}
+
 // --- Deleted-comment recovery must not replace live comments ---
 //
 // Archive-based recovery of deleted/removed comment bodies must be

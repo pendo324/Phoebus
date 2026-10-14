@@ -1574,6 +1574,8 @@ try await checkSiriSettingsAndBackup()
 
 try await checkModNotes()
 
+try await checkABackupFromBeforeTheWallpapersWasRemoved()
+
 try await checkDeletedCommentRecoveryMustNotReplace()
 
 try await checkSettingsTheAppShowsMustActually()

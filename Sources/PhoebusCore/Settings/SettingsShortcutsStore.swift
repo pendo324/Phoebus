@@ -15,11 +15,11 @@ public enum SettingsShortcutsStore {
         "subreddits", "user-profiles", "interface", "rich-link-previews", "apollo-ai",
         "theme-manager", "open-in-app", "picture-in-picture", "translation", "saved-categories", "tag-filters",
         "automatic-backups", "crash-reports", "feature-requests", "bug-reports",
-        "buy-coffee", "general", "appearance", "app-icon", "filters", "gestures",
+        "general", "appearance", "app-icon", "filters", "gestures",
     ]
 
     /// Reborn's default when nothing is saved.
-    public static let defaults = ["theme-manager", "automatic-backups", "feature-requests", "bug-reports", "buy-coffee"]
+    public static let defaults = ["theme-manager", "automatic-backups", "feature-requests", "bug-reports"]
 
     /// Saved order, unknown IDs dropped, "inline-media" migrated to "media" and
     /// "profile-layout" to "user-profiles" (Reborn #1352), de-duplicated, capped.
@@ -38,7 +38,7 @@ public enum SettingsShortcutsStore {
         return valid
     }
 
-    /// IDs renamed by Reborn since a shortcut list was saved.
+    /// IDs renamed since a shortcut list was saved.
     public static func migratedID(_ id: String) -> String {
         switch id {
         case "inline-media": return "media"
@@ -52,7 +52,7 @@ public enum SettingsShortcutsStore {
     /// Display title for a shortcut or route ID.
     public static func title(_ id: String) -> String {
         switch id {
-        case "reborn": return "Apollo Reborn"
+        case "reborn": return "All Settings"
         case "accounts-api-keys": return "Accounts & API Keys"
         case "posts-feeds": return "Posts & Feeds"
         case "comments": return "Comments"
@@ -72,7 +72,6 @@ public enum SettingsShortcutsStore {
         case "crash-reports": return "Crash Reports"
         case "feature-requests": return "Feature Requests"
         case "bug-reports": return "Bug Reports"
-        case "buy-coffee": return "Buy Us a Coffee"
         case "general": return "General"
         case "appearance": return "Appearance"
         case "app-icon": return "App Icon"
@@ -106,7 +105,6 @@ public enum SettingsShortcutsStore {
         case "feature-requests": return "lightbulb.fill"
         case "bug-reports": return "ladybug.fill"
         case "reborn": return "gearshape.2.fill"
-        case "buy-coffee": return "cup.and.saucer.fill"
         case "general": return "gearshape.fill"
         case "appearance": return "paintbrush.pointed.fill"
         case "app-icon": return "app.fill"

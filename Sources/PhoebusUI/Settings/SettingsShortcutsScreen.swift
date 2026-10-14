@@ -97,7 +97,6 @@ public struct SettingsShortcutsScreen: View {
         case "bug-reports": return .red
         case "theme-manager": return .indigo
         case "reborn": return .purple
-        case "buy-coffee": return .yellow
         case "general": return .gray
         case "filters": return .green
         case "gestures": return Color(red: 0.4, green: 0.45, blue: 0.95)
@@ -137,7 +136,6 @@ public struct SettingsShortcutDestination: View {
         case "automatic-backups": AutomaticBackupSettingsScreen()
         case "crash-reports": CrashReportsScreen()
         case "bug-reports": BugReportScreen()
-        case "buy-coffee": BuyUsACoffeeScreen()
         case "general": GeneralSettingsScreen()
         case "appearance": AppearanceSettingsScreen()
         case "app-icon": AppIconSettingsScreen()

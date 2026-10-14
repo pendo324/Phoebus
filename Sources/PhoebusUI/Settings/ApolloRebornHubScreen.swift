@@ -450,8 +450,8 @@ public struct ApolloRebornHubScreen: View {
     // MARK: - About
 
     /// About, in order: Feature Requests, Bug Reports, Open Source on GitHub,
-    /// Apollo Reborn Subreddit, Thanks To, Privacy Policy, Version. Feature
-    /// requests, bug reports and the GitHub row go to Phoebus's own repo.
+    /// Apollo Reborn Subreddit, Privacy Policy, Version. Feature requests, bug
+    /// reports and the GitHub row go to Phoebus's own repo.
     private var aboutSection: some View {
         Section {
             HubLinkRow(
@@ -493,17 +493,6 @@ public struct ApolloRebornHubScreen: View {
                 url: "https://reddit.com/r/ApolloReborn/",
                 artwork: .subreddit("ApolloReborn", accountManager.repository)
             )
-            SettingsNavigationRow {
-                ThanksToScreen()
-            } label: {
-                // Leading-aligned like its neighbours.
-                HStack {
-                    HubEmojiRow(title: "Thanks To", emoji: "🙏", tint: .indigo)
-                    Spacer()
-                    ApolloSettingsChevron()
-                }
-            }
-            .apolloSettingsRowInsets()
             HubLinkRow(
                 title: "Privacy Policy",
                 emoji: "🔒",

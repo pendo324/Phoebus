@@ -49,7 +49,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Profile Layout", breadcrumb: "Settings → Apollo Reborn → User Profiles", screen: .profileLayout),
         SettingsSearchEntry(title: "Customize Action Menus", breadcrumb: "Settings → Apollo Reborn → Interface", screen: .actionMenus),
         SettingsSearchEntry(title: "Open Links In", breadcrumb: "Settings → Apollo Reborn → Open in App", screen: .externalBrowser),
-        SettingsSearchEntry(title: "Buy Us a Coffee", breadcrumb: "Settings", screen: .settingsRoot, rowTitle: "Buy Us a Coffee"),
+        SettingsSearchEntry(title: "All Settings", breadcrumb: "Settings", screen: .settingsRoot, rowTitle: "All Settings"),
         SettingsSearchEntry(title: "Automatic Update Checks", breadcrumb: "Settings → Apollo Reborn", screen: .apolloReborn, rowTitle: "Automatic Update Checks", requires: "releaseChannel"),
         SettingsSearchEntry(title: "Check for Updates", breadcrumb: "Settings → About", screen: .about, rowTitle: "Check for Updates"),
         SettingsSearchEntry(title: "Update Installer", breadcrumb: "Settings → About", screen: .about, rowTitle: "Update Installer", requires: "releaseChannel"),

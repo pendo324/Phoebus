@@ -50,8 +50,9 @@ below, and the copyright in them is theirs.
 
 Thank you to everyone who built Apollo Reborn. Without their work, most
 of what Phoebus does beyond Apollo itself would not exist. This list is
-taken from Apollo Reborn's own
-[contributors list](https://github.com/Apollo-Reborn/Apollo-Reborn#contributors-).
+maintained here, from Apollo Reborn's own contributors list at the time
+the ported features were brought over; the app does not download it at
+runtime.
 
 **Maintainers:**
 JeffreyCA,
@@ -96,9 +97,9 @@ harshb16,
 AcornElf,
 harumatsu
 
-The app's Thanks To screen (Settings › About › Apollo Reborn Contributors,
-or Settings › Apollo Reborn › Thanks To) shows the same list, loaded from
-Apollo Reborn's `contributors.json`, so it stays current.
+The app's About screen credits Apollo Reborn and says where this list
+lives; it shows no contributor list of its own and fetches nothing from
+Apollo Reborn.
 
 ## Ported features
 

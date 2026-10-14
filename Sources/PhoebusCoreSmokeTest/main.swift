@@ -355,7 +355,6 @@ try await checkTagFiltersApolloRebornFeature()
 try await checkAvatarCacheApolloRebornShowUser()
 
 try await checkSteamDeepLinkingApolloRebornFeature()
-checkRebornContributorsList()
 
 try await checkBackupRestoreApolloRebornFeature()
 
@@ -559,7 +558,6 @@ try await checkSelfPostEmbeddedImageThumbnailDerivation()
 
 try await checkSportsClipHostRecognition()
 
-try await checkRealGapFixBuyUsA()
 
 try await checkRealGapFixCustomSubredditSourceSettingsDecodeMigration()
 

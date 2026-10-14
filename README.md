@@ -287,9 +287,6 @@ What the repository contains, and where it comes from:
 - **Code ported from Apollo Reborn.** Reborn's features are translated to
   Swift from Reborn's GPL-3.0 source. That code remains the work of the
   Apollo Reborn contributors (see [CREDITS.md](CREDITS.md)).
-- **Apollo Reborn files included as they are.** The two Reborn
-  settings-hub images in `Sources/PhoebusUI/Resources/StockIcons`
-  (GPL-3.0).
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.

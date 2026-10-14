@@ -475,15 +475,15 @@ public struct ApolloRebornHubScreen: View {
                 }
             }
             .apolloSettingsRowInsets()
-            // The GitHub row carries the bundled GitHub mark, not an emoji tile; the
-            // subreddit row shows r/ApolloReborn's own icon with 👽 as the placeholder.
+            // The GitHub row draws the SF Symbol mark on its tile; the subreddit row
+            // shows r/ApolloReborn's own icon with 👽 as the placeholder.
             HubLinkRow(
                 title: "Open Source on GitHub",
                 subtitle: "@pendo324",
                 emoji: "🐙",
                 tint: .black,
                 url: "https://github.com/pendo324/Phoebus",
-                artwork: .bundled("reborn-github")
+                artwork: .symbol("chevron.left.forwardslash.chevron.right")
             )
             HubLinkRow(
                 title: "Apollo Reborn Subreddit",
@@ -632,16 +632,11 @@ struct HubEmojiRow: View {
                 Text(emoji)
                     .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize))
                 switch artwork {
-                case .bundled(let name):
-                    #if canImport(UIKit)
-                    if let url = Bundle.module.url(forResource: name, withExtension: "png", subdirectory: "StockIcons"),
-                       let image = UIImage(contentsOfFile: url.path) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .clipShape(RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius, style: .continuous))
-                    }
-                    #endif
+                case .symbol(let name):
+                    Image(systemName: name)
+                        .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize,
+                                      weight: ApolloSettingsRowMetrics.tileGlyphWeight))
+                        .foregroundStyle(.white)
                 case .subreddit(let name, let repository):
                     HubSubredditIcon(subreddit: name, repository: repository)
                 case nil:
@@ -700,8 +695,8 @@ struct HubSubredditIcon: View {
 /// An About row that opens an external URL.
 /// Artwork for a hub row that is not an emoji tile.
 enum HubRowArtwork {
-    /// A PNG in `Resources/StockIcons`.
-    case bundled(String)
+    /// An SF Symbol drawn on the row's tile.
+    case symbol(String)
     /// A subreddit's live icon, with the emoji tile as placeholder.
     case subreddit(String, RedditRepository)
 }

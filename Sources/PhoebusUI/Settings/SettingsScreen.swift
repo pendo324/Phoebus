@@ -342,16 +342,3 @@ enum SettingsSearchDebugSeed {
     static var initialQuery: String { "" }
 }
 #endif
-
-/// Full-colour PNGs in `StockIcons`.
-enum StockArtwork {
-    static func image(_ name: String) -> Image? {
-        #if canImport(UIKit)
-        guard let url = Bundle.module.url(forResource: name, withExtension: "png", subdirectory: "StockIcons"),
-              let image = UIImage(contentsOfFile: url.path) else { return nil }
-        return Image(uiImage: image)
-        #else
-        return nil
-        #endif
-    }
-}

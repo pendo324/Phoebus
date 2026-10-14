@@ -26,9 +26,6 @@ Please don't contact them about Phoebus.
   link previews, AI summaries, translation, deleted-comment recovery,
   backups and the theme gallery. Code comments name the Reborn
   feature or issue a piece of code comes from.
-- **Some Apollo Reborn files are included as they are.** The two
-  settings-hub images in `Sources/PhoebusUI/Resources/StockIcons`
-  (`apollo-reborn-options-icon`, `reborn-github`) come from Apollo Reborn.
 - **Reddit's achievement artwork.** The Badge Book images and catalog in
   `Sources/PhoebusUI/Resources/BadgeBook` are Reddit's own achievement and
   trophy images, taken from the set Apollo Reborn bundles.

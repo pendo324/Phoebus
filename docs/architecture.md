@@ -81,6 +81,30 @@ xtool.yml          Bundle id com.pendo324.Phoebus and the resources list
 | `SharedFeedCache` | Core/Feed/Listing | App Group cache for widgets. |
 | `ChatLive` / `ChatLiveSync` | UI/Inbox/Chat, Core/Inbox/Chat | The one long-poll Matrix sync while the app is open; the badge, Bark, chat list and rooms subscribe. |
 
+## Settings tree
+
+The Settings tab is one root screen: a pinned search field, then the
+thirteen category rows described by Core `Settings/Store/SettingsCategory.swift`
+(title, SF Symbol, tile colour, subtitle, trailing value, and the sections,
+drill-downs and actions each category's screen has). Each opens its own
+screen under `PhoebusUI/Settings/Categories/` (chosen by an exhaustive
+switch in `SettingsCategoryScreen`), a sectioned `List` of the switches
+and pickers themselves; a feature that owns whole sections draws them as
+a section group (`…Sections`). A section pushes a screen only where a
+setting needs one (a list editor, a pinned preview, a multi-step tool)
+through `SettingsDrillDownRow`, whose title Core gives and
+`SettingsDrillDownLeaf` routes. Nothing is more than two levels deep.
+`SettingsSection` (Core) stays the inventory of Apollo's own settings
+rows -- their order, titles, glyphs and tile colours -- rather than the
+root's rows.
+
+`Checks/SettingsTree.swift` walks that tree: every drill-down a distinct
+destination and none sharing a word with its category, category titles,
+symbols and colours unique, the actions that ask first, the shortcut ids
+and where the retired ones migrate, and the searches that must land on
+the right screen. The search index generator reads the same Core tree and
+checks the screens against it.
+
 ## Settings pattern
 
 Each settings group is a `Codable` struct plus a `...Store` enum whose

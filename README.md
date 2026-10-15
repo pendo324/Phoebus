@@ -113,9 +113,10 @@ releases are made is in [docs/releases.md](docs/releases.md).
   users, invites, AutoModerator configuration and subreddit traffic.
 - **Gestures.** Apollo's back and forward page swipes, configurable row
   swipe actions, double-tap to upvote, and hold-and-drag scrubbing.
-- **Settings.** Apollo's settings tree plus Reborn's hub (interface,
-  posts and feeds, comments, media, translation, AI summaries, deleted
-  comment recovery, picture in picture and more), searchable, with
+- **Settings.** Apollo's and Reborn's settings (interface, posts and
+  feeds, comments, media, translation, AI summaries, deleted comment
+  recovery, picture in picture and more) in one tree grouped by task,
+  searchable, with
   Apollo and Reborn backup import (`.apollobackup`), JSON backups and
   automatic backups.
 - **Themes and appearance.** A theme gallery, an editor, AI theme
@@ -224,8 +225,7 @@ belongs to its developer. You supply your own:
    "installed app" and a redirect URI of `phoebus://oauth-callback` (the
    default, `RedditOAuthConfig.defaultRedirectURI`).
 2. In the app, open **Custom API Settings** on the sign-in screen (or,
-   once signed in, Settings, Apollo Reborn, Accounts & API Keys, Default
-   API Keys) and enter the Reddit API key (client ID), the redirect URI
+   once signed in, Settings, Accounts & Security, API Keys) and enter the Reddit API key (client ID), the redirect URI
    and a User Agent. An API secret is only needed for "web app" clients.
    The values are stored on the device and override the build-time
    defaults.

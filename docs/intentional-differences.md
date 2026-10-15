@@ -96,7 +96,7 @@ Apollo or Reborn, add an entry here.
   Reddit's `/api/multi/copy`, and offers to open the private copy.
   Neither Apollo nor Reborn offers this; it is inspired by Continuum's
   Copy Multireddit.
-- **Post Rules (Settings > Filters & Blocks > Post Rules) are
+- **Post Rules (Settings > Filters > Rules > Post Rules) are
   Phoebus-only.** Neither Apollo nor Reborn has them; they are inspired
   by Continuum's post filters. A rule hides posts outside a score,
   comment or award range (both ends inclusive), can show only NSFW or
@@ -168,8 +168,8 @@ Apollo or Reborn, add an entry here.
   YouTube logo shows at the bottom-left of the picture (inline, fullscreen
   and on the card); tapping it opens the video on YouTube at the current
   time.
-- **You can sign in to YouTube for the player.** Settings > Apollo Reborn >
-  Accounts & API Keys > YouTube signs the player in as your Google account
+- **You can sign in to YouTube for the player.** Settings > Accounts & Security >
+  YouTube signs the player in as your Google account
   (YouTube Premium without ads, watch history, age-restricted videos), by
   Google's own sign-in page in a sheet or by pasting a browser's cookies.
   Every YouTube web view and the sheet share one persistent website data
@@ -220,6 +220,169 @@ Apollo or Reborn, add an entry here.
   subreddit you moderate in the Moderator menu, so they never show twice.
 
 ## Settings and interface
+
+- **Settings are grouped by task, not by Apollo's or Reborn's tree.**
+  The root is one screen: thirteen category rows (Accounts & Security,
+  Appearance, Posts, Feed, Comments, Media, Links & Sharing, Filters,
+  Inbox & Notifications, Gestures & Haptics, Integrations, Data &
+  Storage, About). A category screen holds the switches and pickers
+  themselves, in sections; it pushes a screen of its own only for a list
+  editor (filters, blocked users, watchers, backups), a screen with a
+  pinned live preview (Inline Images, Preview Cards, Subreddit Layout,
+  Subreddit List Sections, Profile Layout, Text Sizes & Fonts) or a
+  multi-step tool (Theme Manager, App Icon, Translation, Phoebus AI).
+  Apollo's General screen (46 rows from five unrelated jobs: 19 of them
+  comment settings), Interface, Deleted Comments, Portrait Lock,
+  Passcode, Notifications, Marking Read / Hiding, Polls, User Profiles
+  and Subreddits no longer exist as screens: their sections moved to the
+  category that does that job, so "Comments" is the comment settings,
+  not two of them, and no category repeats its name one level down.
+  Nothing is more than two levels deep. Core's `SettingsCategory` lists
+  every category's sections and drill-downs, and the search index
+  generator refuses a screen that draws other sections or pushes other
+  screens than Core says.
+
+  Where each screen and section of Apollo's and Reborn's trees went:
+
+  | Was | Now |
+  |---|---|
+  | Settings › Modern Settings (Reborn's hub) | gone: the root is the tree |
+  | Modern Settings › Accounts & API Keys | Accounts & Security: Sign-In, Settings per Account, API Keys, Kagi Search, YouTube |
+  | Settings › Accounts (the account switcher) | Accounts & Security › Accounts, with an Add Account row |
+  | Accounts & API Keys › Experimental › Web Session Accounts | Accounts & Security › Accounts (web-session accounts are added from Add Account) |
+  | Accounts & API Keys › Extras › Copy Widget Setup Code | Integrations › Widget Setup Code |
+  | Settings › Face ID & Passcode | Accounts & Security › Passcode |
+  | (Phoebus) Sign Out, Global Defaults | Accounts & Security: the last row; Settings per Account › Edit Global Defaults |
+  | Settings › Appearance: Text Size | Appearance › Text |
+  | Settings › Appearance: Posts, Large Posts, Compact Posts, Flair, Other | Posts: Layout, Large Posts, Compact Posts, Thumbnails, Flair & Awards, Post Info |
+  | Settings › Appearance: Media (Show GIF Progress) | Media › Playback |
+  | Settings › Appearance › Theme Manager, Text Sizes & Fonts | Appearance › Theme, Text drill-downs |
+  | Settings › App Icon | Appearance › Theme › App Icon |
+  | Modern Settings › Interface (Tab Bar, Display & Navigation) | Appearance: Tab Bar, Bars & Navigation, Keyboard |
+  | Interface › Menus › Customize Action Menus | Gestures & Haptics › Menus › Action Menus |
+  | Interface › Tab Bar › Settings Shortcuts | Integrations › Settings Tab › Settings Shortcuts |
+  | Modern Settings › User Profiles (Profile Layout, picture rows) | Appearance › Profiles; Profile Layout is a drill-down there, Profile Picture Tab Icon sits beside the picture rows |
+  | Modern Settings › Theme Manager › Comments Theme | Comments › Display › Thread Colours |
+  | Modern Settings › Posts & Feeds | Feed (Recently Read, Floating Tabs, Interactive Posts, the video scrubber and forward-swipe rows under Loading); Text Post Thumbnails and Info Row are Posts |
+  | Modern Settings › Subreddits | Feed › Subreddit List and Search › Search Sources |
+  | Modern Settings › Polls | Posts › Polls (the switch and Option Text Alignment); its Reddit Sign-In cell is Accounts & Security › Sign-In › reddit.com Web Sign-In |
+  | Modern Settings › Comments, Deleted Comments | Comments: Collapsing, Removed Comments, Live Comments |
+  | Modern Settings › Media | Media (Browsing, Playback, NSFW Media, Network); Links & Sharing (Sharing, Uploads) |
+  | Media › Inline Media › Inline Media Settings | Comments › Display › Inline Images |
+  | Modern Settings › Picture-in-Picture | Media › Miniplayer › Picture-in-Picture |
+  | Modern Settings › Open in App, Rich Link Previews | Links & Sharing › Other Apps › Open in App; Link Previews › Preview Cards |
+  | Modern Settings › Translation, Phoebus AI | Integrations › Translation & AI |
+  | Modern Settings › Siri & Spotlight | Integrations › Siri & Spotlight (iOS 27) |
+  | Settings › Filters & Blocks | Filters: keywords, subreddits, blocked users, user tags, authors and domains, subreddit-specific filters, filter by name |
+  | Filters & Blocks › Post Rules, Comment Filters | Filters › Rules › Post Rules, Comment Rules |
+  | Modern Settings › Tag Filters | Filters › Tag Filters and Per-Subreddit Overrides sections |
+  | Modern Settings › Saved Categories | Data & Storage › Saved Items › Saved Categories |
+  | Settings › Notifications | Inbox & Notifications: Inbox, Notification Sound; Subreddit Watchers is a drill-down |
+  | Modern Settings › Notification Backend | Inbox & Notifications › Delivery and Registration |
+  | Modern Settings › Backup & Restore | Data & Storage › Export & Restore |
+  | Modern Settings › Automatic Backups, Manage Backups | Data & Storage › Backups, Backup Schedule, Backup Activity; Manage Backups |
+  | Modern Settings › Clear Caches; General › Cache › Clear Cache | Data & Storage › Storage › Clear Cache |
+  | Modern Settings › Clear Banners | Data & Storage › Storage › Clear Banners & Icons |
+  | General › Manage Uploads | Data & Storage › Uploads › Manage Imgur Uploads |
+  | General › Is Apollo Still Taking up Storage? | Data & Storage › Storage › What Phoebus Keeps on Disk |
+  | Modern Settings › Export Logs | About › Support › Export Debug Logs |
+  | Modern Settings › Automatic Update Checks | About › Updates |
+  | Modern Settings › Crash Reports | About › Support › Crash Reports |
+  | Modern Settings › Anonymous Install Count | gone (see below) |
+  | Modern Settings › Feature Requests, Bug Reports, GitHub, Version | About › Support |
+  | Settings › General: Posts | Feed › Sorting, Loading; Media › Playback (Autoplay GIFs/Videos); Links & Sharing › Sharing (Share Includes Title); Data & Storage › Saved Items (Upvote on Save) |
+  | Settings › General: Comments | Comments (all but Blocked Users); Blocked Users is Filters › Blocked Users' Comments |
+  | Settings › General: Safari | Links & Sharing › In-App Browser |
+  | Settings › General: Media | Media › Browsing, Playback, Saving |
+  | Settings › General: Moderator | Inbox & Notifications › Moderator |
+  | Settings › General: Other | Feed › Loading, Read Posts (3D Touch Marks Read); Links & Sharing (Open Tweets in, Share old.reddit Links); Data & Storage › Saved Items; Gestures & Haptics › Haptics |
+  | General › Smart Rotation Lock | Gestures & Haptics › Rotation |
+  | General › Mark Read / Hiding Posts | Feed › Read Posts, Auto Hide |
+  | General › Open Links In | Links & Sharing › Open Links In |
+  | Settings › Low Data Mode | gone (see below) |
+  | Settings › Gestures | Gestures & Haptics |
+  | Settings › About | About |
+
+  Reborn's post-filter surface has no screen of its own: it is Filters'
+  Subreddit-Specific Filters and Filter Subreddits by Name sections, and
+  the per-subreddit detail is pushed from there.
+
+  Integrations keeps Translation, Phoebus AI and Settings Shortcuts as
+  drill-downs rather than inlining them: Translation alone has five
+  sections, and inlined they would take the screen past 60 rows.
+  Picture-in-Picture stays one for the same reason (four sections and
+  three choosers), which keeps Media near 30 rows. Subreddit Watchers
+  holds Reborn's trending subreddits too, since both lists come from one
+  backend call.
+
+- **A settings screen has one entrance.** Each screen is pushed from
+  exactly one row, and has one name everywhere: its row, its navigation
+  title, its search entry and every breadcrumb. One link into another
+  category's content stays, because it is where that screen is needed:
+  Open in App's Open Links in row pushes the same browser list that
+  Links & Sharing draws inline, beside the apps that take the rest.
+
+- **Polls link to the web sign-in rather than hold it.** Voting in polls
+  needs the active account signed in with a reddit.com web session, and
+  the cell that shows and sets it up (a green "Ready to vote and post", a
+  "Sign In Again" choice, "Set Up reddit.com Web Sign-In") is Accounts &
+  Security's, with the other sign-in rows. Posts › Polls says so in its
+  footer and has a Web Sign-In row, with the account's status, that opens
+  Accounts & Security scrolled to and flashing that cell. Core lists it as a
+  cross-link (`SettingsCrossLink`) to a row on another category's screen,
+  not as a drill-down, so it is not a second entrance to a screen.
+
+- **Some screens are renamed.** A drill-down may not share a word with
+  its category (`Checks/SettingsTree.swift` checks it, and the list of
+  exceptions is empty), and Phoebus names a screen by what it holds. Their
+  `UserDefaults` keys and shortcut ids are unchanged:
+
+  | Reborn / Apollo | Phoebus | Why |
+  |---|---|---|
+  | Comments Theme | Thread Colours | Was in Comments |
+  | Inline Media | Inline Images | Is in Comments |
+  | Rich Link Previews | Preview Cards | Is in Links & Sharing |
+  | Feed Shortcuts | Subreddit Shortcuts | Is in Feed |
+  | Comment Filters (Phoebus's) | Comment Rules | Is in Filters; matches Post Rules |
+  | Is Apollo Still Taking up Storage? | What Phoebus Keeps on Disk | Is in Data & Storage |
+  | Accounts & API Keys, Posts & Feeds, Media | sections of Accounts & Security, Feed, Media | Dissolved into their categories |
+  | Blocked Users (Hide / Collapse) | Blocked Users' Comments | Sits beside the Blocked Users list |
+
+- **Clear Cache is one control.** Apollo's General › Cache menu (Clear
+  Cache, Clear Browser Cache) and Reborn's Clear Tweak Caches are merged
+  into Data & Storage's Clear Cache row, which asks what to clear (the
+  app cache, only artwork and previews, or the in-app browser's cache)
+  before it does. Sign Out and Clear Banners & Icons ask first too.
+  Export Debug Logs does not: it only opens the share sheet.
+
+- **There is no Anonymous Install Count switch.** Reborn's switch turns
+  off its install heartbeat; Phoebus sends none, so the switch changed
+  nothing and is not shown. Nothing reads `ApolloUsageHeartbeatDisabled`.
+
+- **There is no Low Data Mode row.** Apollo's Low Data Mode has no
+  setting behind it in Phoebus yet, so it has no row in the tree.
+
+- **Settings shortcut ids follow the regrouping.** The "reborn" shortcut
+  opened a hub that no longer exists, and the screens behind several
+  others were dissolved, so a saved list migrates each retired id to the
+  category that holds those settings now and keeps its slot:
+
+  | Retired id | Becomes |
+  |---|---|
+  | `reborn` | `settings-root` |
+  | `accounts-api-keys` | `accounts-security` |
+  | `posts-feeds`, `subreddits`, `general` | `feed` |
+  | `user-profiles`, `profile-layout`, `interface` | `appearance` |
+  | `inline-media` | `media` |
+  | `tag-filters` | `filters` |
+  | `automatic-backups` | `data-storage` |
+  | `gestures` | `gestures-haptics` |
+
+  Ids that migrate to one place collapse to one shortcut. `general` goes
+  to Feed because its first sections (sorting, Default Reddit to Load,
+  read posts) became Feed's, but its largest part, the comment rows, is
+  Comments. The default shortcut list names Data & Storage where Reborn's
+  named Automatic Backups.
 
 - **The app icons are Phoebus's own, not Apollo's or Reborn's.**
   Apollo's icons and Reborn's Liquid Glass packs are their artists' work,
@@ -272,8 +435,8 @@ Apollo or Reborn, add an entry here.
   delete cannot be undone.
 - **Header Style has an "Automatic" option** that follows the system.
   This is a Phoebus addition.
-- **Comment Filters is a Phoebus addition.** Settings → Filters & Blocks →
-  Comment Filters holds named filters that hide or collapse comments by
+- **Comment Rules are a Phoebus addition.** Settings → Filters → Rules →
+  Comment Rules holds named filters that hide or collapse comments by
   score range, words in the body or author, everywhere or in chosen
   subreddits. Neither Apollo nor Reborn has it; it is inspired by
   Continuum's comment filters and RedReader's minimum comment score
@@ -286,7 +449,7 @@ Apollo or Reborn, add an entry here.
   author menu ("Edit Tag…" once the user has one) puts your
   own short label (up to 24 characters) and colour on a user, shown as a
   pill after their name in comments, feed rows, the post header, their
-  profile and the inbox. Settings → Filters & Blocks → User Tags lists,
+  profile and the inbox. Settings → Filters → User Tags lists,
   edits and deletes them. Tags stay on the device (never sent to Reddit),
   match usernames case-insensitively and are included in backups.
   Neither Apollo nor Reborn has this; it is inspired by Continuum's user
@@ -298,7 +461,7 @@ Apollo or Reborn, add an entry here.
   until the pill is tapped. Its Down style moves the bar's sublayers
   rather than the bar, which UIKit's layout turned into a jump.
 - **There is no What's New screen, no FLEX debugging and no debug rows
-  in the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
+  from the Apollo Reborn hub.** They are not useful in Phoebus. The FLEX
   setting is not imported from backups.
 - **Search keeps a history and saved searches.** Recent queries show
   under the search field (all of Reddit on the Search tab, one subreddit
@@ -466,7 +629,7 @@ Apollo or Reborn, add an entry here.
   comments"), so the loaded comments are the fetched thread, up to the same
   limits. Nothing extra is requested, except by Refresh Subscribed Communities.
 - **There is no `reborn/settings/siri-spotlight` link.** Phoebus has no
-  settings route URLs; the screen is in the hub and in Settings search.
+  settings route URLs; the screen is under General and in Settings search.
 
 ## Crash reports
 
@@ -508,7 +671,7 @@ Apollo or Reborn, add an entry here.
 - **Accounts can keep their own settings.** Not in Apollo or Reborn, which
   share one set of settings across accounts; inspired by Continuum's
   per-account settings. "Separate Settings per Account" (off by default,
-  Accounts & API Keys) keeps global defaults and lets each account
+  API Keys & Sign-In) keeps global defaults and lets each account
   override single settings: changes made while signed in to an account
   apply to it only, overridden rows show a dot with "Use Global Default"
   on long press, and "Edit Global Defaults", "Copy Overrides from…" and

@@ -48,8 +48,8 @@ covers any bundle identifier.
 
 ## Checking an install
 
-Settings › Apollo Reborn › Accounts & API Keys › Copy Widget Setup Code
-shows a Status section:
+Settings › Integrations › Widget
+shows a status section:
 
 - **Editable Widgets: Blocked by signing** means the App ID and bundle
   identifier differ; the footer names the identifier to sign with.

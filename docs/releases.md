@@ -243,8 +243,8 @@ the IPAs the nightly release keeps; stable versions are all kept. The
 change is pushed to AltStoreRepo by PhoebusBot. Runs are serialized, so
 two builds never update a source at once.
 
-The app reads its own channel's source to offer updates (Settings › Apollo
-Reborn › Privacy › Automatic Update Checks, About › Check for Updates): a
+The app reads its own channel's source to offer updates (Settings › About › Updates:
+Automatic Update Checks, Check for Updates): a
 newer `buildVersion` than the installed `CFBundleVersion` is an update, shown
 with the entry's `localizedDescription` as its notes.
 

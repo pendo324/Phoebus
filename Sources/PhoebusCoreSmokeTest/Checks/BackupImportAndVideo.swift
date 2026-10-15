@@ -564,6 +564,10 @@ import PhoebusCore
         check("a hide style Reborn doesn't have keeps the current one", GeneralSettingsStore.load().tabBarHideStyle == 4)
         check("Reborn's string trending limit parses", g.trendingSubredditsLimit == 8)
         check("compact thumbnails hidden maps to the hidden size", g.thumbnailSize == .hidden)
+        _ = ApolloSettingsMigration.apply(.init(preferences: ["CompactModeLeftThumbnails": false]))
+        check("CompactModeLeftThumbnails false imports as Thumbnail Position Right", GeneralSettingsStore.load().thumbnailPosition == .right)
+        _ = ApolloSettingsMigration.apply(.init(preferences: ["CompactModeLeftThumbnails": true]))
+        check("CompactModeLeftThumbnails true imports as Thumbnail Position Left", GeneralSettingsStore.load().thumbnailPosition == .left)
         let lp = LinkPreviewSettingsStore.load()
         check("link preview modes translate from Reborn's 0/1/2",
               lp.bodyDisplayMode == .compact && lp.commentsDisplayMode == .off)

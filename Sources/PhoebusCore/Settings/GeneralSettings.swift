@@ -1214,6 +1214,16 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     }
 }
 
+extension GeneralSettings {
+    /// The Thumbnail Position picker and the compact row's side for the
+    /// thumbnail. `CompactModeLeftThumbnails` is true for Left, false for Right;
+    /// hiding thumbnails is `thumbnailSize == .hidden`, not a position.
+    public var thumbnailPosition: AppearanceEdgePosition {
+        get { thumbnailsOnLeft ? .left : .right }
+        set { thumbnailsOnLeft = (newValue == .left) }
+    }
+}
+
 public enum GeneralSettingsStore {
     /// `LiquidGlass.isEnabled` reads a plain flag before any decode, so
     /// this blob (the source of truth, and what gets backed up) writes

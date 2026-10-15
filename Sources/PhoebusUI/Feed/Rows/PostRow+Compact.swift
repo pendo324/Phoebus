@@ -16,6 +16,10 @@ extension PostRow {
             if showsVotingButtons, votingButtonsPosition == .left {
                 voteArrowColumn
             }
+            // "Thumbnail Position" (`CompactModeLeftThumbnails`): Left leads the text.
+            if generalSettings.thumbnailPosition == .left {
+                thumbnailView
+            }
             VStack(alignment: .leading, spacing: 3) {
                 // Apollo renders a distinct banner for stickied posts,
                 // separate from the rest of the info row.
@@ -188,7 +192,7 @@ extension PostRow {
 
             Spacer(minLength: 0)
 
-            if generalSettings.thumbnailsOnLeft {
+            if generalSettings.thumbnailPosition == .right {
                 thumbnailView
             }
 

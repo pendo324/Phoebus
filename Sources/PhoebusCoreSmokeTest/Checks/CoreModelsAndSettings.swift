@@ -514,6 +514,12 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
     check("default general settings disables auto-collapse-pinned", !defaultGeneral.autoCollapsePinnedComments)
     check("default general settings uses top sort (confirmed via Defaults.plist)", defaultGeneral.defaultCommentSort == "top")
     check("default general settings puts thumbnails on left (confirmed via Defaults.plist)", defaultGeneral.thumbnailsOnLeft)
+    check("default thumbnail position is Left", defaultGeneral.thumbnailPosition == .left)
+    var rightThumbnails = defaultGeneral
+    rightThumbnails.thumbnailPosition = .right
+    check("Thumbnail Position Right stores CompactModeLeftThumbnails as false", !rightThumbnails.thumbnailsOnLeft && rightThumbnails.thumbnailPosition == .right)
+    rightThumbnails.thumbnailPosition = .left
+    check("Thumbnail Position Left stores CompactModeLeftThumbnails as true", rightThumbnails.thumbnailsOnLeft)
     check("default general settings uses small thumbnails (confirmed via Defaults.plist)", defaultGeneral.thumbnailSize == .small)
     check("ThumbnailSize has 4 cases (hidden/small/medium/large - hidden added after a real on-device screenshot showed a compact row with thumbnails off)", ThumbnailSize.allCases.count == 4)
     check("thumbnail sizes are strictly increasing", ThumbnailSize.small.pointSize < ThumbnailSize.medium.pointSize && ThumbnailSize.medium.pointSize < ThumbnailSize.large.pointSize)

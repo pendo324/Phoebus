@@ -181,8 +181,8 @@ public struct AppearanceSettingsScreen: View {
 
     private var thumbnailPositionBinding: Binding<AppearanceEdgePosition> {
         Binding(
-            get: { generalSettings.thumbnailsOnLeft ? .left : .right },
-            set: { side in $generalSettings.update { $0.thumbnailsOnLeft = (side == .left) } }
+            get: { generalSettings.thumbnailPosition },
+            set: { side in $generalSettings.update { $0.thumbnailPosition = side } }
         )
     }
 }

@@ -835,6 +835,32 @@ private final class SmokeFriendsList: @unchecked Sendable {
     check("isNewAccount: true for a 1-day-old account", AccountAgeCache.isNewAccount(createdAt: oneDayOldAccount, referenceDate: referenceNow) == true)
     check("isNewAccount: false for a 60-day-old account", AccountAgeCache.isNewAccount(createdAt: sixtyDayOldAccount, referenceDate: referenceNow) == false)
     check("isNewAccount: false exactly at the threshold boundary", AccountAgeCache.isNewAccount(createdAt: exactlyThirtyDayOldAccount, referenceDate: referenceNow) == false)
+    check("account lookup skips deleted users, AutoModerator and empty names",
+          !AccountAgeCache.isLookupCandidate(username: "[deleted]") && !AccountAgeCache.isLookupCandidate(username: "AutoModerator")
+          && !AccountAgeCache.isLookupCandidate(username: "") && AccountAgeCache.isLookupCandidate(username: "spez"))
+
+    // Rows by one author that appear together share a single lookup.
+    actor FetchCounter {
+        var count = 0
+        func hit() { count += 1 }
+    }
+    struct LookupFailed: Error {}
+    let counter = FetchCounter()
+    let created = Date(timeIntervalSinceNow: -3 * 24 * 60 * 60)
+    await AccountAgeCache.shared.clear()
+    async let first = AccountAgeCache.shared.createdDate(for: "SmokeNewcomer") { await counter.hit(); try await Task.sleep(nanoseconds: 100_000_000); return created }
+    async let second = AccountAgeCache.shared.createdDate(for: "smokenewcomer") { await counter.hit(); return created }
+    let (firstDate, secondDate) = await (first, second)
+    let sharedCount = await counter.count
+    check("concurrent rows for one author resolve from a single lookup", sharedCount == 1 && firstDate == created && secondDate == created)
+    let cachedDate = await AccountAgeCache.shared.createdDate(for: "SmokeNewcomer") { await counter.hit(); return Date() }
+    let cachedCount = await counter.count
+    check("a later row for the same author reads the cache", cachedCount == 1 && cachedDate == created)
+    let failedDate = await AccountAgeCache.shared.createdDate(for: "smokesuspended") { await counter.hit(); throw LookupFailed() }
+    _ = await AccountAgeCache.shared.createdDate(for: "smokesuspended") { await counter.hit(); return Date() }
+    let failedCount = await counter.count
+    check("a failed lookup shows no date and is not retried", failedDate == nil && failedCount == 2)
+    await AccountAgeCache.shared.clear()
 }
 
 // --- Recently Read Posts (Apollo-Reborn feature) ---

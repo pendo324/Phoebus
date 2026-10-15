@@ -12,7 +12,8 @@ import Foundation
 /// The "NEW" badge in `CommentTreeScreen` only appears once the lookup has
 /// resolved for that author; there is no guessed fallback. A pending lookup,
 /// or an account that is suspended, shadowbanned or deleted (`/about` 404 or
-/// 403), shows no badge.
+/// 403), shows no badge. Rows by the same author share one lookup, including
+/// rows that appear while it is still running.
 public actor AccountAgeCache {
     public static let shared = AccountAgeCache()
 
@@ -28,12 +29,19 @@ public actor AccountAgeCache {
         referenceDate.timeIntervalSince(createdAt) < newAccountThreshold
     }
 
+    /// Authors with no account page to look up: deleted users and the
+    /// AutoModerator bot.
+    public static func isLookupCandidate(username: String) -> Bool {
+        !username.isEmpty && username != "[deleted]" && username != "AutoModerator"
+    }
+
     private struct Entry {
         let createdAt: Date?
         let fetchedAt: Date
     }
 
     private var entries: [String: Entry] = [:]
+    private var lookups: [String: Task<Date?, Never>] = [:]
 
     public func removeAll() { entries.removeAll() }
     /// Account-creation date never changes, so this could cache forever, but a
@@ -55,6 +63,21 @@ public actor AccountAgeCache {
     public func hasFreshEntry(for username: String) -> Bool {
         guard let entry = entries[username.lowercased()] else { return false }
         return isFresh(entry)
+    }
+
+    /// The creation date for `username`: the fresh cached value, the lookup
+    /// already running for it, or a new `fetch`. A failed fetch is cached as
+    /// "unavailable" so a failing author is not re-queried on every row.
+    public func createdDate(for username: String, fetch: @escaping @Sendable () async throws -> Date) async -> Date? {
+        let key = username.lowercased()
+        if let entry = entries[key], isFresh(entry) { return entry.createdAt }
+        if let running = lookups[key] { return await running.value }
+        let lookup = Task<Date?, Never> { try? await fetch() }
+        lookups[key] = lookup
+        let createdAt = await lookup.value
+        lookups[key] = nil
+        entries[key] = Entry(createdAt: createdAt, fetchedAt: Date())
+        return createdAt
     }
 
     public func store(createdAt: Date?, for username: String) {

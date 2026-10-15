@@ -2,59 +2,58 @@ import SwiftUI
 import PhoebusCore
 
 /// Reborn's "New Account Highlight" (`GeneralSettings.highlightAccountAge`).
-/// Account creation date is not on comment/post listing objects, so this
-/// does a per-username lookup like `AvatarView` (see `AccountAgeCache`). It
-/// renders nothing until the lookup resolves with a usable date, and stays
-/// silent for an author whose lookup fails.
+/// Account creation date is not on comment/post listing objects, so
+/// `accountAgeLookup` does a per-username lookup like `AvatarView` (see
+/// `AccountAgeCache`). The badge renders nothing until the lookup resolves
+/// with a usable date, and stays silent for an author whose lookup fails.
 public struct AccountAgeBadge: View {
-    let username: String
-    let repository: RedditRepository
+    let createdAt: Date?
 
-    @State private var createdAt: Date?
-    @State private var isLoading = false
-
-    public init(username: String, repository: RedditRepository) {
-        self.username = username
-        self.repository = repository
+    public init(createdAt: Date?) {
+        self.createdAt = createdAt
     }
 
     public var body: some View {
-        Group {
-            if let createdAt, AccountAgeCache.isNewAccount(createdAt: createdAt) {
-                Text("NEW")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.orange))
-                    .accessibilityLabel("New account")
+        if let createdAt, AccountAgeCache.isNewAccount(createdAt: createdAt) {
+            Text("NEW")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Capsule().fill(Color.orange))
+                .accessibilityLabel("New account")
+        }
+    }
+}
+
+private struct AccountAgeLookupModifier: ViewModifier {
+    let username: String
+    let isEnabled: Bool
+    let repository: RedditRepository
+    @Binding var createdAt: Date?
+
+    func body(content: Content) -> some View {
+        // On the row's always-present author name rather than on the badge: a
+        // `.task` on a badge that is empty until the answer arrives never runs.
+        content.task(id: isEnabled ? username : nil) {
+            guard isEnabled, AccountAgeCache.isLookupCandidate(username: username) else {
+                createdAt = nil
+                return
+            }
+            let repository = repository, username = username
+            createdAt = await AccountAgeCache.shared.createdDate(for: username) {
+                try await repository.fetchUserProfile(username: username).created
             }
         }
-        .task(id: username) { await resolve() }
     }
+}
 
-    private func resolve() async {
-        guard username != "[deleted]", username != "AutoModerator", !username.isEmpty else { return }
-        if let cached = await AccountAgeCache.shared.cachedCreatedDate(for: username) {
-            createdAt = cached
-            return
-        }
-        if await AccountAgeCache.shared.hasFreshEntry(for: username) {
-            // Cached as "lookup failed/unavailable": stay silent.
-            return
-        }
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            let user = try await repository.fetchUserProfile(username: username)
-            await AccountAgeCache.shared.store(createdAt: user.created, for: username)
-            createdAt = user.created
-        } catch {
-            // Suspended/shadowbanned/deleted accounts or a transient network error:
-            // cache the miss too so a failing author is not re-queried on every row
-            // appearance, and show nothing.
-            await AccountAgeCache.shared.store(createdAt: nil, for: username)
-        }
+extension View {
+    /// Resolves `username`'s account creation date into `createdAt` while
+    /// New Account Highlight is on.
+    func accountAgeLookup(for username: String, isEnabled: Bool, repository: RedditRepository,
+                          into createdAt: Binding<Date?>) -> some View {
+        modifier(AccountAgeLookupModifier(username: username, isEnabled: isEnabled,
+                                          repository: repository, createdAt: createdAt))
     }
 }

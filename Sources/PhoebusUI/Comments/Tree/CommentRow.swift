@@ -72,6 +72,7 @@ struct CommentRow: View {
     @State private var showingTagEditor = false
     @State private var shownFlair: FlairInfo?
     @State private var isOwnComment = false
+    @State private var authorCreatedAt: Date?
     /// Author-only "Comment Insights" (see the context menu item).
     @State private var showingInsights = false
     @State private var isEditing = false
@@ -342,6 +343,8 @@ struct CommentRow: View {
                         .onTapGesture(perform: onAuthorTapped)
                         .hitAreaLayout(CommentHeaderHitArea.author)
                         .accessibilityIdentifier("comment.authorLabel.\(node.id)")
+                        .accountAgeLookup(for: node.comment.author, isEnabled: general.highlightAccountAge,
+                                          repository: repository, into: $authorCreatedAt)
                     UserTagPill(username: displayAuthor)
                     }
                     // "OP" badge next to the post's own author's comments.
@@ -367,7 +370,7 @@ struct CommentRow: View {
                     // Reborn "New Account Highlight" (`GeneralSettings.highlightAccountAge`);
                     // see `AccountAgeBadge`.
                     if general.highlightAccountAge {
-                        AccountAgeBadge(username: node.comment.author, repository: repository)
+                        AccountAgeBadge(createdAt: authorCreatedAt)
                     }
                     // "User Flair" toggle (Settings > Appearance > Flair).
                     if general.showUserFlair, let authorFlair = node.comment.authorFlairText, !authorFlair.isEmpty {

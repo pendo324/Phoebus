@@ -454,6 +454,11 @@ try await checkSettingsSearchResolvesToRoutableScreens()
 try await checkRetiredSettingsShortcutIDMigrates()
 try await checkSettingsRowsDoNotRepeatTheirCategory()
 
+// The sample post and thread the Posts, Comments and Thread Colours previews draw.
+try await checkSettingsPreviewSampleDecodesLikeALiveListing()
+try await checkSettingsPreviewSampleThreadFollowsTheCollapseSettings()
+try await checkSettingsPreviewSampleStandsInForTheAccount()
+
 try await checkGlassNeedsTheAppSOwn()
 
 // --- Devvit post detection (Reborn "Live Interactive Posts") ---

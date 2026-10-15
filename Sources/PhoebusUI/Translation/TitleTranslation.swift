@@ -53,9 +53,12 @@ struct TitleTranslationModifier: ViewModifier {
     @Binding var translated: String?
     /// The thread's globe: titles follow it too, as Reborn's do.
     @Environment(\.threadTranslation) private var threadTranslation
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
 
     func body(content: Content) -> some View {
         content.task(id: "\(title)|\(String(describing: threadTranslation))") {
+            // A settings preview never sends its sample title to a translator.
+            guard !isSettingsPreview else { return }
             var settings = TranslationSettingsStore.load()
             if let threadTranslation {
                 settings.enableBulkTranslation = threadTranslation

@@ -21,8 +21,14 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
 
     /// Profile Layout's card spans the table's readable width, with the
     /// pin control near the card's trailing edge, not over its top
-    /// corner.
-    private var edgeToEdge: Bool { screen == .profileLayout }
+    /// corner. The Posts preview draws the app's own row, which is laid out
+    /// for that width.
+    private var edgeToEdge: Bool {
+        switch screen {
+        case .profileLayout, .posts: return true
+        default: return false
+        }
+    }
 
     /// The card's height pinned and in the list, measured separately; see
     /// `SettingsPreviewPinStore.decidingCardHeight`.

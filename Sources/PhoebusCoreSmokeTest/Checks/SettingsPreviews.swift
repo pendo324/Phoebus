@@ -91,3 +91,16 @@ import PhoebusCore
           AccountAgeCache.isNewAccount(createdAt: SettingsPreviewSample.accountCreated(for: SettingsPreviewSample.newAccountUsername, now: now), referenceDate: now)
             && !AccountAgeCache.isNewAccount(createdAt: SettingsPreviewSample.accountCreated(for: "sample_pal", now: now), referenceDate: now))
 }
+
+@MainActor func checkSettingsPreviewScreensHaveTheirOwnPinKeys() async throws {
+    check("the Posts preview is pinned under its own per-screen key",
+          SettingsPreviewScreen.posts.rawValue == "PostsPreviewPinned"
+            && SettingsPreviewPinStore.defaultsKey(for: .posts) == "Phoebus.PostsPreviewPinned")
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .posts))
+    check("the Posts preview starts pinned",
+          SettingsPreviewPinStore.isPinned(.posts))
+    SettingsPreviewPinStore.setPinned(false, for: .posts)
+    check("unpinning the Posts preview is remembered",
+          !SettingsPreviewPinStore.isPinned(.posts))
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .posts))
+}

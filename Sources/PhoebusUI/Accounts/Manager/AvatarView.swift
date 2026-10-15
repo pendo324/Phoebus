@@ -19,6 +19,7 @@ public struct AvatarView: View {
     @Setting(ProfileLayoutSettings.self) private var profileLayout
     private var shape: ProfileLayoutSettings.AvatarStyle { profileLayout.avatarStyle }
     @State private var isLoading = false
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
 
     public init(username: String, repository: RedditRepository, size: CGFloat = 20) {
         self.username = username
@@ -48,7 +49,7 @@ public struct AvatarView: View {
     private func resolve() async {
         // [deleted]/removed authors have no profile to fetch, and
         // AutoModerator-style bots are common enough to skip the round-trip.
-        guard username != "[deleted]", !username.isEmpty else { return }
+        guard username != "[deleted]", !username.isEmpty, !isSettingsPreview else { return }
         if let cached = await AvatarCache.shared.cachedURL(for: username) {
             avatarURLString = cached
             return

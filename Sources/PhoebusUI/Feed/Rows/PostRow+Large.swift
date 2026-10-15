@@ -147,7 +147,7 @@ extension PostRow {
                 // its full size and would widen the whole row.
                 Color.clear
                     .frame(maxWidth: .infinity)
-                    .frame(height: 240)
+                    .frame(height: heroHeight)
                     .overlay { CachedAsyncImage(url: url, contentMode: .fill) }
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
@@ -160,7 +160,7 @@ extension PostRow {
             } else if let url = resolvedThumbnailURL {
                 CachedAsyncImage(url: url)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 240)
+                    .frame(height: heroHeight)
                     .clipped()
                     .tagFilterCover(.media, isNSFW: post.over18, isActive: coversMediaByTagFilter,
                                     cornerRadius: 0) { revealTagPart(.media) }

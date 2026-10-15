@@ -4,7 +4,8 @@ import PhoebusCore
 /// Posts: how a post looks in a feed, from Apollo's Appearance screen (its
 /// post size, thumbnail, flair and award rows, with the Large and Compact
 /// post sections), plus the Info Row and polls. Row titles are Apollo's,
-/// backed by Apollo's UserDefaults keys.
+/// backed by Apollo's UserDefaults keys. A pinned preview draws a sample post
+/// with the feed's own row, so each change shows as you make it.
 ///
 /// Rows noted inline as WIRED are distinct Apollo settings implemented
 /// against their render site. CONSOLIDATED rows read and write an existing
@@ -21,8 +22,22 @@ public struct PostsSettingsScreen: View {
         self.accountManager = accountManager
     }
 
+    private var isCompact: Bool { generalSettings.postDisplayStyle == .compact }
+
+    /// The footer on a section whose rows only apply to the post size the
+    /// preview is not showing.
+    @ViewBuilder
+    private func otherSizeFooter(_ text: String, showing size: PostDisplayStyle) -> some View {
+        if generalSettings.postDisplayStyle == size {
+            Text(text + " The preview is showing \(size == .compact ? "Compact" : "Large") posts.")
+                .apolloSectionFooter()
+        }
+    }
+
     public var body: some View {
-        List {
+        SettingsPreviewScreenLayout(screen: .posts) {
+            PostsPreview(repository: accountManager.repository)
+        } content: {
             Section {
                 ApolloSettingsPicker("Post Size", selection: $generalSettings.postDisplayStyle,
                                  options: PostDisplayStyle.allCases.map { $0 },
@@ -53,10 +68,12 @@ public struct PostsSettingsScreen: View {
 
             Section {
                 Toggle("Show Voting Buttons", isOn: binding(\.largePostsShowVotingButtons))
-                    .apolloSearchRow("Show Voting Buttons")
+                    .apolloSearchRow("Show Voting Buttons", lastBeforeFooter: isCompact)
             } header: {
                 Text("Large Posts")
                     .apolloSectionHeader()
+            } footer: {
+                otherSizeFooter("These apply to Large posts.", showing: .compact)
             }
 
             Section {
@@ -69,11 +86,13 @@ public struct PostsSettingsScreen: View {
                 ApolloSettingsPicker("Voting Buttons Position", selection: binding(\.votingButtonsPosition),
                                  options: Array(AppearanceEdgePosition.allCases),
                                  display: { $0.title })
-                    .apolloSearchRow("Voting Buttons Position")
+                    .apolloSearchRow("Voting Buttons Position", lastBeforeFooter: !isCompact)
                     .accessibilityIdentifier("appearance.votingButtonsPosition")
             } header: {
                 Text("Compact Posts")
                     .apolloSectionHeader()
+            } footer: {
+                otherSizeFooter("These apply to Compact posts.", showing: .large)
             }
 
             Section {
@@ -91,10 +110,12 @@ public struct PostsSettingsScreen: View {
                     .apolloSearchRow("Show Self Post Thumbnails")
                     .accessibilityIdentifier("appearance.showSelfPostThumbnails")
                 Toggle("Text Post Thumbnails", isOn: $generalSettings.textPostThumbnailsEnabled)
-                    .apolloSearchRow("Text Post Thumbnails")
+                    .apolloSearchRow("Text Post Thumbnails", lastBeforeFooter: !isCompact)
             } header: {
                 Text("Thumbnails")
                     .apolloSectionHeader()
+            } footer: {
+                otherSizeFooter("Size, Position and Self Post Thumbnails apply to Compact posts.", showing: .large)
             }
 
             Section {
@@ -130,7 +151,6 @@ public struct PostsSettingsScreen: View {
             PollsSections(accountManager: accountManager)
         }
         .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
         .navigationTitle(SettingsCategory.posts.title)
         .navigationBarTitleDisplayModeIfAvailable()
     }

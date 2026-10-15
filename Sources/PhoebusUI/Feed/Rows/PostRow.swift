@@ -1,6 +1,19 @@
 import SwiftUI
 import PhoebusCore
 
+/// The height of a large row's picture (`PostRow.heroHeight`); a settings
+/// preview shortens it to stay compact.
+private struct PostRowHeroHeightKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 240
+}
+
+extension EnvironmentValues {
+    var postRowHeroHeight: CGFloat {
+        get { self[PostRowHeroHeightKey.self] }
+        set { self[PostRowHeroHeightKey.self] = newValue }
+    }
+}
+
 struct PostRow: View {
     /// "Translate Post Titles" result for this row, nil when off or
     /// pending (see `TitleTranslation`).
@@ -46,6 +59,7 @@ struct PostRow: View {
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.apolloTextScale) var textScale
     @Environment(\.apolloTheme) var themeColors
+    @Environment(\.postRowHeroHeight) var heroHeight
 
     var voteState: Bool? { voteStore.vote(for: post.name, serverValue: post.likes) }
     var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }

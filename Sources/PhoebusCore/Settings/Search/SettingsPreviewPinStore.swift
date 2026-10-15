@@ -16,6 +16,8 @@ public enum SettingsPreviewScreen: String, Sendable, CaseIterable {
     case profileLayout = "ProfileLayoutPreviewPinned"
     // Phoebus's Text Sizes & Fonts preview, keyed the same way.
     case textSizes = "TextSizesPreviewPinned"
+    // Phoebus's Posts preview, keyed the same way.
+    case posts = "PostsPreviewPinned"
 }
 
 /// Whether each screen's live preview card stays pinned.

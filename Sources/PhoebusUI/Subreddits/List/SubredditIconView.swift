@@ -14,6 +14,7 @@ public struct SubredditIconView: View {
     let size: CGFloat
 
     @Setting(GeneralSettingsStore.storage) private var settings
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
     @State private var icons: SubredditIconCache.Icons?
     private var iconURLString: String? { icons?.url(useCommunityIcons: settings.useCommunityIcons) }
     /// The lookup finished and the subreddit has no icon to show.
@@ -65,6 +66,11 @@ public struct SubredditIconView: View {
 
     private func resolve() async {
         guard !subreddit.isEmpty else { return }
+        // A settings preview draws the letter icon rather than look one up.
+        if isSettingsPreview {
+            icons = SubredditIconCache.Icons(classic: nil, community: nil)
+            return
+        }
         if let known = await SubredditIconCache.shared.lookup(subreddit) {
             icons = known
             return

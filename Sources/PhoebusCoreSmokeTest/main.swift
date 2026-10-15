@@ -458,6 +458,7 @@ try await checkSettingsRowsDoNotRepeatTheirCategory()
 try await checkSettingsPreviewSampleDecodesLikeALiveListing()
 try await checkSettingsPreviewSampleThreadFollowsTheCollapseSettings()
 try await checkSettingsPreviewSampleStandsInForTheAccount()
+try await checkSettingsPreviewScreensHaveTheirOwnPinKeys()
 
 try await checkGlassNeedsTheAppSOwn()
 

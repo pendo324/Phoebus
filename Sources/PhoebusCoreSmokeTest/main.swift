@@ -446,6 +446,14 @@ try await checkSignInToYouTube()
 
 try await checkSettingsRootRowsAreInThe()
 
+// The unified settings tree: twelve categories, every screen reachable once.
+try await checkSettingsTreeReachesEveryScreenOnce()
+try await checkSettingsCategoriesAreUnique()
+try await checkSettingsCategoryTrailingValues()
+try await checkSettingsSearchResolvesToRoutableScreens()
+try await checkRetiredSettingsShortcutIDMigrates()
+try await checkSettingsRowsDoNotRepeatTheirCategory()
+
 try await checkGlassNeedsTheAppSOwn()
 
 // --- Devvit post detection (Reborn "Live Interactive Posts") ---

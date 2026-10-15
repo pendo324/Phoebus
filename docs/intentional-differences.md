@@ -229,8 +229,9 @@ Apollo or Reborn, add an entry here.
   themselves, in sections; it pushes a screen of its own only for a list
   editor (filters, blocked users, watchers, backups), a screen with a
   pinned live preview (Inline Images, Preview Cards, Subreddit Layout,
-  Subreddit List Sections, Profile Layout, Text Sizes & Fonts) or a
-  multi-step tool (Theme Manager, App Icon, Translation, Phoebus AI).
+  Subreddit List Sections, Profile Layout, Text Sizes & Fonts, Thread
+  Colours) or a multi-step tool (Theme Manager, App Icon, Translation,
+  Phoebus AI).
   Apollo's General screen (46 rows from five unrelated jobs: 19 of them
   comment settings), Interface, Deleted Comments, Portrait Lock,
   Passcode, Notifications, Marking Read / Hiding, Polls, User Profiles
@@ -314,6 +315,19 @@ Apollo or Reborn, add an entry here.
   three choosers), which keeps Media near 30 rows. Subreddit Watchers
   holds Reborn's trending subreddits too, since both lists come from one
   backend call.
+
+- **Posts and Comments show a live preview drawn with the app's own
+  rows.** A card pinned above the settings shows a sample post at the
+  current Post Size (with a small poll under it), and a sample thread
+  under Comments and Thread Colours: a pinned AutoModerator comment, a
+  new one from a new account, a followed user's edited reply, yours and
+  a removed one. They are the feed's `PostRow` and the thread's
+  `CommentRow`, so they change as you set. Apollo and Reborn have no
+  such preview for posts or comments, only the Reborn previews listed
+  above. Sections whose rows apply only to the size not being shown say
+  so in their footer. The preview takes no taps and reads nothing about
+  your account: the sample's "you" and followed user stand in for it.
+  Row details: components.md, "Settings previews".
 
 - **A settings screen has one entrance.** Each screen is pushed from
   exactly one row, and has one name everywhere: its row, its navigation

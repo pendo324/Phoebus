@@ -390,13 +390,6 @@ public extension View {
             .padding(.top, topGap)
     }
 
-    /// The settings hub's section header, with the pulls measured on
-    /// Reborn's hub.
-    func apolloCategorySectionHeader() -> some View {
-        apolloSectionHeader(topGap: -21, bottomGap: -17,
-                            textDrop: 8)
-    }
-
     /// A category screen's footer, with the pulls measured on Reborn's
     /// hub (its plain list floors the footer-to-next-header gap).
     func apolloCategorySectionFooter() -> some View {

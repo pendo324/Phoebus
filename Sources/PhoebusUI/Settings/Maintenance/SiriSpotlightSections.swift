@@ -6,30 +6,30 @@ import PhoebusCore
 /// the subscribed communities, and what the index holds. The work runs in the
 /// app's content service (`SiriContent.controller`); this only asks it.
 @MainActor
-public struct SiriSpotlightSettingsScreen: View {
+struct SiriSpotlightSections: View {
     @Setting(SiriContentSettings.enabled) private var enabled
     @State private var busy = false
     @State private var statusText = "Checking index…"
 
-    public init() {}
-
-    public var body: some View {
-        List {
+    var body: some View {
+        Group {
             Section {
                 Toggle("Index Phoebus Content", isOn: Binding(
                     get: { enabled },
                     set: { newValue in run { await $0.setIndexing(newValue) } }
                 ))
                 .disabled(busy)
+                // search: requires iOS27; item "Siri & Spotlight"
                 .apolloSearchRow("Index Phoebus Content")
                 .accessibilityIdentifier("siri.enabled")
 
                 Button("Refresh Subscribed Communities") { run { await $0.refreshSubscriptions() } }
                     .disabled(busy || !enabled)
+                    // search: requires iOS27
                     .apolloSearchRow("Refresh Subscribed Communities", lastBeforeFooter: true)
                     .accessibilityIdentifier("siri.refresh")
             } header: {
-                Text("Searchable Content")
+                Text("Siri & Spotlight")
                     .apolloSectionHeader()
             } footer: {
                 Text("Makes eligible public, non-NSFW posts loaded in Phoebus and subscribed communities searchable in Spotlight and Siri. Up to 1,000 posts and 500 communities are retained for 30 days. Turning off clears this index. Private communities and hidden or removed posts are excluded.")
@@ -41,6 +41,7 @@ public struct SiriSpotlightSettingsScreen: View {
                     .accessibilityIdentifier("siri.status")
                 Button("Check Index Status") { run { await $0.indexStatus() } }
                     .disabled(busy)
+                    // search: requires iOS27
                     .apolloSearchRow("Check Index Status", lastBeforeFooter: true)
                     .accessibilityIdentifier("siri.check")
             } header: {
@@ -51,8 +52,6 @@ public struct SiriSpotlightSettingsScreen: View {
                     .apolloSectionFooter()
             }
         }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Siri & Spotlight")
         .task { run { await $0.indexStatus() } }
     }
 

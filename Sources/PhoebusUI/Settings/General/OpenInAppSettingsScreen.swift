@@ -78,8 +78,9 @@ public struct OpenInAppSettingsScreen: View {
                 Text("Browser")
                     .apolloSectionHeader()
             } footer: {
-                // Verbatim, minus its closing "This is Apollo's own setting, relocated here."
-                Text("Choose where every other web link opens. In-App Safari opens links inside Phoebus; Safari and the other browsers appear as they're installed. This is Phoebus's own setting, relocated here.")
+                // Reborn's footer, less its closing "This is Apollo's own setting,
+                // relocated here.": the screen is also a General row.
+                Text("Choose where every other web link opens. In-App Safari opens links inside Phoebus; Safari and the other browsers appear as they're installed.")
                     .apolloSectionFooter()
             }
 

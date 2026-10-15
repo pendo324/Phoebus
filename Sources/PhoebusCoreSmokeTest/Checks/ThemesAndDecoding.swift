@@ -409,10 +409,12 @@ import PhoebusCore
     }
 }
 
-// --- Settings root row order and tiles ---
+// --- Settings screen inventory: Apollo's own row order and tiles ---
 //
-// The root order is: General, Appearance, Notifications, App Icon,
-// Passcode, Filters & Blocks, Gestures.
+// SettingsSection keeps real Apollo's settings rows — their order, titles,
+// glyphs and tile colours — as the inventory of screens the settings tree
+// hangs on. The root itself is the twelve categories now (see
+// Checks/SettingsTree.swift), so this is the catalogue rather than the root.
 @MainActor func checkSettingsRootRowsAreInThe() async throws {
     do {
         let order = SettingsSection.allCases.map(\.rawValue)
@@ -435,8 +437,9 @@ import PhoebusCore
               && SettingsSection.gestures.title == "Gestures"
               && SettingsSection.about.title == "About"
               && SettingsSection.security.title == "Passcode")
-        // Screens outside the main group are kept but sit below the run rather
-        // than being interleaved into it.
+        // The attested run leads the catalogue; rows outside Apollo's own
+        // main group (theme, accounts, portrait lock, marking read) keep
+        // their place below it rather than being interleaved.
         check("unattested settings rows sit below the real ones",
               Set(order.dropFirst(real.count)).isDisjoint(with: Set(real)))
 

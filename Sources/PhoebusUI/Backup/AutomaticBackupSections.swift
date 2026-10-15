@@ -1,10 +1,10 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's Automatic Backups (PR #1060): an Automatic Backups switch, Back Up
-/// Now, a "Backup Schedule" section holding Backup Interval, a "Backup
-/// Activity" section holding Last Backup, Next Backup and a failure row, then
-/// Manage Backups.
+/// Reborn's Automatic Backups (PR #1060), as sections of Data & Storage: an
+/// Automatic Backups switch, Back Up Now, a "Backup Schedule" section holding
+/// Backup Interval, a "Backup Activity" section holding Last Backup, Next
+/// Backup and a failure row, then Manage Backups.
 ///
 /// Visibility rules: the schedule/activity sections show only while backups are
 /// enabled (`automaticVisible`); the failure row only when there is an error;
@@ -13,7 +13,7 @@ import PhoebusCore
 /// Next Backup shows "Backing Up…" while running, a "Retry: …" prefix when a
 /// failure is in backoff, otherwise the next scheduled date.
 @MainActor
-public struct AutomaticBackupSettingsScreen: View {
+struct AutomaticBackupSections: View {
     @Setting(AutomaticBackupSettingsStore.storage) private var settings
     @State private var isBackingUp = false
     @State private var lastBackup = AutomaticBackupSettingsStore.lastBackup
@@ -27,8 +27,6 @@ public struct AutomaticBackupSettingsScreen: View {
     @State private var exportURL: URL?
     @State private var exportResult: (title: String, message: String)?
     @State private var exportedName: String?
-
-    public init() {}
 
     private var nextBackupText: String {
         if isBackingUp { return "Backing Up…" }
@@ -52,8 +50,8 @@ public struct AutomaticBackupSettingsScreen: View {
         return formatter.string(from: date)
     }
 
-    public var body: some View {
-        List {
+    var body: some View {
+        Group {
             Section {
                 Toggle("Automatic Backups", isOn: Binding(
                     get: { settings.enabled },
@@ -71,6 +69,38 @@ public struct AutomaticBackupSettingsScreen: View {
                     .disabled(isBackingUp)
                     .apolloSearchRow("Back Up Now", lastBeforeFooter: true)
                     .accessibilityIdentifier("automatic.backupNow")
+                    #if canImport(UIKit)
+                    // A swipe-down dismissal reports nothing, so it reads as Cancel.
+                    .sheet(item: $exportURL, onDismiss: {
+                        if exportResult == nil, let name = exportedName {
+                            exportResult = ("Backup Saved Locally", "\(name) remains in Manage Backups. Export it before deleting Phoebus.")
+                        }
+                        exportedName = nil
+                    }) { url in
+                        BackupExportPicker(url: url) { exported in
+                            exportURL = nil
+                            exportResult = exported
+                                ? ("Backup Complete", "\(url.lastPathComponent) was saved locally and exported to Files. It contains your logged-in account credentials. Keep it private.")
+                                : ("Backup Saved Locally", "\(url.lastPathComponent) remains in Manage Backups. Export it before deleting Phoebus.")
+                        }
+                        .ignoresSafeArea()
+                    }
+                    #endif
+                    .alert(exportResult?.title ?? "", isPresented: Binding(get: { exportResult != nil },
+                                                                           set: { if !$0 { exportResult = nil } })) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text(exportResult?.message ?? "")
+                    }
+                    .alert("Backup Complete", isPresented: $showingCredentialWarning) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        // Second sentence of Reborn's alert.
+                        Text("Your backup was saved. It contains your logged-in account credentials. Keep it private.")
+                    }
+            } header: {
+                Text("Backups")
+                    .apolloSectionHeader()
             } footer: {
                 Text("Saves your settings on a schedule while Phoebus is open.")
                     .apolloSectionFooter()
@@ -122,51 +152,9 @@ public struct AutomaticBackupSettingsScreen: View {
             // Reborn's "Manage Backups" row, with the count, pushing the
             // archive list (restore, export, delete).
             Section {
-                SettingsLink {
-                    LocalBackupsScreen()
-                } label: {
-                    HStack {
-                        Text("Manage Backups")
-                        Spacer()
-                        if !archives.isEmpty {
-                            Text("\(archives.count)").foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .apolloPlainSettingsRowInsets(rule: false)
-                .accessibilityIdentifier("automatic.manage")
+                SettingsDrillDownRow(destination: .localBackups, value: archives.isEmpty ? "" : "\(archives.count)",
+                                     lastBeforeFooter: true)
             }
-        }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Automatic Backups")
-        #if canImport(UIKit)
-        // A swipe-down dismissal reports nothing, so it reads as Cancel.
-        .sheet(item: $exportURL, onDismiss: {
-            if exportResult == nil, let name = exportedName {
-                exportResult = ("Backup Saved Locally", "\(name) remains in Manage Backups. Export it before deleting Phoebus.")
-            }
-            exportedName = nil
-        }) { url in
-            BackupExportPicker(url: url) { exported in
-                exportURL = nil
-                exportResult = exported
-                    ? ("Backup Complete", "\(url.lastPathComponent) was saved locally and exported to Files. It contains your logged-in account credentials. Keep it private.")
-                    : ("Backup Saved Locally", "\(url.lastPathComponent) remains in Manage Backups. Export it before deleting Phoebus.")
-            }
-            .ignoresSafeArea()
-        }
-        #endif
-        .alert(exportResult?.title ?? "", isPresented: Binding(get: { exportResult != nil },
-                                                               set: { if !$0 { exportResult = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(exportResult?.message ?? "")
-        }
-        .alert("Backup Complete", isPresented: $showingCredentialWarning) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            // Second sentence of Reborn's alert.
-            Text("Your backup was saved. It contains your logged-in account credentials. Keep it private.")
         }
         .onAppear {
             now = Date()

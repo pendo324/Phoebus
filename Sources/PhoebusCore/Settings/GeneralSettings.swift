@@ -574,7 +574,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// own default instead.
     public var ignoreSuggestedSort: Bool
     /// Real key: `RememberRedditCommentsSort` ("Remember Subreddit
-    /// Sort"). `GeneralSettingsScreen`'s row reads/writes
+    /// Sort"). Comments' row reads/writes
     /// `CommentSortMemoryStore`'s `.subreddit` mode instead; this field
     /// is kept only so old persisted JSON still decodes.
     public var rememberCommentsSortPerSubreddit: Bool

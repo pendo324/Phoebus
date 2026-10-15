@@ -53,7 +53,7 @@ public struct ActionMenusSettingsScreen: View {
         .id(revision)
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Customize Action Menus")
+        .navigationTitle("Action Menus")
         .onReceive(NotificationCenter.default.publisher(for: .apolloActionMenuLayoutsChanged)) { _ in
             revision += 1
         }

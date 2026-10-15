@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Reborn's "Can't sign in?" troubleshooting disclosure, reachable from the
-/// "Sign-In" section of Accounts & API Keys. Content is verbatim from Reborn.
+/// "Sign-In" section of API Keys & Sign-In. Content is verbatim from Reborn.
 /// Sign-in failures in the embedded web view are most commonly a stuck
 /// cookie-consent prompt rather than a credentials problem, so steps 1-4 cover
 /// that first.
@@ -44,7 +44,7 @@ public struct SignInTroubleshootingScreen: View {
                 step(
                     number: 5,
                     title: "Redirect URI mismatch",
-                    body: "If you're using your own Reddit API client, its \"redirect uri\" in reddit.com/prefs/apps must match exactly what's configured under Custom API here, including scheme and trailing slashes. A mismatch fails silently or shows a generic Reddit error page. If your client's redirect URI is an ordinary http(s):// URL rather than a custom app scheme, turn on \"Universal OAuth Sign-In\" (Accounts & API Keys → Sign-In) — it uses an in-app web view instead of relying on the OS to catch the redirect."
+                    body: "If you're using your own Reddit API client, its \"redirect uri\" in reddit.com/prefs/apps must match exactly what's configured under Custom API here, including scheme and trailing slashes. A mismatch fails silently or shows a generic Reddit error page. If your client's redirect URI is an ordinary http(s):// URL rather than a custom app scheme, turn on \"Universal OAuth Sign-In\" (API Keys & Sign-In → Sign-In) — it uses an in-app web view instead of relying on the OS to catch the redirect."
                 )
                 step(
                     number: 6,

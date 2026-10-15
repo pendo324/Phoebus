@@ -45,7 +45,7 @@ public struct BugReportScreen: View {
             Text("Bug reporting requires WebKit.")
             #endif
         }
-        .navigationTitle("Bug Report")
+        .navigationTitle("Bug Reports")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

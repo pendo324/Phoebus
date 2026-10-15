@@ -1,8 +1,10 @@
 import Foundation
 
-/// Apollo's "Is Apollo Still Taking up Storage?" explainer. Every string
-/// matches Apollo's copy verbatim, including the ➔ arrows, the curly
-/// apostrophes, and the parenthetical between the two halves of the sentence.
+/// Apollo's "Is Apollo Still Taking up Storage?" explainer, titled "What
+/// Phoebus Keeps on Disk" here so its row doesn't repeat Data & Storage.
+/// The body strings match Apollo's copy verbatim, including the ➔ arrows,
+/// the curly apostrophes, and the parenthetical between the two halves of
+/// the sentence.
 ///
 /// iOS reports the app's storage as larger than its own cache because
 /// WKWebView's website data is counted against the app but is not the app's
@@ -10,7 +12,7 @@ import Foundation
 /// sizes.
 public enum CacheExplainer {
     /// Screen title.
-    public static let title = "Is Phoebus Still Taking up Storage?"
+    public static let title = "What Phoebus Keeps on Disk"
 
     /// First paragraph.
     public static let introduction =

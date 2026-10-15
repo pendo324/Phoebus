@@ -1,7 +1,7 @@
 import SwiftUI
 import PhoebusCore
 
-/// "Comment Filters" (`Settings → Filters & Blocks`): named filters that hide
+/// "Comment Rules" (`Settings → Filters → Comment Rules`): named filters that hide
 /// or collapse comments by score, words or author. Phoebus's own; neither
 /// Apollo nor Reborn filters comments beyond blocked users.
 struct CommentFiltersScreen: View {
@@ -37,7 +37,7 @@ struct CommentFiltersScreen: View {
             }
         }
         .apolloSettingsListAppearance()
-        .navigationTitle("Comment Filters")
+        .navigationTitle("Comment Rules")
         .accessibilityIdentifier("commentFilters.screen")
         .toolbar {
             if !filters.isEmpty {

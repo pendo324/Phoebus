@@ -48,7 +48,7 @@ public struct CommentsThemeSettingsScreen: View {
             }
         }
         .apolloSettingsListAppearance()
-        .navigationTitle("Comments Theme")
+        .navigationTitle("Thread Colours")
         .navigationBarTitleDisplayModeIfAvailable()
     }
 

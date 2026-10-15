@@ -9,6 +9,9 @@ public struct DeleteImgurUploadsScreen: View {
     @State private var records: [ImgurUploadRecord] = ImgurUploadHistoryStore.load()
     @State private var deletionError: String?
     @State private var copiedHashAlert = false
+    /// Uploads chosen to delete, waiting for the confirmation: this
+    /// deletes from Imgur itself, so it is not a one-tap swipe.
+    @State private var pendingDeletion: IndexSet?
 
     public init() {}
 
@@ -45,7 +48,7 @@ public struct DeleteImgurUploadsScreen: View {
                             }
                         }
                     }
-                    .onDelete(perform: delete)
+                    .onDelete { offsets in pendingDeletion = offsets }
                 } footer: {
                     Text("Media you've uploaded to Imgur. View or delete, deleting will remove your upload from Imgur.")
                     .apolloSectionFooter()
@@ -56,6 +59,17 @@ public struct DeleteImgurUploadsScreen: View {
         .navigationTitle("Manage Imgur Uploads")
         .alert("Copied Delete Hash", isPresented: $copiedHashAlert) {
             Button("OK", role: .cancel) {}
+        }
+        .alert("Delete \(pendingDeletion?.count == 1 ? "This Upload" : "\(pendingDeletion?.count ?? 0) Uploads")?",
+               isPresented: Binding(get: { pendingDeletion != nil },
+                                    set: { if !$0 { pendingDeletion = nil } })) {
+            Button("Delete", role: .destructive) {
+                if let offsets = pendingDeletion { delete(at: offsets) }
+                pendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDeletion = nil }
+        } message: {
+            Text("This removes the upload from Imgur. The delete hash is in the row's context menu if you'd rather delete it there.")
         }
         .alert("Error Deleting Upload", isPresented: .constant(deletionError != nil)) {
             Button("OK", role: .cancel) { deletionError = nil }

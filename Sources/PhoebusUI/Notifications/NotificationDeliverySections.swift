@@ -4,8 +4,9 @@ import PhoebusCore
 import UIKit
 #endif
 
-/// Reborn's "Notification Backend" sub-screen, with real networking behind every
-/// row (`PushNotificationClient`):
+/// Reborn's "Notification Backend" sub-screen, as Inbox & Notifications' Delivery
+/// and Registration sections, with real networking behind every row
+/// (`PushNotificationClient`):
 ///
 ///  - "Test Connection" hits `GET /v1/health` on the self-hosted `apollo-backend`.
 ///  - "Test Bark Notification" POSTs straight to the Bark push URL, bypassing the
@@ -17,18 +18,18 @@ import UIKit
 ///  - "Send Test from Backend" asks the backend to push its own test (APNs or Bark),
 ///    proving the whole chain.
 ///  - "Unregister Device" deletes this device from the backend.
-public struct NotificationBackendSettingsScreen: View {
+struct NotificationDeliverySections: View {
     @Setting(NotificationSettings.self) private var notificationSettings
     @Setting(CustomAPISettings.self) private var customAPISettings
     @Setting(NotificationBackendSettingsStore.storage) private var settings
-    @State private var alertMessage: String?
+    /// The result of the last test or registration, shown by the screen that hosts
+    /// these sections (an alert on a row would close when the row scrolls away).
+    @Binding var alertMessage: String?
     @State private var busy = false
     @Environment(\.accountManager) private var accountManager
 
-    public init() {}
-
-    public var body: some View {
-        List {
+    var body: some View {
+        Group {
             Section {
                 TextField("Backend URL", text: Binding(
                     get: { settings.backendURL ?? "" },
@@ -37,6 +38,7 @@ public struct NotificationBackendSettingsScreen: View {
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                // search: item "Notification Backend"
                 .apolloSearchRow("Backend URL")
 
                 TextField("Registration Token", text: Binding(
@@ -74,7 +76,7 @@ public struct NotificationBackendSettingsScreen: View {
                 actionRow("Test Bark Notification", id: "notificationBackend.testBark") { await testBark() }
                     .apolloSearchRow("Test Bark Notification", lastBeforeFooter: true)
             } header: {
-                Text("Notification Backend")
+                Text("Delivery")
                     .apolloSectionHeader()
             } footer: {
                 Text("Self-hosted only. Leave empty to disable. This build has no Apple push entitlement, so notifications arrive through the free Bark app: set Bark Delivery and its push URL (from the Bark app) before registering.")
@@ -95,15 +97,6 @@ public struct NotificationBackendSettingsScreen: View {
                 Text("Registering sends this device's Bark push URL and your signed-in accounts' Reddit sign-in to your backend, which then checks your inbox and watchers and pushes new activity. Accounts signed in without an API key can't be watched by a backend.")
                     .apolloSectionFooter()
             }
-        }
-        .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
-        .navigationTitle("Notification Backend")
-        .overlay { if busy { ProgressView().controlSize(.large) } }
-        .alert("Notification Backend", isPresented: $alertMessage.isPresent()) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(alertMessage ?? "")
         }
     }
 

@@ -3,7 +3,7 @@ import Foundation
 /// Reborn's Info Row sub-screen: configures the feed post info row
 /// (score/comments/time bar): magnifier-on-hold, tap-to-upvote/comments/
 /// translate actions, and popup vs overlay detail-reveal mode. Pushed from
-/// Posts & Feeds > Feed's "Info Row" row.
+/// Feeds > Feed's "Info Row" row.
 ///
 /// Backs `UDKeyIconRowMagnifier`, `UDKeyInfoRowTapUpvote`,
 /// `UDKeyInfoRowTapComments`, `UDKeyInfoRowPopupMode`,

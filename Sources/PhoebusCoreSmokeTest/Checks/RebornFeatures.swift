@@ -1039,7 +1039,7 @@ import PhoebusCore
     }
 
     check("an exact screen name is the top result",
-          searchTitles("Gestures").first == "Gestures")
+          searchTitles("Gestures").first == "Gestures & Haptics")
     check("a prefix finds its screen",
           searchTitles("Pictu").contains("Picture-in-Picture"))
 
@@ -1049,17 +1049,17 @@ import PhoebusCore
 
     // Fuzzy rule: 4+ chars, one typo forgiven.
     check("a single substitution still finds the screen",
-          searchTitles("gesteres", 8).contains("Gestures"))
+          searchTitles("gesteres", 8).contains("Gestures & Haptics"))
     // Deliberate improvement on upstream: a transposition costs 1, not 2, so
     // the most common typo ("gestrues") still matches.
     check("a transposition still finds the screen, which upstream misses",
-          searchTitles("gestrues", 8).contains("Gestures"))
+          searchTitles("gestrues", 8).contains("Gestures & Haptics"))
     check("...and that is exactly what the distance function now says",
           SettingsSearch.editDistanceAtMost(Array("gestrues"), Array("gestures"), limit: 1) == 1)
     check("two separate typos are still rejected, so the cap did not widen",
           SettingsSearch.editDistanceAtMost(Array("gastrues"), Array("gestures"), limit: 1) > 1)
     check("a two-typo query does NOT match, matching the real one-edit cap",
-          !searchTitles("gzstrxes", 20).contains("Gestures"))
+          !searchTitles("gzstrxes", 20).contains("Gestures & Haptics"))
     check("a short query is not fuzzily matched, per the 4-character floor",
           SettingsSearch.tokenFuzzyMatchesWord("abc", "abcd") == false)
 
@@ -1103,6 +1103,36 @@ import PhoebusCore
     // Every entry resolves to a real screen case.
     check("every index entry names a known screen",
           SettingsSearch.index.allSatisfy { SettingsSearchScreen(rawValue: $0.screen.rawValue) != nil })
+
+    // A screen is found by its own entry, from the category screen that
+    // pushes it.
+    func topDestination(_ q: String) -> (screen: SettingsSearchScreen, crumb: String)? {
+        guard let top = SettingsSearch.results(for: q).first else { return nil }
+        return (top.screen, top.breadcrumb)
+    }
+    check("'Post Rules' finds the Filters drill-down",
+          topDestination("Post Rules")?.screen == .postRules)
+    check("'Comment Filters' finds the Comment Rules screen, from Filters",
+          topDestination("Comment Filters")?.screen == .commentFilters)
+    check("'Settings Shortcuts' finds the Integrations drill-down",
+          topDestination("Settings Shortcuts")?.screen == .settingsShortcuts)
+    check("...each from the category screen's own breadcrumb",
+          topDestination("Post Rules")?.crumb == "Settings → Filters"
+            && topDestination("Comment Filters")?.crumb == "Settings → Filters"
+            && topDestination("Settings Shortcuts")?.crumb == "Settings → Integrations")
+    // One door per screen, so each title is indexed once.
+    check("each pushed screen is indexed once, at its drill-down",
+          ["Post Rules", "Comment Rules", "Settings Shortcuts"].allSatisfy { title in
+              SettingsSearch.index.filter { $0.title == title }.count == 1 })
+    // Every drill-down's title is searchable at all.
+    let indexedTitles = Set(SettingsSearch.index.map(\.title))
+    let drillDownTitles = SettingsCategory.allCases.flatMap { $0.drillDowns.map(\.title) }
+    let everything = Set(SettingsRowRequirement.allCases.map(\.rawValue))
+    check("every drill-down's title is in the index",
+          drillDownTitles.allSatisfy { indexedTitles.contains($0) })
+    check("...and each of them is findable by its own name",
+          drillDownTitles.allSatisfy {
+              !SettingsSearch.results(for: $0, available: everything).isEmpty })
 }
 
 // MARK: - Pinned settings preview cards

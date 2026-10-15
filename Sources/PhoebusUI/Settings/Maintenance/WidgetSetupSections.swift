@@ -11,19 +11,17 @@ import UIKit
 ///
 /// The Status section says whether this install's signing lets the
 /// widgets work; see `docs/widgets-and-signing.md`.
-public struct WidgetSetupScreen: View {
+struct WidgetSetupSections: View {
     @State private var didCopy = false
 
-    public init() {}
-
-    public var body: some View {
-        List {
+    var body: some View {
+        Group {
             Section {
                 LabeledContent("App Group", value: sharing.appGroupAvailable ? "Available" : "Not granted")
                 LabeledContent("Sign-in for Widgets", value: credentialsSummary)
                 LabeledContent("Editable Widgets", value: sharing.mismatchedAppID == nil ? "Available" : "Blocked by signing")
             } header: {
-                Text("Status")
+                Text("Widget")
                     .apolloSectionHeader()
             } footer: {
                 Text(statusFooter)
@@ -42,17 +40,16 @@ public struct WidgetSetupScreen: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .tint(.accentColor)
-                .apolloPlainSettingsRowInsets(rule: false)
+                // search: item "Widget Setup"
+                .apolloSearchRow("Copy Widget Setup Code", lastBeforeFooter: true)
             } header: {
-                Text("Extras")
+                Text("Widget Setup Code")
                     .apolloSectionHeader()
             } footer: {
                 Text("Copy a code to set up the Phoebus home-screen widget.")
                     .apolloSectionFooter()
             }
         }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Widget Setup")
     }
 
     private var sharing: SharedFeedCache.SharingStatus { SharedFeedCache.sharingStatus }

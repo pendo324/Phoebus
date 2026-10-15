@@ -1,26 +1,30 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's "Posts & Feeds" (Apollo Reborn -> Features): Recently Read, Feed,
-/// Floating Tabs. Row titles and footers are verbatim.
-public struct PostsFeedsSettingsScreen: View {
-    @Setting(InfoRowSettings.self) private var infoRowSettings
+/// Feed: how the feed loads and sorts, what counts as read, the posts it
+/// remembers and keeps open, and the subreddit list. Apollo's General Posts
+/// rows, its Mark Read / Hiding Posts and Subreddits screens and Reborn's
+/// Posts & Feeds are its sections. Row titles and footers are verbatim.
+public struct FeedSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var settings
     @Setting(RecentlyReadSettingsStore.storage) private var recentlyRead
-    @Setting(FeedVideoScrubberStore.storage) private var scrubber
     @Setting(FloatingPostTabsSettingsStore.storage) private var floatingTabs
 
     public init() {}
 
     public var body: some View {
         List {
+            FeedBehaviourSections()
+            ReadPostsSections()
             recentlyReadSection
-            feedSection
             floatingTabsSection
+            interactivePostsSection
+            SubredditListSections()
+            searchSection
         }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Posts & Feeds")
+        .navigationTitle(SettingsCategory.feed.title)
         .navigationBarTitleDisplayModeIfAvailable()
     }
 
@@ -59,36 +63,32 @@ public struct PostsFeedsSettingsScreen: View {
         }
     }
 
-    /// Row order: Text Post Thumbnails, Info Row (disclosure), Feed Video Scrubber,
-    /// Forget Forward Swipe After Scrolling, Block Announcements, Live Interactive
-    /// Posts, Show in Feed (shown only while the one above is on).
-    private var feedSection: some View {
+    /// Where the Search tab gets its trending and random subreddits, and its history.
+    private var searchSection: some View {
         Section {
-            Toggle("Text Post Thumbnails", isOn: $settings.textPostThumbnailsEnabled)
-                    .apolloSearchRow("Text Post Thumbnails")
-            // Kept at x 33 like every other row rather than the default x 17.
-            SettingsLink {
-                InfoRowSettingsScreen()
-            } label: {
-                // Value on the trailing edge (Reborn #1351).
-                ValueRow(title: "Info Row", value: infoRowSettings.summaryText)
-            }
-            .apolloSearchRow("Info Row")
-            Toggle("Feed Video Scrubber", isOn: $scrubber.isEnabled)
-                    .apolloSearchRow("Feed Video Scrubber")
-            Toggle("Forget Forward Swipe After Scrolling", isOn: $settings.forwardSwipeForgetAfterScrolling)
-                    .apolloSearchRow("Forget Forward Swipe After Scrolling")
+            SettingsDrillDownRow(destination: .searchSources, lastBeforeFooter: true)
+        } header: {
+            Text("Search")
+                .apolloSectionHeader()
+        }
+    }
+
+    /// Reborn's Feed rows that remain here: Feed Video Scrubber, Forget Forward Swipe
+    /// After Scrolling, Live Interactive Posts and Show in Feed (shown only while the
+    /// one above is on). Text Post Thumbnails and Info Row are Posts rows.
+    private var interactivePostsSection: some View {
+        Section {
             Toggle("Live Interactive Posts", isOn: $settings.devvitInteractivePosts)
-                    .apolloSearchRow("Live Interactive Posts")
+                    .apolloSearchRow("Live Interactive Posts", lastBeforeFooter: !settings.devvitInteractivePosts)
             if settings.devvitInteractivePosts {
                 Toggle("Show in Feed", isOn: $settings.devvitFeedWidgets)
                     .apolloSearchRow("Show in Feed", lastBeforeFooter: true)
             }
         } header: {
-            Text("Feed")
+            Text("Interactive Posts")
                 .apolloSectionHeader()
         } footer: {
-            Text("Feed Video Scrubber: drag the bar under a feed video to scrub it.\n\nForget Forward Swipe After Scrolling: once you've scrolled a few posts on, a forward swipe won't reopen the post you came back from.\n\nLive Interactive Posts: shows live scores, polls, brackets and other interactive posts instead of placeholder text. Show in Feed adds them to the feed as well as comments.")
+            Text("Live Interactive Posts: shows live scores, polls, brackets and other interactive posts instead of placeholder text. Show in Feed adds them to the feed as well as comments.")
                     .apolloSectionFooter()
         }
     }

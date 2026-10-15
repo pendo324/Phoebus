@@ -4,65 +4,53 @@ import PhoebusCore
 import LocalAuthentication
 #endif
 
-/// Apollo's Face ID / Touch ID & Passcode screen. Strings are verbatim and vary by
+/// Apollo's Face ID / Touch ID & Passcode section. Strings are verbatim and vary by
 /// the device's biometry: "Require Passcode" / "Require Touch ID" is the row label,
 /// "Lock with Passcode" / "Lock with Touch ID & Passcode" / "Lock with Face ID &
-/// Passcode" the section header, and each biometry has its own footer sentence.
-public struct SecuritySettingsScreen: View {
+/// Passcode" the switch's title, and each biometry has its own footer sentence.
+struct PasscodeSections: View {
     @Setting(AppLockStore.storage) private var settings
     @State private var errorMessage: String?
 
-    public init() {}
-
-    public var body: some View {
-        List {
-            Section {
-                // The switch row is titled "Lock with Passcode" (or the Touch/Face ID variant),
-                // not "Require …".
-                Toggle(sectionHeader, isOn: Binding(
-                    get: { settings.isEnabled },
-                    set: { newValue in
-                        if newValue {
-                            enableLock()
-                        } else {
-                            $settings.isEnabled.wrappedValue = false
-                        }
-                    }
-                ))
-                .apolloSearchRow(sectionHeader)
-                .accessibilityIdentifier("security.requireToggle")
-                // Two rows, the second a "Require Passcode · Immediately" value row; no section
-                // header. "Require Face ID" (by biometry) is enabled whether or not the lock is
-                // on, as in Apollo.
-                ApolloSettingsPicker(rowTitle, selection: Binding(
-                    get: { settings.requireAfterSeconds },
-                    set: { $settings.requireAfterSeconds.wrappedValue = $0 }),
-                    options: AppLockSettings.requireAfterChoices.map { $0.seconds },
-                    display: { v in AppLockSettings.requireAfterChoices.first { $0.seconds == v }?.title ?? "Immediately" })
-                    .apolloSearchRow("Require Passcode", lastBeforeFooter: true)
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(footerText)
-                    if let errorMessage {
-                        Text(errorMessage).foregroundStyle(.red)
-                    }
-                    if let note = biometryEnrollmentNote {
-                        Text(note)
+    var body: some View {
+        Section {
+            // The switch row is titled "Lock with Passcode" (or the Touch/Face ID variant),
+            // not "Require …".
+            Toggle(sectionHeader, isOn: Binding(
+                get: { settings.isEnabled },
+                set: { newValue in
+                    if newValue {
+                        enableLock()
+                    } else {
+                        $settings.isEnabled.wrappedValue = false
                     }
                 }
-                .apolloSectionFooter()
+            ))
+            // Titled by biometry, so it is searched by the section's name.
+            .apolloSearchRow("Passcode")
+            .accessibilityIdentifier("security.requireToggle")
+            // The second row is a "Require Passcode · Immediately" value row. "Require Face ID"
+            // (by biometry) is enabled whether or not the lock is on, as in Apollo.
+            ApolloSettingsPicker(rowTitle, selection: Binding(
+                get: { settings.requireAfterSeconds },
+                set: { $settings.requireAfterSeconds.wrappedValue = $0 }),
+                options: AppLockSettings.requireAfterChoices.map { $0.seconds },
+                display: { v in AppLockSettings.requireAfterChoices.first { $0.seconds == v }?.title ?? "Immediately" })
+                .apolloSearchRow("Require Passcode", lastBeforeFooter: true)
+        } header: {
+            Text("Passcode")
+                .apolloSectionHeader()
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(footerText)
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
+                if let note = biometryEnrollmentNote {
+                    Text(note)
+                }
             }
-        }
-        .apolloSettingsListAppearance()
-        // The root row's title: "Face ID & Passcode" on a Face ID phone.
-        .navigationTitle(navigationTitle)
-    }
-
-    private var navigationTitle: String {
-        switch AppLockStore.biometry {
-        case .none: return "Passcode"
-        case .touchID: return "Touch ID & Passcode"
-        case .faceID: return "Face ID & Passcode"
+            .apolloSectionFooter()
         }
     }
 

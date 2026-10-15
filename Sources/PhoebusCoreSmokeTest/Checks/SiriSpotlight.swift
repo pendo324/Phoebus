@@ -513,8 +513,13 @@ private struct SiriGateFailure: Error {}
     check("Siri settings: a backup can switch it off", !SiriContentSettings.isEnabled)
     _ = ApolloSettingsMigration.apply(.init(preferences: ["ApolloSiriContentEnabled": "yes"]))
     check("Siri settings: a value of the wrong type leaves it alone", !SiriContentSettings.isEnabled)
-    check("Siri settings: the screen is found by its rows in Settings search",
-          SettingsSearch.results(for: "index phoebus content").first?.screen == .siriSpotlight
-            && SettingsSearch.results(for: "siri spotlight").contains { $0.screen == .siriSpotlight })
+    // The section exists from iOS 27, so its entries need that available.
+    let iOS27: Set<String> = [SettingsRowRequirement.iOS27.rawValue]
+    check("Siri settings: the section is found by its rows in Settings search, on Integrations",
+          SettingsSearch.results(for: "index phoebus content", available: iOS27).first?.screen == .categoryIntegrations
+            && SettingsSearch.results(for: "siri spotlight", available: iOS27).first?.screen == .categoryIntegrations)
+    check("Siri settings: ...and not before iOS 27",
+          !SettingsSearch.results(for: "index phoebus content").contains { $0.screen == .categoryIntegrations }
+            && !SettingsSearch.results(for: "siri spotlight").contains { $0.title == "Siri & Spotlight" })
 }
 

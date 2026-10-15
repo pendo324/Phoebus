@@ -52,16 +52,6 @@ public struct ThemeSettingsScreen: View {
         return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
     }
 
-    /// The palette name shown on the Comments Theme row. Held in `@State` and
-    /// refreshed in `.onAppear`: SwiftUI evaluates an inline store read once and
-    /// caches it, so the row would show a stale palette.
-    @State private var commentsThemeDetail: String = ThemeSettingsScreen.currentCommentsThemeName()
-
-    static func currentCommentsThemeName() -> String {
-        CommentsThemeStore.overridePaletteName
-            ?? (ThemeStore.load().commentPaletteName ?? "Theme's Own")
-    }
-
     public var body: some View {
         // Reborn's Theme Manager: Current / Create / Browse / My Themes /
         // (Imported) / Options.
@@ -198,8 +188,7 @@ public struct ThemeSettingsScreen: View {
                     .apolloSectionHeader()
             }
 
-            // "Options": Light/Dark Mode and Comments Theme, both
-            // pushes into Apollo's own screens.
+            // "Options": Light/Dark Mode, a push into Apollo's own screen.
             Section {
                 SettingsLink {
                     LightDarkModeSettingsScreen()
@@ -209,19 +198,7 @@ public struct ThemeSettingsScreen: View {
                         Text("Light/Dark Mode")
                     }
                 }
-                .apolloSearchRow("Light/Dark Mode")
-                SettingsLink {
-                    CommentsThemeSettingsScreen()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "text.bubble").foregroundStyle(Color.apolloAccent).frame(width: 29)
-                        Text("Comments Theme")
-                        Spacer()
-                        Text(commentsThemeDetail).foregroundStyle(Color.secondary)
-                    }
-                }
-                .apolloSearchRow("Comments Theme")
-                .accessibilityIdentifier("theme.commentsTheme")
+                .apolloSearchRow("Light/Dark Mode", lastBeforeFooter: true)
             } header: {
                 Text("Options")
                     .apolloSectionHeader()
@@ -234,7 +211,6 @@ public struct ThemeSettingsScreen: View {
         .apolloSettingsListAppearance()
         .navigationTitle("Theme Manager")
         .onAppear {
-            commentsThemeDetail = Self.currentCommentsThemeName()
             customThemes = CustomThemeStore.all()
             selected = ThemeStore.load()
         }

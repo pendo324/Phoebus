@@ -164,7 +164,7 @@ final class CommentTreeStore: ObservableObject {
     /// at instead of blanking and refetching. See `fetch`.
     static let recentTrees = RecentCommentTreeCache()
 
-    /// The comment a link pointed at, which the Comment Filters leave alone.
+    /// The comment a link pointed at, which the Comment Rules leave alone.
     var focusedCommentID: String?
 
     /// Comments posted from this screen in the last two minutes, which a
@@ -504,14 +504,14 @@ final class CommentTreeStore: ObservableObject {
     }
 
 
-    /// The account's Reddit blocks plus Filters & Blocks author filters
+    /// The account's Reddit blocks plus Filters author filters
     /// (lowercased), for `HideBlockedUserComments`.
     private func blockedAuthors() -> Set<String> {
         BlockedUsersStore.lowercasedNames().union(
             ContentFilterStore.load().filter { $0.kind == .author }.map { $0.value.lowercased() })
     }
 
-    /// Blocked users, then the Comment Filters, on freshly built comments.
+    /// Blocked users, then the Comment Rules, on freshly built comments.
     private func filtered(_ nodes: [CommentTreeNode]) -> [CommentTreeNode] {
         nodes.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
             .applyingCommentFilters(CommentFilterStore.load(), subreddit: lastSubreddit,

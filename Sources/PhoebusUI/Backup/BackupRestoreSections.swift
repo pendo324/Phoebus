@@ -19,24 +19,10 @@ public enum BackupFileTypes {
     }
 }
 
-/// Reborn's "Backup & Restore" settings screen: export the current settings
-/// and accounts as an `.apollobackup` (`RebornBackupArchive`), or import one, a
-/// real Apollo backup, or an older Phoebus JSON export.
+/// Reborn's "Backup & Restore" screen, shown on its own from the sign-in
+/// screen's restore link.
 public struct BackupRestoreSettingsScreen: View {
-    @State private var isImporting = false
-    /// The archive being handed to Files.
-    @State private var exportURL: URL?
-    @State private var statusMessage: String?
-    @State private var showingRestoreConfirmation = false
-    @State private var pendingImportBundle: BackupBundle?
-    @State private var pendingApolloPayload: ApolloBackupImport.Payload?
-
-    /// A backup picked elsewhere (the hub's "Cloud Backup" path) to
-    /// import as soon as this screen appears.
     private let importURL: URL?
-
-    /// Hides Export, for the sign-in screen where there is nothing yet
-    /// to export.
     private let importOnly: Bool
 
     public init(importURL: URL? = nil, importOnly: Bool = false) {
@@ -46,22 +32,101 @@ public struct BackupRestoreSettingsScreen: View {
 
     public var body: some View {
         List {
+            BackupRestoreSections(importURL: importURL, importOnly: importOnly)
+        }
+        .apolloSettingsListAppearance()
+        .navigationTitle("Backup & Restore")
+    }
+}
+
+/// Reborn's "Backup & Restore" rows, as the Export & Restore sections of Data
+/// & Storage: export the current settings and accounts as an `.apollobackup`
+/// (`RebornBackupArchive`), or import one, a real Apollo backup, or an older
+/// Phoebus JSON export.
+struct BackupRestoreSections: View {
+    @State private var isImporting = false
+    /// The archive being handed to Files.
+    @State private var exportURL: URL?
+    @State private var statusMessage: String?
+    @State private var showingRestoreConfirmation = false
+    @State private var pendingImportBundle: BackupBundle?
+    @State private var pendingApolloPayload: ApolloBackupImport.Payload?
+    @State private var didHandleImportURL = false
+
+    /// A backup picked elsewhere (the hub's "Cloud Backup" path) to
+    /// import as soon as this screen appears.
+    let importURL: URL?
+
+    /// Hides Export, for the sign-in screen where there is nothing yet
+    /// to export.
+    let importOnly: Bool
+
+    var body: some View {
+        Group {
             if !importOnly {
-            Section {
-                Button("Export Settings…") { exportSettings() }
-                .apolloSearchRow("Export Settings…", lastBeforeFooter: true)
-            } footer: {
-                // Covers every setting; the credential sentence mirrors Reborn's
-                // post-export warning.
-                Text("Saves all of your settings to an Apollo_Backup_….apollobackup file, Apollo Reborn's backup format, including your signed-in accounts. It contains your logged-in account credentials. Keep it private.")
-                    .apolloSectionFooter()
-            }
+                Section {
+                    Button("Export Settings…") { exportSettings() }
+                    // search: item "Backup & Restore"
+                    .apolloSearchRow("Export Settings…", lastBeforeFooter: true)
+                    #if canImport(UIKit)
+                    .sheet(item: $exportURL, onDismiss: removeExport) { url in
+                        BackupExportPicker(url: url) { exported in
+                            statusMessage = exported ? "Exported \(url.lastPathComponent)." : nil
+                            exportURL = nil
+                        }
+                        .ignoresSafeArea()
+                    }
+                    #endif
+                } header: {
+                    Text("Export & Restore")
+                        .apolloSectionHeader()
+                } footer: {
+                    // Covers every setting; the credential sentence mirrors Reborn's
+                    // post-export warning.
+                    Text("Saves all of your settings to an Apollo_Backup_….apollobackup file, Apollo Reborn's backup format, including your signed-in accounts. It contains your logged-in account credentials. Keep it private.")
+                        .apolloSectionFooter()
+                }
             }
             Section {
                 Button("Import Settings…") {
                     isImporting = true
                 }
                 .apolloSearchRow("Import Settings…", lastBeforeFooter: true)
+                // `.zip` as well as `.json`: a real Apollo backup (`Apollo_Backup_*.zip`)
+                // imports directly. See `ApolloBackupImport`.
+                .apolloDocumentImporter(isPresented: $isImporting, allowedContentTypes: BackupFileTypes.restorable) { result in
+                    handleImportPick(result)
+                }
+                .onAppear {
+                    guard let importURL, !didHandleImportURL else { return }
+                    didHandleImportURL = true
+                    handleImportPick(.success(importURL))
+                }
+                .alert("Restore Settings?", isPresented: Binding(get: { pendingApolloPayload != nil },
+                                                                  set: { if !$0 { pendingApolloPayload = nil } })) {
+                    Button("Restore", role: .destructive) {
+                        if let payload = pendingApolloPayload { applyApolloBackup(payload) }
+                        pendingApolloPayload = nil
+                    }
+                    Button("Cancel", role: .cancel) { pendingApolloPayload = nil }
+                } message: {
+                    Text("This overwrites your current settings and signs in the backup's accounts. This can't be undone.")
+                }
+                .alert("Restore Settings?", isPresented: $showingRestoreConfirmation, presenting: pendingImportBundle) { bundle in
+                    Button("Restore", role: .destructive) {
+                        bundle.restore()
+                        statusMessage = "Settings restored."
+                        pendingImportBundle = nil
+                    }
+                    Button("Cancel", role: .cancel) { pendingImportBundle = nil }
+                } message: { _ in
+                    Text("This overwrites your current settings. This can't be undone.")
+                }
+            } header: {
+                if importOnly {
+                    Text("Export & Restore")
+                        .apolloSectionHeader()
+                }
             } footer: {
                 // Backups carry accounts, so a restore replaces the signed-in session.
                 Text("Overwrites your current settings with those from a previously exported file, including your signed-in accounts. You can also import a real Apollo backup (Apollo_Backup_….apollobackup or .zip): its settings, API keys and signed-in accounts are all restored.")
@@ -76,45 +141,6 @@ public struct BackupRestoreSettingsScreen: View {
                         .accessibilityIdentifier("backupRestore.statusMessage")
                 }
             }
-        }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Backup & Restore")
-        #if canImport(UIKit)
-        .sheet(item: $exportURL, onDismiss: removeExport) { url in
-            BackupExportPicker(url: url) { exported in
-                statusMessage = exported ? "Exported \(url.lastPathComponent)." : nil
-                exportURL = nil
-            }
-            .ignoresSafeArea()
-        }
-        #endif
-        // `.zip` as well as `.json`: a real Apollo backup (`Apollo_Backup_*.zip`)
-        // imports directly. See `ApolloBackupImport`.
-        .apolloDocumentImporter(isPresented: $isImporting, allowedContentTypes: BackupFileTypes.restorable) { result in
-            handleImportPick(result)
-        }
-        .onAppear {
-            if let importURL { handleImportPick(.success(importURL)) }
-        }
-        .alert("Restore Settings?", isPresented: Binding(get: { pendingApolloPayload != nil },
-                                                          set: { if !$0 { pendingApolloPayload = nil } })) {
-            Button("Restore", role: .destructive) {
-                if let payload = pendingApolloPayload { applyApolloBackup(payload) }
-                pendingApolloPayload = nil
-            }
-            Button("Cancel", role: .cancel) { pendingApolloPayload = nil }
-        } message: {
-            Text("This overwrites your current settings and signs in the backup's accounts. This can't be undone.")
-        }
-        .alert("Restore Settings?", isPresented: $showingRestoreConfirmation, presenting: pendingImportBundle) { bundle in
-            Button("Restore", role: .destructive) {
-                bundle.restore()
-                statusMessage = "Settings restored."
-                pendingImportBundle = nil
-            }
-            Button("Cancel", role: .cancel) { pendingImportBundle = nil }
-        } message: { _ in
-            Text("This overwrites your current settings. This can't be undone.")
         }
     }
 

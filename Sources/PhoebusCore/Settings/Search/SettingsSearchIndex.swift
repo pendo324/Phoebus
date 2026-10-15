@@ -26,59 +26,79 @@ public struct SettingsSearchEntry: Sendable, Equatable, Identifiable {
     }
 }
 
-/// Every settings screen a search result can land on.
+/// Every settings screen a search result can land on: the thirteen
+/// category screens, then every screen they push. A drill-down's case is
+/// named after its `SettingsDrillDownDestination`.
 public enum SettingsSearchScreen: String, Sendable, CaseIterable, Codable {
     case settingsRoot
-    case general
-    case gestures
-    case filters
-    case markRead
-    case appIcon
-    case appearance
-    /// `Settings → Appearance → Text Sizes & Fonts`.
-    case textSizes
-    case theme
-    case about
-    case notifications
-    case security
-    case portraitLock
-    case accounts
-    case apolloReborn
-    case savedCategories
-    case translation
-    case tagFilters
-    case backupRestore
-    case comments
-    case commentsTheme
-    case customAPI
-    case deletedComments
-    case externalBrowser
-    case openInApp
-    case infoRow
-    case inlineMedia
-    case interfaceSettings
-    case actionMenus
-    case linkPreview
-    case media
-    case notificationBackend
-    case pictureInPicture
-    case polls
-    case postsFeeds
-    case profileLayout
-    case userProfiles
-    case subredditLayout
-    case subredditSections
-    case subreddits
-    case apolloAI
+    /// `Settings → Accounts & Security`.
+    case categoryAccountsSecurity
+    /// `Settings → Appearance`.
+    case categoryAppearance
+    /// `Settings → Posts`.
+    case categoryPosts
+    /// `Settings → Feed`.
+    case categoryFeed
+    /// `Settings → Comments`.
+    case categoryComments
+    /// `Settings → Media`.
+    case categoryMedia
+    /// `Settings → Links & Sharing`.
+    case categoryLinksSharing
+    /// `Settings → Filters`.
+    case categoryFilters
+    /// `Settings → Inbox & Notifications`.
+    case categoryInboxNotifications
+    /// `Settings → Gestures & Haptics`.
+    case categoryGesturesHaptics
+    /// `Settings → Integrations`.
+    case categoryIntegrations
+    /// `Settings → Data & Storage`.
+    case categoryDataStorage
+    /// `Settings → About`.
+    case categoryAbout
+
+    case signInTroubleshooting
+    case apiKeySetupGuide
+    case themeManager
+    /// `Settings → Appearance → Theme Manager → Theme Gallery`.
     case themeGallery
-    /// `Settings → Apollo Reborn → Backup Settings`.
-    case automaticBackup
-    /// `Settings → Apollo Reborn → Accounts & API Keys`.
-    case accountsAPIKeys
-    /// `Settings → Apollo Reborn → Clear Tweak Caches`.
-    case clearTweakCaches
-    /// `Settings → Apollo Reborn → Siri & Spotlight` (iOS 27 and later).
-    case siriSpotlight
+    case appIcon
+    case textSizes
+    case profileLayout
+    case infoRow
+    case feedShortcuts
+    case subredditSections
+    case subredditLayout
+    case searchSources
+    case commentsTheme
+    case inlineMedia
+    case pictureInPicture
+    case openInApp
+    case linkPreview
+    case postRules
+    case commentFilters
+    case blockedUsers
+    case userTags
+    case subredditWatchers
+    case actionMenus
+    case translation
+    case apolloAI
+    case settingsShortcuts
+    case localBackups
+    case savedCategories
+    case cacheExplainer
+    case deleteImgurUploads
+    case bugReports
+    case crashReports
+
+    /// Cases a search entry may name. Every one of them is routed by
+    /// `SettingsSearchDestination`'s switch, so a result can always be
+    /// opened; the root is left out because it is the screen the user is
+    /// already on, so a result naming it would be a tap that does
+    /// nothing.
+    public static let searchable: Set<SettingsSearchScreen> = Set(SettingsSearchScreen.allCases)
+        .subtracting([.settingsRoot])
 }
 
 /// Settings search: matching and ranking, ported from Apollo-Reborn's
@@ -193,7 +213,7 @@ public enum SettingsSearch {
                 let haystackWords = words(normalized(haystack))
 
                 // Initialisms matter here: "pip" finds Picture-in-Picture,
-                // "api" finds Accounts & API Keys.
+                // "aks" finds API Keys & Sign-In.
                 var initials = ""
                 for word in words(normalized(title)) where !word.isEmpty {
                     initials.append(word.first!)

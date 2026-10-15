@@ -1,7 +1,8 @@
 import SwiftUI
+import PhoebusCore
 
 /// Reborn's "Giphy & Image Chest API Key Setup" disclosure, reachable from the
-/// "Sign-In" section of Accounts & API Keys. Content follows Reborn's markdown.
+/// "Sign-In" section of API Keys & Sign-In. Content follows Reborn's markdown.
 public struct APIKeySetupGuideScreen: View {
     public init() {}
 
@@ -23,7 +24,7 @@ public struct APIKeySetupGuideScreen: View {
                 }
                 step(5, "Check the box to agree to the terms, then click Create API Key.")
                 step(6, "On your dashboard, click your new API key to copy it.")
-                step(7, "Paste it into Giphy API Key under All Settings → Accounts & API Keys.")
+                step(7, "Paste it into Giphy API Key under \(SettingsCategory.accountsSecurity.path(section: "API Keys")).")
 
                 Divider()
 
@@ -34,7 +35,7 @@ public struct APIKeySetupGuideScreen: View {
                     .font(.subheadline)
                 step(2, "After signing in, open the menu from your profile picture and choose API.")
                 step(3, "Click Create API Token, give it a name, then click Create.")
-                step(4, "Copy the token and paste it into Image Chest API Key under All Settings → Accounts & API Keys.")
+                step(4, "Copy the token and paste it into Image Chest API Key under \(SettingsCategory.accountsSecurity.path(section: "API Keys")).")
             }
             .padding()
         }

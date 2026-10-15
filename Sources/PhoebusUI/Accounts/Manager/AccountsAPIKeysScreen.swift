@@ -1,45 +1,43 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's "Accounts & API Keys" screen (Apollo Reborn → Setup).
+/// Reborn's "Accounts & API Keys" screen (Apollo Reborn → Setup), titled
+/// API Keys & Sign-In here. Only the sign-in flow shows it as a screen of
+/// its own; Settings draws the same sections inside Accounts & Security.
 ///
-/// Five sections in order: Default API Keys, Kagi Search, Sign-In,
-/// Experimental, Extras. Section 1's seven fields are the
+/// Sections in order: Default API Keys, Kagi Search, Sign-In, Separate
+/// Settings per Account, YouTube. Section 1's seven fields are the
 /// `CustomAPISettingsScreen` content, embedded here.
 public struct AccountsAPIKeysScreen: View {
     let accountManager: AccountManager
-
-    @Setting(CustomAPISettingsStore.storage) private var settings
-    @Setting(AccountSettingsScope.enabledStorage) private var separateSettingsPerAccount
-    @State private var isShowingWebSessionLogin = false
-    @StateObject private var youTube = YouTubeAccount.shared
-    @State private var isShowingYouTubeSignIn = false
-    @State private var isShowingYouTubeImport = false
-    @State private var isConfirmingYouTubeSignOut = false
-    @State private var isShowingGlobalDefaults = false
-    @State private var overridesToCopy: String?
-    @State private var isConfirmingReset = false
-    /// Re-renders the section when the account or editing layer changes.
-    @State private var scopeRevision = 0
 
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
     }
 
     public var body: some View {
-        perAccountSettingsPresentations(List {
-            apiKeysSection
-            kagiSection
-            signInSection
-            perAccountSettingsSection
-            experimentalSection
-            youTubeSection
-            extrasSection
-        })
+        List {
+            APIKeySections()
+            SignInSections(accountManager: accountManager)
+            PerAccountSettingsSections(accountManager: accountManager)
+            YouTubeSections()
+        }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Accounts & API Keys")
+        .navigationTitle("API Keys & Sign-In")
         .navigationBarTitleDisplayModeIfAvailable()
+    }
+}
+
+/// Default API Keys and Kagi Search.
+struct APIKeySections: View {
+    @Setting(CustomAPISettingsStore.storage) private var settings
+
+    var body: some View {
+        Group {
+            apiKeysSection
+            kagiSection
+        }
     }
 
     /// The seven Default API Keys fields, with Reborn's labels.
@@ -55,7 +53,7 @@ public struct AccountsAPIKeysScreen: View {
             keyField("Redirect URI", placeholder: "apollo://reddit-oauth", text: $settings.redditRedirectURI, isURL: true)
             keyField("User Agent", placeholder: "ios:com.christianselig.Apollo:v1.15.11 (by /u/iamthatis)", text: $settings.userAgent, lastBeforeFooter: true)
         } header: {
-            Text("Default API Keys")
+            Text("API Keys")
                 .apolloSectionHeader()
         } footer: {
             Text("Default credentials, used by any account without a per-account override. Reddit is required to sign in; the rest enable image uploads and the GIF picker.")
@@ -78,18 +76,96 @@ public struct AccountsAPIKeysScreen: View {
         }
     }
 
+    private func keyField(_ label: String, placeholder: String? = nil, text: Binding<String?>, isURL: Bool = false, lastBeforeFooter: Bool = false) -> some View {
+        ApolloSettingsTextFieldRow(label, placeholder: placeholder, text: Binding(
+            get: { text.wrappedValue ?? "" },
+            set: { text.wrappedValue = $0.isEmpty ? nil : $0 }
+        ), keyboard: isURL ? .URL : .default)
+        // Applied in the helper, not at the seven call sites: each
+        // `keyField(...)` IS the Section's direct child, so the insets
+        // land on the row itself.
+        .apolloSearchRow(label, lastBeforeFooter: lastBeforeFooter)
+    }
+}
+
+/// Sign-In: the OAuth method, reddit.com web sign-in, and the two help screens.
+struct SignInSections: View {
+    @ObservedObject var accountManager: AccountManager
+    @Setting(CustomAPISettingsStore.storage) private var settings
+    @State private var isShowingWebSessionLogin = false
+    @State private var isShowingSignedInChoice = false
+
+    private var activeUsername: String? {
+        guard let index = accountManager.activeIndex, index < accountManager.accounts.count else { return nil }
+        return accountManager.accounts[index].username
+    }
+
+    private var activeHasSession: Bool {
+        guard let index = accountManager.activeIndex, index < accountManager.accounts.count else { return false }
+        return accountManager.accounts[index].webSession != nil
+    }
+
     /// Sign-In rows in order: Universal OAuth Sign-In, reddit.com Web Sign-In,
     /// Can't sign in?, Giphy & Image Chest API Key Setup.
-    private var signInSection: some View {
+    var body: some View {
         Section {
             SettingsDetailToggle("Universal OAuth Sign-In",
                                  detail: "Signs in with an in-app web view so any Redirect URI works, including http/https (\"Web app\" Reddit API clients). Turn off for Phoebus's native sign-in.",
                                  isOn: $settings.useCustomOAuthSignIn)
             .apolloSearchRow("Universal OAuth Sign-In")
-            // A status row that becomes the "Set Up reddit.com Web Sign-In" action row
-            // once an API-key account exists; disabled subtitle is "Sign in to a Reddit
-            // account first."
-            if accountManager.accounts.isEmpty {
+            webSignInRow
+            SettingsDrillDownRow(destination: .signInTroubleshooting)
+            SettingsDrillDownRow(destination: .apiKeySetupGuide, lastBeforeFooter: true)
+        } header: {
+            Text("Sign-In")
+                .apolloSectionHeader()
+        } footer: {
+            Text(footer)
+                    .apolloSectionFooter()
+        }
+    }
+
+    private var footer: String {
+        guard let username = activeUsername else {
+            return "Choose how accounts sign in, or get help setting up your keys. Polls act as whichever account you're using, so sign in to one first."
+        }
+        if activeHasSession {
+            return "u/\(username)'s reddit.com session is set up, so polls and the other features that need it work. If they stop, sign in again here. Choose how accounts sign in, or get help setting up your keys."
+        }
+        return "u/\(username) needs a one-time reddit.com sign-in for polls, which are voted on and posted through the web session. It is usually captured when you sign in; you sign in on reddit.com directly and Phoebus never sees your password."
+    }
+
+    /// Reborn's "Set Up reddit.com Web Sign-In" action row, which is also where
+    /// polls get the active account's web session: a status cell (a green check
+    /// and "Ready to vote and post") once one exists, offering to sign in again,
+    /// and a "Sign in to a Reddit account first." note with no account.
+    @ViewBuilder private var webSignInRow: some View {
+        Group {
+            if let username = activeUsername {
+                if activeHasSession {
+                    Button { isShowingSignedInChoice = true } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("reddit.com Web Sign-In").foregroundStyle(.primary)
+                                Text("u/\(username) · Ready to vote and post").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            // A green check reads as "connected" at a glance.
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        }
+                    }
+                } else {
+                    Button { isShowingWebSessionLogin = true } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Set Up reddit.com Web Sign-In").foregroundStyle(Color.apolloAccent)
+                                Text("One quick sign-in for u/\(username)").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+            } else {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("reddit.com Web Sign-In")
                         .foregroundStyle(.secondary)
@@ -97,31 +173,21 @@ public struct AccountsAPIKeysScreen: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .apolloPlainSettingsRowInsets()
-            } else {
-                Button("Set Up reddit.com Web Sign-In") {
-                    isShowingWebSessionLogin = true
-                }
-                .apolloSearchRow("Set Up reddit.com Web Sign-In")
             }
-            SettingsLink("Can't sign in?") {
-                SignInTroubleshootingScreen()
-            }
-            .apolloSearchRow("Can't sign in?")
-            SettingsLink("Giphy & Image Chest API Key Setup") {
-                APIKeySetupGuideScreen()
-            }
-            .apolloSearchRow("Giphy & Image Chest API Key Setup", lastBeforeFooter: true)
-        } header: {
-            Text("Sign-In")
-                .apolloSectionHeader()
-        } footer: {
-            Text("Choose how accounts sign in, or get help setting up your keys.")
-                    .apolloSectionFooter()
+        }
+        // Polls' Web Sign-In link scrolls to and flashes this row.
+        // search: item "Set Up reddit.com Web Sign-In"
+        .apolloSearchRow("reddit.com Web Sign-In")
+        .confirmationDialog("u/\(activeUsername ?? "") is signed in", isPresented: $isShowingSignedInChoice, titleVisibility: .visible) {
+            Button("Sign In Again") { isShowingWebSessionLogin = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Sign in again only if polls have stopped working.")
         }
         .sheet(isPresented: $isShowingWebSessionLogin) {
             NavigationStack {
                 WebSessionLoginScreen(
+                    requiredUsername: activeUsername,
                     onSuccess: { credential in
                         accountManager.addWebSessionAccount(credential)
                         isShowingWebSessionLogin = false
@@ -131,21 +197,59 @@ public struct AccountsAPIKeysScreen: View {
             }
         }
     }
+}
 
-    /// "Separate Settings per Account" (Phoebus-only): global defaults, plus
-    /// per account the settings changed while signed in to it.
-    private var perAccountSettingsSection: some View {
+/// "Separate Settings per Account" (Phoebus-only): global defaults, plus
+/// per account the settings changed while signed in to it.
+struct PerAccountSettingsSections: View {
+    let accountManager: AccountManager
+
+    @Setting(AccountSettingsScope.enabledStorage) private var separateSettingsPerAccount
+    @State private var isShowingGlobalDefaults = false
+    @State private var overridesToCopy: String?
+    @State private var isConfirmingReset = false
+    /// Re-renders the section when the account or editing layer changes.
+    @State private var scopeRevision = 0
+
+    var body: some View {
         let _ = scopeRevision
         let account = AccountSettingsScope.activeAccount
         let otherAccounts = accountManager.accounts.map(\.username).filter { $0 != account }
         let canCopy = account != nil && !otherAccounts.isEmpty
-        return Section {
+        Section {
             SettingsDetailToggle("Separate Settings per Account",
                                  detail: "Settings you change apply to the current account only. Other accounts keep the global defaults.",
                                  isOn: $separateSettingsPerAccount.binding)
                 .accessibilityIdentifier("accounts.perAccountSettings")
+                // search: item "Edit Global Defaults", "Global Defaults & Overrides"
                 .apolloSearchRow("Separate Settings per Account",
                                  lastBeforeFooter: !separateSettingsPerAccount)
+                // Hosted on the switch, which stays while the rows below it change: a
+                // presentation on one of them would close when the layer being edited does.
+                .sheet(isPresented: $isShowingGlobalDefaults) {
+                    GlobalDefaultsSettingsSheet(accountManager: accountManager, isPresented: $isShowingGlobalDefaults)
+                }
+                .confirmationDialog("Copy \(overridesToCopy ?? "")'s settings to \(account ?? "")?",
+                                    isPresented: Binding(get: { overridesToCopy != nil },
+                                                         set: { if !$0 { overridesToCopy = nil } }),
+                                    titleVisibility: .visible) {
+                    Button("Copy Overrides", role: .destructive) {
+                        if let source = overridesToCopy, let account {
+                            AccountSettingsOverrides.copy(from: source, to: account)
+                        }
+                        overridesToCopy = nil
+                    }
+                    .accessibilityIdentifier("accounts.perAccountSettings.copyFrom.confirm")
+                } message: {
+                    Text("This account's own overrides are replaced.")
+                }
+                .confirmationDialog("Reset \(account ?? "")'s settings to the global defaults?",
+                                    isPresented: $isConfirmingReset, titleVisibility: .visible) {
+                    Button("Reset Overrides", role: .destructive) {
+                        if let account { AccountSettingsOverrides.removeAll(for: account) }
+                    }
+                    .accessibilityIdentifier("accounts.perAccountSettings.reset.confirm")
+                }
             if separateSettingsPerAccount {
                 if AccountSettingsScope.isEditingGlobalDefaults {
                     Text("Editing the global defaults.")
@@ -179,83 +283,31 @@ public struct AccountsAPIKeysScreen: View {
             Text("Settings per Account")
                 .apolloSectionHeader()
         } footer: {
-            Text(perAccountSettingsFooter(account: account))
+            Text(footer(account: account))
                 .apolloSectionFooter()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AccountSettingsScope.didChangeNotification)) { _ in
+            scopeRevision &+= 1
         }
     }
 
-    /// The section's sheet and dialogs, hosted on the list: on a Section
-    /// they attach to its rows and close as soon as those rows change.
-    private func perAccountSettingsPresentations(_ content: some View) -> some View {
-        let account = AccountSettingsScope.activeAccount
-        return content
-            .onReceive(NotificationCenter.default.publisher(for: AccountSettingsScope.didChangeNotification)) { _ in
-                scopeRevision &+= 1
-            }
-            .sheet(isPresented: $isShowingGlobalDefaults) {
-                GlobalDefaultsSettingsSheet(accountManager: accountManager, isPresented: $isShowingGlobalDefaults)
-            }
-            .confirmationDialog("Copy \(overridesToCopy ?? "")'s settings to \(account ?? "")?",
-                                isPresented: Binding(get: { overridesToCopy != nil },
-                                                     set: { if !$0 { overridesToCopy = nil } }),
-                                titleVisibility: .visible) {
-                Button("Copy Overrides", role: .destructive) {
-                    if let source = overridesToCopy, let account {
-                        AccountSettingsOverrides.copy(from: source, to: account)
-                    }
-                    overridesToCopy = nil
-                }
-                .accessibilityIdentifier("accounts.perAccountSettings.copyFrom.confirm")
-            } message: {
-                Text("This account's own overrides are replaced.")
-            }
-            .confirmationDialog("Reset \(account ?? "")'s settings to the global defaults?",
-                                isPresented: $isConfirmingReset, titleVisibility: .visible) {
-                Button("Reset Overrides", role: .destructive) {
-                    if let account { AccountSettingsOverrides.removeAll(for: account) }
-                }
-                .accessibilityIdentifier("accounts.perAccountSettings.reset.confirm")
-            }
-    }
-
-    private func perAccountSettingsFooter(account: String?) -> String {
+    private func footer(account: String?) -> String {
         guard separateSettingsPerAccount else {
             return "When on, each account keeps its own settings on top of the global defaults."
         }
         guard let account else { return "Signed out, Settings changes the global defaults." }
         return "Changes in Settings now apply to \(account) only. A dot marks a row set for this account; long-press it to use the global default. API keys, passcode, backups and notifications stay global."
     }
+}
 
-    /// Experimental section; footer "Sign in to reddit.com instead of using API
-    /// keys."
-    ///
-    /// Reborn's "Use Modern Reddit Chat" and "Use Modern Moderator Mail" rows are
-    /// omitted: each toggles between two protocol implementations, and Phoebus has
-    /// a single classic-inbox messaging surface and a single `ModmailListScreen`.
-    private var experimentalSection: some View {
-        Section {
-            SettingsLink {
-                AccountManagerScreen(accountManager: accountManager)
-            } label: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Web Session Accounts")
-                    Text("Add or manage individual web-session accounts from the account switcher.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .apolloSearchRow("Web Session Accounts", lastBeforeFooter: true)
-        } header: {
-            Text("Experimental")
-                .apolloSectionHeader()
-        } footer: {
-            Text("Sign in to reddit.com instead of using API keys.")
-                    .apolloSectionFooter()
-        }
-    }
+/// Phoebus-only: signs the YouTube player in as the user's Google account.
+struct YouTubeSections: View {
+    @StateObject private var youTube = YouTubeAccount.shared
+    @State private var isShowingYouTubeSignIn = false
+    @State private var isShowingYouTubeImport = false
+    @State private var isConfirmingYouTubeSignOut = false
 
-    /// Phoebus-only: signs the YouTube player in as the user's Google account.
-    private var youTubeSection: some View {
+    var body: some View {
         Section {
             if youTube.isSignedIn {
                 HStack {
@@ -302,33 +354,6 @@ public struct AccountsAPIKeysScreen: View {
             }
         }
         .task { await youTube.refresh() }
-    }
-
-    /// Extras section: one row, with Reborn's footer.
-    private var extrasSection: some View {
-        Section {
-            SettingsLink("Copy Widget Setup Code") {
-                WidgetSetupScreen()
-            }
-            .apolloSearchRow("Copy Widget Setup Code", lastBeforeFooter: true)
-        } header: {
-            Text("Extras")
-                .apolloSectionHeader()
-        } footer: {
-            Text("Copy a code to set up the Phoebus home-screen widget.")
-                    .apolloSectionFooter()
-        }
-    }
-
-    private func keyField(_ label: String, placeholder: String? = nil, text: Binding<String?>, isURL: Bool = false, lastBeforeFooter: Bool = false) -> some View {
-        ApolloSettingsTextFieldRow(label, placeholder: placeholder, text: Binding(
-            get: { text.wrappedValue ?? "" },
-            set: { text.wrappedValue = $0.isEmpty ? nil : $0 }
-        ), keyboard: isURL ? .URL : .default)
-        // Applied in the helper, not at the seven call sites: each
-        // `keyField(...)` IS the Section's direct child, so the insets
-        // land on the row itself.
-        .apolloSearchRow(label, lastBeforeFooter: lastBeforeFooter)
     }
 }
 

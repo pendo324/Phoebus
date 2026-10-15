@@ -516,7 +516,7 @@ struct CommentRow: View {
                 )
                 // No `contentShape` on the byline itself: it would clip the controls'
                 // taps (`CommentHeaderHitArea`) to the 18pt line.
-                // Comment Filters: why this comment started collapsed.
+                // Comment Rules: why this comment started collapsed.
                 if node.isCollapsed, let filterReason = node.filterReason {
                     Text(filterReason)
                         .apolloFont(size: 13)

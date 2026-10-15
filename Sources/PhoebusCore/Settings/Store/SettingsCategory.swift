@@ -283,6 +283,26 @@ public enum SettingsCategory: String, CaseIterable, Sendable, Identifiable {
         sections.flatMap(\.crossLinks)
     }
 
+    /// The search screen a result lands on to flash one of this
+    /// category's rows.
+    public var searchScreen: SettingsSearchScreen {
+        switch self {
+        case .accountsSecurity: return .categoryAccountsSecurity
+        case .appearance: return .categoryAppearance
+        case .posts: return .categoryPosts
+        case .feed: return .categoryFeed
+        case .comments: return .categoryComments
+        case .media: return .categoryMedia
+        case .linksSharing: return .categoryLinksSharing
+        case .filters: return .categoryFilters
+        case .inboxNotifications: return .categoryInboxNotifications
+        case .gesturesHaptics: return .categoryGesturesHaptics
+        case .integrations: return .categoryIntegrations
+        case .dataStorage: return .categoryDataStorage
+        case .about: return .categoryAbout
+        }
+    }
+
     /// The tap path to this category, or to `section` on its screen, for
     /// copy that sends the user there ("Settings → Accounts & Security →
     /// API Keys").
@@ -310,6 +330,13 @@ public enum SettingsCategory: String, CaseIterable, Sendable, Identifiable {
             if let found = category.drillDowns.first(where: { $0.destination == destination }) { return found }
         }
         return nil
+    }
+}
+
+extension SettingsSearchScreen {
+    /// The category whose screen this is, for the thirteen category cases.
+    public var category: SettingsCategory? {
+        SettingsCategory.allCases.first { $0.searchScreen == self }
     }
 }
 

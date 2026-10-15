@@ -1,9 +1,8 @@
 import SwiftUI
 import PhoebusCore
 
-/// The category-row kit: the tile rows every category screen and the
-/// settings root are built from, ported from Reborn's flat settings
-/// form with its section footers.
+/// The tile-row kit: the rows the settings root and About are built from,
+/// ported from Reborn's flat settings form with its section footers.
 ///
 /// A row is a coloured rounded tile with a white SF Symbol, the title,
 /// and an optional wrapping gray subtitle underneath. Rows that write a
@@ -22,11 +21,11 @@ struct SettingsCategoryRow: View {
     /// Action rows get the accent action colour, no underline, no
     /// chevron.
     var isAction: Bool = false
-    /// Backup Settings is an action row that still pushes a screen, and
-    /// keeps its chevron.
-    var showsChevron: Bool? = nil
     /// A trailing value before the chevron, e.g. Crash Reports' count.
     var detail: String? = nil
+    /// Artwork in place of the SF Symbol tile; only App Icon has any (it
+    /// shows the selected icon's own art, as Apollo does).
+    var artwork: Image? = nil
 
     var body: some View {
         // Tile 29x29pt, title 17pt regular white, subtitle 15pt regular #8D8D92, 4pt
@@ -35,7 +34,20 @@ struct SettingsCategoryRow: View {
         // Row height is vertical padding around the content, not a fixed box: a
         // 3-line subtitle needs a third tier a fixed height can't express.
         HStack(spacing: ApolloSettingsRowMetrics.categoryTileToTitleGap) {
-            SettingsTile(systemImage: systemImage, tint: tint)
+            Group {
+                if let artwork {
+                    artwork
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: ApolloSettingsRowMetrics.tileSize,
+                               height: ApolloSettingsRowMetrics.tileSize)
+                        .clipShape(RoundedRectangle(
+                            cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius,
+                            style: .continuous))
+                } else {
+                    SettingsTile(systemImage: systemImage, tint: tint)
+                }
+            }
             VStack(alignment: .leading, spacing: ApolloSettingsRowMetrics.subtitleTopGap) {
                 Text(title)
                     .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
@@ -61,7 +73,7 @@ struct SettingsCategoryRow: View {
             }
             // The 7x12 #464648 disclosure, same as the root's rows
             // (`SettingsNavigationRow` hides the system one).
-            if showsChevron ?? !isAction {
+            if !isAction {
                 ApolloSettingsChevron()
                     .padding(.leading, 15 - ApolloSettingsRowMetrics.categoryTileToTitleGap)
             }
@@ -72,27 +84,43 @@ struct SettingsCategoryRow: View {
     }
 }
 
-/// Switch-alias row: same tile-to-title geometry as `SettingsCategoryRow`.
-struct SettingsCategoryToggleRow: View {
-    let title: String
-    let systemImage: String
-    let tint: Color
-    @Binding var isOn: Bool
+// MARK: - Destructive action rows
 
-    /// Same tile-to-title geometry as `SettingsCategoryRow`
-    /// (`categoryTileToTitleGap`, with the title at the pinned title size).
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: ApolloSettingsRowMetrics.categoryTileToTitleGap) {
-                SettingsTile(systemImage: systemImage, tint: tint)
-                Text(title)
-                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                    .lineLimit(1)
+/// A destructive action row on a settings screen, waiting to be
+/// confirmed. The row only sets one of these on its tap; the work runs
+/// from the alert's confirm button, so nothing is signed out or cleared
+/// on a single tap.
+struct SettingsCategoryAction: Identifiable {
+    let id: String
+    let title: String
+    let message: String
+    /// The confirm button's own title, the way each row names what it
+    /// does ("Sign Out", "Clear").
+    let confirmTitle: String
+    let perform: () -> Void
+}
+
+extension View {
+    /// Asks before a destructive action row runs it. Wording and button
+    /// order match the app's other destructive confirmations
+    /// ("Restore Settings?", "Delete Post?"): the destructive button
+    /// leads, in red, with Cancel trailing.
+    func apolloSettingsActionConfirmation(_ pending: Binding<SettingsCategoryAction?>,
+                                         perform: @escaping (SettingsCategoryAction) -> Void) -> some View {
+        alert(pending.wrappedValue?.title ?? "",
+              isPresented: Binding(get: { pending.wrappedValue != nil },
+                                   set: { if !$0 { pending.wrappedValue = nil } }),
+              presenting: pending.wrappedValue) { action in
+            Button(action.confirmTitle, role: .destructive) {
+                pending.wrappedValue = nil
+                perform(action)
             }
+            Button("Cancel", role: .cancel) {
+                pending.wrappedValue = nil
+            }
+        } message: { action in
+            Text(action.message)
         }
-        // Geometry lives on the call sites (each applies `.apolloSettingsRowInsets()`
-        // as the Section's direct child); this row owns only its tile + title layout.
-        .frame(minHeight: ApolloSettingsRowMetrics.rowHeight)
     }
 }
 

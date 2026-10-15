@@ -222,23 +222,27 @@ import PhoebusCore
     // Settings Shortcuts (Reborn #1150).
     do {
         UserDefaults.standard.removeObject(forKey: SettingsShortcutsStore.key)
-        check("settings shortcuts default to the hub's four",
-              SettingsShortcutsStore.load() == ["theme-manager", "automatic-backups", "feature-requests", "bug-reports"])
+        // Reborn's four, with Automatic Backups' section of Data & Storage in
+        // place of the screen it was.
+        check("settings shortcuts default to the four Reborn chose",
+              SettingsShortcutsStore.load() == ["theme-manager", "data-storage", "feature-requests", "bug-reports"])
         UserDefaults.standard.set(["inline-media", "bogus", "general", "general"], forKey: SettingsShortcutsStore.key)
         check("saved shortcuts are migrated, validated and de-duplicated",
-              SettingsShortcutsStore.load() == ["media", "general"])
-        // Profile Layout became User Profiles (Reborn #1352); a saved
-        // "profile-layout" keeps its place under the new id.
+              SettingsShortcutsStore.load() == ["media", "feed"])
+        // Profile Layout became User Profiles (Reborn #1352), and User Profiles
+        // became a section of Appearance; a saved "profile-layout" keeps its
+        // place under the new id.
         UserDefaults.standard.set(["general", "profile-layout", "media"], forKey: SettingsShortcutsStore.key)
-        check("a saved profile-layout shortcut migrates to user-profiles in place",
-              SettingsShortcutsStore.load() == ["general", "user-profiles", "media"])
+        check("a saved profile-layout shortcut migrates to appearance in place",
+              SettingsShortcutsStore.load() == ["feed", "appearance", "media"])
         UserDefaults.standard.set(["profile-layout", "user-profiles"], forKey: SettingsShortcutsStore.key)
         check("...without duplicating an already-migrated entry",
-              SettingsShortcutsStore.load() == ["user-profiles"])
+              SettingsShortcutsStore.load() == ["appearance"])
         check("the migrated id is in the catalog and has a title",
-              SettingsShortcutsStore.catalog.contains("user-profiles")
+              SettingsShortcutsStore.catalog.contains("appearance")
                 && !SettingsShortcutsStore.catalog.contains("profile-layout")
-                && SettingsShortcutsStore.title("user-profiles") == "User Profiles")
+                && !SettingsShortcutsStore.catalog.contains("user-profiles")
+                && SettingsShortcutsStore.title("appearance") == "Appearance")
         UserDefaults.standard.removeObject(forKey: SettingsShortcutsStore.key)
         check("the catalog has every route it offers and a limit of 15",
               SettingsShortcutsStore.catalog.count == 25 && SettingsShortcutsStore.limit == 15)

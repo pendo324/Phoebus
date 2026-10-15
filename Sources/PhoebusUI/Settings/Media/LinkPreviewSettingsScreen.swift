@@ -197,6 +197,6 @@ public struct LinkPreviewSettingsScreen: View {
             .presentationDetents([.medium])
         }
         .apolloSettingsSearchScroll()
-        .navigationTitle("Rich Link Previews")
+        .navigationTitle("Preview Cards")
     }
 }

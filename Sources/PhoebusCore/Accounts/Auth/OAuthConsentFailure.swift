@@ -30,12 +30,12 @@ public enum OAuthConsentFailure: Equatable, Sendable {
         return nil
     }
 
-    /// Reborn's copy, with its settings path (the same here: Settings →
-    /// Apollo Reborn → Accounts & API Keys).
+    /// Reborn's copy, with the settings path to the API key fields here.
     public static func alert(status: Int, offerOldReddit: Bool, hasCustomKey: Bool) -> Alert {
+        let path = SettingsCategory.accountsSecurity.path(section: "API Keys")
         let settingsFix = hasCustomKey
-            ? "check the Reddit API Key and Redirect URI in Settings \u{2192} Apollo Reborn \u{2192} Accounts & API Keys"
-            : "add your Reddit API Key in Settings \u{2192} Apollo Reborn \u{2192} Accounts & API Keys (none is set there)"
+            ? "check the Reddit API Key and Redirect URI in \(path)"
+            : "add your Reddit API Key in \(path) (none is set there)"
         if status == 400 {
             return Alert(title: "Reddit Didn't Accept This API Key",
                          message: "The Reddit API Key and Redirect URI used for this sign-in don't match a Reddit app, so Reddit won't connect your account. Both have to match the app exactly (for Dystopia, the Redirect URI is dystopia://response).\n\nTo fix it, \(settingsFix), or sign in without an API key instead.")

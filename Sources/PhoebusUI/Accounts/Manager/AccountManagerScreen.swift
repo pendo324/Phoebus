@@ -93,7 +93,7 @@ public struct AccountManagerScreen: View {
         }
         .listStyle(.insetGrouped)
         .environment(\.defaultMinListRowHeight, 68)
-        .navigationTitle("Accounts")
+        .navigationTitle("Account Switcher")
         .navigationBarTitleDisplayModeIfAvailable()
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

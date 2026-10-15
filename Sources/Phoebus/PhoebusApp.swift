@@ -711,19 +711,22 @@ struct MainTabView: View {
 
     private var settingsTab: some View {
         NavigationStack(path: $settingsNavigation.path) {
-            SettingsScreen(repository: repository, accountManager: accountManager) {
-                Task {
-                    await authClient.signOut()
-                    onSignOut()
-                }
-            }
-            .apolloSettingsNavigation(settingsNavigation)
-            .apolloInteractiveSwipeNavigation()
-            // Inside the stack, not on it: attached outside, the
-            // probe's owning view controller has no
-            // `navigationController` to pop.
-            .apolloPopsToRootOnTabReselection(tab: 4)
+            SettingsScreen(repository: repository, accountManager: accountManager)
+                .apolloSettingsNavigation(settingsNavigation)
+                .apolloInteractiveSwipeNavigation()
+                // Inside the stack, not on it: attached outside, the
+                // probe's owning view controller has no
+                // `navigationController` to pop.
+                .apolloPopsToRootOnTabReselection(tab: 4)
         }
+        // On the stack, so the screens search results and shortcuts push
+        // offer the same Sign Out as the root's own tree.
+        .environment(\.settingsSignOut, SettingsSignOutAction {
+            Task {
+                await authClient.signOut()
+                onSignOut()
+            }
+        })
     }
 
     /// Resolves a `SubredditsRootScreen` selection into the right

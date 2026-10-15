@@ -30,11 +30,13 @@ struct GlobalDefaultsSettingsSheet: View {
             .padding(.vertical, 10)
             .background(Color.apolloAccent.opacity(0.15))
             NavigationStack {
-                SettingsScreen(repository: accountManager.repository, accountManager: accountManager, onSignOut: {})
+                SettingsScreen(repository: accountManager.repository, accountManager: accountManager)
             }
             // A sheet inherits the Settings tab's path model, which would push
             // these rows onto the tab behind the sheet; plain links push here.
             .environment(\.settingsNavigation, nil)
+            // Editing the shared layer is not the place to end the session.
+            .environment(\.settingsSignOut, nil)
         }
         .accessibilityIdentifier("settings.globalDefaults")
         .onAppear { AccountSettingsScope.setEditingGlobalDefaults(true) }

@@ -202,7 +202,7 @@ public struct CommentTreeNode: Identifiable, Sendable, Equatable {
 
     /// `HideBlockedUserComments`: removes this node (and its whole reply
     /// subtree) when its author is in `blockedAuthors`, reusing the same
-    /// author list Filters & Blocks maintains. Non-blocked children of a
+    /// author list Filters maintains. Non-blocked children of a
     /// kept node are recursed into individually. Case-insensitive on both
     /// sides.
     public func filteringBlockedAuthors(_ blockedAuthors: Set<String>) -> CommentTreeNode? {

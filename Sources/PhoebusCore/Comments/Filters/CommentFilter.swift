@@ -1,6 +1,6 @@
 import Foundation
 
-/// One named comment filter (Settings → Filters & Blocks → Comment Filters):
+/// One named comment filter (Settings → Filters → Comment Rules):
 /// a score range, words and users to exclude, and whether a match hides the
 /// comment or starts it collapsed. Apollo and Reborn have no comment filters;
 /// this is Phoebus's own.

@@ -4,8 +4,10 @@ import PhoebusCore
 import UIKit
 #endif
 
-/// Client-side content filters (subreddit/keyword/author/domain)
-/// applied to feed listings.
+/// Filters: what Phoebus hides. Client-side content filters
+/// (subreddit/keyword/author/domain) applied to feed listings, Reborn's
+/// subreddit-specific filters and Tag Filters, and Apollo's blocked users,
+/// with the post and comment rules as drill-downs.
 public struct FiltersSettingsScreen: View {
     @State private var filters: [ContentFilter] = ContentFilterStore.load()
     @State private var showingAdd = false
@@ -16,42 +18,36 @@ public struct FiltersSettingsScreen: View {
     @State private var showingAddWord = false
     @State private var newWord = ""
     @State private var resImportAlert: RESImportAlert?
-    /// Tag Filters is a section of this screen, not a root row; see
-    /// `tagFiltersSection`.
-    @Setting(TagFilterStore.storage) private var tagFilters
-    @Setting(PostRuleStore.storage) private var ruleList
     @Setting(BlockedUsersStore.storage) private var blockedStore
     private var blockedCount: Int { _ = blockedStore; return BlockedUsersStore.names().count }
     @Setting(UserTags.self) private var userTags
+    @Setting(GeneralSettingsStore.storage) private var general
 
     public init() {}
 
     public var body: some View {
         List {
-            // Three sections with all-caps headers ("FILTERED SUBREDDITS" /
-            // "FILTERED KEYWORDS" / "BLOCKED USERS"), each with its own footer.
-            // Order: Filtered Keywords (+ "Add Keyword"), Filtered Subreddits
-            // (+ "Add Subreddit"), an untitled "Blocked Users (N) ›" (Phoebus's
-            // "User Tags ›" follows it), then Reborn's
+            // Apollo's three sections with all-caps headers ("FILTERED
+            // SUBREDDITS" / "FILTERED KEYWORDS" / "BLOCKED USERS"), each with its
+            // own footer. Order: Filtered Keywords (+ "Add Keyword"), Filtered
+            // Subreddits (+ "Add Subreddit"), the rules, an untitled "Blocked
+            // Users ›" (Phoebus's "User Tags ›" follows it), then Reborn's
             // spliced Subreddit-Specific Filters (+ "Add Subreddit...") and Filter
-            // Subreddits by Name (+ "Add Word...") sections. Reborn's third
-            // appended section, "Tag Filters", also lives here, not in the
-            // Settings root.
+            // Subreddits by Name (+ "Add Word...") sections, and Tag Filters.
             keywordsSection
             subredditsSection
+            rulesSection
             blockedUsersSection
-            commentFiltersSection
             userTagsSection
             AuthorDomainFiltersSection(filters: $filters)
             subredditSpecificSection
             filterByNameSection
-            // Phoebus-only Post Rules (score, comments, tags, title regex).
-            postRulesSection
-            tagFiltersSection
+            TagFilterSections()
         }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Filters & Blocks")
+        .navigationTitle(SettingsCategory.filters.title)
+        .navigationBarTitleDisplayModeIfAvailable()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 // Plain text "Add" bar button, not a "+" icon.
@@ -77,26 +73,6 @@ public struct FiltersSettingsScreen: View {
         }
         .alert(item: $resImportAlert) { alert in
             Alert(title: Text(alert.title), message: Text(alert.message), dismissButton: .default(Text("OK")))
-        }
-    }
-
-    /// Phoebus's own Post Rules (`PostRule`), beside the other post filters.
-    private var postRulesSection: some View {
-        Section {
-            SettingsLink {
-                PostRulesScreen()
-            } label: {
-                HStack {
-                    Text("Post Rules")
-                    Spacer()
-                    Text("\(ruleList.filter(\.isEnabled).count)").foregroundStyle(.secondary)
-                }
-            }
-            .accessibilityIdentifier("filters.postRules")
-            .apolloSearchRow("Post Rules", lastBeforeFooter: true)
-        } footer: {
-            Text("Hide posts by score, comments or awards, show only NSFW or spoiler posts, or match titles with a regular expression, in every feed or chosen ones.")
-                .apolloSectionFooter()
         }
     }
 
@@ -144,52 +120,38 @@ public struct FiltersSettingsScreen: View {
         }
     }
 
+    /// Phoebus's rules, which match more than a word or a name.
+    private var rulesSection: some View {
+        Section {
+            SettingsDrillDownRow(destination: .postRules)
+            SettingsDrillDownRow(destination: .commentFilters, lastBeforeFooter: true)
+        } header: {
+            Text("Rules")
+                .apolloSectionHeader()
+        } footer: {
+            Text("Hide posts by score, awards or title, and comments by score, words or author.")
+                .apolloSectionFooter()
+        }
+    }
+
     private var blockedUsersSection: some View {
         Section {
-            SettingsLink {
-                BlockedUsersScreen()
-            } label: {
-                Text("Blocked Users (\(blockedCount))")
-            }
-            // Title carries a live count, so the searchable entry is
-            // the screen itself; this row is geometry only.
-            .apolloPlainSettingsRowInsets(rule: false)
+            SettingsDrillDownRow(destination: .blockedUsers, value: "\(blockedCount)")
+            // Phoebus's own: whether a blocked user's comments vanish or fold up.
+            ApolloSettingsPicker("Blocked Users' Comments", selection: $general.hideBlockedUserComments,
+                                 options: [false, true],
+                                 display: { $0 ? "Hide" : "Collapse" })
+                .apolloSearchRow("Blocked Users' Comments", lastBeforeFooter: true) // search: item "Blocked Users"
         } footer: {
             Text("Exclude posts and communication from these users.")
                     .apolloSectionFooter()
         }
     }
 
-    /// Phoebus's own Comment Filters, beside the other comment-hiding list.
-    private var commentFiltersSection: some View {
-        Section {
-            SettingsLink {
-                CommentFiltersScreen()
-            } label: {
-                Text("Comment Filters")
-            }
-            .accessibilityIdentifier("filters.commentFilters")
-            .apolloSearchRow("Comment Filters", lastBeforeFooter: true)
-        } footer: {
-            Text("Hide or collapse comments by score, words or author.")
-                .apolloSectionFooter()
-        }
-    }
-
     /// Phoebus-only user tags, next to the other per-user list.
     private var userTagsSection: some View {
         Section {
-            SettingsLink {
-                UserTagsSettingsScreen()
-            } label: {
-                HStack {
-                    Text("User Tags")
-                    Spacer()
-                    Text("\(userTags.byUser.count)").foregroundStyle(.secondary)
-                }
-            }
-            .accessibilityIdentifier("filters.userTags")
-            .apolloSearchRow("User Tags", lastBeforeFooter: true)
+            SettingsDrillDownRow(destination: .userTags, value: "\(userTags.byUser.count)", lastBeforeFooter: true)
         } footer: {
             Text("Your own labels on users, shown after their names.")
                     .apolloSectionFooter()
@@ -267,41 +229,6 @@ public struct FiltersSettingsScreen: View {
                 $postRules.update { $0.nameSubstrings.append(v) }
                 newWord = ""
             }
-        }
-    }
-
-    /// The third appended Reborn section: the master "Enable Tag
-    /// Filters" switch, NSFW and Spoiler switches that are DISABLED
-    /// while it is off, and a "Per-Subreddit Overrides" disclosure,
-    /// also disabled while off.
-    private var tagFiltersSection: some View {
-        Section {
-            // No icon tile in this section's rows, so `apolloSearchRow`'s
-            // plain-row geometry applies.
-            Toggle("Enable Tag Filters", isOn: $tagFilters.enabled)
-                .apolloSearchRow("Enable Tag Filters")
-            Toggle("NSFW", isOn: $tagFilters.nsfw)
-                .disabled(!tagFilters.enabled)
-                .apolloSearchRow("NSFW")
-            Toggle("Spoiler", isOn: $tagFilters.spoiler)
-                .disabled(!tagFilters.enabled)
-                .apolloSearchRow("Spoiler")
-            SettingsNavigationRow {
-                TagFiltersSettingsScreen(overridesOnly: true)
-            } label: {
-                HStack(spacing: 0) {
-                    Text("Per-Subreddit Overrides")
-                        .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                    Spacer(minLength: 8)
-                    ApolloSettingsChevron()
-                }
-                .apolloSettingsRowHeight()
-            }
-            .disabled(!tagFilters.enabled)
-            .apolloSearchRow("Per-Subreddit Overrides")
-        } header: {
-            Text("Tag Filters")
-                .apolloSectionHeader()
         }
     }
 
@@ -407,75 +334,6 @@ struct AddFilterScreen: View {
     }
 }
 
-
-/// "Blocked Users (N)" (`Settings → Filters & Blocks`): the account's
-/// Reddit block list, as Apollo's. Swipe to unblock; "Block User…" adds.
-struct BlockedUsersScreen: View {
-    @Setting(BlockedUsersStore.storage) private var stored
-    @State private var errorMessage: String?
-    @State private var showingAdd = false
-    @State private var newName = ""
-
-    private var names: [String] { BlockedUsersStore.names() }
-
-    var body: some View {
-        List {
-            Section {
-                if names.isEmpty {
-                    Text("No blocked users.").foregroundStyle(.secondary)
-                }
-                ForEach(names, id: \.self) { name in
-                    Text(name).apolloPlainSettingsRowInsets()
-                }
-                .onDelete { indexSet in
-                    let removed = indexSet.map { names[$0] }
-                    Task {
-                        for name in removed {
-                            do {
-                                try await ActiveRedditRepository.provider()?.unblockUser(username: name)
-                            } catch {
-                                errorMessage = UserFacingError.text(for: error)
-                            }
-                        }
-                    }
-                }
-                Button("Block User…") { showingAdd = true }
-                    .foregroundStyle(Color.apolloAccent)
-                    .apolloPlainSettingsRowInsets(rule: false)
-            }
-        }
-        .apolloSettingsListAppearance()
-        .navigationTitle("Blocked Users")
-        .task { await refresh() }
-        .refreshable { await refresh() }
-        .alert("Block User", isPresented: $showingAdd) {
-            TextField("Username", text: $newName)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            Button("Cancel", role: .cancel) { newName = "" }
-            Button("Block") {
-                let name = newName.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "u/", with: "")
-                newName = ""
-                guard !name.isEmpty else { return }
-                Task {
-                    do { try await ActiveRedditRepository.provider()?.blockUser(username: name) }
-                    catch { errorMessage = UserFacingError.text(for: error) }
-                }
-            }
-        }
-        .alert("Blocked Users", isPresented: $errorMessage.isPresent()) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
-    }
-
-    private func refresh() async {
-        guard let repository = ActiveRedditRepository.provider() else { return }
-        do { try await repository.fetchBlockedUsers() }
-        catch { errorMessage = UserFacingError.text(for: error) }
-    }
-}
 
 /// Phoebus's own author and domain filters, which Apollo's Blocked Users
 /// list doesn't hold.

@@ -87,6 +87,6 @@ public struct InlineMediaSettingsScreen: View {
             }
         }
         .apolloSettingsSearchScroll()
-        .navigationTitle("Inline Media")
+        .navigationTitle("Inline Images")
     }
 }

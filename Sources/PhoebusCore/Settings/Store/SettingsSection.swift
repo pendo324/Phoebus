@@ -11,8 +11,8 @@ import Foundation
 /// which is a genuinely distinct screen from Theme (color themes +
 /// day/night scheduling); both are surfaced from this one section.
 ///
-/// `CaseIterable`'s `allCases` order (used directly by `SettingsScreen`'s
-/// `ForEach`) matches real Apollo's own row order.
+/// `CaseIterable`'s `allCases` order matches real Apollo's own row
+/// order. The settings root itself is `SettingsCategory`.
 public enum SettingsSection: String, CaseIterable, Sendable, Identifiable {
     // Order matches the real Settings screen: General, Appearance,
     // Notifications, App Icon, Face ID & Passcode, Filters & Blocks,

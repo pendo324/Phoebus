@@ -207,7 +207,7 @@ struct UserTagEditorSheet: View {
     }
 }
 
-/// Settings → Filters & Blocks → User Tags: every tag, alphabetical. Tap to
+/// Settings → Filters → User Tags: every tag, alphabetical. Tap to
 /// edit, swipe to delete, "Add Tag…" to tag someone by name.
 struct UserTagsSettingsScreen: View {
     @Setting(UserTags.self) private var tags

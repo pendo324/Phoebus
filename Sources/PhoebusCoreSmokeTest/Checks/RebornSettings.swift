@@ -152,12 +152,12 @@ import PhoebusCore
     check("Arctic Shift's copy wins over Reveddit's", merged["t1_kq1aaa1"]?.body == "The archived text of a removed comment.")
 }
 
-// MARK: - Apollo Reborn hub settings
+// MARK: - Settings decode and round-trips
 
 // "Live Interactive Posts" / "Show in Feed" Devvit switches
 // (UDKeyDevvitInteractivePosts / UDKeyDevvitFeedWidgets). Both default ON and
 // must survive a Codable round-trip and decode from blobs that lack them.
-@MainActor func checkApolloRebornHubSettings() async throws {
+@MainActor func checkGeneralSettingsDecodeAndRoundTrips() async throws {
     check("GeneralSettings.default leaves Live Interactive Posts off, as Reborn registers", !GeneralSettings.default.devvitInteractivePosts)
     check("GeneralSettings.default enables Devvit Show in Feed", GeneralSettings.default.devvitFeedWidgets)
     var devvitSettings = GeneralSettings.default

@@ -259,8 +259,10 @@ import PhoebusCore
 // counts WKWebView's website data against the app while the app cannot delete
 // it, so clearing the app's own cache does not shrink the reported figure.
 @MainActor func checkCacheExplainer() async throws {
-    check("the explainer title is Apollo's",
-          CacheExplainer.title == "Is Phoebus Still Taking up Storage?")
+    // Apollo's "Is Apollo Still Taking up Storage?", renamed so the row doesn't
+    // repeat its category, Data & Storage.
+    check("the explainer is titled by what it shows, not by Apollo's question",
+          CacheExplainer.title == "What Phoebus Keeps on Disk")
     check("the intro paragraph is verbatim",
           CacheExplainer.introduction.hasPrefix("If you\u{2019}ve done the normal \u{201C}Clear Cache\u{201D} action in Phoebus"))
     // Apollo uses typographic quotes and apostrophes throughout; ASCII
@@ -313,7 +315,7 @@ import PhoebusCore
     // Settings Search must index NavigationLink rows, not just controls
     // (Toggle/Picker/...), and must match the link pattern whether or not
     // it uses parentheses.
-    for linkRow in ["Is Phoebus Still Taking up Storage?", "Phoebus AI",
+    for linkRow in ["What Phoebus Keeps on Disk", "Phoebus AI",
                     "Subreddit List Sections", "Backup & Restore"] {
         check("Settings Search can reach the \(linkRow) row",
               SettingsSearch.index.contains { $0.title == linkRow })

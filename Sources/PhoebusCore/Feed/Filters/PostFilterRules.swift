@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reborn's "Post Filters": device-wide content filters beyond Apollo's
-/// native Filters & Blocks screen. Unlike the flat, global `ContentFilter`,
+/// native Filters screen. Unlike the flat, global `ContentFilter`,
 /// these can scope keywords to one subreddit, filter by flair, and match
 /// subreddit-name substrings.
 ///

@@ -1,12 +1,16 @@
 import SwiftUI
 import PhoebusCore
 
-/// Gestures settings: which action each of the four swipe slots (left/
+/// Gestures & Haptics: which action each of the four swipe slots (left/
 /// right, short/long) performs, per screen, in separate "POSTS"/
-/// "COMMENTS"/"INBOX"/"PROFILE POSTS" sections.
-public struct GestureSettingsScreen: View {
+/// "COMMENTS"/"INBOX"/"PROFILE POSTS" sections, then the haptics, the
+/// rotation lock and the ••• menus. Haptic Feedback is General's, Smart
+/// Rotation Lock and Portrait Lock Buddy are Apollo's Portrait Lock screen.
+public struct GesturesHapticsSettingsScreen: View {
     @State private var perScreenSettings: [SwipeActionScreen: SwipeActionSettings]
     @Setting(NavigationGestureSettingsStore.storage) private var navGestures
+    @Setting(GeneralSettingsStore.storage) private var general
+    @Setting(PortraitLockStore.storage) private var portraitLock
 
     public init() {
         var loaded: [SwipeActionScreen: SwipeActionSettings] = [:]
@@ -64,10 +68,65 @@ public struct GestureSettingsScreen: View {
                 Text("Other")
                     .apolloSectionHeader()
             }
+
+            Section {
+                Toggle("Haptic Feedback", isOn: $general.hapticFeedbackEnabled)
+                    .apolloSearchRow("Haptic Feedback")
+            } header: {
+                Text("Haptics")
+                    .apolloSectionHeader()
+            }
+
+            rotationSection
+
+            Section {
+                SettingsDrillDownRow(destination: .actionMenus)
+            } header: {
+                Text("Menus")
+                    .apolloSectionHeader()
+            }
         }
         .apolloSettingsSearchScroll()
         .apolloSettingsListAppearance()
-        .navigationTitle("Gestures")
+        .navigationTitle(SettingsCategory.gesturesHaptics.title)
+        .navigationBarTitleDisplayModeIfAvailable()
+    }
+
+    /// Smart Rotation Lock and Portrait Lock Buddy.
+    private var rotationSection: some View {
+        Group {
+            Section {
+                Toggle("Smart Rotation Lock", isOn: Binding(
+                    get: { portraitLock.isEnabled },
+                    set: {
+                        $portraitLock.isEnabled.wrappedValue = $0
+                    }
+                ))
+                    // search: item "Portrait Lock"
+                    .apolloSearchRow("Smart Rotation Lock", lastBeforeFooter: true)
+                    .accessibilityIdentifier("portraitLock.toggle")
+            } header: {
+                Text("Rotation")
+                    .apolloSectionHeader()
+            } footer: {
+                // Verbatim from Apollo's Settings → General → Smart Rotation Lock.
+                Text("Locks Phoebus to portrait (vertical) orientation except for Media Viewer.")
+                    .apolloSectionFooter()
+            }
+            Section {
+                Toggle("Portrait Lock Buddy", isOn: Binding(
+                    get: { portraitLock.portraitLockBuddy },
+                    set: {
+                        $portraitLock.portraitLockBuddy.wrappedValue = $0
+                    }
+                ))
+                    .apolloSearchRow("Portrait Lock Buddy", lastBeforeFooter: true)
+                    .accessibilityIdentifier("portraitLock.buddyToggle")
+            } footer: {
+                Text("If using the iOS Portrait Orientation Lock feature, Phoebus will attempt to detect device rotations in Media Viewer and offer to let you rotate media.")
+                    .apolloSectionFooter()
+            }
+        }
     }
 
     /// One slot row: the slot title with its bound action shown as the

@@ -55,7 +55,7 @@ public struct SettingsShortcutsScreen: View {
         }
         .apolloSettingsListAppearance()
         .environment(\.editMode, $editMode)
-        .navigationTitle("Shortcuts")
+        .navigationTitle("Settings Shortcuts")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(editMode.isEditing ? "Done" : "Edit") {
@@ -76,30 +76,27 @@ public struct SettingsShortcutsScreen: View {
     }
 
 
-    /// Blue, except Saved Categories green, Picture-in-Picture purple, and the emoji
-    /// tiles' yellow/red; native rows keep their own Settings tile colours.
+    /// A category's own tile colour; Reborn's shortcut image colours for the
+    /// screens they push, and blue for the rest.
     static func tint(_ id: String) -> Color {
+        switch SettingsShortcutsStore.target(id) {
+        case .category(let category):
+            let rgb = category.tintRGB
+            return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        default:
+            break
+        }
         switch id {
         // Reborn's shortcut image colours.
         case "saved-categories": return .green
         case "picture-in-picture": return .purple
         case "translation": return .teal
         case "apollo-ai": return .indigo
-        case "media": return .pink
-        case "posts-feeds": return .orange
-        case "comments": return .green
-        case "subreddits": return .red
-        case "user-profiles": return .teal
-        case "interface": return .purple
-        case "accounts-api-keys": return .gray
-        case "tag-filters", "crash-reports": return .orange
+        case "crash-reports": return .orange
         case "feature-requests": return .yellow
         case "bug-reports": return .red
         case "theme-manager": return .indigo
-        case "reborn": return .purple
-        case "general": return .gray
-        case "filters": return .green
-        case "gestures": return Color(red: 0.4, green: 0.45, blue: 0.95)
+        case "settings-root": return .purple
         default: return .blue
         }
     }
@@ -116,32 +113,13 @@ public struct SettingsShortcutDestination: View {
     }
 
     public var body: some View {
-        switch id {
-        case "reborn": ApolloRebornHubScreen(accountManager: accountManager)
-        case "accounts-api-keys": AccountsAPIKeysScreen(accountManager: accountManager)
-        case "posts-feeds": PostsFeedsSettingsScreen()
-        case "comments": CommentsSettingsScreen()
-        case "media": MediaSettingsScreen()
-        case "subreddits": SubredditsSettingsScreen()
-        case "user-profiles": UserProfilesSettingsScreen()
-        case "interface": InterfaceSettingsScreen()
-        case "rich-link-previews": LinkPreviewSettingsScreen()
-        case "apollo-ai": ApolloAISettingsScreen()
-        case "theme-manager": ThemeSettingsScreen()
-        case "open-in-app": OpenInAppSettingsScreen()
-        case "picture-in-picture": PictureInPictureSettingsScreen()
-        case "translation": TranslationSettingsScreen()
-        case "saved-categories": SavedCategoriesSettingsScreen()
-        case "tag-filters": TagFiltersSettingsScreen()
-        case "automatic-backups": AutomaticBackupSettingsScreen()
-        case "crash-reports": CrashReportsScreen()
-        case "bug-reports": BugReportScreen()
-        case "general": GeneralSettingsScreen()
-        case "appearance": AppearanceSettingsScreen()
-        case "app-icon": AppIconSettingsScreen()
-        case "filters": FiltersSettingsScreen()
-        case "gestures": GestureSettingsScreen()
-        default: ApolloRebornHubScreen(accountManager: accountManager)
+        switch SettingsShortcutsStore.target(id) {
+        case .category(let category):
+            SettingsCategoryScreen(category: category, accountManager: accountManager)
+        case .drillDown(let destination):
+            SettingsDrillDownLeaf(destination: destination)
+        case .root, nil:
+            SettingsScreen(repository: accountManager.repository, accountManager: accountManager)
         }
     }
 }

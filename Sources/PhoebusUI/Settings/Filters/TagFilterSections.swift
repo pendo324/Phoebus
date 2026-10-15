@@ -1,28 +1,20 @@
 import SwiftUI
 import PhoebusCore
 
-/// Reborn's Tag Filters. "General": Enable Tag Filters, then NSFW and
-/// Spoiler greyed while the master switch is off; "Per-Subreddit
-/// Overrides": one `r/name` row per override with its summary, then
-/// "Add Subreddit…". Footers verbatim.
-public struct TagFiltersSettingsScreen: View {
+/// Reborn's Tag Filters, as two sections of Filters. "Tag Filters": Enable Tag
+/// Filters, then NSFW and Spoiler greyed while the master switch is off;
+/// "Per-Subreddit Overrides": one `r/name` row per override with its summary,
+/// then "Add Subreddit…". Footers verbatim.
+struct TagFilterSections: View {
     @Setting(TagFilterStore.storage) private var settings
     @State private var showingAdd = false
     @State private var newSubreddit = ""
 
-    /// Reborn's `overridesOnly`: just the Per-Subreddit Overrides section,
-    /// as Filters & Blocks' row opens it.
-    private let overridesOnly: Bool
-
-    public init(overridesOnly: Bool = false) {
-        self.overridesOnly = overridesOnly
-    }
-
-    public var body: some View {
-        List {
-            if !overridesOnly {
+    var body: some View {
+        Group {
             Section {
                 Toggle("Enable Tag Filters", isOn: $settings.enabled)
+                    // search: item "Tag Filters"
                     .apolloSearchRow("Enable Tag Filters")
                 Toggle("NSFW", isOn: $settings.nsfw)
                     .disabled(!settings.enabled)
@@ -31,12 +23,11 @@ public struct TagFiltersSettingsScreen: View {
                     .disabled(!settings.enabled)
                     .apolloSearchRow("Spoiler", lastBeforeFooter: true)
             } header: {
-                Text("General")
+                Text("Tag Filters")
                     .apolloSectionHeader()
             } footer: {
                 Text("Filtered posts are covered with a frosted blur over the post's title and thumbnail. Tap the blur to confirm and reveal the post. Brand Affiliate is unavailable because Phoebus does not store that tag.")
                     .apolloSectionFooter()
-            }
             }
 
             Section {
@@ -59,6 +50,21 @@ public struct TagFiltersSettingsScreen: View {
                 }
                 Button("Add Subreddit…") { newSubreddit = ""; showingAdd = true }
                     .apolloSearchRow("Add Subreddit", lastBeforeFooter: true)
+                    .alert("Add Subreddit", isPresented: $showingAdd) {
+                        TextField("funny", text: $newSubreddit)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button("Cancel", role: .cancel) {}
+                        Button("Add") {
+                            var raw = newSubreddit.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if raw.lowercased().hasPrefix("r/") { raw.removeFirst(2) }
+                            if raw.hasPrefix("/") { raw.removeFirst() }
+                            guard !raw.isEmpty else { return }
+                            $settings.update { $0.subredditOverrides[raw.lowercased()] = TagFilterSettings.Override() }
+                        }
+                    } message: {
+                        Text("Enter the subreddit name (without r/).")
+                    }
             } header: {
                 Text("Per-Subreddit Overrides")
                     .apolloSectionHeader()
@@ -66,24 +72,6 @@ public struct TagFiltersSettingsScreen: View {
                 Text("Per-subreddit settings override the global defaults. Add a subreddit to customize behavior for it.")
                     .apolloSectionFooter()
             }
-        }
-        .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
-        .navigationTitle(overridesOnly ? "Per-Subreddit Overrides" : "Tag Filters")
-        .alert("Add Subreddit", isPresented: $showingAdd) {
-            TextField("funny", text: $newSubreddit)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            Button("Cancel", role: .cancel) {}
-            Button("Add") {
-                var raw = newSubreddit.trimmingCharacters(in: .whitespacesAndNewlines)
-                if raw.lowercased().hasPrefix("r/") { raw.removeFirst(2) }
-                if raw.hasPrefix("/") { raw.removeFirst() }
-                guard !raw.isEmpty else { return }
-                $settings.update { $0.subredditOverrides[raw.lowercased()] = TagFilterSettings.Override() }
-            }
-        } message: {
-            Text("Enter the subreddit name (without r/).")
         }
     }
 }

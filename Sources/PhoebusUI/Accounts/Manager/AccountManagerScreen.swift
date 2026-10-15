@@ -2,16 +2,74 @@ import SwiftUI
 import AuthenticationServices
 import PhoebusCore
 
+/// What the account switcher presents: the sign-in method chooser and
+/// the two sign-in sheets. Shared by the switcher screen and the Accounts
+/// section of Settings, so either can add or re-sign-in an account.
+@MainActor
+final class AccountSwitcherModel: ObservableObject {
+    @Published var showingAddAccountChooser = false
+    @Published var showingOAuthLogin = false
+    @Published var showingWebSessionLogin = false
+    @Published var isAuthenticatingOAuth = false
+    @Published var errorMessage: String?
+}
+
+extension View {
+    /// The chooser and sign-in sheets `model` drives, hosted on the view
+    /// the add and re-sign-in actions belong to.
+    func accountSwitcherPresentations(_ model: AccountSwitcherModel, accountManager: AccountManager) -> some View {
+        modifier(AccountSwitcherPresentations(model: model, accountManager: accountManager))
+    }
+}
+
+private struct AccountSwitcherPresentations: ViewModifier {
+    @ObservedObject var model: AccountSwitcherModel
+    let accountManager: AccountManager
+
+    func body(content: Content) -> some View {
+        content
+            .confirmationDialog("Choose Sign-In Method", isPresented: $model.showingAddAccountChooser, titleVisibility: .visible) {
+                Button("Sign In With API Key") {
+                    model.showingOAuthLogin = true
+                }
+                .accessibilityIdentifier("accounts.addAccount.apiKey")
+                Button("Sign In Without API Key (Experimental)") {
+                    model.showingWebSessionLogin = true
+                }
+                .accessibilityIdentifier("accounts.addAccount.keyless")
+                Button("Cancel", role: .cancel) {}
+            }
+            .sheet(isPresented: $model.showingWebSessionLogin) {
+                NavigationStack {
+                    WebSessionLoginScreen(
+                        onSuccess: { credential in
+                            accountManager.addWebSessionAccount(credential)
+                            model.showingWebSessionLogin = false
+                        },
+                        onCancel: { model.showingWebSessionLogin = false }
+                    )
+                }
+            }
+            .sheet(isPresented: $model.showingOAuthLogin) {
+                AddOAuthAccountSheet(
+                    isAuthenticating: $model.isAuthenticatingOAuth,
+                    onSuccess: { credential, username in
+                        accountManager.addOAuthAccount(credential, username: username)
+                        model.showingOAuthLogin = false
+                    },
+                    onError: { message in model.errorMessage = message },
+                    onCancel: { model.showingOAuthLogin = false }
+                )
+            }
+    }
+}
+
 /// Reborn's account switcher: a multi-account list to add, switch, remove and
 /// reorder Reddit accounts, persisted via `AccountStore`. OAuth and web-session
 /// ("keyless") accounts coexist in the list; keyless accounts get a small badge.
 public struct AccountManagerScreen: View {
     @ObservedObject var accountManager: AccountManager
-    @State private var showingAddAccountChooser = false
-    @State var showingOAuthLogin = false
-    @State var showingWebSessionLogin = false
-    @State private var isAuthenticatingOAuth = false
-    @State private var errorMessage: String?
+    @StateObject private var model = AccountSwitcherModel()
 
     public init(accountManager: AccountManager) {
         self.accountManager = accountManager
@@ -31,7 +89,41 @@ public struct AccountManagerScreen: View {
         // ellipsis for that account's sign-in; "+" top-leading to add, Edit
         // top-trailing.
         List {
-            if let errorMessage {
+            AccountSwitcherSections(accountManager: accountManager, model: model, showsAddRow: false)
+        }
+        .listStyle(.insetGrouped)
+        .environment(\.defaultMinListRowHeight, 68)
+        .navigationTitle("Accounts")
+        .navigationBarTitleDisplayModeIfAvailable()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    model.showingAddAccountChooser = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add Account")
+                .accessibilityIdentifier("accounts.addAccount")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                EditButton()
+            }
+        }
+        .accountSwitcherPresentations(model, accountManager: accountManager)
+    }
+}
+
+/// The signed-in accounts as sections: an inline error, then the list
+/// with its footer. `showsAddRow` adds an Add Account row at the end of
+/// the list, for screens with no "+" in their bar.
+struct AccountSwitcherSections: View {
+    @ObservedObject var accountManager: AccountManager
+    @ObservedObject var model: AccountSwitcherModel
+    var showsAddRow: Bool
+
+    var body: some View {
+        Group {
+            if let errorMessage = model.errorMessage {
                 Section {
                     Text(errorMessage).foregroundStyle(.red).font(.caption)
                 }
@@ -48,7 +140,7 @@ public struct AccountManagerScreen: View {
                                 Text(account.username)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
-                                Text(Self.statusText(for: account))
+                                Text(AccountManagerScreen.statusText(for: account))
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
@@ -77,6 +169,18 @@ public struct AccountManagerScreen: View {
                         accountManager.remove(at: index)
                     }
                 }
+                if showsAddRow {
+                    Button("Add Account") { model.showingAddAccountChooser = true }
+                        .foregroundStyle(Color.apolloAccent)
+                        .accessibilityIdentifier("accounts.addAccount")
+                        // The chooser and sheets hang off the button, not the Section.
+                        .accountSwitcherPresentations(model, accountManager: accountManager)
+                        .apolloSearchRow("Add Account", lastBeforeFooter: true) // search: item "Account Switcher", "Web Session Accounts"
+                }
+            } header: {
+                if showsAddRow {
+                    Text("Accounts").apolloSectionHeader()
+                }
             } footer: {
                 // Empty: Apollo's string. Otherwise Reborn's footer, minus the per-account
                 // API key editor.
@@ -86,62 +190,11 @@ public struct AccountManagerScreen: View {
                     .apolloSectionFooter()
             }
         }
-        .listStyle(.insetGrouped)
-        .environment(\.defaultMinListRowHeight, 68)
-        .navigationTitle("Accounts")
-        .navigationBarTitleDisplayModeIfAvailable()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showingAddAccountChooser = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Add Account")
-                .accessibilityIdentifier("accounts.addAccount")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                EditButton()
-            }
-        }
-        .confirmationDialog("Choose Sign-In Method", isPresented: $showingAddAccountChooser, titleVisibility: .visible) {
-            Button("Sign In With API Key") {
-                showingOAuthLogin = true
-            }
-            .accessibilityIdentifier("accounts.addAccount.apiKey")
-            Button("Sign In Without API Key (Experimental)") {
-                showingWebSessionLogin = true
-            }
-            .accessibilityIdentifier("accounts.addAccount.keyless")
-            Button("Cancel", role: .cancel) {}
-        }
-        .sheet(isPresented: $showingWebSessionLogin) {
-            NavigationStack {
-                WebSessionLoginScreen(
-                    onSuccess: { credential in
-                        accountManager.addWebSessionAccount(credential)
-                        showingWebSessionLogin = false
-                    },
-                    onCancel: { showingWebSessionLogin = false }
-                )
-            }
-        }
-        .sheet(isPresented: $showingOAuthLogin) {
-            AddOAuthAccountSheet(
-                isAuthenticating: $isAuthenticatingOAuth,
-                onSuccess: { credential, username in
-                    accountManager.addOAuthAccount(credential, username: username)
-                    showingOAuthLogin = false
-                },
-                onError: { message in errorMessage = message },
-                onCancel: { showingOAuthLogin = false }
-            )
-        }
     }
 }
 
 
-extension AccountManagerScreen {
+extension AccountSwitcherSections {
     /// The row's ellipsis: a web-session account offers Re-Sign In
     /// and a switch to API-key sign-in; an OAuth account offers
     /// Re-Sign In. Remove sits at the bottom of both, as swipe-to-delete
@@ -151,13 +204,13 @@ extension AccountManagerScreen {
         Menu {
             Section(account.isKeyless ? "Signed in without an API key (web session)." : "Signed in with the Reddit API key.") {
                 Button {
-                    if account.isKeyless { showingWebSessionLogin = true } else { showingOAuthLogin = true }
+                    if account.isKeyless { model.showingWebSessionLogin = true } else { model.showingOAuthLogin = true }
                 } label: {
                     Label("Re-Sign In", systemImage: "arrow.clockwise")
                 }
                 if account.isKeyless {
                     Button {
-                        showingOAuthLogin = true
+                        model.showingOAuthLogin = true
                     } label: {
                         Label("Use API Key Instead…", systemImage: "key")
                     }

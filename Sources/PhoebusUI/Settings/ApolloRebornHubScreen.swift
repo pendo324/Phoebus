@@ -11,6 +11,9 @@ import UIKit
 /// Reborn's flat form is the *Accounts & API Keys* sub-screen the Setup section
 /// discloses to. Section titles, footers, row order, titles, SF Symbol names and
 /// tile colors follow Reborn.
+///
+/// Its row components moved to `Rows/SettingsCategoryRows.swift`, which the
+/// category screens share.
 public struct ApolloRebornHubScreen: View {
     @Setting(LinkPreviewSettings.self) private var linkPreviewSettings
     @Setting(ApolloAISettings.self) private var apolloAISettings
@@ -79,7 +82,7 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 AccountsAPIKeysScreen(accountManager: accountManager)
             } label: {
-                HubRow(
+                SettingsCategoryRow(
                     title: "Accounts & API Keys",
                     subtitle: "Reddit · Imgur · Giphy · Image Chest · Kagi",
                     systemImage: "key.fill",
@@ -91,10 +94,10 @@ public struct ApolloRebornHubScreen: View {
             .apolloSettingsRowInsets(rule: false)
         } header: {
             Text("Setup")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Your Reddit sign-in credentials, plus optional Imgur, Giphy and Image Chest keys for uploads and GIFs, and a Kagi Session Link for searching Reddit with Kagi.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
     }
 
@@ -108,7 +111,7 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 SiriSpotlightSettingsScreen()
             } label: {
-                HubRow(
+                SettingsCategoryRow(
                     title: "Siri & Spotlight",
                     subtitle: siriIndexingEnabled ? "On" : "Off",
                     systemImage: "sparkle.magnifyingglass",
@@ -118,7 +121,7 @@ public struct ApolloRebornHubScreen: View {
             .apolloSettingsRowInsets(rule: false)
         } footer: {
             Text("Find Phoebus posts and communities with Siri, Spotlight and Shortcuts. Content indexing is off until you enable it.")
-                .apolloHubSectionFooter()
+                .apolloCategorySectionFooter()
         }
     }
 
@@ -131,37 +134,37 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 PostsFeedsSettingsScreen()
             } label: {
-                HubRow(title: "Posts & Feeds", systemImage: "newspaper.fill", tint: .orange)
+                SettingsCategoryRow(title: "Posts & Feeds", systemImage: "newspaper.fill", tint: .orange)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 CommentsSettingsScreen()
             } label: {
-                HubRow(title: "Comments", systemImage: "text.bubble.fill", tint: .green)
+                SettingsCategoryRow(title: "Comments", systemImage: "text.bubble.fill", tint: .green)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 MediaSettingsScreen()
             } label: {
-                HubRow(title: "Media", systemImage: "play.rectangle.fill", tint: .pink)
+                SettingsCategoryRow(title: "Media", systemImage: "play.rectangle.fill", tint: .pink)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 SubredditsSettingsScreen()
             } label: {
-                HubRow(title: "Subreddits", systemImage: "person.3.fill", tint: .red)
+                SettingsCategoryRow(title: "Subreddits", systemImage: "person.3.fill", tint: .red)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 UserProfilesSettingsScreen()
             } label: {
-                HubRow(title: "User Profiles", systemImage: "person.crop.circle.fill", tint: .teal)
+                SettingsCategoryRow(title: "User Profiles", systemImage: "person.crop.circle.fill", tint: .teal)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 InterfaceSettingsScreen()
             } label: {
-                HubRow(title: "Interface", systemImage: "slider.horizontal.3", tint: .purple)
+                SettingsCategoryRow(title: "Interface", systemImage: "slider.horizontal.3", tint: .purple)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
@@ -169,7 +172,7 @@ public struct ApolloRebornHubScreen: View {
             } label: {
                 // Status subtitle: "Body %@ · Comments %@ · %@" with the colour as
                 // "#RRGGBB" or "Default color".
-                HubRow(
+                SettingsCategoryRow(
                     title: "Rich Link Previews",
                     subtitle: {
                         let s = linkPreviewSettings
@@ -183,7 +186,7 @@ public struct ApolloRebornHubScreen: View {
                 PollsSettingsScreen(accountManager: accountManager)
             } label: {
                 // "On" / "Off" from `UDKeyPollsEnabled`, as a trailing value.
-                HubRow(
+                SettingsCategoryRow(
                     title: "Polls",
                     systemImage: "chart.bar.fill",
                     tint: .yellow,
@@ -193,7 +196,7 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 ApolloAISettingsScreen()
             } label: {
-                HubRow(
+                SettingsCategoryRow(
                     title: "Phoebus AI",
                     systemImage: "sparkles",
                     tint: .indigo,
@@ -203,10 +206,10 @@ public struct ApolloRebornHubScreen: View {
             .apolloSettingsRowInsets()
         } header: {
             Text("Features")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Fine-tune posts, comments, media, subreddits, profile layout and the interface.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
     }
 
@@ -224,7 +227,7 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 ThemeSettingsScreen()
             } label: {
-                HubRow(title: "Theme Manager", systemImage: "paintbrush.fill", tint: .indigo)
+                SettingsCategoryRow(title: "Theme Manager", systemImage: "paintbrush.fill", tint: .indigo)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
@@ -232,34 +235,34 @@ public struct ApolloRebornHubScreen: View {
                 // browser picker.
                 OpenInAppSettingsScreen()
             } label: {
-                HubRow(title: "Open in App", systemImage: "arrow.up.forward.app.fill", tint: .blue)
+                SettingsCategoryRow(title: "Open in App", systemImage: "arrow.up.forward.app.fill", tint: .blue)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 PictureInPictureSettingsScreen()
             } label: {
-                HubRow(title: "Picture-in-Picture", systemImage: "pip.fill", tint: .purple)
+                SettingsCategoryRow(title: "Picture-in-Picture", systemImage: "pip.fill", tint: .purple)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 TranslationSettingsScreen()
             } label: {
-                HubRow(title: "Translation", systemImage: "character.bubble.fill", tint: .teal)
+                SettingsCategoryRow(title: "Translation", systemImage: "character.bubble.fill", tint: .teal)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 SavedCategoriesSettingsScreen()
             } label: {
-                HubRow(title: "Saved Categories", systemImage: "book.closed.fill", tint: .green)
+                SettingsCategoryRow(title: "Saved Categories", systemImage: "book.closed.fill", tint: .green)
             }
             .apolloSettingsRowInsets()
             SettingsNavigationRow {
                 TagFiltersSettingsScreen()
             } label: {
-                HubRow(title: "Tag Filters", systemImage: "tag.fill", tint: .orange)
+                SettingsCategoryRow(title: "Tag Filters", systemImage: "tag.fill", tint: .orange)
             }
             .apolloSettingsRowInsets()
-            HubToggleRow(
+            SettingsCategoryToggleRow(
                 title: "Color Flairs",
                 systemImage: "paintpalette.fill",
                 tint: .pink,
@@ -269,10 +272,10 @@ public struct ApolloRebornHubScreen: View {
             .apolloSettingsRowInsets()
         } header: {
             Text("Shortcuts")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Quick links to settings that also live in their own sections and in Phoebus's settings.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
     }
 
@@ -286,31 +289,31 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 AutomaticBackupSettingsScreen()
             } label: {
-                HubRow(title: "Backup Settings", systemImage: "square.and.arrow.up.fill", tint: .blue, isAction: true,
+                SettingsCategoryRow(title: "Backup Settings", systemImage: "square.and.arrow.up.fill", tint: .blue, isAction: true,
                        showsChevron: true)
             }
             .apolloSettingsRowInsets()
             Button { showingRestoreSource = true } label: {
-                HubRow(title: "Restore Settings", systemImage: "square.and.arrow.down.fill", tint: .green, isAction: true)
+                SettingsCategoryRow(title: "Restore Settings", systemImage: "square.and.arrow.down.fill", tint: .green, isAction: true)
             }
             .apolloSettingsRowInsets()
             .buttonStyle(.plain)
             Button { showingClearCaches = true } label: {
-                HubRow(title: "Clear Tweak Caches", systemImage: "trash.fill", tint: .red, isAction: true)
+                SettingsCategoryRow(title: "Clear Tweak Caches", systemImage: "trash.fill", tint: .red, isAction: true)
             }
             .apolloSettingsRowInsets()
             .buttonStyle(.plain)
             Button { showingClearBanners = true } label: {
-                HubRow(title: "Clear Custom Banners & Icons", systemImage: "photo.fill", tint: .orange, isAction: true)
+                SettingsCategoryRow(title: "Clear Custom Banners & Icons", systemImage: "photo.fill", tint: .orange, isAction: true)
             }
             .apolloSettingsRowInsets()
             .buttonStyle(.plain)
         } header: {
             Text("Data")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Back up or restore your settings and API keys, or clear cached data.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
         // Restore Settings: asks Local or Cloud.
         .confirmationDialog("Restore Settings", isPresented: $showingRestoreSource, titleVisibility: .visible) {
@@ -368,7 +371,7 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 NotificationBackendSettingsScreen()
             } label: {
-                HubRow(
+                SettingsCategoryRow(
                     title: "Notification Backend",
                     subtitle: notificationBackendSubtitle,
                     systemImage: "bell.badge.fill",
@@ -379,17 +382,17 @@ public struct ApolloRebornHubScreen: View {
             // `about.exportLogs`. Reborn's FLEX Debugging and its two 🔧 rows are left
             // out.
             Button { Task { await exportDebugLogs() } } label: {
-                HubRow(title: exportingLogs ? "Preparing Logs…" : "Export Debug Logs",
+                SettingsCategoryRow(title: exportingLogs ? "Preparing Logs…" : "Export Debug Logs",
                        systemImage: "square.and.arrow.up.on.square.fill", tint: .gray, isAction: true)
             }
             .apolloSettingsRowInsets()
             .buttonStyle(.plain)
         } header: {
             Text("Advanced")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Notification backend, developer tools and diagnostics.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
     }
 
@@ -415,13 +418,13 @@ public struct ApolloRebornHubScreen: View {
 
     private var privacySection: some View {
         Section {
-            HubToggleRow(title: "Anonymous Install Count", systemImage: "waveform.path.ecg", tint: .pink,
+            SettingsCategoryToggleRow(title: "Anonymous Install Count", systemImage: "waveform.path.ecg", tint: .pink,
                          isOn: anonymousInstallCount)
                 .apolloSettingsRowInsets()
             // Reborn "In-App Update Prompt" (#1343). Only builds with a release
             // channel have an update source to check.
             if BuildChannel.current != nil {
-                HubToggleRow(title: "Automatic Update Checks", systemImage: "arrow.down.circle", tint: .blue,
+                SettingsCategoryToggleRow(title: "Automatic Update Checks", systemImage: "arrow.down.circle", tint: .blue,
                              isOn: $automaticUpdateChecks.binding)
                     .apolloSettingsRowInsets()
                     .apolloSearchRow("Automatic Update Checks") // search: requires releaseChannel
@@ -430,19 +433,19 @@ public struct ApolloRebornHubScreen: View {
             SettingsNavigationRow {
                 CrashReportsScreen()
             } label: {
-                HubRow(title: "Crash Reports", systemImage: "bandage", tint: .orange,
+                SettingsCategoryRow(title: "Crash Reports", systemImage: "bandage", tint: .orange,
                        detail: crashReportCount > 0 ? "\(crashReportCount)" : nil)
             }
             .apolloSettingsRowInsets()
         } header: {
             Text("Privacy")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             // The ported row, but honest about this build: there is no
             // heartbeat to send, so the switch changes nothing.
             Text("Phoebus does not send an install heartbeat, so this switch has no effect. No Reddit activity, account details, or feature usage is collected."
                  + (BuildChannel.current != nil ? " Update checks read Phoebus's AltStore source from GitHub once a day, and GitHub only sees your IP address." : ""))
-                .apolloHubSectionFooter()
+                .apolloCategorySectionFooter()
         }
     }
 
@@ -454,7 +457,7 @@ public struct ApolloRebornHubScreen: View {
     /// section's own footer, which describes what this app actually sends.
     private var aboutSection: some View {
         Section {
-            HubLinkRow(
+            SettingsCategoryLinkRow(
                 title: "Feature Requests",
                 subtitle: "Suggest ideas for Phoebus",
                 emoji: "💡",
@@ -466,7 +469,7 @@ public struct ApolloRebornHubScreen: View {
                 BugReportScreen()
             } label: {
                 HStack {
-                    HubEmojiRow(
+                    SettingsCategoryEmojiRow(
                         title: "Bug Reports",
                         subtitle: "Report a problem on GitHub",
                         emoji: "🐛",
@@ -476,7 +479,7 @@ public struct ApolloRebornHubScreen: View {
             }
             .apolloSettingsRowInsets()
             // The GitHub row draws the SF Symbol mark on its tile.
-            HubLinkRow(
+            SettingsCategoryLinkRow(
                 title: "Open Source on GitHub",
                 subtitle: "@pendo324",
                 emoji: "🐙",
@@ -503,203 +506,10 @@ public struct ApolloRebornHubScreen: View {
             }
         } header: {
             Text("About")
-                .apolloHubSectionHeader()
+                .apolloCategorySectionHeader()
         } footer: {
             Text("Request features, report bugs, or browse the source. Phoebus is free and open source.")
-                    .apolloHubSectionFooter()
+                    .apolloCategorySectionFooter()
         }
-    }
-}
-
-// MARK: - Row components
-
-/// The hub's disclosure row: a colored rounded tile with a white SF Symbol,
-/// the title, and an optional wrapping gray subtitle underneath.
-struct HubRow: View {
-    let title: String
-    var subtitle: String?
-    let systemImage: String
-    let tint: Color
-    /// Action rows get the accent action colour, no underline, no
-    /// chevron.
-    var isAction: Bool = false
-    /// Backup Settings is an action row that still pushes a screen, and
-    /// keeps its chevron.
-    var showsChevron: Bool? = nil
-    /// A trailing value before the chevron, e.g. Crash Reports' count.
-    var detail: String? = nil
-
-    var body: some View {
-        // Tile 29x29pt, title 17pt regular white, subtitle 15pt regular #8D8D92, 4pt
-        // under the title. Reborn's image frame is wider than the root's, so the
-        // title lands further right.
-        //
-        // Row height is vertical padding around the content, not a fixed box: a
-        // 3-line subtitle needs a third tier a fixed height can't express.
-        HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
-            SettingsTile(systemImage: systemImage, tint: tint)
-            VStack(alignment: .leading, spacing: ApolloSettingsRowMetrics.subtitleTopGap) {
-                Text(title)
-                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                    .foregroundStyle(isAction ? AnyShapeStyle(Color.apolloAccent) : AnyShapeStyle(.foreground))
-                    .lineLimit(1)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .apolloFont(size: ApolloSettingsRowMetrics.subtitlePointSize)
-                        .foregroundStyle(Color.apolloSettingsSecondary)
-                        // Long subtitles wrap.
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            // Subtitles run close to the chevron. A Spacer sibling would offer the
-            // wrappable subtitle only part of the leftover width and wrap early; a greedy
-            // frame gives the text column everything up to the chevron.
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let detail {
-                Text(detail)
-                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                    .foregroundStyle(Color.apolloSettingsSecondary)
-                    .lineLimit(1)
-            }
-            // The 7x12 #464648 disclosure, same as the root's rows
-            // (`SettingsNavigationRow` hides the system one).
-            if showsChevron ?? !isAction {
-                ApolloSettingsChevron()
-                    .padding(.leading, 15 - ApolloSettingsRowMetrics.hubTileToTitleGap)
-            }
-        }
-        .padding(.vertical, (subtitle?.isEmpty == false)
-                 ? ApolloSettingsRowMetrics.hubRowVerticalPadWithSubtitle
-                 : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
-    }
-}
-
-/// Switch-alias row, used only by "Color Flairs" (see the Shortcuts doc).
-struct HubToggleRow: View {
-    let title: String
-    let systemImage: String
-    let tint: Color
-    @Binding var isOn: Bool
-
-    /// Same tile-to-title geometry as `HubRow` (`hubTileToTitleGap`, with the title
-    /// at the pinned title size).
-    var body: some View {
-        Toggle(isOn: $isOn) {
-            HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
-                SettingsTile(systemImage: systemImage, tint: tint)
-                Text(title)
-                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                    .lineLimit(1)
-            }
-        }
-        // Geometry lives on the call sites (each applies `.apolloSettingsRowInsets()`
-        // as the Section's direct child); this row owns only its tile + title layout.
-        .frame(minHeight: ApolloSettingsRowMetrics.rowHeight)
-    }
-}
-
-/// About rows use emoji tiles rather than SF Symbols.
-struct HubEmojiRow: View {
-    let title: String
-    var subtitle: String?
-    let emoji: String
-    let tint: Color
-    var artwork: HubRowArtwork? = nil
-
-    var body: some View {
-        // Same measured geometry as `SettingsTile`; only the glyph is
-        // an emoji rather than an SF Symbol.
-        HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
-            ZStack {
-                RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius,
-                                 style: .continuous)
-                    .fill(tint)
-                Text(emoji)
-                    .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize))
-                switch artwork {
-                case .symbol(let name):
-                    Image(systemName: name)
-                        .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize,
-                                      weight: ApolloSettingsRowMetrics.tileGlyphWeight))
-                        .foregroundStyle(.white)
-                case nil:
-                    EmptyView()
-                }
-            }
-            .frame(width: ApolloSettingsRowMetrics.tileSize,
-                   height: ApolloSettingsRowMetrics.tileSize)
-            VStack(alignment: .leading, spacing: ApolloSettingsRowMetrics.subtitleTopGap) {
-                Text(title)
-                    .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .apolloFont(size: ApolloSettingsRowMetrics.subtitlePointSize)
-                        .foregroundStyle(Color.apolloSettingsSecondary)
-                        // Long subtitles wrap, as in `HubRow`.
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        // Explicit vertical padding rather than the `List`'s row inset, which is too
-        // tight for a title alone and cramped once a subtitle wraps. Same
-        // padding-around-content approach as `HubRow`.
-        .padding(.vertical, (subtitle?.isEmpty == false)
-                 ? ApolloSettingsRowMetrics.hubRowVerticalPadWithSubtitle
-                 : ApolloSettingsRowMetrics.hubRowVerticalPadNoSubtitle)
-    }
-}
-
-/// Artwork for a hub row that is not an emoji tile.
-enum HubRowArtwork {
-    /// An SF Symbol drawn on the row's tile.
-    case symbol(String)
-}
-
-struct HubLinkRow: View {
-    let title: String
-    var subtitle: String?
-    let emoji: String
-    let tint: Color
-    let url: String
-    var artwork: HubRowArtwork? = nil
-
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        Button {
-            if let destination = URL(string: url) {
-                openURL(destination)
-            }
-        } label: {
-            HStack {
-                HubEmojiRow(title: title, subtitle: subtitle, emoji: emoji, tint: tint, artwork: artwork)
-                Spacer()
-                ApolloSettingsChevron()
-            }
-        }
-        .apolloSettingsRowInsets()
-        .foregroundStyle(.primary)
-    }
-}
-
-/// Shared colored-tile glyph used by every hub row: a 29x29 rounded rect at
-/// cornerRadius 6 holding a white 16pt medium symbol.
-struct SettingsTile: View {
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: ApolloSettingsRowMetrics.tileCornerRadius,
-                             style: .continuous)
-                .fill(tint)
-            Image(systemName: systemImage)
-                .font(.system(size: ApolloSettingsRowMetrics.tileGlyphPointSize,
-                              weight: ApolloSettingsRowMetrics.tileGlyphWeight))
-                .foregroundStyle(.white)
-        }
-        .frame(width: ApolloSettingsRowMetrics.tileSize,
-               height: ApolloSettingsRowMetrics.tileSize)
     }
 }

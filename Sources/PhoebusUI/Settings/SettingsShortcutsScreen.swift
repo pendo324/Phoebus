@@ -66,7 +66,7 @@ public struct SettingsShortcutsScreen: View {
     }
 
     private func row(_ id: String) -> some View {
-        HStack(spacing: ApolloSettingsRowMetrics.hubTileToTitleGap) {
+        HStack(spacing: ApolloSettingsRowMetrics.categoryTileToTitleGap) {
             SettingsTile(systemImage: SettingsShortcutsStore.systemImage(id), tint: Self.tint(id))
             Text(SettingsShortcutsStore.title(id))
                 .apolloFont(size: ApolloSettingsRowMetrics.titlePointSize)
@@ -77,7 +77,7 @@ public struct SettingsShortcutsScreen: View {
 
 
     /// Blue, except Saved Categories green, Picture-in-Picture purple, and the emoji
-    /// tiles' yellow/red; native rows keep their own Settings/hub tile colours.
+    /// tiles' yellow/red; native rows keep their own Settings tile colours.
     static func tint(_ id: String) -> Color {
         switch id {
         // Reborn's shortcut image colours.

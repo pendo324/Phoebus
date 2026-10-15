@@ -348,7 +348,8 @@ public extension View {
     /// - Parameters:
     ///   - topGap/bottomGap: vertical pulls around the footer.
     ///     Defaults are safe for a plain list with system row insets;
-    ///     the hub passes its own tuned values via `apolloHubSectionFooter()`.
+    ///     a category screen passes its own tuned values via
+    ///     `apolloCategorySectionFooter()`.
     func apolloSectionFooter(
         topGap: CGFloat = 4,
         bottomGap: CGFloat = -19
@@ -367,7 +368,7 @@ public extension View {
 
     /// Apollo's settings section header style: 18pt semibold in #8D8D92.
     /// - Parameters:
-    ///   - pointSize: 18 on the hub; 17 on preview-card screens.
+    ///   - pointSize: 18, as Reborn's hub draws it; 17 on preview-card screens.
     ///   - topGap/bottomGap: as for `apolloSectionFooter`.
     func apolloSectionHeader(
         pointSize: CGFloat = ApolloSettingsRowMetrics.headerPointSize,
@@ -389,16 +390,16 @@ public extension View {
             .padding(.top, topGap)
     }
 
-    /// The preview-card family's section header, using the plain
-    /// list's own gaps rather than the hub's tuned pulls.
-    func apolloHubSectionHeader() -> some View {
+    /// The settings hub's section header, with the pulls measured on
+    /// Reborn's hub.
+    func apolloCategorySectionHeader() -> some View {
         apolloSectionHeader(topGap: -21, bottomGap: -17,
                             textDrop: 8)
     }
 
-    /// The plain list floors the footer-to-next-header gap, so every hub
-    /// section after the first sits a few points below Apollo's.
-    func apolloHubSectionFooter() -> some View {
+    /// A category screen's footer, with the pulls measured on Reborn's
+    /// hub (its plain list floors the footer-to-next-header gap).
+    func apolloCategorySectionFooter() -> some View {
         apolloSectionFooter(topGap: 0, bottomGap: -10)
     }
 

@@ -4,11 +4,11 @@ import UIKit
 #endif
 
 /// The measured geometry and colours shared by every Apollo settings
-/// row: the root Settings screen, the Apollo Reborn hub, and the
+/// row: the root Settings screen, the category screens, and the
 /// sub-screens that build rows by hand.
 ///
-/// One shared metrics table used by all of them, so the hub and the
-/// root screen agree on tile inset and row pitch.
+/// One shared metrics table used by all of them, so a category screen
+/// and the root screen agree on tile inset and row pitch.
 public enum ApolloSettingsRowMetrics {
     /// A 29x29 rounded rect, cornerRadius 6, with a white 16pt medium
     /// SF Symbol centred in it.
@@ -21,17 +21,18 @@ public enum ApolloSettingsRowMetrics {
     public static let tileLeading: CGFloat = 32
     public static let titleLeading: CGFloat = 77
     public static let tileToTitleGap: CGFloat = 16
-    /// The hub's titles land at x 77 like the root's.
-    public static let hubTitleLeading: CGFloat = 77
-    public static let hubTileToTitleGap: CGFloat = 16
+    /// Category-row titles land at x 77 like the root's (measured on
+    /// Reborn's settings hub, whose rows these are).
+    public static let categoryTitleLeading: CGFloat = 77
+    public static let categoryTileToTitleGap: CGFloat = 16
 
-    /// Rows are a dead-flat 52pt everywhere. Two-line hub rows measure
-    /// 62pt.
+    /// Rows are a dead-flat 52pt everywhere. Two-line rows on Reborn's
+    /// hub measure 62pt.
     public static let rowHeight: CGFloat = 52
     public static let twoLineRowHeight: CGFloat = 62
 
-    /// Hub row vertical padding, for rows whose content (title + N-line
-    /// subtitle) sizes the row rather than an explicit height: the hub's cells
+    /// Category-row vertical padding, for rows whose content (title + N-line
+    /// subtitle) sizes the row rather than an explicit height: the cells
     /// self-size, so a three-line subtitle makes a taller row instead of
     /// clipping at 62pt.
     ///
@@ -40,8 +41,8 @@ public enum ApolloSettingsRowMetrics {
     /// heights (taller than the glyph cap heights, by a different amount for the
     /// 17pt title and the 15pt subtitle), so one pad lands close across all three
     /// tiers.
-    public static let hubRowVerticalPadNoSubtitle: CGFloat = 11.5
-    public static let hubRowVerticalPadWithSubtitle: CGFloat = 11.5
+    public static let categoryRowVerticalPadNoSubtitle: CGFloat = 11.5
+    public static let categoryRowVerticalPadWithSubtitle: CGFloat = 11.5
 
     /// Separator x 76..361, rgb(50,54,64). It is a full 1pt, not a
     /// hairline: Apollo sets `separatorInset` but keeps UIKit's
@@ -64,7 +65,7 @@ public enum ApolloSettingsRowMetrics {
     public static let detailPointSize: CGFloat = 17
     public static let detailColorHex = "61626A"
 
-    /// Hub subtitle: 15pt regular #8D8D92, 4pt under the title.
+    /// Row subtitle: 15pt regular #8D8D92, 4pt under the title.
     public static let subtitlePointSize: CGFloat = 15
     public static let subtitleColorHex = "8D8D92"
     public static let subtitleTopGap: CGFloat = 4
@@ -75,8 +76,8 @@ public enum ApolloSettingsRowMetrics {
     public static let headerLeading: CGFloat = 33
     public static let headerToFirstRow: CGFloat = 23
 
-    /// Hub footer: 13pt regular #8D8D92 at x 32.3, 22pt below the
-    /// separator, next header 30pt below it.
+    /// Section footer as Reborn's hub draws it: 13pt regular #8D8D92 at
+    /// x 32.3, 22pt below the separator.
     public static let footerPointSize: CGFloat = 13
     public static let footerLeading: CGFloat = 32
     public static let footerTopGap: CGFloat = 22
@@ -88,14 +89,14 @@ public enum ApolloSettingsRowMetrics {
 
     /// The preview-card family of settings screens (Subreddit
     /// Sections, Feed Shortcuts, Subreddit Layout, Profile Layout)
-    /// uses the same 15pt semibold section header as the hub.
+    /// uses the same 15pt semibold section header as Reborn's hub.
     /// Colour and x are unchanged (#8D8D92 at x 33).
     public static let previewScreenHeaderPointSize: CGFloat = 15
 
-    /// The hub's header/footer paddings are negative values tuned
-    /// against the hub's own list, and do not transfer to a
-    /// preview-card screen (the hub's own values would pull a
-    /// following header up through the footer text above it).
+    /// The header/footer paddings measured on Reborn's hub are negative
+    /// values tuned against its list, and do not transfer to a
+    /// preview-card screen (they would pull a following header up
+    /// through the footer text above it).
     ///
     /// These screens take the plain list's own spacing instead,
     /// matching the measured 22pt-below-the-last-rule /

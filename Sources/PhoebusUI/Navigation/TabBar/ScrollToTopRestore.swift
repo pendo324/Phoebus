@@ -96,13 +96,20 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
     /// delivering the callback. See the type's doc comment.
     private static let topEpsilon: CGFloat = 1
 
+    /// Reads the user's scroll direction apart from layout shifts.
+    private var intent = ScrollIntentTracker()
+
+    /// The finger's height in the window, while it is dragging. Not the pan's
+    /// translation: UIKit rewrites that to damp the rubber band at either end
+    /// of the content. A touch that has caught a coasting list is not a pan
+    /// yet and still reports where the last one ended.
+    private func fingerY(_ scrollView: UIScrollView) -> Double? {
+        let pan = scrollView.panGestureRecognizer
+        guard scrollView.isDragging, pan.state == .began || pan.state == .changed else { return nil }
+        return Double(pan.location(in: nil).y)
+    }
+
     /// "Effectively at the top", tolerant of the epsilon above.
-    /// Points of movement before a drag counts as a direction change.
-    private static let directionThreshold: CGFloat = 12
-
-    /// Last observed offset, for direction detection.
-    private var lastScrollOffset: CGFloat = 0
-
     private func isAtTop(_ scrollView: UIScrollView) -> Bool {
         scrollView.contentOffset.y <= -scrollView.adjustedContentInset.top + Self.topEpsilon + 1
     }
@@ -203,7 +210,7 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
             name: .apolloNavigationActionsCollapse,
             object: NavigationActionsPolicy.CollapseReason.scrolled
         )
-        lastScrollOffset = scrollView.contentOffset.y
+        intent.begin(offset: Double(scrollView.contentOffset.y))
         NotificationCenter.default.post(name: .apolloScrollGestureBegan, object: nil)
         (forwardingDelegate as? UIScrollViewDelegate)?.scrollViewWillBeginDragging?(scrollView)
     }
@@ -219,19 +226,19 @@ final class ScrollToTopDelegateProxy: NSObject, UIScrollViewDelegate {
         // scrolls (scroll-to-top, jump-to-comment), which would
         // otherwise hide the bars behind the user's back.
         guard scrollView.isDragging || scrollView.isDecelerating else {
-            lastScrollOffset = scrollView.contentOffset.y
+            intent.rebase(offset: Double(scrollView.contentOffset.y))
             return
         }
         let offset = scrollView.contentOffset.y
-        let delta = offset - lastScrollOffset
-        // A small threshold so a few stray points of rubber-banding do
-        // not count as a gesture.
-        guard abs(delta) >= Self.directionThreshold else { return }
-        lastScrollOffset = offset
-        // Never hide the bars while bouncing above the top.
-        if delta > 0, offset > -scrollView.adjustedContentInset.top {
-            NotificationCenter.default.post(name: .apolloScrollDidScrollDown, object: nil)
-        } else if delta < 0 {
+        let finger = fingerY(scrollView)
+        guard let direction = intent.sample(offset: Double(offset), fingerY: finger) else { return }
+        switch direction {
+        case .down:
+            // Never hide the bars while bouncing above the top.
+            if offset > -scrollView.adjustedContentInset.top {
+                NotificationCenter.default.post(name: .apolloScrollDidScrollDown, object: nil)
+            }
+        case .up:
             NotificationCenter.default.post(name: .apolloScrollDidScrollUp, object: nil)
         }
     }

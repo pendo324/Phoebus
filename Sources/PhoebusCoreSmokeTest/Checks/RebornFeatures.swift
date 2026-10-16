@@ -613,6 +613,51 @@ import PhoebusCore
     check("navigating reveals a minimized pill without a native nudge", minimize.reveal && !minimize.expandNativeMinimize)
 }
 
+// MARK: - Scroll intent for Hide Bars on Scroll
+//
+// Layout shifts (row heights re-estimated, a page loading) move the offset
+// against the finger; only the user's own scroll counts as a direction.
+@MainActor func checkScrollIntentTracker() async throws {
+    typealias Tracker = ScrollIntentTracker
+    var drag = Tracker()
+    drag.begin(offset: 1000)
+    check("the first sample only anchors the drag", drag.sample(offset: 1000, fingerY: 40) == nil)
+    check("a few points of drag are not a direction", drag.sample(offset: 1005, fingerY: 35) == nil)
+    check("a finger sweeping up reads as scrolling down", drag.sample(offset: 1030, fingerY: 10) == .down)
+    check("an offset jump back while the finger keeps sweeping up is a layout shift",
+          drag.sample(offset: 750, fingerY: -20) == .down)
+    check("a finger sweeping down reads as scrolling up", drag.sample(offset: 700, fingerY: 0) == .up)
+    check("an offset jump forward while the finger sweeps down is not an upward scroll",
+          drag.sample(offset: 1200, fingerY: 20) == .up)
+
+    var held = Tracker()
+    held.begin(offset: 500)
+    _ = held.sample(offset: 500, fingerY: 0)
+    check("content shifting under a resting finger is not a direction",
+          held.sample(offset: 200, fingerY: 2) == nil && held.sample(offset: 900, fingerY: 3) == nil)
+
+    var coast = Tracker()
+    coast.begin(offset: 0)
+    _ = coast.sample(offset: 0, fingerY: 0)
+    _ = coast.sample(offset: 80, fingerY: -80)
+    check("coasting on in the same direction still counts", coast.sample(offset: 400, fingerY: nil) == .down)
+    check("a jump back while coasting is a layout shift", coast.sample(offset: 120, fingerY: nil) == nil)
+    check("coasting resumes after the jump", coast.sample(offset: 420, fingerY: nil) == .down)
+
+    var flick = Tracker()
+    flick.begin(offset: 0)
+    check("a flick that lifts early takes its direction from the coast",
+          flick.sample(offset: 40, fingerY: nil) == .down && flick.sample(offset: 10, fingerY: nil) == nil)
+
+    var programmatic = Tracker()
+    programmatic.begin(offset: 0)
+    _ = programmatic.sample(offset: 0, fingerY: 0)
+    _ = programmatic.sample(offset: 100, fingerY: -100)
+    programmatic.rebase(offset: 0)
+    check("a rebase forgets the last direction", programmatic.sample(offset: -40, fingerY: nil) == .up)
+    check("the direction threshold is 12 points", Tracker.directionThreshold == 12)
+}
+
 // MARK: - Minimize hide style (Reborn #1349)
 //
 // The pill's size, its cross-fade with the bar, and the two recorded motion

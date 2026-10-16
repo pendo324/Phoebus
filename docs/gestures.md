@@ -12,6 +12,7 @@ any of the files below.
 | `Sources/PhoebusCore/Navigation/Gestures/PushPopGesturePolicy.swift` | Every threshold: `leftInset=70`, `rightInset=40`, `horizontalDominance=1.65`, `rowSwipeMinimumDistance=10`, `bottomSystemGestureInset=24`, `completionVelocity=100`, `completionFraction=0.5`, `scrollCommitDistance=10`, `scrollStartedDistance=4`. Pure functions `shouldBeginBack/Forward`, `rowSwipeShouldBegin`, `navigationClaimsTouch`, `navigationClaimsRowTouch`, `startedInBottomSystemGestureZone`, `shouldComplete`, `transitionProgress`, `verticallyCommitted`. Smoke-tested. |
 | `Sources/PhoebusCore/Navigation/Gestures/NavigationGestureSettings.swift` | User toggles: `pushPopSwipeGesturesEnabled`, `disableRightSwipeGestureActions`, `disableLeftSwipeGestureActions`, `longSwipeTriggerPoint`. These are the Gestures settings screen's keys. |
 | `Sources/PhoebusCore/Navigation/Swipes/SwipeCommitPolicy.swift` | Row-swipe thresholds: short action at 60pt, long action at `60 + 120 * fraction`. Pure, smoke-tested. |
+| `Sources/PhoebusCore/Navigation/Swipes/SwipeRowPolicy.swift` | Which side a row drag belongs to, whether that side is on (Disable Left/Right Swipes, both slots None), and which action releasing it performs. The row asks it while revealing and on release. Pure, smoke-tested. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/PageSwipeNavigation.swift` | **Back and forward page swipes**: `PageSwipeController`, `PageSwipeInstaller`, `PageSwipeAnimator`, `PageSwipeInteraction`. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/UnsavedChangesGuard.swift` | `apolloConfirmsDiscard`: a screen's unsaved-changes flag, which holds a back page swipe and asks instead. |
 | `Sources/PhoebusUI/Navigation/PageSwipes/ForwardNavigation.swift` | `ForwardNavigationStore` (the forward stack), `apolloForwardSwipe()`, `apolloTracksForwardNavigation()`. |
@@ -20,6 +21,7 @@ any of the files below.
 | `Sources/PhoebusUI/Shared/UIKit/ScrollGestureExclusivity.swift` | `ScrollGestureExclusivity` (is a scroll view scrolling under this touch?) and `ScrollLock` (switches scroll pans off while a swipe owns the touch). |
 | `Sources/PhoebusUI/Navigation/TabBar/ScrollToTopRestore.swift` | **Status-bar tap**: `ScrollToTopDelegateProxy` (top, then back to where you were), `ScrollReturnStore` (the Return Button). |
 | `Sources/PhoebusUI/Navigation/RowSwipes/SwipeActionsModifier.swift` | **Row swipe** (upvote/downvote/save/reply/hide on post and comment rows): `ApolloSwipePanRecognizer`, `ApolloSwipeRecognizerDelegate`, `AncestorAttachingView`, `SwipeGestureArbiter`, `ProgressiveSwipeRowModifier` (the revealed panel). |
+| `Sources/PhoebusUI/Settings/Previews/GesturesPreview.swift` | The Gestures & Haptics preview: a sample row in `apolloConfinedSwipeActions` (below). Core `SwipePreviewPolicy` holds its strip, release label and segments. |
 | `Sources/PhoebusUI/Shared/UIKit/AncestorGestureHost.swift` | Hosts a recognizer on an ancestor view; used by the two scrub gestures below. |
 | `Sources/PhoebusUI/Feed/Gallery/GalleryImageViewerScreen.swift` | `GalleryVerticalSwipeCatcher`: swipe-to-dismiss and hold-and-drag video scrub in the gallery pager. |
 | `Sources/PhoebusUI/Media/Video/MutedVideoPlayerView.swift` | `VideoScrubGestureCatcher`: hold-and-drag scrub in the fullscreen video player. |
@@ -189,6 +191,30 @@ recognizers can cancel this one after a real swipe.
   controller's view for its duration. `ScrollLock` toggles
   `panGestureRecognizer.isEnabled`, not `isScrollEnabled`, because
   SwiftUI owns the latter on `List` and reasserts it on view updates.
+
+### A row swipe outside a list
+
+A row swipe normally attaches to its list cell. A row with no cell (the
+Gestures & Haptics preview card, which is pinned outside the list) uses
+`apolloConfinedSwipeActions`, which attaches the same recognizer to the
+topmost ancestor below the window, as `AncestorGestureHost` does, and
+confines it to the row:
+
+- `ApolloSwipeRecognizerDelegate.gestureRecognizer(_:shouldReceive:)`
+  refuses a touch that starts outside the row's window frame, so the page
+  swipes and everything else outside the card are untouched.
+- Scroll exclusivity and `ScrollLock` look up scroll views from the row, not
+  from the far ancestor. An unpinned card sits in the settings list, so a
+  vertical drag that starts on it scrolls the list and the row swipe fails
+  (`isAnyEnclosingScrollViewScrolling`); a pinned card is outside any scroll
+  view, so a vertical drag on it does nothing, as on the other pinned
+  previews.
+- The page-swipe arbitration is the recognizer's own and unchanged: the
+  start-zone test (`navigationClaimsRowTouch`), `PageSwipeController.isActive`
+  and `SwipeGestureArbiter.rowSwipeActive`. A drag starting in the left 70pt
+  of the card is a back swipe, not a row swipe.
+- The revealed panel is bounded by the row (`confined`), not the screen's
+  edges.
 
 ### Row swipe visuals
 

@@ -370,6 +370,17 @@ Apollo or Reborn, add an entry here.
   your account: the sample's "you" and followed user stand in for it.
   Row details: components.md, "Settings previews".
 
+- **Gestures & Haptics shows a sample row you can swipe.** A pinned card
+  holds the real cell of the screen being edited (post, comment, inbox
+  message or profile row) inside the real row swipe, with a strip under it
+  naming each side's short and long action and where the Long Swipe Trigger
+  Point falls. Dragging it reveals the actions with their icons, colours and
+  haptics, and letting go runs nothing: the row springs back and a label says
+  which action it would have performed. A side turned off by Disable Left or
+  Right Swipes reads "Swipe back" or "Swipe forward". Apollo's Gestures
+  screen has no preview, and Reborn adds none. Details: components.md,
+  "Settings previews"; the confined swipe: gestures.md, "Row swipes".
+
 - **A settings screen has one entrance.** Each screen is pushed from
   exactly one row, and has one name everywhere: its row, its navigation
   title, its search entry and every breadcrumb. One link into another

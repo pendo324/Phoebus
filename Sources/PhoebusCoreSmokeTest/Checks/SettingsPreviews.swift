@@ -96,11 +96,18 @@ import PhoebusCore
     check("the Posts preview is pinned under its own per-screen key",
           SettingsPreviewScreen.posts.rawValue == "PostsPreviewPinned"
             && SettingsPreviewPinStore.defaultsKey(for: .posts) == "Phoebus.PostsPreviewPinned")
-    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .posts))
-    check("the Posts preview starts pinned",
-          SettingsPreviewPinStore.isPinned(.posts))
-    SettingsPreviewPinStore.setPinned(false, for: .posts)
-    check("unpinning the Posts preview is remembered",
-          !SettingsPreviewPinStore.isPinned(.posts))
-    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .posts))
+    check("the Comments and Thread Colours previews have keys of their own",
+          SettingsPreviewScreen.comments.rawValue == "CommentsPreviewPinned"
+            && SettingsPreviewScreen.commentsTheme.rawValue == "CommentsThemePreviewPinned")
+    for screen in [SettingsPreviewScreen.posts, .comments, .commentsTheme] {
+        UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: screen))
+    }
+    check("the Posts, Comments and Thread Colours previews start pinned",
+          SettingsPreviewPinStore.isPinned(.posts) && SettingsPreviewPinStore.isPinned(.comments)
+            && SettingsPreviewPinStore.isPinned(.commentsTheme))
+    SettingsPreviewPinStore.setPinned(false, for: .comments)
+    check("unpinning one of them leaves the others pinned",
+          !SettingsPreviewPinStore.isPinned(.comments) && SettingsPreviewPinStore.isPinned(.posts)
+            && SettingsPreviewPinStore.isPinned(.commentsTheme))
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .comments))
 }

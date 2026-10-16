@@ -340,15 +340,7 @@ public struct PostDetailScreen: View {
                             guard let targetID = commentStore.nextRootIDForJump() else { return }
                             withAnimation { scrollProxy.scrollTo(commentStore.rowID(targetID), anchor: .top) }
                         } label: {
-                            // A solid blue circle with a white
-                            // chevron-down, sized to match the
-                            // collapsed tab pill (44x44).
-                            Image(systemName: "chevron.down")
-                                .font(.title2.bold())
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Circle().fill(Color.apolloAccent))
-                                .shadow(radius: 2)
+                            CommentJumpButtonLabel()
                         }
                         .accessibilityLabel("Next Comment")
                         .accessibilityIdentifier("postDetail.jumpToNextComment")
@@ -1063,20 +1055,4 @@ struct CommentShareTarget: Identifiable {
     let comment: RedditComment
     let parents: [RedditComment]
     var id: String { comment.id }
-}
-
-private extension JumpButtonPosition {
-    var alignment: Alignment {
-        switch self {
-        case .bottomTrailing: return .bottomTrailing
-        case .middleTrailing: return .trailing
-        case .topTrailing: return .topTrailing
-        case .center: return .bottom
-        case .bottomLeading: return .bottomLeading
-        case .middleLeading: return .leading
-        case .topLeading: return .topLeading
-        }
-    }
-
-    var sitsAtBottom: Bool { alignment.vertical == .bottom }
 }

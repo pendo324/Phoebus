@@ -18,11 +18,21 @@ public struct CommentsSettingsScreen: View {
     @State private var showsSlowdownWarning = false
     /// Re-read on appear: the palette is chosen one screen down.
     @State private var commentsThemeName = ""
+    @Environment(\.accountManager) private var accountManager
+    @State private var depthColors = CommentsSettingsScreen.currentDepthColors()
 
     public init() {}
 
+    private static func currentDepthColors() -> [Color] {
+        CommentsThemeStore.effectiveHexes(theme: ThemeStore.load()).map(Color.init(hex:))
+    }
+
     public var body: some View {
-        List {
+        SettingsPreviewScreenLayout(screen: .comments) {
+            if let repository = accountManager?.repository {
+                CommentsPreview(repository: repository, depthColors: depthColors)
+            }
+        } content: {
             sortingSection
             collapsingSection
             navigationSection
@@ -32,10 +42,10 @@ public struct CommentsSettingsScreen: View {
             displaySection
         }
         .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
         .navigationTitle(SettingsCategory.comments.title)
         .navigationBarTitleDisplayModeIfAvailable()
         .onAppear {
+            depthColors = Self.currentDepthColors()
             commentsThemeName = CommentsThemeStore.overridePaletteName
                 ?? (ThemeStore.load().commentPaletteName ?? "Theme's Own")
         }

@@ -31,6 +31,7 @@ private struct AccountAgeLookupModifier: ViewModifier {
     let isEnabled: Bool
     let repository: RedditRepository
     @Binding var createdAt: Date?
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
 
     func body(content: Content) -> some View {
         // On the row's always-present author name rather than on the badge: a
@@ -38,6 +39,11 @@ private struct AccountAgeLookupModifier: ViewModifier {
         content.task(id: isEnabled ? username : nil) {
             guard isEnabled, AccountAgeCache.isLookupCandidate(username: username) else {
                 createdAt = nil
+                return
+            }
+            // A settings preview answers from the sample, not a lookup.
+            if isSettingsPreview {
+                createdAt = SettingsPreviewSample.accountCreated(for: username)
                 return
             }
             let repository = repository, username = username

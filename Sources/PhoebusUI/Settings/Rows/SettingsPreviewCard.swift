@@ -21,11 +21,11 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
 
     /// Profile Layout's card spans the table's readable width, with the
     /// pin control near the card's trailing edge, not over its top
-    /// corner. The Posts preview draws the app's own row, which is laid out
-    /// for that width.
+    /// corner. The post and thread previews draw the app's own rows, which
+    /// are laid out for that width.
     private var edgeToEdge: Bool {
         switch screen {
-        case .profileLayout, .posts: return true
+        case .profileLayout, .posts, .comments, .commentsTheme: return true
         default: return false
         }
     }

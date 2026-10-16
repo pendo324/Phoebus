@@ -51,6 +51,7 @@ struct CommentRow: View {
     /// `Color.apolloPrimaryText`).
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.apolloTheme) private var themeColors
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
 
     private var voteState: Bool? { voteStore.vote(for: node.comment.name, serverValue: node.comment.likes) }
     /// The archive's author for a recovered comment (Reborn restores it
@@ -58,6 +59,14 @@ struct CommentRow: View {
     private var displayAuthor: String {
         if let author = archivedComment?.author, !author.isEmpty, author != "[deleted]" { return author }
         return node.comment.author
+    }
+
+    private var authorHighlight: AuthorHighlight {
+        let distinguished = isDistinguished ? "moderator" : node.comment.distinguished == "admin" ? "admin" : nil
+        // A settings preview does not read the signed-in account.
+        return isSettingsPreview
+            ? AuthorHighlight.sample(author: displayAuthor, distinguished: distinguished, settings: general)
+            : AuthorHighlight.current(author: displayAuthor, distinguished: distinguished, settings: general)
     }
 
     private var displayScore: Int { node.comment.score + voteStore.scoreDelta(for: node.comment.name) }
@@ -328,11 +337,7 @@ struct CommentRow: View {
                         .apolloFont(size: 15, weight: .medium, role: .commentHeader)
                         // Apollo's moderator green (see `ApolloPalette`), then your own
                         // and followed users' highlight.
-                        .foregroundStyle(AuthorHighlight.current(
-                            author: displayAuthor,
-                            distinguished: isDistinguished ? "moderator" : node.comment.distinguished == "admin" ? "admin" : nil,
-                            settings: general
-                        ).color(plain: Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors)))
+                        .foregroundStyle(authorHighlight.color(plain: Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors)))
                         // Tapping the username opens the profile. A long username shrinks to
                         // one line with a tail ellipsis instead of pushing the score, badges
                         // and age off the row (Reborn #1162).
@@ -674,7 +679,7 @@ struct CommentRow: View {
     /// cached and resolved once per session to avoid one `/api/v1/me`
     /// request per row.
     private func checkOwnership() async {
-        guard let username = await CurrentUsernameCache.username(repository: repository) else { return }
+        guard !isSettingsPreview, let username = await CurrentUsernameCache.username(repository: repository) else { return }
         isOwnComment = username.caseInsensitiveCompare(node.comment.author) == .orderedSame
     }
 

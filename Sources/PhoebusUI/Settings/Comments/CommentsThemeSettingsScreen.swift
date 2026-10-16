@@ -12,6 +12,7 @@ import PhoebusCore
 /// addition; built-in themes have no palette of their own).
 public struct CommentsThemeSettingsScreen: View {
     @State private var selection: String?
+    @Environment(\.accountManager) private var accountManager
     private let theme: Theme
 
     public init() {
@@ -31,7 +32,14 @@ public struct CommentsThemeSettingsScreen: View {
     }
 
     public var body: some View {
-        List {
+        SettingsPreviewScreenLayout(screen: .commentsTheme) {
+            if let repository = accountManager?.repository {
+                // Read here, after a row has stored its choice, so the preview follows it.
+                CommentsPreview(repository: repository,
+                                depthColors: CommentsThemeStore.effectiveHexes(theme: theme).map(Color.init(hex:)),
+                                appliesCollapseSettings: false)
+            }
+        } content: {
             Section {
                 if themeHasOwnColours {
                     row(title: "Theme's Own Colours", paletteName: nil, isChecked: checked == nil)
@@ -47,7 +55,6 @@ public struct CommentsThemeSettingsScreen: View {
                     .apolloSectionHeader()
             }
         }
-        .apolloSettingsListAppearance()
         .navigationTitle("Thread Colours")
         .navigationBarTitleDisplayModeIfAvailable()
     }

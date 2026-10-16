@@ -47,6 +47,9 @@ struct CommentRow: View {
     @ObservedObject private var voteStore = VoteStateStore.shared
     /// Recolours the author after a Follow/Unfollow (`AuthorHighlight`).
     @ObservedObject private var followedRevision = FollowedUsernamesRevision.shared
+    /// Reddit's awards for the thread's comments, filled in when the thread's
+    /// fragment arrives (see `AwardStore`).
+    @ObservedObject private var awardStore = AwardStore.shared
     /// Row colours: #D0D1D6 username/body, #61626A score and age (see
     /// `Color.apolloPrimaryText`).
     @Environment(\.colorScheme) private var colorScheme
@@ -77,6 +80,7 @@ struct CommentRow: View {
     @State private var showingModNotes = false
     @State private var showingTranslator = false
     @State private var showingAward = false
+    @State private var showingAwardDetails = false
     @State private var showingRemindMe = false
     @State private var showingTagEditor = false
     @State private var shownFlair: FlairInfo?
@@ -444,6 +448,14 @@ struct CommentRow: View {
                             .foregroundStyle(Color.apolloTertiaryText(colorScheme: colorScheme, themeColors: themeColors))
                             .accessibilityIdentifier("comment.edited.\(node.id)")
                     }
+                    // Reddit's featured award and the total, under "Show Awards".
+                    if general.showAwards, let badge = awardStore.badge(for: node.comment.name) {
+                        AwardPill(badge: badge) { showingAwardDetails = true }
+                            .foregroundStyle(Color.apolloTertiaryText(colorScheme: colorScheme, themeColors: themeColors))
+                            .hitArea(CommentHeaderHitArea.score)
+                            .hitAreaLayout(CommentHeaderHitArea.score)
+                            .accessibilityIdentifier("comment.awards.\(node.id)")
+                    }
                     // Expanded rows end with "••• <age>"; collapsed rows end with a badge
                     // holding the hidden-descendant count and a separate chevron, dropping
                     // the age. The empty band between score and trailing cluster collapses
@@ -644,9 +656,12 @@ struct CommentRow: View {
             }
         }
         .sheet(isPresented: $showingAward) {
-            AwardGiftingScreen(fullname: node.comment.name, repository: repository) {
+            AwardPickerScreen(thingID: node.comment.name, repository: repository) {
                 showingAward = false
             }
+        }
+        .sheet(isPresented: $showingAwardDetails) {
+            AwardDetailsSheet(thingID: node.comment.name, repository: repository)
         }
         .userTagEditor(isPresented: $showingTagEditor, username: displayAuthor)
         .flairAlert($shownFlair)

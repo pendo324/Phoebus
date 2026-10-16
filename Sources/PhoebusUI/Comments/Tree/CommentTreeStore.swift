@@ -334,6 +334,21 @@ final class CommentTreeStore: ObservableObject {
 
     private static let prefetchAhead = 10
 
+    /// Reddit's awards for the thread: one request for the whole comment tree
+    /// per opened thread (none without "Show Awards" or a web session),
+    /// running beside the tree fetch so the rows update when it arrives.
+    private func loadAwards(subreddit: String, postID: String, sort: String, repository: RedditRepository, force: Bool = false) {
+        Task { await repository.loadThreadAwards(subreddit: subreddit, postID: postID, sort: sort, force: force) }
+    }
+
+    /// The awards of the comments a stub is about to reveal, from Shreddit's
+    /// more-comments partial. Position is read before the tree changes.
+    private func loadMoreAwards(for stub: MoreStub, repository: RedditRepository) {
+        guard let position = roots.awardMorePosition(of: stub, rootStub: rootMoreStub) else { return }
+        let (subreddit, postID, sort) = (lastSubreddit, lastPostID, lastSort)
+        Task { await repository.loadMoreAwards(subreddit: subreddit, postID: postID, sort: sort, position: position) }
+    }
+
     func fetch(subreddit: String, postID: String, sort: String, repository: RedditRepository, force: Bool = false) async {
         let key = "\(postID)-\(sort)"
         if !force, key == lastKey, !roots.isEmpty {
@@ -360,6 +375,7 @@ final class CommentTreeStore: ObservableObject {
             // Refresh the entry's age on use, so a post the user keeps
             // returning to stays cached rather than falling off the window.
             Self.recentTrees.touch(key: key)
+            loadAwards(subreddit: subreddit, postID: postID, sort: sort, repository: repository)
             return
         }
         lastKey = key
@@ -370,6 +386,7 @@ final class CommentTreeStore: ObservableObject {
         // existing comments on screen until the new ones arrive.
         if roots.isEmpty { isLoadingComments = true }
         defer { isLoadingComments = false }
+        loadAwards(subreddit: subreddit, postID: postID, sort: sort, repository: repository, force: force)
         do {
             let data = try await repository.fetchComments(subreddit: subreddit, postID: postID, sort: sort)
             let general = GeneralSettingsStore.load()
@@ -592,6 +609,7 @@ final class CommentTreeStore: ObservableObject {
     func resolveMoreStub(_ stub: MoreStub, repository: RedditRepository) async {
         resolvingStubIDs.insert(stub.id)
         defer { resolvingStubIDs.remove(stub.id) }
+        loadMoreAwards(for: stub, repository: repository)
         // Reddit's depth-limit continuation ("Continue thread\u{2026}")
         // has no child ids to resolve, so `/api/morechildren` cannot
         // answer it. The tree has to be re-requested rooted at the

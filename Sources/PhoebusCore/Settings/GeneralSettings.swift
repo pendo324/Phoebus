@@ -502,7 +502,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// Real Apollo "Jump Button Position" - see `JumpButtonPosition`.
     public var jumpButtonPosition: JumpButtonPosition
     /// Real Apollo "Show Awards" (Settings > Appearance > Other):
-    /// show or hide Reddit award icons on posts and comments.
+    /// show or hide Reddit's current awards on comments and in the post
+    /// header. They only load over a web session.
     public var showAwards: Bool
     /// Real Apollo "Post Flair" (Settings > Appearance > Flair):
     /// show or hide a post's own link flair chip.

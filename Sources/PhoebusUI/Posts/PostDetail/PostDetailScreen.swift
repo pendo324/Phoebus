@@ -444,7 +444,7 @@ public struct PostDetailScreen: View {
         .apolloTranslator(isPresented: $showingTranslator,
                           text: [post.title, post.selftext ?? ""].filter { !$0.isEmpty }.joined(separator: "\n\n"))
         .sheet(isPresented: $showingAward) {
-            AwardGiftingScreen(fullname: post.name, repository: repository) {
+            AwardPickerScreen(thingID: post.name, repository: repository) {
                 showingAward = false
             }
         }

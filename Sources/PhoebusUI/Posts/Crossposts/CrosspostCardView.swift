@@ -195,7 +195,7 @@ struct CrosspostCardView: View {
             }
             Button {
                 RootSheet.present { dismiss in
-                    AwardGiftingScreen(fullname: parent.name, repository: repository) { dismiss() }
+                    AwardPickerScreen(thingID: parent.name, repository: repository) { dismiss() }
                 }
             } label: {
                 Label("Give Award", systemImage: "medal")

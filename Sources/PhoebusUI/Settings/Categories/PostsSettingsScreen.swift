@@ -135,6 +135,9 @@ public struct PostsSettingsScreen: View {
             } header: {
                 Text("Flair & Awards")
                     .apolloSectionHeader()
+            } footer: {
+                Text("Reddit's awards on comments and in the post header. They come from Reddit's website, so they need a web session on the account; with only an API key none are shown.")
+                    .apolloSectionFooter()
             }
 
             Section {

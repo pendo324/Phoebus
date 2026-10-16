@@ -233,21 +233,6 @@ public actor RedditRepository {
         ])
     }
 
-    /// Spends the signed-in user's already-owned Reddit Coins to give
-    /// an award. Never purchases coins; this app has no payment
-    /// processing. `message` is an optional note sent with the award.
-    public func giveAward(fullname: String, awardID: String, isAnonymous: Bool, message: String? = nil) async throws {
-        var parameters = [
-            "thing_id": fullname,
-            "gild_type": awardID,
-            "is_anonymous": isAnonymous ? "true" : "false",
-        ]
-        if let message, !message.isEmpty {
-            parameters["message"] = message
-        }
-        try await client.post(path: "/api/v2/gold/gild", parameters: parameters)
-    }
-
     /// Edits your own post selftext or comment body. Submit and edit
     /// share the same endpoint, distinguished by whether `thing_id`
     /// already exists.

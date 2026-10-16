@@ -69,6 +69,8 @@ struct PostDetailHeader: View {
     @State private var editedText: String
     @Binding private var isDeleted: Bool
     @State private var showingTagEditor = false
+    @State private var showingAwardDetails = false
+    @ObservedObject private var awardStore = AwardStore.shared
     @State private var shownFlair: FlairInfo?
     /// The body as last saved from the editor, shown until the post
     /// is reloaded (the post passed in still has the old text).
@@ -121,6 +123,9 @@ struct PostDetailHeader: View {
                 .contextMenu { overflowMenuItems }
         }
         .userTagEditor(isPresented: $showingTagEditor, username: post.author)
+        .sheet(isPresented: $showingAwardDetails) {
+            AwardDetailsSheet(thingID: post.name, repository: repository)
+        }
         .flairAlert($shownFlair)
         // Each edit starts from the post as it stands, so Cancel or a discarded back swipe
         // doesn't leave the abandoned draft behind. Only on opening: saving closes the
@@ -333,9 +338,14 @@ struct PostDetailHeader: View {
                     Text("🎂").accessibilityLabel("Cake day")
                 }
                 // "Show Awards" toggle (Settings > Appearance > Other).
-                if general.showAwards, let awards = post.totalAwardsReceived, awards > 0 {
-                    Label("\(awards)", systemImage: "medal.fill")
-                        .foregroundStyle(.yellow)
+                if general.showAwards {
+                    if let badge = awardStore.badge(for: post.name) {
+                        AwardPill(badge: badge, iconSize: 18, fontSize: 15) { showingAwardDetails = true }
+                            .accessibilityIdentifier("postDetail.awards")
+                    } else if let awards = post.totalAwardsReceived, awards > 0 {
+                        Label("\(awards)", systemImage: "medal.fill")
+                            .foregroundStyle(.yellow)
+                    }
                 }
                 Spacer(minLength: 0)
             }

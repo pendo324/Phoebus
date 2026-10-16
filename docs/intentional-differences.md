@@ -109,6 +109,21 @@ Apollo or Reborn, add an entry here.
   whole page, the feed fetches the next one straight away, up to five
   pages, so infinite scroll does not stall.
 
+- **Awards are Reddit's current ones, and giving them needs a web
+  session.** Apollo had the pre-2023 awards (Silver, Gold, Platinum, paid
+  in Coins), which Reddit has since replaced. Phoebus shows Reddit's
+  present awards: an icon and the total on comments (Settings > Appearance
+  > Show Awards), a details sheet with each award's count and Gold, and
+  "Give Award" in the post and comment menus for free awards and for paid
+  awards out of Gold the user already has. Phoebus never sells Gold: no
+  purchase flow and no link to buy it, and a paid award the balance can't
+  cover is shown disabled. Reddit's OAuth API carries none of this, so it
+  all comes from Reddit's website over a web session; with only an API
+  key no awards show and nothing is requested. The thread icon is the one
+  Reddit features (which can be the viewer's own award); the sheet lists
+  the full breakdown. Posts keep the old medal count, since the thread
+  data has no post awards.
+
 ## Removed posts and comments
 
 - **Removed posts can be recovered.** When a post reads `[removed]` or

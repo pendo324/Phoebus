@@ -7,23 +7,35 @@ import PhoebusCore
 /// A single `Text` is one layer, and a very long message (~10,000
 /// characters) is taller than the largest layer the system will draw
 /// and redraws as a whole on every scroll frame. Short bodies stay one
-/// `Text`.
+/// `Text`. Quoted runs get a bar and indent (`QuotedBody`).
 struct ChunkedMarkdownText: View {
-    let chunks: [AttributedString]
+    let text: String
 
     init(_ body: String) {
-        chunks = Self.chunks(of: RedditMarkdown.render(body))
+        text = body
     }
 
     var body: some View {
-        if chunks.count == 1, let only = chunks.first {
-            Text(only)
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(chunks.indices, id: \.self) { index in
-                    Text(chunks[index])
-                        // Each chunk at its full height so none draws over the next.
-                        .fixedSize(horizontal: false, vertical: true)
+        QuotedBody(text) { ChunkedRun(text: $0) }
+    }
+
+    private struct ChunkedRun: View {
+        let chunks: [AttributedString]
+
+        init(text: String) {
+            chunks = ChunkedMarkdownText.chunks(of: RedditMarkdown.render(text))
+        }
+
+        var body: some View {
+            if chunks.count == 1, let only = chunks.first {
+                Text(only)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(chunks.indices, id: \.self) { index in
+                        Text(chunks[index])
+                            // Each chunk at its full height so none draws over the next.
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }

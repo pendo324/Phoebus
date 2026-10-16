@@ -56,7 +56,7 @@ public struct SubredditSidebarScreen: View {
                 Section {
                     Text(subreddit.title).font(.headline)
                     if let description = subreddit.publicDescription, !description.isEmpty {
-                        Text(RedditMarkdown.render(description)).font(.body)
+                        LongBodyText(description).font(.body)
                     }
                     // The header is two stats: Subscribers and Active.
                     HStack(spacing: 16) {

@@ -128,7 +128,7 @@ public struct ShareCardView: View {
                 // The body follows the image, so a post with both keeps
                 // its text. Image and gallery posts can carry a body too.
                 if let text = Self.bodyText(of: post) {
-                    Text(RedditMarkdown.render(text))
+                    LongBodyText(text)
                         .font(.system(size: 12))
                         .foregroundStyle(labelColor)
                         .fixedSize(horizontal: false, vertical: true)
@@ -241,7 +241,7 @@ public struct ShareCardView: View {
             let images = options.includeCommentImages ? (commentImages[comment.id] ?? []) : []
             let body = images.isEmpty ? comment.body : ShareCardFormatting.removingImageOnlyLines(comment.body)
             if !body.isEmpty {
-                Text(RedditMarkdown.render(body))
+                LongBodyText(body)
                     .font(.system(size: 12))
                     .foregroundStyle(labelColor)
                     .fixedSize(horizontal: false, vertical: true)

@@ -1420,6 +1420,7 @@ check("...and an empty body never yields zero paragraphs",
 try await checkInlineMediaABareLinkIs()
 
 try await checkMarkdownBlockquotes()
+try await checkQuoteBlocks()
 
 // --- Reddit-only inline syntax the Markdown parser does not know ---
 //

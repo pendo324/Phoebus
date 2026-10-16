@@ -170,16 +170,10 @@ public enum RedditMarkdown {
                     }
                     piece = AttributedString(isOrdered ? "\(ordinal). " : "• ") + piece
                 case .blockQuote:
-                    // Styled, not re-prefixed with a literal "> ", as
-                    // an indented grey block matching Apollo's own
-                    // composer preview and Reddit's guide (explicitly
-                    // not italic). `AttributedString` can't carry a
-                    // leading rule or background band per paragraph or
-                    // a paragraph indent (that needs
-                    // `NSMutableParagraphStyle`, UIKit/AppKit-only);
-                    // `LongBodyText` applies the indent per paragraph
-                    // instead, where SwiftUI's own padding can do it.
-                    // See `isBlockQuote`.
+                    // Drawn by `LongBodyText`, which splits quotes out with
+                    // `QuoteBlocks` first: `AttributedString` can't carry a
+                    // leading rule or a paragraph indent. Reached only by
+                    // callers that render a whole body, which show it flat.
                     break
                 case .codeBlock:
                     break
@@ -382,16 +376,6 @@ public enum RedditMarkdown {
             return String(repeating: " ", count: left) + text
                 + String(repeating: " ", count: deficit - left)
         }
-    }
-
-    /// Whether a source paragraph is a blockquote. Used by
-    /// `LongBodyText` to indent it, since this Foundation-only module
-    /// can't apply `NSParagraphStyle`. Checking the source line works
-    /// since `normalizeBlockquotes` already canonicalized every
-    /// Reddit spelling to a leading `>`.
-    public static func isBlockQuote(_ paragraph: String) -> Bool {
-        normalizeQuoteLine(paragraph.trimmingCharacters(in: .whitespaces))
-            .hasPrefix(">")
     }
 
     /// Normalizes Reddit's blockquote spellings into ones the Markdown

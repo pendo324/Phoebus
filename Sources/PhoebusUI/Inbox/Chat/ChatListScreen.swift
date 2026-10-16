@@ -966,7 +966,7 @@ struct ChatRoomScreen: View {
             // subreddit's weekly recap) can take most of a second to parse.
             let bodies = fetched.filter { !$0.isMedia }.map(\.body)
             await Task.detached(priority: .userInitiated) {
-                for body in bodies { _ = RedditMarkdown.render(body) }
+                for body in bodies { for block in QuoteBlocks.split(body) { _ = RedditMarkdown.render(block.text) } }
             }.value
             messages = fetched
             errorMessage = nil

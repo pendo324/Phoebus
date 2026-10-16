@@ -517,7 +517,7 @@ struct ModmailThreadScreen: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            Text(RedditMarkdown.render(message.body))
+            LongBodyText(message.body)
                 .font(.body)
         }
         .padding(.vertical, 2)

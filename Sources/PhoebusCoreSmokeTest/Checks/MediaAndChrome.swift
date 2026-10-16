@@ -619,20 +619,62 @@ import PhoebusCore
     check("an image-extensioned URL on an unlisted host does not either",
           !InlineMediaDetector.isViewableImageURL(URL(string: "https://tracker.example.com/pixel.png")!))
 
-    // Quote detection drives the indent, and must accept every spelling the
-    // normalizer canonicalizes.
-    check("a plain quote paragraph is detected",
-          RedditMarkdown.isBlockQuote("> quoted"))
-    check("a no-space quote paragraph is detected",
-          RedditMarkdown.isBlockQuote(">quoted"))
-    check("an escaped quote paragraph is detected",
-          RedditMarkdown.isBlockQuote("&gt; quoted"))
-    check("a nested quote paragraph is detected",
-          RedditMarkdown.isBlockQuote(">> nested"))
-    check("an ordinary paragraph is not a quote",
-          !RedditMarkdown.isBlockQuote("not a quote"))
-    check("a greater-than mid-paragraph is not a quote",
-          !RedditMarkdown.isBlockQuote("a > b"))
+    // The bar and indent are drawn per quoted run, which must be found in every
+    // spelling the normalizer canonicalizes.
+    func depths(_ body: String) -> [Int] { QuoteBlocks.split(body).map(\.depth) }
+    check("a plain quote paragraph is detected", depths("> quoted") == [1])
+    check("a no-space quote paragraph is detected", depths(">quoted") == [1])
+    check("an escaped quote paragraph is detected", depths("&gt; quoted") == [1])
+    check("a nested quote paragraph is detected", depths(">> nested") == [2])
+    check("an ordinary paragraph is not a quote", depths("not a quote") == [0])
+    check("a greater-than mid-paragraph is not a quote", depths("a > b") == [0])
+    check("a body with no quote comes back untouched",
+          QuoteBlocks.split("  keep\n\nas is\n") == [QuoteBlock(depth: 0, text: "  keep\n\nas is\n")])
+}
+
+// --- Quote blocks ---
+//
+// A quote is drawn as a bar and an indent per run of quoted lines, so the split
+// has to follow Reddit's rules for what belongs to a quote and what does not.
+@MainActor func checkQuoteBlocks() async throws {
+    typealias Block = QuoteBlock
+    // A public r/linux_gaming comment: text, then one quote whose square
+    // brackets are plain text.
+    let quoteText = "Myself [Dave Airlie] and zmike [Mike Blumenkrantz] have been talking about this for a few years, finally got around to it. This is the initial implementation of video decoding support for providing vaapi on top of vulkan video. This is h264 only so far, and has really only been tested on radv (and with some issues on anv). h265 and av1, and encode are in the works."
+    let lead = "From the [merge request](https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/1):"
+    for (spelling, body) in [("a plain", "\(lead)\n\n> \(quoteText)"),
+                             ("an entity-escaped", "\(lead)\n\n&gt; \(quoteText)"),
+                             ("a no-blank-line", "\(lead)\n> \(quoteText)")] {
+        check("\(spelling) quote after a line splits into the line and the quote",
+              QuoteBlocks.split(body) == [Block(depth: 0, text: lead), Block(depth: 1, text: quoteText)])
+    }
+    check("square brackets in a quote are not rewritten as links",
+          RedditMarkdown.linkifySubredditsAndUsers(quoteText) == quoteText
+          && RedditMarkdown.expandRedditInlineSyntax(quoteText) == quoteText
+          && RedditMarkdown.normalizeBlockquotes(quoteText) == quoteText)
+
+    check("nested quotes get their own depth",
+          QuoteBlocks.split("> outer\n>> inner\n> outer again")
+          == [Block(depth: 1, text: "outer"), Block(depth: 2, text: "inner"), Block(depth: 1, text: "outer again")])
+    check("a quote keeps its paragraphs, list and code as Markdown",
+          QuoteBlocks.split("> one\n>\n> - a\n> - b\n>\n>     code")
+          == [Block(depth: 1, text: "one\n\n- a\n- b\n\n    code")])
+    check("a line under a quote with no marker belongs to it",
+          QuoteBlocks.split("> first\nsecond\n\nreply") == [Block(depth: 1, text: "first\nsecond"), Block(depth: 0, text: "reply")])
+    check("a blank line ends a quote",
+          QuoteBlocks.split("> a\n\n> b") == [Block(depth: 1, text: "a"), Block(depth: 1, text: "b")])
+    check("a quote then a reply",
+          QuoteBlocks.split("&gt; said\n\nreply") == [Block(depth: 1, text: "said"), Block(depth: 0, text: "reply")])
+    check("a spaced marker pair is two levels", QuoteBlocks.split("> > deep") == [Block(depth: 2, text: "deep")])
+    check("a prompt inside a code fence is not a quote",
+          QuoteBlocks.split("```\n> echo hi\n```") == [Block(depth: 0, text: "```\n> echo hi\n```")])
+    check("an indented-code line is not a quote",
+          QuoteBlocks.split("text\n\n    > not quote") == [Block(depth: 0, text: "text\n\n    > not quote")])
+    check("the composer's Quote action round-trips to one quote then the reply area",
+          QuoteBlocks.split(RedditMarkdown.asBlockquote("a\n\nb") + "my reply")
+          == [Block(depth: 1, text: "a\n\nb"), Block(depth: 0, text: "my reply")])
+    check("a body of only a marker has no text to draw",
+          QuoteBlocks.split(">") == [Block(depth: 0, text: ">")])
 }
 
 // MARK: - Collapse Navigation Actions (Reborn)

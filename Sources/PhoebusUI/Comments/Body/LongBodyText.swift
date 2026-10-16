@@ -28,11 +28,14 @@ public struct LongBodyText: View {
     /// `RedditMarkdown`'s cache. Any thread.
     nonisolated static func warm(_ text: String) {
         guard !text.isEmpty else { return }
-        if text.count < splitThreshold {
-            _ = RedditMarkdown.render(text)
-        } else {
-            for paragraph in BodyParagraphs.split(text) { _ = RedditMarkdown.render(paragraph) }
+        for block in QuoteBlocks.split(text) {
+            for piece in pieces(of: block.text) { _ = RedditMarkdown.render(piece) }
         }
+    }
+
+    /// One `Text` per paragraph for a long body, the whole of a short one.
+    nonisolated private static func pieces(of text: String) -> [String] {
+        text.count < splitThreshold ? [text] : BodyParagraphs.split(text)
     }
 
     public var body: some View {
@@ -41,7 +44,14 @@ public struct LongBodyText: View {
         // separately and show N times as many lines as asked for.
         if let lineLimit {
             Text(RedditMarkdown.render(text, codeScale: codeScale)).lineLimit(lineLimit)
-        } else if text.count < Self.splitThreshold {
+        } else {
+            QuotedBody(text) { paragraphs(of: $0) }
+        }
+    }
+
+    @ViewBuilder
+    private func paragraphs(of text: String) -> some View {
+        if text.count < Self.splitThreshold {
             // Its full height, so a list row never squeezes it to its
             // first lines when something below it grows.
             Text(RedditMarkdown.render(text, codeScale: codeScale))
@@ -54,35 +64,8 @@ public struct LongBodyText: View {
                         // this, a list row squeezes some to one "..." line.
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        // Blockquotes render as indented blocks,
-                        // matching Apollo's composer preview and
-                        // Reddit's upright (not italic) blockquote
-                        // style. Applied here rather than in
-                        // `RedditMarkdown`, which is Foundation-only
-                        // and can't use `NSParagraphStyle` indents.
-                        .apolloBlockQuoteIndent(RedditMarkdown.isBlockQuote(paragraph))
                 }
             }
-        }
-    }
-}
-
-
-private extension View {
-    /// Indents a blockquote paragraph with a 2pt leading rule, approximating
-    /// Apollo's grey indented block.
-    @ViewBuilder
-    func apolloBlockQuoteIndent(_ isQuote: Bool) -> some View {
-        if isQuote {
-            HStack(spacing: 8) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.4))
-                    .frame(width: 2)
-                self
-            }
-            .padding(.leading, 4)
-        } else {
-            self
         }
     }
 }

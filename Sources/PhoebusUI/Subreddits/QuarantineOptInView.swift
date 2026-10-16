@@ -30,7 +30,7 @@ public struct QuarantineOptInView: View {
     public var body: some View {
         VStack(spacing: 12) {
             if let message = notice.message {
-                Text(RedditMarkdown.render(message))
+                LongBodyText(message)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

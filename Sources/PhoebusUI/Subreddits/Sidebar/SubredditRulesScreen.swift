@@ -24,7 +24,7 @@ public struct SubredditRulesScreen: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(index + 1). \(rule.shortName)")
                         .font(.headline)
-                    Text(RedditMarkdown.render(rule.description))
+                    LongBodyText(rule.description)
                         .font(.subheadline)
                 }
                 .padding(.vertical, 4)

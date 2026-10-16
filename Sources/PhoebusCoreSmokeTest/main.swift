@@ -667,6 +667,7 @@ try await checkRecentEntryPolicy()
 try await checkVoteStateStore()
 
 try await checkSwipeCommitPolicy()
+try await checkSwipeRowPolicy()
 
 try await checkApolloReborn370Parity()
 

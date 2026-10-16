@@ -855,6 +855,57 @@ import PhoebusCore
           SwipeCommitPolicy.commitThreshold(width: 320) == SwipeCommitPolicy.commitThreshold(width: 430))
 }
 
+// MARK: - SwipeRowPolicy
+//
+// Which action releasing a row drag performs. The row asks it on release as
+// well as while revealing, so a side that is turned off never fires.
+@MainActor func checkSwipeRowPolicy() async throws {
+    let settings = SwipeActionSettings.postsDefault   // up / down on the left, reply / save on the right
+    let normal = NavigationGestureSettings.default
+    func performs(_ drag: Double, _ settings: SwipeActionSettings = settings,
+                  _ navigation: NavigationGestureSettings = normal) -> SwipeAction? {
+        SwipeRowPolicy.action(forDrag: drag, settings: settings, navigation: navigation)
+    }
+
+    check("a drag short of the commit point performs nothing on either side",
+          performs(59) == nil && performs(-59) == nil && performs(0) == nil)
+    check("a rightward drag past the commit point performs the Left short action, a leftward one the Right short",
+          performs(60) == .upvote && performs(-60) == .reply)
+    check("a drag past the Normal trigger point (120pt) performs the long action",
+          performs(119) == .upvote && performs(120) == .downvote && performs(-119) == .reply && performs(-120) == .save)
+
+    var later = normal
+    later.longSwipeTriggerPoint = .later
+    let laterPoint = SwipeCommitPolicy.longThreshold(fraction: LongSwipeTriggerPoint.later.fraction)
+    check("the Later trigger point moves where the long action starts",
+          laterPoint > 120 && performs(laterPoint - 1, settings, later) == .upvote
+            && performs(laterPoint, settings, later) == .downvote && performs(120, settings, later) == .upvote)
+
+    var noLeft = normal
+    noLeft.disableLeftSwipeGestureActions = true
+    check("Disable Left Swipes performs nothing for a rightward drag and leaves the Right side alone",
+          performs(200, settings, noLeft) == nil && performs(-60, settings, noLeft) == .reply)
+    var noRight = normal
+    noRight.disableRightSwipeGestureActions = true
+    check("Disable Right Swipes performs nothing for a leftward drag and leaves the Left side alone",
+          performs(-200, settings, noRight) == nil && performs(60, settings, noRight) == .upvote)
+
+    var emptied = settings
+    emptied.leftShort = .none
+    emptied.leftLong = .none
+    let longNone = SwipeActionSettings(leftShort: .upvote, leftLong: .none, rightShort: .reply, rightLong: .save)
+    check("a side whose slots are both None is off, and a None slot performs nothing",
+          !SwipeRowPolicy.isActive(.left, settings: emptied, navigation: normal)
+            && performs(200, emptied) == nil && performs(120, longNone) == nil && performs(60, longNone) == .upvote)
+
+    check("every screen's defaults perform their own short and long actions",
+          SwipeActionScreen.allCases.allSatisfy { screen in
+              let s = SwipeActionStore.storage(for: screen).defaultValue
+              return performs(60, s) == s.leftShort && performs(130, s) == s.leftLong
+                  && performs(-60, s) == s.rightShort && performs(-130, s) == s.rightLong
+          })
+}
+
 // MARK: - Markdown zero-width cleanup
 //
 // Reddit's editor writes an intentionally blank line as a paragraph holding

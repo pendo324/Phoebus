@@ -530,10 +530,8 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
         let navGestures = navGestureSettings
         // A rightward drag runs the Left slots, so Disable Left Swipes
         // frees it for swipe-anywhere back (and Right for forward).
-        let allowedRight = (settings.leftShort != .none || settings.leftLong != .none) && !navGestures.disableLeftSwipeGestureActions
-        let allowedLeft = (settings.rightShort != .none || settings.rightLong != .none) && !navGestures.disableRightSwipeGestureActions
-        if lockedDirection > 0 && !allowedRight { return }
-        if lockedDirection < 0 && !allowedLeft { return }
+        let side: SwipeRowPolicy.Side = lockedDirection > 0 ? .left : .right
+        if !SwipeRowPolicy.isActive(side, settings: settings, navigation: navGestures) { return }
 
         // 1:1 with the finger: real Apollo tracks it directly with no damping.
         let magnitude = abs(raw)
@@ -567,7 +565,11 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
         let short = isRight ? settings.leftShort : settings.rightShort
         let long = isRight ? settings.leftLong : settings.rightLong
 
-        if magnitude >= commitThreshold {
+        // A side that is turned off revealed nothing, so releasing on it
+        // performs nothing either.
+        let side: SwipeRowPolicy.Side = isRight ? .left : .right
+        if magnitude >= commitThreshold,
+           SwipeRowPolicy.isActive(side, settings: settings, navigation: navGestureSettings) {
             let action = crossedLongSwipe ? long : short
             commit(action, direction: isRight ? 1 : -1)
         } else {

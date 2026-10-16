@@ -25,7 +25,7 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
     /// are laid out for that width.
     private var edgeToEdge: Bool {
         switch screen {
-        case .profileLayout, .posts, .comments, .commentsTheme: return true
+        case .profileLayout, .posts, .comments, .commentsTheme, .gestures: return true
         default: return false
         }
     }

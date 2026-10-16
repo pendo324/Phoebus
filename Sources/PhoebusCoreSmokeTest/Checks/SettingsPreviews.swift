@@ -110,7 +110,74 @@ import PhoebusCore
             && !AccountAgeCache.isNewAccount(createdAt: SettingsPreviewSample.accountCreated(for: "sample_pal", now: now), referenceDate: now))
 }
 
+@MainActor func checkGesturesPreviewStripNamesEachSide() async throws {
+    let settings = SwipeActionSettings.commentsDefault
+    var navigation = NavigationGestureSettings.default
+    check("the strip shows each side's short and long actions",
+          SwipePreviewPolicy.strip(for: .left, settings: settings, navigation: navigation) == .actions(short: .upvote, long: .downvote)
+            && SwipePreviewPolicy.strip(for: .right, settings: settings, navigation: navigation) == .actions(short: .collapseTop, long: .reply))
+    navigation.disableLeftSwipeGestureActions = true
+    navigation.disableRightSwipeGestureActions = true
+    check("a disabled side reads Swipe back (Left) or Swipe forward (Right)",
+          SwipePreviewPolicy.strip(for: .left, settings: settings, navigation: navigation) == .pageSwipe("Swipe back")
+            && SwipePreviewPolicy.strip(for: .right, settings: settings, navigation: navigation) == .pageSwipe("Swipe forward"))
+    var none = settings
+    none.rightShort = .none
+    none.rightLong = .none
+    check("a side with nothing set reads as empty",
+          SwipePreviewPolicy.strip(for: .right, settings: none, navigation: .default) == .none)
+    check("the summary names both sides in words",
+          SwipePreviewPolicy.summary(settings: settings, navigation: .default)
+            == "Left swipe: Upvote, then Downvote past the trigger point. Right swipe: Collapse Top, then Reply past the trigger point."
+            && SwipePreviewPolicy.summary(settings: none, navigation: navigation)
+            == "Left swipe: Swipe back. Right swipe: Swipe forward.")
+}
+
+@MainActor func checkGesturesPreviewReleasePerformsNothing() async throws {
+    let fullname = SettingsPreviewSample.postFullname
+    let defaultsBefore = UserDefaults.standard.dictionaryRepresentation() as NSDictionary
+    let voteBefore = VoteStateStore.shared.vote(for: fullname, serverValue: nil)
+    let savedBefore = VoteStateStore.shared.isSaved(fullname, serverValue: false)
+    let labels = SwipeAction.allCases.map { SwipePreviewPolicy.release($0) }
+    check("releasing names the action it would have fired",
+          SwipePreviewPolicy.release(.upvote) == "Would Upvote" && SwipePreviewPolicy.release(.hidePostsAbove) == "Would Hide Posts Above")
+    check("releasing a slot set to None names nothing", SwipePreviewPolicy.release(.none) == nil)
+    check("every other action gets a label", labels.filter { $0 == nil }.count == 1)
+    check("releasing writes no setting and changes no vote or saved state",
+          (UserDefaults.standard.dictionaryRepresentation() as NSDictionary) == defaultsBefore
+            && VoteStateStore.shared.vote(for: fullname, serverValue: nil) == voteBefore
+            && VoteStateStore.shared.isSaved(fullname, serverValue: false) == savedBefore)
+}
+
+@MainActor func checkGesturesPreviewSegmentsFollowTheScreenChanged() async throws {
+    check("the segmented control offers Posts, Comments, Inbox and Profile",
+          SwipePreviewSegment.allCases.map(\.title) == ["Posts", "Comments", "Inbox", "Profile"])
+    check("each swipe screen maps to a segment, Profile Posts and Profile Comments to Profile",
+          SwipeActionScreen.allCases.map { SwipePreviewSegment(screen: $0).title }
+            == ["Posts", "Comments", "Inbox", "Profile", "Profile"])
+    check("a segment shows its screen, and Profile keeps Profile Comments if it was showing it",
+          SwipePreviewSegment.profile.screen(keeping: .posts) == .profilePosts
+            && SwipePreviewSegment.profile.screen(keeping: .profileComments) == .profileComments
+            && SwipePreviewSegment.inbox.screen(keeping: .profileComments) == .inbox)
+
+    var old = Dictionary(uniqueKeysWithValues: SwipeActionScreen.allCases.map { ($0, SwipeActionStore.storage(for: $0).defaultValue) })
+    var new = old
+    check("nothing changed means no screen to switch to", SwipePreviewSegment.changedScreen(from: old, to: new) == nil)
+    new[.inbox]?.rightShort = .share
+    check("one screen's slot changing selects that screen", SwipePreviewSegment.changedScreen(from: old, to: new) == .inbox)
+    old = new
+    new[.posts]?.leftShort = .save
+    new[.comments]?.leftShort = .save
+    check("several screens changing at once (Restore Defaults) selects none",
+          SwipePreviewSegment.changedScreen(from: old, to: new) == nil)
+}
+
 @MainActor func checkSettingsPreviewScreensHaveTheirOwnPinKeys() async throws {
+    check("the Gestures preview is pinned under its own per-screen key",
+          SettingsPreviewScreen.gestures.rawValue == "GesturesPreviewPinned"
+            && SettingsPreviewPinStore.defaultsKey(for: .gestures) == "Phoebus.GesturesPreviewPinned")
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .gestures))
+    check("the Gestures preview starts pinned", SettingsPreviewPinStore.isPinned(.gestures))
     check("the Posts preview is pinned under its own per-screen key",
           SettingsPreviewScreen.posts.rawValue == "PostsPreviewPinned"
             && SettingsPreviewPinStore.defaultsKey(for: .posts) == "Phoebus.PostsPreviewPinned")

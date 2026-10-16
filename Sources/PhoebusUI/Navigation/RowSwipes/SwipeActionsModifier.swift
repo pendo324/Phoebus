@@ -20,6 +20,13 @@ private final class ApolloSwipePanRecognizer: UIGestureRecognizer {
     /// `ProgressiveSwipeRowModifier.cellFrame`).
     var onBeganInCell: ((CGRect) -> Void)?
 
+    /// Set when the recognizer lives on a far ancestor rather than the row's
+    /// list cell (`AncestorAttachingView.Scope.region`): the row's own area, which scroll
+    /// views to hold still are looked up from, and which the panel reports
+    /// as its cell.
+    weak var regionView: UIView?
+    private var scrollAnchor: UIView? { regionView ?? view }
+
     /// The touch this recognizer is currently tracking. A raw
     /// `UIGestureRecognizer` computes translation/velocity by hand below.
     private weak var trackedTouch: UITouch?
@@ -101,7 +108,7 @@ private final class ApolloSwipePanRecognizer: UIGestureRecognizer {
             guard !verticallyDisqualified else { return }
             // Once any enclosing scroll view starts scrolling under this
             // finger, fail outright so it can never revive.
-            if ScrollGestureExclusivity.isAnyEnclosingScrollViewScrolling(view) {
+            if ScrollGestureExclusivity.isAnyEnclosingScrollViewScrolling(scrollAnchor) {
                 state = .failed
                 return
             }
@@ -111,11 +118,11 @@ private final class ApolloSwipePanRecognizer: UIGestureRecognizer {
             SwipeGestureArbiter.rowSwipeActive = true
             // Swipe first means swipe only: freeze every enclosing scroll view
             // for the rest of this touch, cancelling any scroll pan already begun.
-            scrollLock.lock(ScrollGestureExclusivity.enclosingScrollViews(of: view))
+            scrollLock.lock(ScrollGestureExclusivity.enclosingScrollViews(of: scrollAnchor))
             // Re-base translation on the point the swipe began, so the row
             // starts moving from where it is rather than jumping.
             startLocation.x = location.x
-            onBeganInCell?(view.convert(view.bounds, to: nil))
+            onBeganInCell?((regionView ?? view).convert((regionView ?? view).bounds, to: nil))
             onChanged?(CGSize(width: 0, height: t.y))
         case .began, .changed:
             state = .changed
@@ -247,6 +254,15 @@ enum SwipeGestureArbiter {
 /// `UIGestureRecognizer` subclass rather than a `UIPanGestureRecognizer`
 /// acting as its own delegate.
 private final class ApolloSwipeRecognizerDelegate: NSObject, UIGestureRecognizerDelegate {
+    /// The area a region-scoped recognizer answers for; touches outside it are
+    /// not its to take. Nil for a list cell, whose own bounds are the area.
+    weak var regionView: UIView?
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard let regionView, let window = regionView.window else { return true }
+        return regionView.convert(regionView.bounds, to: window).contains(touch.location(in: window))
+    }
+
     /// Real Apollo's swipe reveal stays live alongside a long-press context
     /// menu or double-tap-to-collapse on the same row; only the List's own
     /// scroll is excluded, via the `.possible`-state direction gate.
@@ -266,6 +282,10 @@ private final class ApolloSwipeRecognizerDelegate: NSObject, UIGestureRecognizer
 /// callback fires before SwiftUI finishes attaching this representable's
 /// host-wrapper chain to the real window hierarchy.
 private final class AncestorAttachingView: UIView {
+    /// Where the row lives: a list cell, or somewhere outside any list (a
+    /// settings preview card), which has no cell to attach to.
+    enum Scope { case listCell, region }
+    var scope = Scope.listCell
     var onAttach: ((UIView) -> Void)?
     /// Called when this view leaves the hierarchy, so the recognizer
     /// can be taken off the ancestor it was added to.
@@ -295,8 +315,30 @@ private final class AncestorAttachingView: UIView {
         }
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if scope == .region, window != nil, !attached {
+            attachIfPossible()
+        }
+    }
+
     private func attachIfPossible() {
         guard !attached else { return }
+        if scope == .region {
+            // The topmost ancestor below the window, as `AncestorGestureHost`
+            // does: UIKit only offers a touch to recognizers on the hit view
+            // and its ancestors, and a card outside any list has no cell. The
+            // recognizer's delegate keeps it to this view's own area.
+            guard window != nil else { return }
+            var top: UIView = self
+            while let parent = top.superview, !(parent is UIWindow) {
+                top = parent
+            }
+            attached = true
+            attachedAncestor = top
+            onAttach?(top)
+            return
+        }
         // Walk upward searching for `_UICollectionViewListCellContentView`
         // by class name: different screens wrap the row in different numbers
         // of SwiftUI containers, so a fixed hop count could land short. This
@@ -326,6 +368,7 @@ private final class AncestorAttachingView: UIView {
 }
 
 private struct SwipeGestureHostingView: UIViewRepresentable {
+    let scope: AncestorAttachingView.Scope
     let onChanged: (CGSize) -> Void
     let onEnded: (CGSize) -> Void
     let onCancelled: () -> Void
@@ -333,6 +376,7 @@ private struct SwipeGestureHostingView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UIView {
         let view = AncestorAttachingView()
+        view.scope = scope
         view.backgroundColor = .clear
         // Disabled at creation, before insertion into the hierarchy:
         // leaving it enabled until `attachIfPossible()` runs would let a tap
@@ -347,6 +391,10 @@ private struct SwipeGestureHostingView: UIViewRepresentable {
         recognizer.onCancelled = onCancelled
         recognizer.onBeganInCell = onBeganInCell
         recognizer.delegate = context.coordinator.delegate
+        if scope == .region {
+            recognizer.regionView = view
+            context.coordinator.delegate.regionView = view
+        }
         context.coordinator.recognizer = recognizer
         view.onAttach = { ancestor in
             // Defensive: never add the same recognizer twice.
@@ -401,11 +449,17 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
     /// What the row's actions would undo, for their icons.
     let subject: SwipeSubject?
     let onAction: (SwipeAction) -> Void
+    /// A row outside any list (the Gestures & Haptics preview): the swipe is
+    /// confined to the row's own area and the panel to its bounds, rather than
+    /// the list cell and the screen's edges.
+    let confined: Bool
     @ObservedObject private var votes = VoteStateStore.shared
 
-    init(settings: SwipeActionSettings, subject: SwipeSubject?, onAction: @escaping (SwipeAction) -> Void) {
+    init(settings: SwipeActionSettings, subject: SwipeSubject?, confined: Bool = false,
+         onAction: @escaping (SwipeAction) -> Void) {
         self.settings = settings
         self.subject = subject
+        self.confined = confined
         self.onAction = onAction
     }
 
@@ -473,12 +527,12 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
                         let frame = proxy.frame(in: .global)
                         let screenWidth = UIScreen.main.bounds.width
                         let width = abs(dragOffset)
-                        let leading = dragOffset > 0
-                            ? -frame.minX
-                            : screenWidth - frame.minX - width
+                        let leading = confined
+                            ? (dragOffset > 0 ? 0 : proxy.size.width - width)
+                            : (dragOffset > 0 ? -frame.minX : screenWidth - frame.minX - width)
                         // Full cell height, not just this content's; falls
                         // back to content height if never measured.
-                        let hasCell = !cellFrame.isNull && cellFrame.height >= proxy.size.height
+                        let hasCell = !confined && !cellFrame.isNull && cellFrame.height >= proxy.size.height
                         let top = hasCell ? cellFrame.minY - frame.minY : 0
                         let height = hasCell ? cellFrame.height : proxy.size.height
                         actionBackground
@@ -489,6 +543,7 @@ struct ProgressiveSwipeRowModifier: ViewModifier {
             }
             .background(
                 SwipeGestureHostingView(
+                    scope: confined ? .region : .listCell,
                     onChanged: { handleChanged($0) },
                     onEnded: { handleEnded($0) },
                     onCancelled: { resetDrag() },
@@ -718,6 +773,15 @@ extension View {
         onAction: @escaping (SwipeAction) -> Void
     ) -> some View {
         modifier(ProgressiveSwipeRowModifier(settings: settings, subject: subject, onAction: onAction))
+    }
+
+    /// The same swipe for a row outside any list, as in the Gestures & Haptics
+    /// preview: confined to the row's own area (see `ProgressiveSwipeRowModifier.confined`).
+    func apolloConfinedSwipeActions(
+        settings: SwipeActionSettings,
+        onAction: @escaping (SwipeAction) -> Void
+    ) -> some View {
+        modifier(ProgressiveSwipeRowModifier(settings: settings, subject: nil, confined: true, onAction: onAction))
     }
 }
 

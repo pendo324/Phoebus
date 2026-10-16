@@ -16,10 +16,23 @@ public struct GesturesHapticsSettingsScreen: View {
     @Setting(GeneralSettingsStore.storage) private var general
     @Setting(PortraitLockStore.storage) private var portraitLock
 
+    @Environment(\.accountManager) private var accountManager
+    /// The screen the preview row is showing: Posts, then whichever screen's
+    /// slots were changed last.
+    @State private var previewScreen = SwipeActionScreen.posts
+
     public init() {}
 
+    private var allSwipes: [SwipeActionScreen: SwipeActionSettings] {
+        Dictionary(uniqueKeysWithValues: SwipeActionScreen.allCases.map { ($0, swipes(for: $0)) })
+    }
+
     public var body: some View {
-        List {
+        SettingsPreviewScreenLayout(screen: .gestures) {
+            if let repository = accountManager?.repository {
+                GesturesPreview(repository: repository, screen: $previewScreen, settings: swipes(for: previewScreen))
+            }
+        } content: {
             // Each screen gets its own section, listing the four slot titles
             // ("Left Short Swipe", "Left Long Swipe", "Right Short Swipe", "Right
             // Long Swipe") with the bound action as a gray right-detail value.
@@ -84,9 +97,11 @@ public struct GesturesHapticsSettingsScreen: View {
             }
         }
         .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
         .navigationTitle(SettingsCategory.gesturesHaptics.title)
         .navigationBarTitleDisplayModeIfAvailable()
+        .onChange(of: allSwipes) { old, new in
+            if let changed = SwipePreviewSegment.changedScreen(from: old, to: new) { previewScreen = changed }
+        }
     }
 
     /// Smart Rotation Lock and Portrait Lock Buddy.

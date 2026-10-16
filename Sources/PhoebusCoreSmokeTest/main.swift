@@ -672,6 +672,7 @@ try await checkApolloReborn370Parity2()
 
 try await checkCommentVoteInsights()
 checkPostInsights()
+await checkAwards()
 checkLinkPreviews()
 
 try await checkHideModeratedSubreddits()

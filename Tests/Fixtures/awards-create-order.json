@@ -1,0 +1,30 @@
+{
+  "data": {
+    "createAwardOrder": {
+      "ok": true,
+      "errors": null,
+      "awarding": {
+        "id": "awarding_scrubbed",
+        "award": {
+          "id": "award_free_bravo",
+          "goldPrice": 0,
+          "name": "Bravo",
+          "staticIcon": {
+            "url": "https://i.redd.it/snoovatar/snoo_assets/marketing/bravo_40.png"
+          },
+          "tags": [
+            "award:quick_give",
+            "award:unlimited_free",
+            "award:legacy",
+            "award:sort:10"
+          ]
+        }
+      }
+    }
+  },
+  "errors": [],
+  "operation": "CreateAwardOrder",
+  "extensions": {
+    "traceID": "scrubbed"
+  }
+}

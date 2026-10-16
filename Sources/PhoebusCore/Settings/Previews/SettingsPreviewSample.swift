@@ -120,6 +120,24 @@ public enum SettingsPreviewSample {
                                         parentID: postFullname)
     }
 
+    // MARK: - Inbox
+
+    public static let messageAuthor = "sample_pal"
+    public static let messageSubject = "Bakery on Friday"
+    public static let messageBody = "Thanks for the tip, the crust came out great."
+
+    /// An unread private message, for the Gestures & Haptics preview's inbox
+    /// row. A plain message with no link in it, so the row has nothing to fetch.
+    public static func message(now: Date = Date()) -> RedditMessage {
+        let json: [String: Any] = [
+            "id": "phebuspvm1", "name": "t4_phebuspvm1", "author": messageAuthor,
+            "subject": messageSubject, "body": messageBody,
+            "created_utc": now.addingTimeInterval(-90 * 60).timeIntervalSince1970,
+            "new": true, "was_comment": false, "replies": "",
+        ]
+        return decode(RedditMessage.self, from: json)
+    }
+
     private static func decode<T: Decodable>(_ type: T.Type, from json: [String: Any]) -> T {
         // The inputs are literals in this file; a failure here is a bug in the sample.
         let data = try! JSONSerialization.data(withJSONObject: json)

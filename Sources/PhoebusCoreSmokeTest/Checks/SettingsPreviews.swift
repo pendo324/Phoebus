@@ -68,6 +68,24 @@ import PhoebusCore
             && folded[1].children.first?.isCollapsed == true)
 }
 
+@MainActor func checkSettingsPreviewSampleMessageDecodesLikeALiveInbox() async throws {
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    let message = SettingsPreviewSample.message(now: now)
+
+    check("the sample message is an unread private message from the sample sender",
+          message.new && !message.wasComment && message.author == SettingsPreviewSample.messageAuthor
+            && message.name == "t4_phebuspvm1" && message.id == "phebuspvm1")
+    check("the sample message carries the fixed subject and body",
+          message.subject == SettingsPreviewSample.messageSubject && message.body == SettingsPreviewSample.messageBody)
+    check("the sample message is ninety minutes old",
+          now.timeIntervalSince(message.created) == 90 * 60)
+    check("the sample message has no replies, subreddit, context or link to open or fetch",
+          message.replies.isEmpty && message.subreddit == nil && message.commentTarget == nil
+            && message.context == nil && message.linkTitle == nil)
+    check("the sample message's body holds no link",
+          !SettingsPreviewSample.messageBody.contains("http") && !SettingsPreviewSample.messageBody.contains("/"))
+}
+
 @MainActor func checkSettingsPreviewSampleStandsInForTheAccount() async throws {
     var settings = GeneralSettings.default
     settings.highlightOwnUsername = true

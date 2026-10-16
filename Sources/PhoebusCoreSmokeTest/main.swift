@@ -458,6 +458,7 @@ try await checkSettingsRowsDoNotRepeatTheirCategory()
 // The sample post and thread the Posts, Comments and Thread Colours previews draw.
 try await checkSettingsPreviewSampleDecodesLikeALiveListing()
 try await checkSettingsPreviewSampleThreadFollowsTheCollapseSettings()
+try await checkSettingsPreviewSampleMessageDecodesLikeALiveInbox()
 try await checkSettingsPreviewSampleStandsInForTheAccount()
 try await checkSettingsPreviewScreensHaveTheirOwnPinKeys()
 

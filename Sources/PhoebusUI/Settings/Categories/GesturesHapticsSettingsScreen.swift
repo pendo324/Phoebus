@@ -7,18 +7,16 @@ import PhoebusCore
 /// rotation lock and the ••• menus. Haptic Feedback is General's, Smart
 /// Rotation Lock and Portrait Lock Buddy are Apollo's Portrait Lock screen.
 public struct GesturesHapticsSettingsScreen: View {
-    @State private var perScreenSettings: [SwipeActionScreen: SwipeActionSettings]
+    @Setting(SwipeActionStore.storage(for: .posts)) private var postsSwipes
+    @Setting(SwipeActionStore.storage(for: .comments)) private var commentsSwipes
+    @Setting(SwipeActionStore.storage(for: .inbox)) private var inboxSwipes
+    @Setting(SwipeActionStore.storage(for: .profilePosts)) private var profilePostsSwipes
+    @Setting(SwipeActionStore.storage(for: .profileComments)) private var profileCommentsSwipes
     @Setting(NavigationGestureSettingsStore.storage) private var navGestures
     @Setting(GeneralSettingsStore.storage) private var general
     @Setting(PortraitLockStore.storage) private var portraitLock
 
-    public init() {
-        var loaded: [SwipeActionScreen: SwipeActionSettings] = [:]
-        for screen in SwipeActionScreen.allCases {
-            loaded[screen] = SwipeActionStore.load(for: screen)
-        }
-        _perScreenSettings = State(initialValue: loaded)
-    }
+    public init() {}
 
     public var body: some View {
         List {
@@ -60,7 +58,6 @@ public struct GesturesHapticsSettingsScreen: View {
                     for screen in SwipeActionScreen.allCases {
                         SwipeActionStore.restoreDefaults(for: screen)
                     }
-                    reloadAll()
                 }
                 .foregroundStyle(Color.apolloAccent)
                 .apolloSearchRow("Restore Default Swipe Actions")
@@ -153,29 +150,36 @@ public struct GesturesHapticsSettingsScreen: View {
 
     private func binding(screen: SwipeActionScreen, slot: SwipeSlot) -> Binding<SwipeAction> {
         Binding(
-            get: { slot.value(in: perScreenSettings[screen] ?? .default) },
-            set: { newValue in
-                var updated = perScreenSettings[screen] ?? .default
-                slot.set(newValue, in: &updated)
-                perScreenSettings[screen] = updated
-                SwipeActionStore.storage(for: screen).update { slot.set(newValue, in: &$0) }
-            }
+            get: { slot.value(in: swipes(for: screen)) },
+            set: { newValue in updateSwipes(for: screen) { slot.set(newValue, in: &$0) } }
         )
     }
 
-    private func reloadAll() {
-        var loaded: [SwipeActionScreen: SwipeActionSettings] = [:]
-        for screen in SwipeActionScreen.allCases {
-            loaded[screen] = SwipeActionStore.load(for: screen)
+    private func swipes(for screen: SwipeActionScreen) -> SwipeActionSettings {
+        switch screen {
+        case .posts: return postsSwipes
+        case .comments: return commentsSwipes
+        case .inbox: return inboxSwipes
+        case .profilePosts: return profilePostsSwipes
+        case .profileComments: return profileCommentsSwipes
         }
-        perScreenSettings = loaded
+    }
+
+    private func updateSwipes(for screen: SwipeActionScreen, _ change: (inout SwipeActionSettings) -> Void) {
+        switch screen {
+        case .posts: $postsSwipes.update(change)
+        case .comments: $commentsSwipes.update(change)
+        case .inbox: $inboxSwipes.update(change)
+        case .profilePosts: $profilePostsSwipes.update(change)
+        case .profileComments: $profileCommentsSwipes.update(change)
+        }
     }
 
     /// Stock's per-screen list, plus a stored choice from elsewhere so
     /// it stays visible.
     private func actions(for screen: SwipeActionScreen) -> [SwipeAction] {
         var list = screen.availableActions
-        let stored = SwipeSlot.allCases.map { $0.value(in: perScreenSettings[screen] ?? .default) }
+        let stored = SwipeSlot.allCases.map { $0.value(in: swipes(for: screen)) }
         for action in stored where !list.contains(action) { list.append(action) }
         return list
     }

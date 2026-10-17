@@ -240,13 +240,27 @@ public enum PostRuleStore {
     /// hides a subreddit's announcements or what you just posted.
     public static func apply(_ posts: [RedditPost], rules: [PostRule], feed: PostRuleFeed,
                              username: String?) -> [RedditPost] {
-        let active = rules.filter { $0.applies(to: feed) }.map(PostRule.Compiled.init)
+        let active = activeRules(rules, feed: feed)
         guard !active.isEmpty else { return posts }
         return posts.filter { post in
-            if post.stickied { return true }
-            if let username, !username.isEmpty,
-               post.author.caseInsensitiveCompare(username) == .orderedSame { return true }
-            return !active.contains { $0.hides(post) }
+            if case .hidden = outcome(for: post, active: active, username: username) { return false }
+            return true
         }
+    }
+
+    /// The enabled rules scoped to `feed`, title patterns compiled once.
+    static func activeRules(_ rules: [PostRule], feed: PostRuleFeed) -> [PostRule.Compiled] {
+        rules.filter { $0.applies(to: feed) }.map(PostRule.Compiled.init)
+    }
+
+    /// The Post Rules stage for one post, which `FilterExplanation` also uses:
+    /// a rule hides it unless it is stickied or your own (both exempt).
+    static func outcome(for post: RedditPost, active: [PostRule.Compiled],
+                        username: String?) -> PostFilterOutcome {
+        guard let rule = active.first(where: { $0.hides(post) }) else { return .shown }
+        if post.stickied { return .exempt(.stickied) }
+        if let username, !username.isEmpty,
+           post.author.caseInsensitiveCompare(username) == .orderedSame { return .exempt(.ownPost) }
+        return .hidden(.postRule(rule.rule.name))
     }
 }

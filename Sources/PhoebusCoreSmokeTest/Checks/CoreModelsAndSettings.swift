@@ -401,6 +401,193 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
     restored.removePersistentDomain(forName: "phoebus.smoke.postRulesRestore")
 }
 
+// --- FilterExplanation (Phoebus's Filters tester) ---
+// One function runs the same evaluators in the same order as the feed, so the
+// tester and the feed can't disagree. Hide Read Posts and the All/Popular
+// excluded subreddits are feed context, not user filters, so they are absent.
+@MainActor func checkFilterExplanation() async throws {
+    func makePost(_ id: String, title: String = "A post", subreddit: String = "test",
+                  author: String = "someone", url: String? = "https://example.com/a",
+                  flair: String? = nil, score: Int = 100, comments: Int = 1,
+                  nsfw: Bool = false, spoiler: Bool = false, stickied: Bool = false,
+                  crosspostFrom: (subreddit: String, title: String)? = nil) -> RedditPost {
+        var json = #"{"id":"\#(id)","name":"t3_\#(id)","title":"\#(title)","author":"\#(author)","subreddit":"\#(subreddit)","permalink":"/r/\#(subreddit)/comments/\#(id)/","score":\#(score),"num_comments":\#(comments),"created_utc":0,"is_self":false,"over_18":\#(nsfw),"spoiler":\#(spoiler),"stickied":\#(stickied),"saved":false"#
+        if let url { json += #","url":"\#(url)""# }
+        if let flair { json += #","link_flair_text":"\#(flair)""# }
+        if let crosspostFrom {
+            json += #","crosspost_parent_list":[{"id":"parent","name":"t3_parent","title":"\#(crosspostFrom.title)","author":"parentauthor","subreddit":"\#(crosspostFrom.subreddit)","permalink":"/r/\#(crosspostFrom.subreddit)/parent","score":1,"num_comments":1,"created_utc":0,"over_18":false,"spoiler":false}]"#
+        }
+        return try! JSONDecoder.reddit.decode(RedditPost.self, from: Data((json + "}").utf8))
+    }
+    func explain(_ post: RedditPost, filters: [ContentFilter] = [], postFilters: PostFilterRules = .empty,
+                 postRules: [PostRule] = [], tagFilters: TagFilterSettings = .default,
+                 feed: PostRuleFeed = .home, username: String? = nil) -> PostFilterOutcome {
+        FilterExplanation.explain(post: post, filters: filters, postFilters: postFilters,
+                                  postRules: postRules, tagFilters: tagFilters, feed: feed, username: username)
+    }
+    // Tester and feed must agree: shouldHide is true exactly when the
+    // explanation is hidden (blur and the exemptions are not hidden).
+    func agrees(_ post: RedditPost, filters: [ContentFilter] = [], postFilters: PostFilterRules = .empty) -> Bool {
+        let hidden = ContentFilterStore.shouldHide(post, filters: filters, postFilters: postFilters)
+        if case .hidden = explain(post, filters: filters, postFilters: postFilters) { return hidden }
+        return !hidden
+    }
+
+    // Content filters: one hidden and one shown case per kind.
+    let subredditFilter = ContentFilter(kind: .subreddit, value: "test")
+    let inTest = makePost("s")
+    check("filter explanation: a filtered subreddit is hidden and named",
+          explain(inTest, filters: [subredditFilter]) == .hidden(.subreddit("test")))
+    check("filter explanation: an unfiltered subreddit is shown",
+          explain(inTest, filters: [ContentFilter(kind: .subreddit, value: "other")]) == .shown)
+    check("filter explanation: a filtered author is hidden and named",
+          explain(makePost("a", author: "SomeUser"), filters: [ContentFilter(kind: .author, value: "someuser")])
+              == .hidden(.author("someuser")))
+    check("filter explanation: another author is shown",
+          explain(makePost("a", author: "other"), filters: [ContentFilter(kind: .author, value: "someuser")]) == .shown)
+    let keyword = ContentFilter(kind: .keyword, value: "cat")
+    check("filter explanation: a keyword in the title says which field matched",
+          explain(makePost("k", title: "My CAT photo"), filters: [keyword])
+              == .hidden(.keyword(value: "cat", field: .title)))
+    check("filter explanation: a keyword in the link is reported as the link",
+          explain(makePost("k", title: "clean", url: "https://x.com/cat-page"), filters: [keyword])
+              == .hidden(.keyword(value: "cat", field: .link)))
+    check("filter explanation: a keyword in the flair is reported as the flair",
+          explain(makePost("k", title: "clean", url: "https://x.com/y", flair: "Cat pics"), filters: [keyword])
+              == .hidden(.keyword(value: "cat", field: .flair)))
+    check("filter explanation: a keyword that matches nowhere is shown",
+          explain(makePost("k", title: "clean", url: "https://x.com/y", flair: "Dogs"), filters: [keyword]) == .shown)
+    let domain = ContentFilter(kind: .domain, value: "example.com")
+    check("filter explanation: a filtered domain is hidden and named",
+          explain(makePost("d", url: "https://example.com/x"), filters: [domain]) == .hidden(.domain("example.com")))
+    check("filter explanation: another domain is shown",
+          explain(makePost("d", url: "https://other.com/x"), filters: [domain]) == .shown)
+
+    // Reborn's Post Filters: per-subreddit keywords/flairs and name substrings.
+    var postFilters = PostFilterRules()
+    postFilters.subreddits["movies"] = .init(keywords: ["spoiler"], flairs: ["Trailer"])
+    postFilters.nameSubstrings = ["circlejerk"]
+    check("filter explanation: a per-subreddit keyword is hidden and named",
+          explain(makePost("p", title: "Big spoiler inside", subreddit: "movies"), postFilters: postFilters)
+              == .hidden(.subredditKeyword(subreddit: "movies", keyword: "spoiler")))
+    check("filter explanation: that keyword in another subreddit is shown",
+          explain(makePost("p", title: "Big spoiler inside", subreddit: "books"), postFilters: postFilters) == .shown)
+    check("filter explanation: a per-subreddit flair is hidden and named",
+          explain(makePost("p", title: "t", subreddit: "movies", flair: "Trailer"), postFilters: postFilters)
+              == .hidden(.subredditFlair(subreddit: "movies", flair: "Trailer")))
+    check("filter explanation: a subreddit-name fragment is hidden and named",
+          explain(makePost("p", title: "t", subreddit: "carscirclejerk"), postFilters: postFilters)
+              == .hidden(.subredditNameFragment("circlejerk")))
+    check("filter explanation: an unrelated subreddit name is shown",
+          explain(makePost("p", title: "t", subreddit: "cars"), postFilters: postFilters) == .shown)
+
+    // A crosspost is tested against its parent too.
+    let crosspostName = makePost("c", title: "Repost", subreddit: "pics",
+                                 crosspostFrom: ("carscirclejerk", "Original"))
+    check("filter explanation: a crosspost's filtered parent is named",
+          explain(crosspostName, postFilters: postFilters)
+              == .hidden(.crosspostParent(.subredditNameFragment("circlejerk"))))
+    let crosspostKeyword = makePost("c", title: "Repost", subreddit: "pics",
+                                    crosspostFrom: ("movies", "Big spoiler inside"))
+    check("filter explanation: a crosspost parent's keyword is named",
+          explain(crosspostKeyword, postFilters: postFilters)
+              == .hidden(.crosspostParent(.subredditKeyword(subreddit: "movies", keyword: "spoiler"))))
+
+    // Content filters are checked before Post Filters.
+    check("filter explanation: content filters are checked before Post Filters",
+          explain(inTest, filters: [subredditFilter], postFilters: PostFilterRules(nameSubstrings: ["test"]))
+              == .hidden(.subreddit("test")))
+
+    // Post Rules, their exemptions and their feed scope.
+    let highScore = PostRule(name: "High score only", minScore: 1000)
+    check("filter explanation: a Post Rule is hidden and named",
+          explain(makePost("r", score: 1), postRules: [highScore]) == .hidden(.postRule("High score only")))
+    check("filter explanation: a post a Post Rule keeps is shown",
+          explain(makePost("r", score: 5000), postRules: [highScore]) == .shown)
+    check("filter explanation: a stickied post is reported exempt",
+          explain(makePost("r", score: 1, stickied: true), postRules: [highScore]) == .exempt(.stickied))
+    check("filter explanation: your own post is reported exempt",
+          explain(makePost("r", author: "Me", score: 1), postRules: [highScore], username: "me") == .exempt(.ownPost))
+    check("filter explanation: an exemption is only reported when a rule would hide it",
+          explain(makePost("r", score: 5000, stickied: true), postRules: [highScore]) == .shown)
+    let picsOnly = PostRule(name: "Pics only", minScore: 1000, feeds: ["r/pics"])
+    check("filter explanation: a Post Rule only applies in its feed",
+          explain(makePost("r", score: 1), postRules: [picsOnly], feed: .home) == .shown
+              && explain(makePost("r", subreddit: "pics", score: 1), postRules: [picsOnly], feed: .subreddit("pics"))
+                  == .hidden(.postRule("Pics only")))
+
+    // Order: content filters run first, and only Post Rules exempt stickied ones.
+    check("filter explanation: a keyword and a Post Rule together report the keyword",
+          explain(makePost("r", title: "cat", score: 1), filters: [keyword], postRules: [highScore])
+              == .hidden(.keyword(value: "cat", field: .title)))
+    check("filter explanation: a stickied post is still hidden by a content filter",
+          explain(makePost("r", title: "cat", score: 1, stickied: true), filters: [keyword], postRules: [highScore])
+              == .hidden(.keyword(value: "cat", field: .title)))
+
+    // Tag Filters blur: the post stays in the feed.
+    let nsfwTag = TagFilterSettings(enabled: true, nsfw: true, spoiler: false, subredditOverrides: [:])
+    check("filter explanation: a tag filter blurs rather than hides",
+          explain(makePost("t", nsfw: true), tagFilters: nsfwTag) == .blurred(.nsfw))
+    let spoilerTag = TagFilterSettings(enabled: true, nsfw: false, spoiler: true, subredditOverrides: [:])
+    check("filter explanation: the spoiler tag filter is named",
+          explain(makePost("t", spoiler: true), tagFilters: spoilerTag) == .blurred(.spoiler))
+    check("filter explanation: tag filters off leave the post shown",
+          explain(makePost("t", nsfw: true), tagFilters: .default) == .shown)
+    check("filter explanation: a hiding rule is reported before a blur",
+          explain(makePost("t", title: "cat", score: 1, nsfw: true), filters: [keyword], tagFilters: nsfwTag)
+              == .hidden(.keyword(value: "cat", field: .title)))
+
+    // shouldHide and the explanation are the same decision.
+    check("filter explanation: shouldHide agrees with the explanation on every post case",
+          agrees(inTest, filters: [subredditFilter])
+              && agrees(inTest, filters: [ContentFilter(kind: .subreddit, value: "other")])
+              && agrees(crosspostName, postFilters: postFilters)
+              && agrees(crosspostKeyword, postFilters: postFilters)
+              && agrees(makePost("k", title: "cat"), filters: [keyword])
+              && agrees(makePost("t", nsfw: true))
+              && agrees(makePost("r", title: "cat", stickied: true), filters: [keyword]))
+
+    // The lines the tester shows.
+    check("filter explanation: the result line names the rule",
+          PostFilterMatch.keyword(value: "cat", field: .title).description == "Hidden by keyword \u{201c}cat\u{201d} in the title"
+              && PostFilterMatch.subreddit("x").description == "Hidden: r/x is filtered"
+              && PostFilterMatch.postRule("High score only").description == "Hidden by Post Rule \u{201c}High score only\u{201d}")
+    check("filter explanation: the exemption line explains itself",
+          PostFilterOutcome.exempt(.stickied).description == "Shown: stickied posts are never filtered"
+              && PostFilterOutcome.blurred(.nsfw).description == "Blurred: NSFW tag filter")
+
+    // Comments: the comment rules and Blocked Users.
+    let minFive = CommentFilter(name: "Low", minScore: 5)
+    let hideRule = CommentFilter(name: "Hide", maxScore: 100, displayMode: .hide)
+    func explainComment(_ comment: RedditComment, filters: [CommentFilter], blocked: Set<String> = [],
+                        blockedHide: Bool = true, own: String? = nil) -> CommentFilterOutcome {
+        FilterExplanation.explain(comment: comment, subreddit: "AskReddit", ownUsername: own,
+                                  filters: filters, blockedUsers: blocked, blockedUsersHide: blockedHide)
+    }
+    check("comment explanation: a collapsing filter is reported with its reason",
+          explainComment(makeFilterComment(id: "a", score: 4), filters: [minFive])
+              == .collapsed(reason: "Filtered: score below 5"))
+    check("comment explanation: a hiding filter is reported with its reason",
+          explainComment(makeFilterComment(id: "a", score: 101), filters: [hideRule])
+              == .hidden(reason: "Filtered: score above 100"))
+    check("comment explanation: an unmatched comment is shown",
+          explainComment(makeFilterComment(id: "a", score: 10), filters: [minFive]) == .shown)
+    check("comment explanation: your own comment is shown",
+          explainComment(makeFilterComment(id: "a", author: "Me", score: 1), filters: [minFive], own: "me") == .shown)
+    check("comment explanation: a blocked user is hidden when Blocked Users hides",
+          explainComment(makeFilterComment(id: "a", author: "Spammer"), filters: [], blocked: ["spammer"])
+              == .hidden(reason: "Blocked user"))
+    check("comment explanation: a blocked user collapses when Blocked Users collapses",
+          explainComment(makeFilterComment(id: "a", author: "Spammer"), filters: [], blocked: ["spammer"],
+                         blockedHide: false) == .collapsed(reason: "Blocked user"))
+    check("comment explanation: a filter's reason wins when a blocked comment also collapses",
+          explainComment(makeFilterComment(id: "a", author: "Spammer", score: 4), filters: [minFive],
+                         blocked: ["spammer"], blockedHide: false)
+              == .collapsed(reason: "Filtered: score below 5"))
+    check("comment explanation: the result line reads as a sentence",
+          CommentFilterOutcome.hidden(reason: "score below 5").description == "Hidden: score below 5")
+}
+
 // --- Mark read / hide read posts ---
 @MainActor func checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController() async throws {
     let readSettingsDefault = MarkReadSettings.default

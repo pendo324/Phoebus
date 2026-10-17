@@ -45,18 +45,32 @@ public struct ContentFilter: Codable, Sendable, Equatable, Identifiable {
     /// case-insensitive substring match for keyword/domain filters and
     /// exact match for subreddit/author filters.
     public func matches(post: RedditPost) -> Bool {
+        match(post: post) != nil
+    }
+
+    /// The rule this filter matches on `post`, or nil. The single matcher per
+    /// kind, shared with `FilterExplanation`.
+    func match(post: RedditPost) -> PostFilterMatch? {
         switch kind {
         case .subreddit:
-            return post.subreddit.caseInsensitiveCompare(value) == .orderedSame
+            return post.subreddit.caseInsensitiveCompare(value) == .orderedSame ? .subreddit(value) : nil
         case .author:
-            return post.author.caseInsensitiveCompare(value) == .orderedSame
+            return post.author.caseInsensitiveCompare(value) == .orderedSame ? .author(value) : nil
         case .keyword:
             // "…in title, link, or flair", as the section footer says.
-            return [post.title, post.url ?? "", post.linkFlairText ?? ""]
-                .contains { $0.range(of: value, options: .caseInsensitive) != nil }
+            if post.title.range(of: value, options: .caseInsensitive) != nil {
+                return .keyword(value: value, field: .title)
+            }
+            if let url = post.url, url.range(of: value, options: .caseInsensitive) != nil {
+                return .keyword(value: value, field: .link)
+            }
+            if let flair = post.linkFlairText, flair.range(of: value, options: .caseInsensitive) != nil {
+                return .keyword(value: value, field: .flair)
+            }
+            return nil
         case .domain:
-            guard let urlString = post.url, let host = URL(string: urlString)?.host else { return false }
-            return host.range(of: value, options: .caseInsensitive) != nil
+            guard let urlString = post.url, let host = URL(string: urlString)?.host else { return nil }
+            return host.range(of: value, options: .caseInsensitive) != nil ? .domain(value) : nil
         }
     }
 }
@@ -107,25 +121,15 @@ public enum ContentFilterStore {
         return kept
     }
 
-    /// Whether either filter system hides `post`.
-    static func shouldHide(
+    /// Whether either filter system hides `post`. Built from the same
+    /// per-kind matchers `FilterExplanation` uses, so the feed and the Filters
+    /// tester can't disagree.
+    public static func shouldHide(
         _ post: RedditPost,
         filters: [ContentFilter],
         postFilters: PostFilterRules
     ) -> Bool {
-        if filters.contains(where: { $0.matches(post: post) }) { return true }
-        if postFilters.hides(subreddit: post.subreddit,
-                             title: post.title,
-                             url: post.url,
-                             flair: post.linkFlairText) { return true }
-        // A crosspost is also tested against its parent, so a crosspost from a
-        // filtered subreddit is filtered too. `RedditCrosspostParent` carries no
-        // url/flair, so only the parent's subreddit and title are testable.
-        if let parent = post.crosspostParent,
-           postFilters.hides(subreddit: parent.subreddit,
-                             title: parent.title,
-                             url: nil,
-                             flair: nil) { return true }
-        return false
+        FilterExplanation.contentMatch(post, filters: filters) != nil
+            || FilterExplanation.postFilterMatch(post, postFilters: postFilters) != nil
     }
 }

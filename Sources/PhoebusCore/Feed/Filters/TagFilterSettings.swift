@@ -65,10 +65,15 @@ public struct TagFilterSettings: Codable, Sendable, Equatable {
 
     /// The tag filters' cover over a post's title and media.
     public func shouldBlur(subreddit: String, isNSFW: Bool, isSpoiler: Bool) -> Bool {
-        guard enabled, isNSFW || isSpoiler else { return false }
-        let filterNSFW = tagOn(subreddit: subreddit, nsfw: true)
-        let filterSpoiler = tagOn(subreddit: subreddit, nsfw: false)
-        return (isNSFW && filterNSFW) || (isSpoiler && filterSpoiler)
+        blurReason(subreddit: subreddit, isNSFW: isNSFW, isSpoiler: isSpoiler) != nil
+    }
+
+    /// Which tag puts the cover on, NSFW first. Shared with `FilterExplanation`.
+    func blurReason(subreddit: String, isNSFW: Bool, isSpoiler: Bool) -> TagBlurReason? {
+        guard enabled else { return nil }
+        if isNSFW, tagOn(subreddit: subreddit, nsfw: true) { return .nsfw }
+        if isSpoiler, tagOn(subreddit: subreddit, nsfw: false) { return .spoiler }
+        return nil
     }
 
     /// Whether a post's media is covered: Apollo always obscures spoiler

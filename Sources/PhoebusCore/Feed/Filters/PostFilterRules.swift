@@ -71,23 +71,31 @@ public struct PostFilterRules: Codable, Sendable, Equatable {
     /// should be hidden. Crosspost parents are handled by the caller
     /// passing the parent's values in a second call.
     public func hides(subreddit: String, title: String, url: String?, flair: String?) -> Bool {
-        guard !isEmpty, !subreddit.isEmpty else { return false }
+        match(subreddit: subreddit, title: title, url: url, flair: flair) != nil
+    }
+
+    /// The rule that hides a post with these values, or nil. The single
+    /// matcher, shared with `FilterExplanation`.
+    func match(subreddit: String, title: String, url: String?, flair: String?) -> PostFilterMatch? {
+        guard !isEmpty, !subreddit.isEmpty else { return nil }
         let subKey = subreddit.lowercased()
 
         // 1) Subreddit-name substring match, applies to ANY subreddit.
         for fragment in nameSubstrings where !fragment.isEmpty {
-            if subKey.contains(fragment.lowercased()) { return true }
+            if subKey.contains(fragment.lowercased()) { return .subredditNameFragment(fragment) }
         }
 
         // 2) Per-subreddit keyword / flair rules.
-        guard let rules = subreddits[subKey] else { return false }
+        guard let rules = subreddits[subKey] else { return nil }
 
         if !rules.keywords.isEmpty {
             let titleLower = title.lowercased()
             let urlLower = (url ?? "").lowercased()
             for term in rules.keywords where !term.isEmpty {
                 let t = term.lowercased()
-                if titleLower.contains(t) || urlLower.contains(t) { return true }
+                if titleLower.contains(t) || urlLower.contains(t) {
+                    return .subredditKeyword(subreddit: subreddit, keyword: term)
+                }
             }
         }
 
@@ -95,10 +103,12 @@ public struct PostFilterRules: Codable, Sendable, Equatable {
             let flairLower = Self.normalizedFlair(flair)
             if !flairLower.isEmpty {
                 // Exact (visible) label match.
-                for f in rules.flairs where f.lowercased() == flairLower { return true }
+                for f in rules.flairs where f.lowercased() == flairLower {
+                    return .subredditFlair(subreddit: subreddit, flair: f)
+                }
             }
         }
-        return false
+        return nil
     }
 }
 

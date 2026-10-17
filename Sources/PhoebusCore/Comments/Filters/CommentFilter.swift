@@ -129,16 +129,28 @@ public enum CommentFilterPolicy {
     /// the first collapsing filter's.
     public static func verdict(for comment: RedditComment, subreddit: String, ownUsername: String?,
                                focusedCommentID: String?, filters: [CommentFilter]) -> CommentFilterVerdict {
+        switch decision(for: comment, subreddit: subreddit, ownUsername: ownUsername,
+                        focusedCommentID: focusedCommentID, filters: filters) {
+        case .shown: return .show
+        case .hidden: return .hide
+        case .collapsed(let reason): return .collapse(reason: reason)
+        }
+    }
+
+    /// The same decision with the matching rule's reason for a hide too, so
+    /// `FilterExplanation` can name what hid a comment.
+    static func decision(for comment: RedditComment, subreddit: String, ownUsername: String?,
+                         focusedCommentID: String?, filters: [CommentFilter]) -> CommentFilterOutcome {
         if let ownUsername, !ownUsername.isEmpty,
-           ownUsername.caseInsensitiveCompare(comment.author) == .orderedSame { return .show }
-        if let focusedCommentID, focusedCommentID == comment.id || focusedCommentID == comment.name { return .show }
+           ownUsername.caseInsensitiveCompare(comment.author) == .orderedSame { return .shown }
+        if let focusedCommentID, focusedCommentID == comment.id || focusedCommentID == comment.name { return .shown }
         var collapseReason: String?
         for filter in filters where filter.applies(in: subreddit) {
             guard let reason = filter.matchReason(for: comment) else { continue }
-            if filter.displayMode == .hide { return .hide }
+            if filter.displayMode == .hide { return .hidden(reason: reason) }
             if collapseReason == nil { collapseReason = reason }
         }
-        return collapseReason.map { .collapse(reason: $0) } ?? .show
+        return collapseReason.map { .collapsed(reason: $0) } ?? .shown
     }
 }
 

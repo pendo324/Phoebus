@@ -381,6 +381,21 @@ Apollo or Reborn, add an entry here.
   screen has no preview, and Reborn adds none. Details: components.md,
   "Settings previews"; the confined swipe: gestures.md, "Row swipes".
 
+- **Filters has a tester, and every Action Menus editor opens the real
+  menu.** Apollo's Filters screen lists what is hidden but never says
+  which rule hid a given post, and Reborn's Action Menus editor shows a
+  list of the actions, not the menu. A pinned card on Filters takes a
+  typed post (title, subreddit, author, link, flair, and under More the
+  score, comment count, awards and NSFW or spoiler tags) or comment and
+  says what the filters would do with it, naming the rule ("Hidden by
+  keyword “x” in the title", "Hidden by Post Rule “…”", "Blurred: NSFW tag
+  filter", "Collapsed: Blocked user"); it uses the code the feed uses, so
+  the two agree, and nothing typed is saved or sent. A pinned card on each
+  Action Menus editor draws a sample post or comment whose ••• (or touch
+  and hold) opens the menu the app shows, in the layout being edited, with
+  Your post and Moderator switches for the rows that only appear then;
+  choosing a row does nothing. Details: components.md, "Settings previews".
+
 - **A settings screen has one entrance.** Each screen is pushed from
   exactly one row, and has one name everywhere: its row, its navigation
   title, its search entry and every breadcrumb. One link into another

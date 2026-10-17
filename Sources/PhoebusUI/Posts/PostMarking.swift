@@ -26,9 +26,12 @@ struct PostMarkMenuButton: View {
     let post: RedditPost
     let repository: RedditRepository
     let identifierPrefix: String
+    /// The Action Menus preview draws the row without marking anything.
+    var isInert = false
 
     var body: some View {
         Button {
+            guard !isInert else { return }
             PostMarking.toggle(mark, on: post, repository: repository)
         } label: {
             Label(mark.title(marking: !mark.isSet(on: post)), systemImage: mark.symbol)

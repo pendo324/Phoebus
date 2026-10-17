@@ -1401,3 +1401,139 @@ import PhoebusCore
           PostSubmitMarks(nsfw: true, spoiler: false).formParameters == ["nsfw": "true", "spoiler": "false"]
           && PostSubmitMarks(nsfw: false, spoiler: true).jsonParameters == ["nsfw": false, "spoiler": true])
 }
+
+// MARK: - Action Menus plans (Reborn #1131)
+//
+// The rows each ••• menu offers, before and after the user's layout. The
+// screens and the Action Menus preview both draw from these.
+
+@MainActor func checkActionMenuPlans() async throws {
+    let suite = UserDefaults(suiteName: "smoke.actionMenuPlans")!
+    suite.removePersistentDomain(forName: "smoke.actionMenuPlans")
+    let saved = ActionMenuLayoutStore.defaults
+    ActionMenuLayoutStore.defaults = suite
+    defer { ActionMenuLayoutStore.defaults = saved }
+
+    // The feed's post menu (hold and •••).
+    let feedDefault = ["save", "hide", "share", "copy-link", "crosspost", "remind-me", "mute-notifications",
+                       "filter-subreddit", "media-download", "subscribe-actions"]
+    let others = ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: false, galleryImageCount: 0)
+    check("feed post menu: someone else's post, unmodified layout", others.main == feedDefault && others.moderator == nil)
+    check("feed post menu: an album adds Save All Media after Copy Link",
+          ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: false, galleryImageCount: 3).main
+            == ["save", "hide", "share", "copy-link", "save-all-media"] + feedDefault.dropFirst(4))
+    check("feed post menu: one image is not an album",
+          ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: false, galleryImageCount: 1).main == feedDefault)
+    let own = ActionMenuPlan.feedPost(author: "me", signedInUsername: "me", isModerator: false, galleryImageCount: 0)
+    check("feed post menu: your own post adds NSFW, Spoiler, Set Flair and Insights",
+          own.main == ["save", "hide", "share", "copy-link", "crosspost", "remind-me", "mute-notifications",
+                       "filter-subreddit", "nsfw", "spoiler", "post-flair", "post-insights", "media-download", "subscribe-actions"])
+    let moderated = ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: true, galleryImageCount: 0)
+    check("feed post menu: a moderator gets Set Flair and the Moderator rows with the marks",
+          moderated.main == ["save", "hide", "share", "copy-link", "crosspost", "remind-me", "mute-notifications",
+                             "filter-subreddit", "post-flair", "media-download", "subscribe-actions"]
+            && moderated.moderator == ["mod-approve", "mod-remove", "mod-spam", "nsfw", "spoiler", "mod-distinguish", "mod-sticky", "mod-lock"])
+    let ownModerated = ActionMenuPlan.feedPost(author: "me", signedInUsername: "me", isModerator: true, galleryImageCount: 0)
+    check("feed post menu: your own post as a moderator keeps the marks out of the Moderator rows",
+          ownModerated.main.contains("nsfw") && ownModerated.moderator == ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky", "mod-lock"])
+    check("feed post menu: a case-different username is not your post for Set Flair but is for Insights",
+          ActionMenuPlan.feedPost(author: "Me", signedInUsername: "me", isModerator: false, galleryImageCount: 0).main.contains("post-insights")
+            && !ActionMenuPlan.feedPost(author: "Me", signedInUsername: "me", isModerator: false, galleryImageCount: 0).main.contains("post-flair"))
+
+    // The post screen's menu.
+    func detail(author: String = "them", me: String? = "me", moderator: Bool = false, own: Bool = false, deleted: Bool = false,
+                isSelf: Bool = true, selftext: String? = "body", other: Bool = false, ai: Bool = false, tabs: Bool = false) -> ActionMenuPlan {
+        ActionMenuPlan.postDetail(author: author, signedInUsername: me, isModerator: moderator, isOwnPost: own, isPostDeleted: deleted,
+                                  isSelf: isSelf, selftext: selftext, otherDiscussionsAvailable: other,
+                                  summariesEnabled: ai, floatingTabsEnabled: tabs)
+    }
+    let detailDefault = ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children", "select-text", "share",
+                         "share-image", "crosspost", "find", "award", "copy-link", "remind-me", "translate", "copy-text",
+                         "mute-notifications", "report", "live-activity", "spec.DeletedComments"]
+    check("post menu: a self post by someone else, unmodified layout", detail().main == detailDefault && detail().moderator == nil)
+    check("post menu: a link post has no Translate or Copy Text and offers Other Discussions",
+          detail(isSelf: false, selftext: nil, other: true).main
+            == ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children", "select-text", "share",
+                "share-image", "crosspost", "other-discussions", "find", "award", "copy-link", "remind-me",
+                "mute-notifications", "report", "live-activity", "spec.DeletedComments"])
+    check("post menu: an empty self post has no Translate or Copy Text",
+          !detail(selftext: "").main.contains("translate") && !detail(selftext: nil).main.contains("copy-text"))
+    let ownDetail = detail(author: "me", own: true).main
+    check("post menu: your own post adds Edit, Delete, the marks and Insights",
+          ownDetail == ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children", "select-text", "share",
+                        "share-image", "crosspost", "find", "award", "copy-link", "remind-me", "translate", "copy-text", "edit",
+                        "delete", "nsfw", "spoiler", "mute-notifications", "report", "live-activity", "spec.DeletedComments",
+                        "post-insights"])
+    check("post menu: a deleted own post loses Edit and Delete but keeps Insights",
+          !detail(author: "me", own: true, deleted: true).main.contains("delete")
+            && !detail(author: "me", own: true, deleted: true).main.contains("edit")
+            && detail(author: "me", own: true, deleted: true).main.contains("post-insights"))
+    check("post menu: your own link post has Delete but no Edit",
+          detail(author: "me", own: true, isSelf: false, selftext: nil).main.contains("delete")
+            && !detail(author: "me", own: true, isSelf: false, selftext: nil).main.contains("edit"))
+    check("post menu: Summarize with AI and Keep in Floating Tab follow their settings",
+          detail(ai: true, tabs: true).main.contains("summarize") && detail(ai: true, tabs: true).main.contains("spec.FloatingTabs")
+            && !detail().main.contains("summarize") && !detail().main.contains("spec.FloatingTabs"))
+    let detailModerated = detail(moderator: true)
+    check("post menu: a moderator leads with the Moderator row, and its menu adds Mod Notes",
+          detailModerated.main.first == "moderator"
+            && detailModerated.moderator == ["mod-approve", "mod-remove", "mod-spam", "nsfw", "spoiler", "mod-distinguish", "mod-sticky", "mod-lock", "mod-notes"])
+
+    // A comment's menu.
+    func comment(own: Bool = false, deleted: Bool = false, image: Bool = true, authorDeleted: Bool = false, moderator: Bool = false) -> ActionMenuPlan {
+        let policy = CommentInteractionPolicy(author: authorDeleted ? "[deleted]" : "someone", body: "a reply", locallyDeleted: deleted, isOwn: own)
+        return ActionMenuPlan.comment(policy: policy, canShareAsImage: image, isModerator: moderator)
+    }
+    let commentDefault = ["upvote", "downvote", "reply", "quote", "save", "share", "copy-link", "copy-text", "share-image",
+                          "copy-username", "tag-user", "translate", "award", "report", "remind-me", "mute-notifications"]
+    check("comment menu: someone else's comment, unmodified layout", comment().main == commentDefault && comment().moderator == nil)
+    check("comment menu: your own comment adds Edit, Delete and Vote Insights after Save",
+          comment(own: true).main == ["upvote", "downvote", "reply", "quote", "save", "edit", "delete", "vote-insights"] + commentDefault.dropFirst(5))
+    check("comment menu: your just-deleted comment keeps only what a deleted comment offers, and its username",
+          comment(own: true, deleted: true).main == ["share", "copy-link", "copy-username", "tag-user", "remind-me", "mute-notifications"])
+    check("comment menu: a deleted comment shows no Moderator section", comment(deleted: true, moderator: true).moderator == nil)
+    let restoredPolicy = CommentInteractionPolicy(
+        author: "[deleted]", body: "[removed]",
+        recovered: ArchivedComment(fullname: "t1_c1", author: "realuser", body: "the lost words", score: 9, reason: .moderatorRemoved))
+    let restoredPlan = ActionMenuPlan.comment(policy: restoredPolicy, canShareAsImage: true, isModerator: true)
+    check("comment menu: a restored comment adds Copy Text, Translate and the author rows, with no Moderator section",
+          restoredPlan.main == ["share", "copy-link", "copy-text", "copy-username", "tag-user", "translate", "remind-me", "mute-notifications"]
+            && restoredPlan.moderator == nil)
+    check("comment menu: without Share as Image a row goes, and a deleted author loses every username row",
+          !comment(image: false).main.contains("share-image")
+            && !comment(authorDeleted: true).main.contains("tag-user") && !comment(authorDeleted: true).main.contains("copy-username"))
+    check("comment menu: a moderator gets the Moderator (Comment) rows after the menu",
+          comment(moderator: true).moderator == ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky", "mod-notes"])
+
+    // The Moderator (Subreddit) menu.
+    check("moderator subreddit menu: the rows this app can open, in Apollo's order",
+          ActionMenuPlan.moderatorSubreddit() == ["mod-mail", "mod-queue", "mod-log", "mod-reports", "mod-spam-queue", "mod-unmoderated",
+                                                  "mod-all-comments", "mod-traffic", "mod-ban-users", "mod-mute-users", "mod-rules",
+                                                  "mod-automoderator", "mod-approved-submitters", "mod-moderators"])
+
+    // The layout reaches every menu: a hidden row goes, a moved row moves,
+    // each menu by its own context.
+    ActionMenuLayoutStore.setHidden(true, itemID: "hide", for: .post)
+    ActionMenuLayoutStore.setHidden(true, itemID: "mod-lock", for: .moderatorPost)
+    check("feed post menu: a hidden row goes from the menu and the Moderator rows follow their own layout",
+          !ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: true, galleryImageCount: 0).main.contains("hide")
+            && ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: true, galleryImageCount: 0).moderator?.contains("mod-lock") == false)
+    check("post menu and comment menu: a row hidden in Post still shows in Post with Comments and Comment",
+          detail().main == detailDefault && comment().main == commentDefault)
+    ActionMenuLayoutStore.setHidden(true, itemID: "downvote", for: .postDetail)
+    ActionMenuLayoutStore.setHidden(true, itemID: "mod-sticky", for: .moderatorComment)
+    ActionMenuLayoutStore.setOrder(["share"] + ActionMenuLayoutStore.resolvedOrder(.comment).filter { $0 != "share" }, for: .comment)
+    check("post menu: a hidden row goes, and the Moderator (Post) menu follows its layout too",
+          !detail().main.contains("downvote") && detail(moderator: true).moderator?.contains("mod-lock") == false
+            && detail(moderator: true).moderator?.contains("mod-notes") == true)
+    check("comment menu: a custom order moves a row ahead of the rest, and a hidden Moderator row goes while Mod Notes stays",
+          comment().main.first == "share" && comment(moderator: true).moderator?.contains("mod-sticky") == false
+            && comment(moderator: true).moderator?.contains("mod-notes") == true)
+    ActionMenuLayoutStore.setHidden(true, itemID: "mod-log", for: .moderatorSubreddit)
+    check("moderator subreddit menu: a hidden row goes", !ActionMenuPlan.moderatorSubreddit().contains("mod-log"))
+    ActionMenuLayoutStore.resetAll()
+    check("every menu is back to the app's order after a reset",
+          ActionMenuPlan.feedPost(author: "them", signedInUsername: "me", isModerator: false, galleryImageCount: 0).main == feedDefault
+            && detail().main == detailDefault && comment().main == commentDefault
+            && ActionMenuPlan.moderatorSubreddit().count == 14)
+}

@@ -3,255 +3,129 @@ import PhoebusCore
 
 /// The feed's menus: the post hold/••• menu, sort and timeframe sheets, and the subreddit, multireddit and overflow rows.
 extension FeedScreen {
-    /// Extracted from the row's inline `.contextMenu` so the row's body
-    /// stays within the type-checker's budget.
-    /// A post's hold menu in the feed. Entries are listed in the app's
-    /// order and arranged by the user's Action Menus layout (Reborn
-    /// #1131, context `post`); moderator rows follow the `moderator-post`
-    /// layout.
+    /// A post's hold and ••• menu; see `PostActionMenuContent`. Kept out of
+    /// the row's inline `.contextMenu` so the row's body stays within the
+    /// type-checker's budget.
     @ViewBuilder
     func postContextMenu(for post: RedditPost) -> some View {
-        ForEach(ActionMenuLayoutStore.arrange(feedPostMenuIDs(for: post), for: .post), id: \.self) { id in
-            feedPostMenuRow(id, post: post)
+        PostActionMenuContent(post: post, repository: repository, signedInUsername: signedInUsername,
+                              isModerator: isModerator) { action in
+            performPostMenuAction(action, on: post)
         }
-        if isModerator {
-            Divider()
-            ForEach(ActionMenuLayoutStore.arrange(feedModeratorMenuIDs(for: post), for: .moderatorPost), id: \.self) { id in
-                feedPostMenuRow(id, post: post)
+    }
+
+    func performPostMenuAction(_ action: PostMenuAction, on post: RedditPost) {
+        switch action {
+        case .save:
+            Task { await handleSwipeAction(.save, on: post) }
+        case .hide:
+            Task { await handleSwipeAction(.hide, on: post) }
+        case .copyLink:
+            PasteboardHelper.copy(url: post.shareURL())
+        case .saveAllMedia:
+            SaveAllMediaJob.shared.start(post.galleryImageURLs.map { .image($0) })
+        case .crosspost:
+            crosspostTarget = post
+        case .remindMe:
+            remindTarget = post
+        case .toggleMute:
+            MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))
+        case .filterSubreddit:
+            var filters = ContentFilterStore.load()
+            filters.append(ContentFilter(kind: .subreddit, value: post.subreddit))
+            ContentFilterStore.save(filters)
+            posts.removeAll { $0.subreddit.caseInsensitiveCompare(post.subreddit) == .orderedSame }
+        case .insights:
+            insightsTargetPost = post
+        case .setFlair:
+            flairTargetPost = post
+        case .downloadVideo(let videoURL):
+            Task {
+                downloadTitle = "Download Video"
+                do {
+                    // The downloadable rendition, not
+                    // the playable one: the muxer needs
+                    // the progressive `DASH_*.mp4` to
+                    // pair with `DASH_audio.mp4`.
+                    try await VideoDownloadService.downloadAndSave(
+                        videoURL: PostMediaKind.downloadableVideoURL(for: post) ?? videoURL)
+                    downloadMessage = "Saved to your photo library."
+                } catch {
+                    downloadMessage = error.localizedDescription
+                }
             }
+        case .saveGIF(let gifURL, let asVideo):
+            Task { await saveGIF(gifURL, asVideo: asVideo) }
+        case .saveGIFInFormat(let gifURL):
+            Task {
+                do {
+                    downloadTitle = "Save GIF"
+                    try await GIFSaveService.save(gifURL: gifURL, format: generalSettings.gifSaveFormat, useApolloAlbum: generalSettings.saveToApolloAlbum)
+                    downloadMessage = "Saved to your photo library."
+                } catch {
+                    downloadMessage = error.localizedDescription
+                }
+            }
+        case .subscribe:
+            Task {
+                try? await repository.subscribe(subredditName: post.subreddit, subscribe: true)
+                // Keeps `SubscribedSubredditsCache` (`excludeSubscribedFromAllPopular`)
+                // from filtering r/all and r/popular with a stale membership set.
+                await SubscribedSubredditsCache.shared.invalidate()
+            }
+        case .unsubscribe:
+            Task {
+                try? await repository.subscribe(subredditName: post.subreddit, subscribe: false)
+                await SubscribedSubredditsCache.shared.invalidate()
+            }
+        case .follow:
+            Task { try? await repository.followUser(username: post.author) }
+        case .block:
+            Task { try? await repository.blockUser(username: post.author) }
+        case .copyUsername:
+            PasteboardHelper.copy(post.author)
+        case .tagUser:
+            tagTarget = UserTagTarget(username: post.author)
+        case .report:
+            reportTarget = post
+        case .moderator(let action):
+            performModeratorAction(action, on: post)
         }
-        Divider()
-        feedPostMenuRow("report", post: post)
     }
 
-    func feedPostMenuIDs(for post: RedditPost) -> [String] {
-        var ids = ["save", "hide", "share", "copy-link"]
-        if post.galleryImageURLs.count > 1 { ids.append("save-all-media") }
-        ids += ["crosspost", "remind-me", "mute-notifications", "filter-subreddit"]
-        ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
-                                          signedInUsername: signedInUsername, isModerator: isModerator)
-        if isModerator || post.author == signedInUsername { ids.append("post-flair") }
-        if PostInsightsParser.isEligible(author: post.author, currentUsername: signedInUsername) { ids.append("post-insights") }
-        ids += ["media-download", "subscribe-actions"]
-        return ids
-    }
-
-    func feedModeratorMenuIDs(for post: RedditPost) -> [String] {
-        ["mod-approve", "mod-remove", "mod-spam"]
-            + PostMarkMenuPolicy.menuIDs(in: .moderatorMenu, author: post.author,
-                                         signedInUsername: signedInUsername, isModerator: isModerator)
-            + ["mod-distinguish", "mod-sticky", "mod-lock"]
-    }
-
-    @ViewBuilder
-    func feedPostMenuRow(_ id: String, post: RedditPost) -> some View {
-        switch id {
-        case "save":
-            Button { Task { await handleSwipeAction(.save, on: post) } } label: {
-                Label("Save", systemImage: "bookmark")
+    private func performModeratorAction(_ action: PostModeratorAction, on post: RedditPost) {
+        switch action {
+        case .approve:
+            Task { try? await repository.approve(fullname: post.name) }
+        case .remove:
+            Task {
+                _ = try? await repository.remove(fullname: post.name, isSpam: false)
+                posts.removeAll { $0.id == post.id }
             }
-        case "hide":
-            Button { Task { await handleSwipeAction(.hide, on: post) } } label: {
-                Label("Hide", systemImage: "eye.slash")
+        case .spam:
+            Task {
+                _ = try? await repository.remove(fullname: post.name, isSpam: true)
+                posts.removeAll { $0.id == post.id }
             }
-        case "share":
-            ShareLink(item: post.shareText()) { Label("Share", systemImage: "square.and.arrow.up") }
-        case "copy-link":
-            // Apollo's copy-URL activity (Reborn #967): ShareLink cannot register
-            // custom activities, so it is its own row.
-            Button { PasteboardHelper.copy(url: post.shareURL()) } label: { Label("Copy Link", systemImage: "link") }
-        case "save-all-media":
-            // Reborn #1048: an album post's hold menu gains Save All Media.
-            Button {
-                SaveAllMediaJob.shared.start(post.galleryImageURLs.map { .image($0) })
-            } label: {
-                Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
-            }
-        case "crosspost":
-            Button { crosspostTarget = post } label: { Label("Crosspost", systemImage: "arrowshape.turn.up.right") }
-        case "remind-me":
-            // Reborn "Action Menus" (#1368): Remind Me In… is a catalogued row.
-            Button { remindTarget = post } label: { Label("Remind Me In…", systemImage: "alarm") }
-        case "mute-notifications":
-            Button {
-                MutedThreadsStore.setMuted(post.name, muted: !MutedThreadsStore.isMuted(post.name))
-            } label: {
-                Label(MutedThreadsStore.isMuted(post.name) ? "Unmute Notifications" : "Mute Notifications",
-                      systemImage: MutedThreadsStore.isMuted(post.name) ? "bell" : "bell.slash")
-            }
-        case "filter-subreddit":
-            Button {
-                var filters = ContentFilterStore.load()
-                filters.append(ContentFilter(kind: .subreddit, value: post.subreddit))
-                ContentFilterStore.save(filters)
-                posts.removeAll { $0.subreddit.caseInsensitiveCompare(post.subreddit) == .orderedSame }
-            } label: {
-                Label("Filter Subreddit", systemImage: "line.3.horizontal.decrease.circle")
-            }
-        case "post-insights":
-            Button { insightsTargetPost = post } label: { Label("Insights", systemImage: "chart.bar") }
-        case "nsfw", "spoiler":
-            if let mark = PostMark(rawValue: id) {
-                PostMarkMenuButton(mark: mark, post: post, repository: repository, identifierPrefix: "feed.postMenu")
-            }
-        case "post-flair":
-            // Apollo's flair action: change a post's flair after posting.
-            Button { flairTargetPost = post } label: { Label("Set Flair", systemImage: "tag") }
-        case "media-download":
-            // Download Video… / Save GIF…, right after Filter Subreddit
-            // as in Apollo's post menu.
-            switch PostMediaKind.classify(post: post) {
-            case .video(let videoURL):
-                Button {
-                    Task {
-                        downloadTitle = "Download Video"
-                        do {
-                            // The downloadable rendition, not
-                            // the playable one: the muxer needs
-                            // the progressive `DASH_*.mp4` to
-                            // pair with `DASH_audio.mp4`.
-                            try await VideoDownloadService.downloadAndSave(
-                                videoURL: PostMediaKind.downloadableVideoURL(for: post) ?? videoURL)
-                            downloadMessage = "Saved to your photo library."
-                        } catch {
-                            downloadMessage = error.localizedDescription
-                        }
-                    }
-                } label: {
-                    Label("Download Video…", systemImage: "arrow.down.circle")
-                }
-            case .gif(let gifURL):
-                // "Save GIFs as…" setting
-                // (`GeneralSettings.gifSaveFormat`). `.askEachTime`
-                // presents its own two-option chooser rather than
-                // silently picking one.
-                if generalSettings.gifSaveFormat == .askEachTime {
-                    Button {
-                        Task { await saveGIF(gifURL, asVideo: false) }
-                    } label: {
-                        Label("Save as GIF", systemImage: "photo")
-                    }
-                    Button {
-                        Task { await saveGIF(gifURL, asVideo: true) }
-                    } label: {
-                        Label("Save as Video", systemImage: "video")
-                    }
-                } else {
-                    Button {
-                        Task {
-                            do {
-                                downloadTitle = "Save GIF"
-                                try await GIFSaveService.save(gifURL: gifURL, format: generalSettings.gifSaveFormat, useApolloAlbum: generalSettings.saveToApolloAlbum)
-                                downloadMessage = "Saved to your photo library."
-                            } catch {
-                                downloadMessage = error.localizedDescription
-                            }
-                        }
-                    } label: {
-                        Label("Save GIF…", systemImage: "arrow.down.circle")
-                    }
-                }
-            default:
-                EmptyView()
-            }
-        case "subscribe-actions":
-            Divider()
-            Button {
-                Task {
-                    try? await repository.subscribe(subredditName: post.subreddit, subscribe: true)
-                    // Keeps `SubscribedSubredditsCache` (`excludeSubscribedFromAllPopular`)
-                    // from filtering r/all and r/popular with a stale membership set.
-                    await SubscribedSubredditsCache.shared.invalidate()
-                }
-            } label: {
-                Label("Subscribe to r/\(post.subreddit)", systemImage: "plus.circle")
-            }
-            Button {
-                Task {
-                    try? await repository.subscribe(subredditName: post.subreddit, subscribe: false)
-                    await SubscribedSubredditsCache.shared.invalidate()
-                }
-            } label: {
-                Label("Unsubscribe from r/\(post.subreddit)", systemImage: "minus.circle")
-            }
-            Button {
-                Task { try? await repository.followUser(username: post.author) }
-            } label: {
-                Label("Follow u/\(post.author)", systemImage: "person.crop.circle.badge.plus")
-            }
-            Button {
-                Task { try? await repository.blockUser(username: post.author) }
-            } label: {
-                Label("Block u/\(post.author)", systemImage: "person.crop.circle.badge.xmark")
-            }
-            // Reborn addition: copy the author's username.
-            Button {
-                PasteboardHelper.copy(post.author)
-            } label: {
-                Label("Copy Username", systemImage: "doc.on.doc")
-            }
-            // Phoebus-only user tags (`UserTags`).
-            if post.author != "[deleted]" {
-                UserTagMenuItem(username: post.author) { tagTarget = UserTagTarget(username: post.author) }
-                    .accessibilityIdentifier("feed.postMenu.tagUser")
-            }
-        case "report":
-            Button(role: .destructive) { reportTarget = post } label: { Label("Report", systemImage: "flag") }
-        case "mod-approve":
-            Button {
-                Task { try? await repository.approve(fullname: post.name) }
-            } label: {
-                Label("Approve", systemImage: "checkmark.shield")
-            }
-        case "mod-remove":
-            Button(role: .destructive) {
-                Task {
-                    _ = try? await repository.remove(fullname: post.name, isSpam: false)
-                    posts.removeAll { $0.id == post.id }
-                }
-            } label: {
-                Label("Remove", systemImage: "xmark.shield")
-            }
-        case "mod-spam":
-            Button(role: .destructive) {
-                Task {
-                    _ = try? await repository.remove(fullname: post.name, isSpam: true)
-                    posts.removeAll { $0.id == post.id }
-                }
-            } label: {
-                Label("Mark as Spam", systemImage: "exclamationmark.shield")
-            }
-        case "mod-distinguish":
+        case .distinguish:
             let isDistinguished = post.distinguished == "moderator"
-            Button {
-                Task {
-                    _ = try? await repository.distinguish(fullname: post.name, asMod: !isDistinguished)
-                    updatePost(post.id) { $0.distinguished = isDistinguished ? nil : "moderator" }
-                }
-            } label: {
-                Label(isDistinguished ? "Undistinguish" : "Distinguish", systemImage: "shield.lefthalf.filled")
+            Task {
+                _ = try? await repository.distinguish(fullname: post.name, asMod: !isDistinguished)
+                updatePost(post.id) { $0.distinguished = isDistinguished ? nil : "moderator" }
             }
-        case "mod-sticky":
-            Button {
-                Task {
-                    _ = try? await repository.setSticky(fullname: post.name, sticky: !post.stickied)
-                    updatePost(post.id) { $0.stickied = !post.stickied }
-                }
-            } label: {
-                Label(post.stickied ? "Unsticky" : "Sticky", systemImage: "pin")
+        case .sticky:
+            Task {
+                _ = try? await repository.setSticky(fullname: post.name, sticky: !post.stickied)
+                updatePost(post.id) { $0.stickied = !post.stickied }
             }
-        case "mod-lock":
-            Button {
-                Task {
-                    let newLocked = !(post.locked ?? false)
-                    _ = try? await repository.setLocked(fullname: post.name, locked: newLocked)
-                    updatePost(post.id) { $0.locked = newLocked }
-                }
-            } label: {
-                Label((post.locked ?? false) ? "Unlock Comments" : "Lock Comments", systemImage: (post.locked ?? false) ? "lock.open" : "lock")
+        case .lock:
+            Task {
+                let newLocked = !(post.locked ?? false)
+                _ = try? await repository.setLocked(fullname: post.name, locked: newLocked)
+                updatePost(post.id) { $0.locked = newLocked }
             }
-        default:
-            EmptyView()
+        case .notes:
+            break
         }
     }
 
@@ -310,192 +184,79 @@ extension FeedScreen {
         }
     }
 
-    /// The subreddit "•••" menu, in Apollo's order. "Set User Flair" is a
-    /// gap: no flair-selection endpoint is wired in `RedditRepository`.
-    var subredditActionRows: [ApolloActionSheetRow] {
-        var rows: [ApolloActionSheetRow] = []
-
-        // Gallery View, alone in the leading section; the composer icon row
-        // sits above it.
-        rows.append(ApolloActionSheetRow("Gallery View", icon: "square.grid.2x2", accessibilityIdentifier: "feed.overflow.galleryView") {
-            showingGallerySheet = true
-        })
-
-        if !subreddit.isEmpty {
-            // Subscribe/Unsubscribe: the row states the action, not
-            // the state. Reuses the header's own subscription state
-            // (`currentlySubscribedToHeaderSubreddit`) rather than a
-            // second source of truth.
-            let subscribed = currentlySubscribedToHeaderSubreddit()
-            rows.append(ApolloActionSheetRow(subscribed ? "Unsubscribe" : "Subscribe",
-                                             icon: subscribed ? "heart.slash" : "heart",
-                                             startsSection: true,
-                                             accessibilityIdentifier: "feed.overflow.subscribeToggle") {
-                Task {
-                    await toggleHeaderSubscribe()
-                    await SubscribedSubredditsCache.shared.invalidate()
-                }
-            })
-            rows.append(ApolloActionSheetRow(FavoriteSubredditsStore.isFavorite(subreddit) ? "Unfavorite" : "Favorite",
-                                             icon: FavoriteSubredditsStore.isFavorite(subreddit) ? "star.slash" : "star",
-                                             accessibilityIdentifier: "feed.overflow.favoriteToggle") {
-                FavoriteSubredditsStore.toggle(subreddit)
-            })
-        }
-
-        // Apollo's native "Hide Read Posts" action (Reborn Action Menus
-        // id `hide-read`), the same as the floating button.
-        rows.append(ApolloActionSheetRow("Hide Read Posts", icon: "option-hide-read",
-                                         accessibilityIdentifier: "feed.overflow.hideReadToggle") {
-            hideReadPosts()
-        })
-
-        if !subreddit.isEmpty {
-            rows.append(ApolloActionSheetRow("Sidebar", icon: "sidebar.right", accessibilityIdentifier: "feed.overflow.sidebar") {
-                showingSidebarSheet = true
-            })
-            rows.append(ApolloActionSheetRow("Subreddit Rules", icon: "list.bullet.rectangle", accessibilityIdentifier: "feed.overflow.rules") {
-                showingRulesSheet = true
-            })
-            rows.append(ApolloActionSheetRow("Filter Subreddit", icon: "circle.slash", accessibilityIdentifier: "feed.overflow.filterSubreddit") {
-                var filters = ContentFilterStore.load()
-                filters.append(ContentFilter(kind: .subreddit, value: subreddit))
-                ContentFilterStore.save(filters)
-            })
-            // The repository already has the endpoint
-            // (`addSubredditToMultireddit`, `PUT /api/multi/<path>/r/<name>`).
-            rows.append(ApolloActionSheetRow("Add to Multireddit", icon: "m.circle", accessibilityIdentifier: "feed.overflow.addToMultireddit") {
-                showingAddToMultireddit = true
-            })
-        }
-
-        rows.append(ApolloActionSheetRow(effectivePostDisplayStyle == .compact ? "Large Thumbnails" : "Compact Posts",
-                                         icon: "rectangle.grid.1x2",
-                                         accessibilityIdentifier: "feed.overflow.compactToggle") {
-            let newStyle: PostDisplayStyle = effectivePostDisplayStyle == .compact ? .large : .compact
-            // Post Size Per Subreddit: only this subreddit changes.
-            if PostSizeMemoryStore.recordSizeChange(subreddit: subreddit, style: newStyle) {
-                localPostSize = newStyle
-            } else {
-                $generalSettings.postDisplayStyle.wrappedValue = newStyle
-            }
-        })
-
-        if !subreddit.isEmpty {
-            rows.append(ApolloActionSheetRow("Set User Flair", icon: "tag", accessibilityIdentifier: "feed.overflow.setUserFlair") {
-                showingUserFlair = true
-            })
-            // The sidebar screen already renders a moderator list; this links
-            // straight to it.
-            rows.append(ApolloActionSheetRow("View Moderators", icon: "person.2.badge.gearshape", accessibilityIdentifier: "feed.overflow.viewModerators") {
-                showingModeratorsSheet = true
-            })
-        }
-
-        // Share sits second-to-last, not first.
-        rows.append(ApolloActionSheetRow("Share", icon: "square.and.arrow.up", accessibilityIdentifier: "feed.overflow.share") {
-            sharingFeedURL = feedShareURL
-        })
-
-        if !subreddit.isEmpty {
-            // Apollo's per-subreddit post notifications (Reddit's
-            // `/api/subreddit_notifications`).
-            rows.append(ApolloActionSheetRow("Subreddit Notifications", icon: "bell", accessibilityIdentifier: "feed.overflow.subredditNotifications") {
-                showingSubredditNotifications = true
-            })
-        }
-
-        // Not in Apollo: undoes "View Anyway". The about data only loads for
-        // a quarantined subreddit once opted in, so its flag means opted in.
-        if !subreddit.isEmpty, subredditInfo?.quarantine == true, isSignedIn {
-            rows.append(ApolloActionSheetRow("Leave Quarantine", icon: "eye.slash",
-                                             accessibilityIdentifier: "feed.overflow.leaveQuarantine") {
-                Task { await leaveQuarantine() }
-            })
-        }
-
-        // Moderator-only. Not in Apollo's stock menu, but this app implements
-        // Mod Queue and hiding a working screen would be worse than appending
-        // one row a moderator expects.
-        if isModerator {
-            rows.append(ApolloActionSheetRow("Mod Queue", icon: "shield", accessibilityIdentifier: "feed.overflow.modQueue") {
-                showingModQueueSheet = true
-            })
-        }
-        return rows
+    var feedOverflowState: FeedOverflowState {
+        FeedOverflowState(
+            subreddit: subreddit,
+            multiredditPath: multiredditPath,
+            isSubscribed: currentlySubscribedToHeaderSubreddit(),
+            isFavorite: FavoriteSubredditsStore.isFavorite(subreddit),
+            isCompact: effectivePostDisplayStyle == .compact,
+            canLeaveQuarantine: subredditInfo?.quarantine == true && isSignedIn,
+            isModerator: isModerator,
+            canCopyMultireddit: multiredditPath.map {
+                MultiredditCopy.canCopy(path: $0, signedInUsername: FavoriteSubredditsAccountContext.currentUsernameProvider())
+            } ?? false)
     }
 
-    /// A multireddit feed's own "•••" rows, kept separate from
-    /// `subredditActionRows` because the two menus differ.
-    var multiredditActionRows: [ApolloActionSheetRow] {
-        var rows: [ApolloActionSheetRow] = []
-        rows.append(ApolloActionSheetRow("Gallery View", icon: "square.grid.2x2", accessibilityIdentifier: "feed.overflow.galleryView") {
-            showingGallerySheet = true
-        })
-        if let multiredditPath {
-            // Someone else's multireddit can't be edited, only copied (not in
-            // Apollo or Reborn; see `MultiredditCopy`).
-            if MultiredditCopy.canCopy(path: multiredditPath, signedInUsername: FavoriteSubredditsAccountContext.currentUsernameProvider()) {
-                rows.append(ApolloActionSheetRow("Copy to My Multireddits", icon: "plus.square.on.square", startsSection: true, accessibilityIdentifier: "feed.overflow.copyMultireddit") {
-                    showingCopyMultireddit = true
-                })
-            } else {
-                rows.append(ApolloActionSheetRow("Edit Multireddit", icon: "m.circle", startsSection: true, accessibilityIdentifier: "feed.overflow.editMultireddit") {
-                    editingMultireddit = EditingMultireddit(path: multiredditPath)
-                })
-            }
-        }
-        rows.append(ApolloActionSheetRow(effectivePostDisplayStyle == .compact ? "Large Thumbnails" : "Compact Posts",
-                                         icon: "rectangle.grid.1x2",
-                                         accessibilityIdentifier: "feed.overflow.compactToggle") {
-            let newStyle: PostDisplayStyle = effectivePostDisplayStyle == .compact ? .large : .compact
-            // Post Size Per Subreddit: only this subreddit changes.
-            if PostSizeMemoryStore.recordSizeChange(subreddit: subreddit, style: newStyle) {
-                localPostSize = newStyle
-            } else {
-                $generalSettings.postDisplayStyle.wrappedValue = newStyle
-            }
-        })
-        rows.append(ApolloActionSheetRow("Share", icon: "square.and.arrow.up", accessibilityIdentifier: "feed.overflow.share") {
-            sharingFeedURL = feedShareURL
-        })
-        return rows
-    }
-
-    /// The leading post-type icon row: link+, text+, poll+. Only a
-    /// real subreddit gets one; a multireddit or Home has nowhere to
-    /// post.
     var composerIconRow: [ApolloComposerAction] {
-        guard !subreddit.isEmpty else { return [] }
-        return [
-            ApolloComposerAction(systemImage: "link.badge.plus", label: "Link Post") {
-                composeKind = .link
-                showingCompose = true
-            },
-            ApolloComposerAction(systemImage: "doc.badge.plus", label: "Text Post") {
-                composeKind = .text
-                showingCompose = true
-            },
-            ApolloComposerAction(systemImage: "chart.bar.doc.horizontal", label: "Poll") {
-                composeKind = .poll
-                showingCompose = true
-            },
-        ]
+        FeedOverflowMenu.composerRow(feedOverflowState) { performFeedOverflowAction($0) }
     }
 
-    /// Whichever menu this feed actually is.
     var overflowRows: [ApolloActionSheetRow] {
-        let rows = multiredditPath != nil ? multiredditActionRows : subredditActionRows
-        return Self.arrangeFeedMenu(rows)
+        FeedOverflowMenu.rows(feedOverflowState) { performFeedOverflowAction($0) }
     }
 
-    static func arrangeFeedMenu(_ rows: [ApolloActionSheetRow]) -> [ApolloActionSheetRow] {
-        guard ActionMenuLayoutStore.isCustomized(.feed) else { return rows }
-        let keyed = rows.enumerated().map { index, row in
-            (key: row.accessibilityIdentifier.flatMap { feedMenuItemIDs[$0] } ?? "row.\(index)", row: row)
+    func performFeedOverflowAction(_ action: FeedOverflowAction) {
+        switch action {
+        case .compose(let kind):
+            composeKind = kind
+            showingCompose = true
+        case .galleryView:
+            showingGallerySheet = true
+        case .toggleSubscribe:
+            Task {
+                await toggleHeaderSubscribe()
+                await SubscribedSubredditsCache.shared.invalidate()
+            }
+        case .toggleFavorite:
+            FavoriteSubredditsStore.toggle(subreddit)
+        case .hideRead:
+            hideReadPosts()
+        case .sidebar:
+            showingSidebarSheet = true
+        case .rules:
+            showingRulesSheet = true
+        case .filterSubreddit:
+            var filters = ContentFilterStore.load()
+            filters.append(ContentFilter(kind: .subreddit, value: subreddit))
+            ContentFilterStore.save(filters)
+        case .addToMultireddit:
+            showingAddToMultireddit = true
+        case .toggleCompact:
+            let newStyle: PostDisplayStyle = effectivePostDisplayStyle == .compact ? .large : .compact
+            // Post Size Per Subreddit: only this subreddit changes.
+            if PostSizeMemoryStore.recordSizeChange(subreddit: subreddit, style: newStyle) {
+                localPostSize = newStyle
+            } else {
+                $generalSettings.postDisplayStyle.wrappedValue = newStyle
+            }
+        case .setUserFlair:
+            showingUserFlair = true
+        case .viewModerators:
+            showingModeratorsSheet = true
+        case .share:
+            sharingFeedURL = feedShareURL
+        case .subredditNotifications:
+            showingSubredditNotifications = true
+        case .leaveQuarantine:
+            Task { await leaveQuarantine() }
+        case .modQueue:
+            showingModQueueSheet = true
+        case .copyMultireddit:
+            showingCopyMultireddit = true
+        case .editMultireddit:
+            if let multiredditPath { editingMultireddit = EditingMultireddit(path: multiredditPath) }
         }
-        let byKey = Dictionary(keyed.map { ($0.key, $0.row) }, uniquingKeysWith: { first, _ in first })
-        return ActionMenuLayoutStore.arrange(keyed.map(\.key), for: .feed).compactMap { byKey[$0] }
     }
 
     /// Per-sort icons: the named `option-sort-*` glyphs (see `StockIcon`),

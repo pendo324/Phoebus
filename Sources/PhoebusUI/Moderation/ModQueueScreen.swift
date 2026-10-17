@@ -19,73 +19,6 @@ public struct ModQueueScreen: View {
         self.repository = repository
     }
 
-    /// Rows this app can open, in Apollo's order (Reborn's catalogue ids).
-    private let moderatorMenuIDs = ["mod-mail", "mod-queue", "mod-log", "mod-reports", "mod-spam-queue",
-                                    "mod-unmoderated", "mod-all-comments", "mod-traffic", "mod-ban-users",
-                                    "mod-mute-users", "mod-rules", "mod-automoderator",
-                                    "mod-approved-submitters", "mod-moderators"]
-
-    @ViewBuilder
-    private func moderatorMenuRow(_ id: String) -> some View {
-        switch id {
-        case "mod-mail":
-            SettingsLink { ModmailListScreen(repository: repository) } label: {
-                Label("Mod Mail", systemImage: "envelope.badge.shield.half.filled")
-            }
-        case "mod-queue": filterRow(.all, title: "Mod Queue", symbol: "tray.full")
-        case "mod-reports": filterRow(.reports, title: "Reports", symbol: "flag")
-        case "mod-spam-queue": filterRow(.spam, title: "Spam", symbol: "exclamationmark.shield")
-        case "mod-unmoderated": filterRow(.unmoderated, title: "Unmoderated", symbol: "eye.slash")
-        case "mod-log":
-            SettingsLink { ModeratorLogScreen(subreddit: subreddit, repository: repository) } label: {
-                Label("Mod Log", systemImage: "list.bullet.clipboard")
-            }
-        case "mod-all-comments":
-            SettingsLink { AllSubredditCommentsScreen(subreddit: subreddit, repository: repository) } label: {
-                Label("All Comments", systemImage: "text.bubble")
-            }
-        case "mod-traffic":
-            SettingsLink { SubredditTrafficScreen(subreddit: subreddit, repository: repository) } label: {
-                Label("Traffic Stats", systemImage: "chart.xyaxis.line")
-            }
-        case "mod-ban-users": userListRow(.banned)
-        case "mod-mute-users": userListRow(.muted)
-        case "mod-approved-submitters": userListRow(.approved)
-        case "mod-rules":
-            SettingsLink { SubredditRulesScreen(subredditName: subreddit, repository: repository) } label: {
-                Label("Rules", systemImage: "list.number")
-            }
-        case "mod-automoderator":
-            SettingsLink { AutoModeratorScreen(subreddit: subreddit, repository: repository) } label: {
-                Label("AutoModerator", systemImage: "shield.lefthalf.filled")
-            }
-        case "mod-moderators":
-            SettingsLink { SubredditModeratorsScreen(subredditName: subreddit, repository: repository) } label: {
-                Label("Moderators", systemImage: "shield")
-            }
-        default:
-            EmptyView()
-        }
-    }
-
-    /// The queue's own views switch the list in place.
-    private func filterRow(_ option: RedditRepository.ModQueueFilter, title: String, symbol: String) -> some View {
-        Button {
-            filter = option
-            Task { await reload() }
-        } label: {
-            Label(title, systemImage: symbol)
-        }
-    }
-
-    private func userListRow(_ kind: ModeratorUsersScreen.UserListKind) -> some View {
-        SettingsLink {
-            ModeratorUsersScreen(subreddit: subreddit, repository: repository, kind: kind)
-        } label: {
-            Label(kind.title, systemImage: ApolloMenuIcon.symbol(kind.apolloIconName, fallback: "person.2.slash"))
-        }
-    }
-
     public var body: some View {
         List {
             if let errorMessage {
@@ -142,8 +75,9 @@ public struct ModQueueScreen: View {
                 // Subreddit moderator menu, arranged by the Action Menus layout (Reborn #1131,
                 // `moderator-subreddit`).
                 Menu {
-                    ForEach(ActionMenuLayoutStore.arrange(moderatorMenuIDs, for: .moderatorSubreddit), id: \.self) { id in
-                        moderatorMenuRow(id)
+                    ModeratorSubredditMenuContent(subreddit: subreddit, repository: repository) { option in
+                        filter = option
+                        Task { await reload() }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

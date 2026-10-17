@@ -895,24 +895,6 @@ public struct FeedScreen: View {
         }
     }
 
-    /// Reborn Action Menus (#1131, context `feed`): the nav-bar •••
-    /// rows keyed by their accessibility identifiers.
-    static let feedMenuItemIDs: [String: String] = [
-        "feed.overflow.galleryView": "spec.GalleryView",
-        "feed.overflow.subscribeToggle": "subscribe",
-        "feed.overflow.favoriteToggle": "favorite",
-        "feed.overflow.hideReadToggle": "hide-read",
-        "feed.overflow.sidebar": "sidebar",
-        "feed.overflow.rules": "rules",
-        "feed.overflow.filterSubreddit": "filter-subreddit",
-        "feed.overflow.addToMultireddit": "multireddit",
-        "feed.overflow.compactToggle": "post-size",
-        "feed.overflow.setUserFlair": "user-flair",
-        "feed.overflow.viewModerators": "moderators",
-        "feed.overflow.share": "share",
-        "feed.overflow.subredditNotifications": "notifications",
-    ]
-
     /// Reddit's `t=` timeframe values for Top/Controversial sorts,
     /// matching the second-level sheet Apollo opens when "Top" is tapped.
     static let timeframes: [(label: String, value: String)] = [

@@ -686,15 +686,27 @@ public struct PostDetailScreen: View {
 }
 
 extension PostDetailScreen {
-    /// The post "•••" menu. Extracted from the toolbar closure since
-    /// inlining it exceeded the type-checker's budget.
-    /// Entries in the app's order, arranged by the user's Action Menus
-    /// layout for the comments view (Reborn #1131, context `post-detail`).
+    /// The post "•••" menu, see `PostDetailActionMenuContent`. Extracted
+    /// from the toolbar closure since inlining it exceeded the
+    /// type-checker's budget.
     @ViewBuilder
     private var postOverflowMenu: some View {
-        ForEach(ActionMenuLayoutStore.arrange(postDetailMenuIDs, for: .postDetail), id: \.self) { id in
-            postDetailMenuRow(id)
-        }
+        PostDetailActionMenuContent(facts: menuFacts, repository: repository) { performMenuAction($0) }
+    }
+
+    private var menuFacts: PostDetailMenuFacts {
+        PostDetailMenuFacts(
+            post: post, markedPost: markedPost, signedInUsername: signedInUsername, isModerator: isModerator,
+            isOwnPost: isOwnPost, isPostDeleted: isPostDeleted, summariesEnabled: aiSettings.summariesEnabled,
+            floatingTabsEnabled: floatingTabsSettings.enabled, isSaved: menuIsSaved, isMuted: isMuted,
+            anyChildCollapsed: commentStore.roots.contains { $0.hasCollapsedDescendant },
+            isKeptInFloatingTab: floatingPostTabsManager?.isKept(post) == true,
+            liveActivityRunning: liveActivityRunning,
+            deletedCommentsRecoveryActive: commentStore.deletedCommentsRecoveryActive,
+            moderator: PostModeratorMenuState(
+                distinguished: modDistinguished ?? (post.distinguished == "moderator"),
+                stickied: modStickied ?? post.stickied,
+                locked: modLocked ?? (post.locked ?? false)))
     }
 
     /// The post with this session's Mark NSFW / Mark Spoiler changes.
@@ -704,93 +716,107 @@ extension PostDetailScreen {
         return marked
     }
 
-    private var postDetailMenuIDs: [String] {
-        var ids = isModerator ? ["moderator"] : []
-        ids += ["upvote", "downvote", "save", "reply", "author", "subreddit", "collapse-children",
-                   "select-text", "share", "share-image", "crosspost"]
-        if OtherDiscussions.isAvailable(for: post) { ids.append("other-discussions") }
-        ids += ["find", "award", "copy-link", "remind-me"]
-        if post.isSelf, let selftext = post.selftext, !selftext.isEmpty { ids += ["translate", "copy-text"] }
-        if isOwnPost && !isPostDeleted {
-            if post.isSelf { ids.append("edit") }
-            ids.append("delete")
-        }
-        if aiSettings.summariesEnabled { ids.append("summarize") }
-        if floatingTabsSettings.enabled { ids.append("spec.FloatingTabs") }
-        ids += PostMarkMenuPolicy.menuIDs(in: .postMenu, author: post.author,
-                                          signedInUsername: signedInUsername, isModerator: isModerator)
-        ids += ["mute-notifications", "report", "live-activity", "spec.DeletedComments"]
-        if isOwnPost { ids.append("post-insights") }
-        return ids
-    }
-
-    /// The Moderator row: the Moderator (Post) menu, arranged by its layout.
-    private var moderatorPostMenu: some View {
-        Menu {
-            let marks = PostMarkMenuPolicy.menuIDs(in: .moderatorMenu, author: post.author,
-                                                   signedInUsername: signedInUsername, isModerator: isModerator)
-            ForEach(ActionMenuLayoutStore.arrange(["mod-approve", "mod-remove", "mod-spam"] + marks
-                                                  + ["mod-distinguish", "mod-sticky", "mod-lock", "mod-notes"], for: .moderatorPost), id: \.self) { id in
-                moderatorPostRow(id)
+    private func performMenuAction(_ action: PostDetailMenuAction) {
+        switch action {
+        case .upvote:
+            Task { await voteFromMenu(direction: menuVoteState == true ? 0 : 1) }
+        case .downvote:
+            Task { await voteFromMenu(direction: menuVoteState == false ? 0 : -1) }
+        case .save:
+            Task { await toggleSavedFromMenu() }
+        case .reply:
+            showingReplyComposer = true
+        case .viewProfile:
+            jumpDestination = .user(post.author)
+        case .copyUsername:
+            PasteboardHelper.copy(post.author)
+        case .viewSubreddit:
+            jumpDestination = .subreddit(post.subreddit)
+        case .collapseChildren:
+            let anyCollapsed = commentStore.roots.contains { $0.hasCollapsedDescendant }
+            commentStore.setAllChildrenCollapsed(!anyCollapsed)
+        case .selectText:
+            showingSelectText = true
+        case .shareImage:
+            showingShareAsImage = true
+        case .crosspost:
+            showingCrosspost = true
+        case .otherDiscussions:
+            showingOtherDiscussions = true
+        case .findInComments:
+            showingFindInComments = true
+        case .award:
+            showingAward = true
+        case .copyLink:
+            PasteboardHelper.copy(url: post.shareURL())
+        case .remindMe:
+            showingRemindMe = true
+        case .translate:
+            showingTranslator = true
+        case .copyText:
+            PasteboardHelper.copy(post.selftext ?? "")
+        case .edit:
+            isEditingPost = true
+        case .delete:
+            confirmingPostDelete = true
+        case .summarize:
+            showingAISummary = true
+            Task { await summarizeWithAI() }
+        case .keepInFloatingTab:
+            floatingPostTabsManager?.add(post: post)
+        case .toggleMute:
+            isMuted.toggle()
+            MutedThreadsStore.setMuted(post.name, muted: isMuted)
+        case .report:
+            showingReport = true
+        case .liveActivity:
+            if liveActivityRunning {
+                Task { await LiveActivityHelper.end(postID: post.id) }
+                liveActivityRunning = false
+            } else {
+                let result = LiveActivityHelper.start(
+                    postID: post.id, title: post.title, subreddit: post.subreddit,
+                    commentCount: post.numComments, score: post.score)
+                liveActivityRunning = result == .started
+                liveActivityMessage = result.message
             }
-        } label: { Label("Moderator", systemImage: "shield") }
-        .accessibilityIdentifier("postDetail.menu.moderator")
+        case .deletedComments:
+            Task { await commentStore.toggleDeletedCommentsShortcut(postID: post.id) }
+        case .insights:
+            showingInsights = true
+        case .moderator(let action):
+            performModeratorAction(action)
+        }
     }
 
-    @ViewBuilder
-    private func moderatorPostRow(_ id: String) -> some View {
+    private func performModeratorAction(_ action: PostModeratorAction) {
         let distinguished = modDistinguished ?? (post.distinguished == "moderator")
         let stickied = modStickied ?? post.stickied
         let locked = modLocked ?? (post.locked ?? false)
-        switch id {
-        case "mod-approve":
-            Button { moderate("Approved") { _ = try await repository.approve(fullname: post.name) } } label: {
-                Label("Approve", systemImage: "checkmark.shield")
+        switch action {
+        case .approve:
+            moderate("Approved") { _ = try await repository.approve(fullname: post.name) }
+        case .remove:
+            moderate("Removed") { _ = try await repository.remove(fullname: post.name, isSpam: false) }
+        case .spam:
+            moderate("Marked as Spam") { _ = try await repository.remove(fullname: post.name, isSpam: true) }
+        case .distinguish:
+            moderate(distinguished ? "Undistinguished" : "Distinguished") {
+                _ = try await repository.distinguish(fullname: post.name, asMod: !distinguished)
+                modDistinguished = !distinguished
             }
-        case "mod-remove":
-            Button(role: .destructive) {
-                moderate("Removed") { _ = try await repository.remove(fullname: post.name, isSpam: false) }
-            } label: { Label("Remove", systemImage: "xmark.shield") }
-        case "mod-spam":
-            Button(role: .destructive) {
-                moderate("Marked as Spam") { _ = try await repository.remove(fullname: post.name, isSpam: true) }
-            } label: { Label("Mark as Spam", systemImage: "exclamationmark.shield") }
-        case "mod-distinguish":
-            Button {
-                moderate(distinguished ? "Undistinguished" : "Distinguished") {
-                    _ = try await repository.distinguish(fullname: post.name, asMod: !distinguished)
-                    modDistinguished = !distinguished
-                }
-            } label: {
-                Label(distinguished ? "Undistinguish" : "Distinguish", systemImage: "shield.lefthalf.filled")
+        case .sticky:
+            moderate(stickied ? "Unstickied" : "Stickied") {
+                _ = try await repository.setSticky(fullname: post.name, sticky: !stickied)
+                modStickied = !stickied
             }
-        case "mod-sticky":
-            Button {
-                moderate(stickied ? "Unstickied" : "Stickied") {
-                    _ = try await repository.setSticky(fullname: post.name, sticky: !stickied)
-                    modStickied = !stickied
-                }
-            } label: { Label(stickied ? "Unsticky" : "Sticky", systemImage: "pin") }
-        case "nsfw", "spoiler":
-            if let mark = PostMark(rawValue: id) {
-                PostMarkMenuButton(mark: mark, post: markedPost, repository: repository, identifierPrefix: "postDetail.moderator")
+        case .lock:
+            moderate(locked ? "Comments Unlocked" : "Comments Locked") {
+                _ = try await repository.setLocked(fullname: post.name, locked: !locked)
+                modLocked = !locked
             }
-        case "mod-lock":
-            Button {
-                moderate(locked ? "Comments Unlocked" : "Comments Locked") {
-                    _ = try await repository.setLocked(fullname: post.name, locked: !locked)
-                    modLocked = !locked
-                }
-            } label: {
-                Label(locked ? "Unlock Comments" : "Lock Comments", systemImage: locked ? "lock.open" : "lock")
-            }
-        case "mod-notes":
-            if post.author != "[deleted]" {
-                Button { showingModNotes = true } label: { Label("Mod Notes", systemImage: "note.text") }
-                    .accessibilityIdentifier("postDetail.menu.modNotes")
-            }
-        default:
-            EmptyView()
+        case .notes:
+            showingModNotes = true
         }
     }
 
@@ -809,174 +835,6 @@ extension PostDetailScreen {
             } catch {
                 modMessage = "Couldn't complete that: \(error.localizedDescription)"
             }
-        }
-    }
-
-    @ViewBuilder
-    private func postDetailMenuRow(_ id: String) -> some View {
-        switch id {
-        case "moderator":
-            moderatorPostMenu
-        case "upvote":
-            Button {
-                Task { await voteFromMenu(direction: menuVoteState == true ? 0 : 1) }
-            } label: { Label("Upvote", systemImage: "arrow.up") }
-            .accessibilityIdentifier("postDetail.menu.upvote")
-        case "downvote":
-            Button {
-                Task { await voteFromMenu(direction: menuVoteState == false ? 0 : -1) }
-            } label: { Label("Downvote", systemImage: "arrow.down") }
-            .accessibilityIdentifier("postDetail.menu.downvote")
-        case "save":
-            Button {
-                Task { await toggleSavedFromMenu() }
-            } label: {
-                Label(menuIsSaved ? "Unsave" : "Save", systemImage: menuIsSaved ? "bookmark.fill" : "bookmark")
-            }
-            .accessibilityIdentifier("postDetail.menu.save")
-        case "reply":
-            Button { showingReplyComposer = true } label: {
-                Label("Reply", systemImage: "arrowshape.turn.up.left")
-            }
-            .accessibilityIdentifier("postDetail.menu.reply")
-        case "author":
-            // Labelled with the name itself, opening a submenu.
-            Menu {
-                Button { jumpDestination = .user(post.author) } label: {
-                    Label("View Profile", systemImage: "person.crop.circle")
-                }
-                Button { PasteboardHelper.copy(post.author) } label: {
-                    Label("Copy Username", systemImage: "doc.on.doc")
-                }
-            } label: { Label(post.author, systemImage: "person.circle") }
-            .accessibilityIdentifier("postDetail.menu.author")
-        case "subreddit":
-            Menu {
-                Button { jumpDestination = .subreddit(post.subreddit) } label: {
-                    Label("View Subreddit", systemImage: "list.bullet.below.rectangle")
-                }
-            } label: { Label(post.subreddit, systemImage: "house") }
-            .accessibilityIdentifier("postDetail.menu.subreddit")
-        case "collapse-children":
-            let anyCollapsed = commentStore.roots.contains { $0.hasCollapsedDescendant }
-            Button {
-                commentStore.setAllChildrenCollapsed(!anyCollapsed)
-            } label: {
-                Label(anyCollapsed ? "Expand Child Comments" : "Collapse Child Comments",
-                      systemImage: anyCollapsed ? "chevron.down.2" : "chevron.up.2")
-            }
-            .accessibilityIdentifier("postDetail.menu.collapseChildComments")
-        case "select-text":
-            Button { showingSelectText = true } label: {
-                Label("Select Text", systemImage: "selection.pin.in.out")
-            }
-            .accessibilityIdentifier("postDetail.menu.selectText")
-        case "share":
-            ShareLink(item: post.shareText()) { Label("Share", systemImage: "square.and.arrow.up") }
-                .accessibilityIdentifier("postDetail.menu.share")
-        case "post-insights":
-            Button { showingInsights = true } label: { Label("Insights", systemImage: "chart.bar") }
-                .accessibilityIdentifier("postDetail.menu.insights")
-        case "share-image":
-            Button { showingShareAsImage = true } label: {
-                Label("Share as Image…", systemImage: "photo.badge.plus")
-            }
-        case "crosspost":
-            Button { showingCrosspost = true } label: {
-                Label("Crosspost", systemImage: "arrowshape.turn.up.right")
-            }
-        case "other-discussions":
-            Button { showingOtherDiscussions = true } label: {
-                Label("Other Discussions", systemImage: "bubble.left.and.bubble.right")
-            }
-            .accessibilityIdentifier("postDetail.menu.otherDiscussions")
-        case "find":
-            Button { showingFindInComments = true } label: {
-                Label("Find in Comments", systemImage: "magnifyingglass")
-            }
-            .accessibilityIdentifier("postDetail.menu.findInComments")
-        case "award":
-            Button { showingAward = true } label: { Label("Give Award", systemImage: "medal") }
-                .accessibilityIdentifier("postDetail.menu.giveAward")
-        case "copy-link":
-            Button { PasteboardHelper.copy(url: post.shareURL()) } label: {
-                Label("Copy Link", systemImage: "link")
-            }
-        case "remind-me":
-            Button { showingRemindMe = true } label: { Label("Remind Me In…", systemImage: "alarm") }
-        case "translate":
-            Button { showingTranslator = true } label: {
-                Label("Translate", systemImage: "character.bubble")
-            }
-        case "copy-text":
-            Button { PasteboardHelper.copy(post.selftext ?? "") } label: {
-                Label("Copy Text", systemImage: "doc.on.doc")
-            }
-        case "edit":
-            Button { isEditingPost = true } label: { Label("Edit Post", systemImage: "pencil") }
-                .accessibilityIdentifier("postDetail.menu.editPost")
-        case "delete":
-            Button(role: .destructive) { confirmingPostDelete = true } label: {
-                Label("Delete Post", systemImage: "trash")
-            }
-            .accessibilityIdentifier("postDetail.menu.deletePost")
-        case "summarize":
-            Button {
-                showingAISummary = true
-                Task { await summarizeWithAI() }
-            } label: { Label("Summarize with AI", systemImage: "sparkles") }
-            .accessibilityIdentifier("postDetail.summarizeWithAI")
-        case "spec.FloatingTabs":
-            Button { floatingPostTabsManager?.add(post: post) } label: {
-                Label(floatingPostTabsManager?.isKept(post) == true ? "Already Kept in Floating Tab" : "Keep in Floating Tab",
-                      systemImage: "circle.grid.2x2")
-            }
-            .disabled(floatingPostTabsManager?.isKept(post) == true)
-            .accessibilityIdentifier("postDetail.keepInFloatingTab")
-        case "mute-notifications":
-            Button {
-                isMuted.toggle()
-                MutedThreadsStore.setMuted(post.name, muted: isMuted)
-            } label: {
-                Label(isMuted ? "Unmute Notifications" : "Mute Notifications",
-                      systemImage: isMuted ? "bell.slash.fill" : "bell.slash")
-            }
-        case "report":
-            Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
-        case "live-activity":
-            // The local activity runs; its push half cannot (see
-            // `FollowThreadActivity`).
-            Button {
-                if liveActivityRunning {
-                    Task { await LiveActivityHelper.end(postID: post.id) }
-                    liveActivityRunning = false
-                } else {
-                    let result = LiveActivityHelper.start(
-                        postID: post.id, title: post.title, subreddit: post.subreddit,
-                        commentCount: post.numComments, score: post.score)
-                    liveActivityRunning = result == .started
-                    liveActivityMessage = result.message
-                }
-            } label: {
-                Label(liveActivityRunning ? "End Live Activity" : "Start Live Activity",
-                      systemImage: liveActivityRunning ? "stop.circle" : "clock.badge")
-            }
-            .accessibilityIdentifier("postDetail.menu.liveActivity")
-        case "nsfw", "spoiler":
-            if let mark = PostMark(rawValue: id) {
-                PostMarkMenuButton(mark: mark, post: markedPost, repository: repository, identifierPrefix: "postDetail.menu")
-            }
-        case "spec.DeletedComments":
-            // See `CommentTreeStore.toggleDeletedCommentsShortcut`.
-            Button {
-                Task { await commentStore.toggleDeletedCommentsShortcut(postID: post.id) }
-            } label: {
-                Label(commentStore.deletedCommentsRecoveryActive ? "Hide Deleted Comments" : "Show Deleted Comments",
-                      systemImage: commentStore.deletedCommentsRecoveryActive ? "eye.slash" : "eye")
-            }
-            .accessibilityIdentifier("postDetail.deletedCommentsShortcut")
-        default:
-            EmptyView()
         }
     }
 

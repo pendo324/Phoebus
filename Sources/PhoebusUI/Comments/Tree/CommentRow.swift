@@ -141,139 +141,82 @@ struct CommentRow: View {
     }
 
     /// The comment's ••• menu, shared by the long press and the byline
-    /// "..." button. Entries are listed in the app's order, then arranged
-    /// by the user's Action Menus layout (Reborn #1131): ids from
-    /// `ActionMenuCatalog` can be moved or hidden; this app's extra rows
-    /// (Quote, Copy Link…) travel with the entry before them.
+    /// "..." button; see `CommentActionMenuContent`.
     @ViewBuilder
     private var actionMenu: some View {
-        ForEach(ActionMenuLayoutStore.arrange(commentMenuIDs, for: .comment), id: \.self) { id in
-            commentMenuRow(id)
-        }
-        let moderatorIDs = moderatorMenuIDs.filter(policy.allowsMenuItem)
-        if isModerator, !moderatorIDs.isEmpty {
-            Divider()
-            ForEach(ActionMenuLayoutStore.arrange(moderatorIDs, for: .moderatorComment), id: \.self) { id in
-                commentMenuRow(id)
-            }
+        CommentActionMenuContent(
+            facts: CommentMenuFacts(
+                comment: node.comment, policy: policy,
+                canShareAsImage: onShareAsImage != nil, isModerator: isModerator, isSaved: isSaved, isMuted: isMuted,
+                isDistinguished: isDistinguished, isStickied: isStickied)
+        ) { performMenuAction($0) }
+    }
+
+    private func performMenuAction(_ action: CommentMenuAction) {
+        switch action {
+        case .upvote:
+            Task { await vote(direction: voteState == true ? 0 : 1) }
+        case .downvote:
+            Task { await vote(direction: voteState == false ? 0 : -1) }
+        case .reply:
+            onReplyTapped()
+        case .quote:
+            onQuoteTapped()
+        case .save:
+            Task { await toggleSave() }
+        case .edit:
+            isEditing = true
+        case .delete:
+            confirmingDelete = true
+        case .voteInsights:
+            showingInsights = true
+        case .copyLink:
+            PasteboardHelper.copy(url: node.comment.shareURL())
+        case .copyText:
+            PasteboardHelper.copy(policy.text)
+        case .shareImage:
+            onShareAsImage?()
+        case .copyUsername:
+            PasteboardHelper.copy(policy.author)
+        case .tagUser:
+            showingTagEditor = true
+        case .translate:
+            showingTranslator = true
+        case .award:
+            showingAward = true
+        case .report:
+            showingReport = true
+        case .remindMe:
+            showingRemindMe = true
+        case .toggleMute:
+            isMuted.toggle()
+            MutedThreadsStore.setMuted(node.comment.name, muted: isMuted)
+        case .moderator(let action):
+            performModeratorAction(action)
         }
     }
 
-    private var commentMenuIDs: [String] {
-        var ids = ["upvote", "downvote", "reply", "quote", "save", "edit", "delete", "vote-insights"]
-        ids += ["share", "copy-link", "copy-text"]
-        if onShareAsImage != nil { ids.append("share-image") }
-        ids += ["copy-username", "tag-user", "translate", "award", "report", "remind-me", "mute-notifications"]
-        return ids.filter(policy.allowsMenuItem)
-    }
-
-    private let moderatorMenuIDs = ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky", "mod-notes"]
-
-    @ViewBuilder
-    private func commentMenuRow(_ id: String) -> some View {
-        switch id {
-        case "upvote":
-            Button { Task { await vote(direction: voteState == true ? 0 : 1) } } label: {
-                Label("Upvote", systemImage: "arrow.up")
+    private func performModeratorAction(_ action: CommentModeratorAction) {
+        switch action {
+        case .approve:
+            Task { try? await repository.approve(fullname: node.comment.name) }
+        case .remove:
+            Task { _ = try? await repository.remove(fullname: node.comment.name, isSpam: false) }
+        case .spam:
+            Task { _ = try? await repository.remove(fullname: node.comment.name, isSpam: true) }
+        case .distinguish:
+            Task {
+                // Only on success, so the badge and colour match Reddit.
+                guard (try? await repository.distinguish(fullname: node.comment.name, asMod: !isDistinguished)) != nil else { return }
+                isDistinguished.toggle()
             }
-        case "downvote":
-            Button { Task { await vote(direction: voteState == false ? 0 : -1) } } label: {
-                Label("Downvote", systemImage: "arrow.down")
+        case .sticky:
+            Task {
+                guard (try? await repository.setSticky(fullname: node.comment.name, sticky: !isStickied)) != nil else { return }
+                isStickied.toggle()
             }
-        case "reply":
-            Button { onReplyTapped() } label: { Label("Reply", systemImage: "arrowshape.turn.up.left") }
-        case "quote":
-            // Apollo's select-text mode "Quote" action.
-            Button { onQuoteTapped() } label: { Label("Quote", systemImage: "quote.opening") }
-        case "save":
-            Button { Task { await toggleSave() } } label: {
-                Label(isSaved ? "Unsave" : "Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
-            }
-        case "edit":
-            Button { isEditing = true } label: { Label("Edit", systemImage: "pencil") }
-        case "delete":
-            Button(role: .destructive) { confirmingDelete = true } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        case "vote-insights":
-            // Reborn "Comment Insights" (author-only /commentstats).
-            Button { showingInsights = true } label: { Label("Vote Insights", systemImage: "chart.bar") }
-        case "share":
-            ShareLink(item: node.comment.shareURL()) { Label("Share", systemImage: "square.and.arrow.up") }
-        case "copy-link":
-            // Apollo's CopyURLActivity: the comment's own permalink.
-            Button { PasteboardHelper.copy(url: node.comment.shareURL()) } label: {
-                Label("Copy Link", systemImage: "link")
-            }
-        case "copy-text":
-            Button { PasteboardHelper.copy(policy.text) } label: {
-                Label("Copy Text", systemImage: "doc.on.doc")
-            }
-        case "share-image":
-            if let onShareAsImage {
-                Button { onShareAsImage() } label: { Label("Share as Image", systemImage: "photo.badge.plus") }
-            }
-        case "copy-username":
-            // Reborn: Copy Username (from the avatar's hold menu).
-            Button { PasteboardHelper.copy(policy.author) } label: {
-                Label("Copy Username", systemImage: "doc.on.doc")
-            }
-        case "tag-user":
-            // Phoebus-only user tags (`UserTags`).
-            UserTagMenuItem(username: displayAuthor) { showingTagEditor = true }
-        case "translate":
-            Button { showingTranslator = true } label: { Label("Translate", systemImage: "character.bubble") }
-        case "award":
-            Button { showingAward = true } label: { Label("Give Award", systemImage: "medal") }
-        case "report":
-            Button(role: .destructive) { showingReport = true } label: { Label("Report", systemImage: "flag") }
-        case "remind-me":
-            // Reborn "Action Menus" (#1368): Remind Me In… is a catalogued row.
-            Button { showingRemindMe = true } label: { Label("Remind Me In…", systemImage: "alarm") }
-        case "mute-notifications":
-            // On-device suppression list: Reddit's API has no endpoint.
-            Button {
-                isMuted.toggle()
-                MutedThreadsStore.setMuted(node.comment.name, muted: isMuted)
-            } label: {
-                Label(isMuted ? "Unmute Notifications" : "Mute Notifications", systemImage: isMuted ? "bell" : "bell.slash")
-            }
-        case "mod-approve":
-            Button { Task { try? await repository.approve(fullname: node.comment.name) } } label: {
-                Label("Approve", systemImage: "checkmark.shield")
-            }
-        case "mod-remove":
-            Button(role: .destructive) {
-                Task { _ = try? await repository.remove(fullname: node.comment.name, isSpam: false) }
-            } label: { Label("Remove", systemImage: "xmark.shield") }
-        case "mod-spam":
-            Button(role: .destructive) {
-                Task { _ = try? await repository.remove(fullname: node.comment.name, isSpam: true) }
-            } label: { Label("Mark as Spam", systemImage: "exclamationmark.shield") }
-        case "mod-distinguish":
-            Button {
-                Task {
-                    // Only on success, so the badge and colour match Reddit.
-                    guard (try? await repository.distinguish(fullname: node.comment.name, asMod: !isDistinguished)) != nil else { return }
-                    isDistinguished.toggle()
-                }
-            } label: {
-                Label(isDistinguished ? "Undistinguish" : "Distinguish", systemImage: "shield.lefthalf.filled")
-            }
-        case "mod-sticky":
-            Button {
-                Task {
-                    guard (try? await repository.setSticky(fullname: node.comment.name, sticky: !isStickied)) != nil else { return }
-                    isStickied.toggle()
-                }
-            } label: { Label(isStickied ? "Unsticky" : "Sticky", systemImage: "pin") }
-        case "mod-notes":
-            if node.comment.subreddit != nil, node.comment.author != "[deleted]" {
-                Button { showingModNotes = true } label: { Label("Mod Notes", systemImage: "note.text") }
-                    .accessibilityIdentifier("comment.menu.modNotes")
-            }
-        default:
-            EmptyView()
+        case .notes:
+            showingModNotes = true
         }
     }
 

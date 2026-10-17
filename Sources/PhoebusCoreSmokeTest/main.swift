@@ -266,6 +266,8 @@ try await checkFilterExplanation()
 
 try await checkFilterTesterInput()
 
+try await checkActionMenuPlans()
+
 try await checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController()
 
 try await checkGalleryPostsApolloSMediaPageViewController()

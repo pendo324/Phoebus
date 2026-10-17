@@ -111,6 +111,7 @@ struct PostRow: View {
             .accessibilityIdentifier("feed.postRow.moreOptions.\(post.id)")
         } else {
             StockIcon("inline-more-options")
+                .settingsPreviewMenuFrame()
         }
     }
 

@@ -74,32 +74,22 @@ public struct ActionMenusSettingsScreen: View {
     }
 }
 
-/// One menu: a live preview of the resolved rows, then every item with
-/// a checkmark for visible and a drag handle to reorder.
+/// One menu: a pinned card that opens the real menu in this layout, then
+/// every item with a checkmark for visible and a drag handle to reorder.
 struct ActionMenuEditorScreen: View {
     let context: ActionMenuContext
+    @Environment(\.accountManager) private var accountManager
     @State private var order: [String] = []
     @State private var hidden: Set<String> = []
     @State private var confirmingReset = false
 
     var body: some View {
-        List {
-            Section {
-                ForEach(previewItems) { item in
-                    HStack(spacing: 15) {
-                        Image(systemName: item.symbol).frame(width: 29)
-                        Text(item.title)
-                    }
-                    .foregroundStyle(item.usuallyShown ? .primary : .secondary)
-                    .apolloSettingsRowHeight()
-                    .apolloSettingsRowInsets()
-                }
-            } header: {
-                Text("Preview").apolloSectionHeader()
-            } footer: {
-                Text(context.detail + " Dimmed rows are shown only when relevant.")
-                    .apolloSectionFooter()
+        SettingsPreviewScreenLayout(screen: .actionMenus) {
+            if let repository = accountManager?.repository {
+                ActionMenuPreview(context: context, repository: repository)
+                    .environment(\.editMode, .constant(.inactive))
             }
+        } content: {
             Section {
                 ForEach(lockedItems) { item in
                     HStack(spacing: 15) {
@@ -160,7 +150,6 @@ struct ActionMenuEditorScreen: View {
             Button("Cancel", role: .cancel) {}
         }
         .environment(\.editMode, .constant(.active))
-        .apolloSettingsListAppearance()
         .navigationTitle(context.title)
         .onAppear(perform: reload)
     }
@@ -179,9 +168,6 @@ struct ActionMenuEditorScreen: View {
     private var lockedItems: [ActionMenuItem] { catalog.filter(\.locked) }
     private var movableItems: [ActionMenuItem] {
         order.compactMap { id in catalog.first { $0.id == id && !$0.locked } }
-    }
-    private var previewItems: [ActionMenuItem] {
-        order.compactMap { id in catalog.first { $0.id == id } }.filter { !hidden.contains($0.id) }
     }
 
     private func reload() {

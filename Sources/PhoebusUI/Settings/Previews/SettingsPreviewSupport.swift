@@ -32,6 +32,38 @@ extension View {
     }
 }
 
+/// A real row's ••• glyph reports its frame while it is drawn in a settings
+/// preview, so the preview can lay a live menu button over a row that is
+/// otherwise inert (see `ActionMenuPreview`). The frame is in the
+/// `SettingsPreviewMenuFrame.space` coordinate space.
+struct SettingsPreviewMenuFrame: PreferenceKey {
+    static let space = "settingsPreviewMenu"
+    static let defaultValue: CGRect? = nil
+    static func reduce(value: inout CGRect?, nextValue: () -> CGRect?) { value = value ?? nextValue() }
+}
+
+private struct SettingsPreviewMenuFrameReporter: ViewModifier {
+    @Environment(\.isSettingsPreview) private var isSettingsPreview
+
+    func body(content: Content) -> some View {
+        if isSettingsPreview {
+            content.background(GeometryReader { geo in
+                Color.clear.preference(key: SettingsPreviewMenuFrame.self,
+                                       value: geo.frame(in: .named(SettingsPreviewMenuFrame.space)))
+            })
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Reports this glyph's frame to the preview that draws the row, if any.
+    func settingsPreviewMenuFrame() -> some View {
+        modifier(SettingsPreviewMenuFrameReporter())
+    }
+}
+
 /// The picture the sample post carries: drawn here once into a local file, so
 /// the real row's image loader reads a `file://` URL and nothing is fetched.
 enum SettingsPreviewImage {

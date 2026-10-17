@@ -85,3 +85,22 @@ struct PostModeratorMenuRow: View {
         }
     }
 }
+
+/// The Moderator (Post) rows in `ids` order: the post screen's Moderator
+/// menu, and the Action Menus preview of the Moderator Post menu.
+struct PostModeratorMenuContent: View {
+    let ids: [String]
+    let post: RedditPost
+    let repository: RedditRepository
+    let state: PostModeratorMenuState
+    let markIdentifierPrefix: String
+    var isPreview = false
+    let perform: (PostModeratorAction) -> Void
+
+    var body: some View {
+        ForEach(ids, id: \.self) { id in
+            PostModeratorMenuRow(id: id, post: post, repository: repository, state: state,
+                                 markIdentifierPrefix: markIdentifierPrefix, isPreview: isPreview, perform: perform)
+        }
+    }
+}

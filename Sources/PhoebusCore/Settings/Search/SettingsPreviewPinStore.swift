@@ -25,6 +25,8 @@ public enum SettingsPreviewScreen: String, Sendable, CaseIterable {
     case gestures = "GesturesPreviewPinned"
     // Phoebus's Filters tester, keyed the same way.
     case filters = "FiltersPreviewPinned"
+    // Phoebus's Action Menus preview, keyed the same way.
+    case actionMenus = "ActionMenusPreviewPinned"
 }
 
 /// Whether each screen's live preview card stays pinned.

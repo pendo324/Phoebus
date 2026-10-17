@@ -69,13 +69,11 @@ private struct PostDetailModeratorMenu: View {
 
     var body: some View {
         let facts = makeFacts()
-        ForEach(ActionMenuPlan.moderatorPost(author: facts.post.author, signedInUsername: facts.signedInUsername,
-                                             isModerator: facts.isModerator, includesNotes: true), id: \.self) { id in
-            PostModeratorMenuRow(id: id, post: facts.markedPost, repository: repository, state: facts.moderator,
-                                 markIdentifierPrefix: "postDetail.moderator", isPreview: isPreview) {
-                perform(.moderator($0))
-            }
-        }
+        PostModeratorMenuContent(
+            ids: ActionMenuPlan.moderatorPost(author: facts.post.author, signedInUsername: facts.signedInUsername,
+                                              isModerator: facts.isModerator, includesNotes: true),
+            post: facts.markedPost, repository: repository, state: facts.moderator,
+            markIdentifierPrefix: "postDetail.moderator", isPreview: isPreview) { perform(.moderator($0)) }
     }
 }
 

@@ -39,23 +39,28 @@ struct CommentMenuFacts {
 struct CommentActionMenuContent: View {
     private let makeFacts: () -> CommentMenuFacts
     var isPreview = false
+    /// False for the Action Menus preview of the Moderator (Comment) menu,
+    /// which shows only the moderator rows.
+    var showsMain = true
     let perform: (CommentMenuAction) -> Void
 
-    init(facts: @autoclosure @escaping () -> CommentMenuFacts, isPreview: Bool = false,
+    init(facts: @autoclosure @escaping () -> CommentMenuFacts, isPreview: Bool = false, showsMain: Bool = true,
          perform: @escaping (CommentMenuAction) -> Void) {
         makeFacts = facts
         self.isPreview = isPreview
+        self.showsMain = showsMain
         self.perform = perform
     }
 
     var body: some View {
-        CommentMenuRows(facts: makeFacts(), isPreview: isPreview, perform: perform)
+        CommentMenuRows(facts: makeFacts(), isPreview: isPreview, showsMain: showsMain, perform: perform)
     }
 }
 
 private struct CommentMenuRows: View {
     let facts: CommentMenuFacts
     let isPreview: Bool
+    let showsMain: Bool
     let perform: (CommentMenuAction) -> Void
 
     private var comment: RedditComment { facts.comment }
@@ -63,11 +68,13 @@ private struct CommentMenuRows: View {
     var body: some View {
         let plan = ActionMenuPlan.comment(
             policy: facts.policy, canShareAsImage: facts.canShareAsImage, isModerator: facts.isModerator)
-        ForEach(plan.main, id: \.self) { id in
-            row(id)
+        if showsMain {
+            ForEach(plan.main, id: \.self) { id in
+                row(id)
+            }
         }
         if let moderator = plan.moderator {
-            Divider()
+            if showsMain { Divider() }
             ForEach(moderator, id: \.self) { id in
                 row(id)
             }

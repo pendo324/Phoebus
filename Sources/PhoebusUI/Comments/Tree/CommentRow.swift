@@ -447,6 +447,7 @@ struct CommentRow: View {
                             // colour #505256, not an SF `ellipsis`.
                             StockIcon("inline-more-options")
                                 .foregroundStyle(colorScheme == .dark ? Color(hex: "505256") : Color(hex: "C4C4C6"))
+                                .settingsPreviewMenuFrame()
                                 // A bare glyph is a ~10pt target; enlarge the hit area without
                                 // changing the look.
                                 .hitArea(CommentHeaderHitArea.menu)

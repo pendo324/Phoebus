@@ -183,6 +183,11 @@ import PhoebusCore
             && SettingsPreviewPinStore.defaultsKey(for: .filters) == "Phoebus.FiltersPreviewPinned")
     UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .filters))
     check("the Filters tester starts pinned", SettingsPreviewPinStore.isPinned(.filters))
+    check("the Action Menus preview is pinned under its own per-screen key",
+          SettingsPreviewScreen.actionMenus.rawValue == "ActionMenusPreviewPinned"
+            && SettingsPreviewPinStore.defaultsKey(for: .actionMenus) == "Phoebus.ActionMenusPreviewPinned")
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .actionMenus))
+    check("the Action Menus preview starts pinned", SettingsPreviewPinStore.isPinned(.actionMenus))
     check("a card that changes size in the list drops its stale pinned height, one that only settles keeps it",
           !SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: 520, listNow: 380)
             && SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: 380, listNow: 380.5)
@@ -204,4 +209,75 @@ import PhoebusCore
           !SettingsPreviewPinStore.isPinned(.comments) && SettingsPreviewPinStore.isPinned(.posts)
             && SettingsPreviewPinStore.isPinned(.commentsTheme))
     UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .comments))
+}
+
+// MARK: - Action Menus preview
+
+@MainActor func checkActionMenuPreview() async throws {
+    let suite = UserDefaults(suiteName: "smoke.actionMenuPreview")!
+    suite.removePersistentDomain(forName: "smoke.actionMenuPreview")
+    let saved = ActionMenuLayoutStore.defaults
+    ActionMenuLayoutStore.defaults = suite
+    defer { ActionMenuLayoutStore.defaults = saved }
+
+    typealias Policy = ActionMenuPreviewPolicy
+    check("preview switches: the feed offers Moderator only",
+          Policy.toggles(for: .feed) == [.moderator])
+    check("preview switches: a post, the post screen and a comment offer Your post and Moderator",
+          [ActionMenuContext.post, .postDetail, .comment].allSatisfy { Policy.toggles(for: $0) == [.yourItem, .moderator] })
+    check("preview switches: the moderator menus are the moderator variant already and offer none",
+          ActionMenuContext.moderatorMenus.allSatisfy { Policy.toggles(for: $0).isEmpty })
+    check("preview switches: a comment's own-item switch says comment",
+          Policy.title(of: .yourItem, in: .comment) == "Your comment" && Policy.title(of: .yourItem, in: .post) == "Your post"
+            && Policy.title(of: .moderator, in: .feed) == "Moderator")
+    check("preview: the menus that open on hold are the post, post screen, comment and their moderator menus",
+          ActionMenuContext.allCases.filter { Policy.opensOnHold($0) }
+            == [.post, .postDetail, .comment, .moderatorPost, .moderatorComment])
+    check("preview: the moderator menus always show the moderator rows",
+          ActionMenuContext.moderatorMenus.allSatisfy { Policy.isModerator($0, moderator: false) }
+            && !Policy.isModerator(.post, moderator: false) && Policy.isModerator(.post, moderator: true))
+    check("preview: Your post makes the viewer the sample's author, otherwise someone else",
+          Policy.signedInUsername(yourItem: true) == SettingsPreviewSample.postAuthor
+            && Policy.signedInUsername(yourItem: false) != SettingsPreviewSample.postAuthor)
+
+    // The sample as the card sets it up: someone else's post shows the usual rows; Your post and
+    // Moderator add the ones that only appear then.
+    let author = SettingsPreviewSample.postAuthor
+    let usual = ActionMenuPlan.feedPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: false),
+                                        isModerator: false, galleryImageCount: 0)
+    check("preview: the sample post's menu shows the usual rows and no Insights or Moderator rows",
+          usual.main.contains("save") && !usual.main.contains("post-insights") && usual.moderator == nil)
+    let yours = ActionMenuPlan.feedPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: true),
+                                        isModerator: false, galleryImageCount: 0)
+    check("preview: Your post adds Insights, Set Flair and the marks to the post menu",
+          ["post-insights", "post-flair", "nsfw", "spoiler"].allSatisfy { yours.main.contains($0) })
+    let moderated = ActionMenuPlan.feedPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: false),
+                                            isModerator: Policy.isModerator(.post, moderator: true), galleryImageCount: 0)
+    check("preview: Moderator adds the moderator rows after the post menu", moderated.moderator?.first == "mod-approve")
+    let detailYours = ActionMenuPlan.postDetail(
+        author: author, signedInUsername: Policy.signedInUsername(yourItem: true), isModerator: false, isOwnPost: true,
+        isPostDeleted: false, isSelf: true, selftext: "body", otherDiscussionsAvailable: false, summariesEnabled: false,
+        floatingTabsEnabled: false)
+    check("preview: Your post adds Edit Post and Delete Post to the post screen's menu",
+          detailYours.main.contains("edit") && detailYours.main.contains("delete"))
+    check("preview: the sample is a post with text, so Translate and Copy Text show",
+          ActionMenuPlan.postDetail(author: author, signedInUsername: nil, isModerator: false, isOwnPost: false,
+                                    isPostDeleted: false, isSelf: true,
+                                    selftext: SettingsPreviewSample.post(imageURL: URL(fileURLWithPath: "/tmp/x.png")).selftext,
+                                    otherDiscussionsAvailable: false, summariesEnabled: false, floatingTabsEnabled: false)
+            .main.contains("copy-text"))
+    check("preview: Moderator Post shows the post screen's Moderator menu with Mod Notes, marks for someone else's post",
+          ActionMenuPlan.moderatorPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: false),
+                                       isModerator: true, includesNotes: true).contains("nsfw")
+            && ActionMenuPlan.moderatorPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: false),
+                                            isModerator: true, includesNotes: true).last == "mod-notes")
+
+    // A layout change reaches the menu the card opens.
+    ActionMenuLayoutStore.setHidden(true, itemID: "hide", for: .post)
+    ActionMenuLayoutStore.setOrder(["share"] + ActionMenuLayoutStore.resolvedOrder(.post).filter { $0 != "share" }, for: .post)
+    let edited = ActionMenuPlan.feedPost(author: author, signedInUsername: Policy.signedInUsername(yourItem: false),
+                                         isModerator: false, galleryImageCount: 0)
+    check("preview: hiding and reordering in the editor change the menu the card opens",
+          !edited.main.contains("hide") && edited.main.first == "share")
+    ActionMenuLayoutStore.resetAll()
 }

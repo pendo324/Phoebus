@@ -178,6 +178,15 @@ import PhoebusCore
             && SettingsPreviewPinStore.defaultsKey(for: .gestures) == "Phoebus.GesturesPreviewPinned")
     UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .gestures))
     check("the Gestures preview starts pinned", SettingsPreviewPinStore.isPinned(.gestures))
+    check("the Filters tester is pinned under its own per-screen key",
+          SettingsPreviewScreen.filters.rawValue == "FiltersPreviewPinned"
+            && SettingsPreviewPinStore.defaultsKey(for: .filters) == "Phoebus.FiltersPreviewPinned")
+    UserDefaults.standard.removeObject(forKey: SettingsPreviewPinStore.defaultsKey(for: .filters))
+    check("the Filters tester starts pinned", SettingsPreviewPinStore.isPinned(.filters))
+    check("a card that changes size in the list drops its stale pinned height, one that only settles keeps it",
+          !SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: 520, listNow: 380)
+            && SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: 380, listNow: 380.5)
+            && SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: nil, listNow: 380))
     check("the Posts preview is pinned under its own per-screen key",
           SettingsPreviewScreen.posts.rawValue == "PostsPreviewPinned"
             && SettingsPreviewPinStore.defaultsKey(for: .posts) == "Phoebus.PostsPreviewPinned")

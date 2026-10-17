@@ -65,11 +65,18 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
     }
 
     public var body: some View {
-        GeometryReader { proxy in
-            listBody
-                .onAppear { containerHeight = proxy.size.height }
-                .onChange(of: proxy.size.height) { _, h in containerHeight = h }
-        }
+        listBody
+            // Room is judged on the whole screen: the keyboard shrinks the list's
+            // own area, and a card that unpinned when a field in it was tapped
+            // (the keyboard coming up) lost the field's focus with it.
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { containerHeight = proxy.size.height }
+                        .onChange(of: proxy.size.height) { _, h in containerHeight = h }
+                }
+                .ignoresSafeArea(.keyboard)
+            }
     }
 
     private var listBody: some View {
@@ -179,7 +186,17 @@ public struct SettingsPreviewScreenLayout<Preview: View, Content: View>: View {
 
     private func record(_ height: CGFloat, pinned: Bool) {
         guard height > 0 else { return }
-        if pinned { pinnedCardHeight = height } else { listCardHeight = height }
+        if pinned {
+            pinnedCardHeight = height
+        } else {
+            // The card changed size in the list (a section opened or closed), so
+            // the height measured while pinned is out of date.
+            if !SettingsPreviewPinStore.pinnedHeightStillHolds(listBefore: listCardHeight.map(Double.init),
+                                                               listNow: Double(height)) {
+                pinnedCardHeight = nil
+            }
+            listCardHeight = height
+        }
     }
 
     /// Caption + pin glyph. Reborn's pin target is a real `UIButton`,

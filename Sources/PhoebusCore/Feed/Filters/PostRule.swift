@@ -110,6 +110,15 @@ public struct PostRule: Codable, Sendable, Equatable, Identifiable {
         return feeds.contains { PostRuleFeed(token: $0) == feed }
     }
 
+    /// Whether the rule bounds this number.
+    public func bounds(_ field: PostRuleField) -> Bool {
+        switch field {
+        case .score: return minScore != nil || maxScore != nil
+        case .comments: return minComments != nil || maxComments != nil
+        case .awards: return minAwards != nil || maxAwards != nil
+        }
+    }
+
     /// The rule's one-line summary for the list row.
     public var summary: String {
         var parts: [String] = []
@@ -143,15 +152,18 @@ public struct PostRule: Codable, Sendable, Equatable, Identifiable {
             requires = PostRule.titleRegex(rule.titleRequiresRegex)
         }
 
-        func hides(_ post: RedditPost) -> Bool {
+        /// `untested` names numbers the caller has no value for (the Filters
+        /// tester's blank fields); the rule's bounds on them are left out. A real
+        /// post always has them, so the feed passes none.
+        func hides(_ post: RedditPost, untested: Set<PostRuleField> = []) -> Bool {
             func outside(_ value: Int, _ low: Int?, _ high: Int?) -> Bool {
                 if let low, value < low { return true }
                 if let high, value > high { return true }
                 return false
             }
-            if outside(post.score, rule.minScore, rule.maxScore) { return true }
-            if outside(post.numComments, rule.minComments, rule.maxComments) { return true }
-            if outside(post.totalAwardsReceived ?? 0, rule.minAwards, rule.maxAwards) { return true }
+            if !untested.contains(.score), outside(post.score, rule.minScore, rule.maxScore) { return true }
+            if !untested.contains(.comments), outside(post.numComments, rule.minComments, rule.maxComments) { return true }
+            if !untested.contains(.awards), outside(post.totalAwardsReceived ?? 0, rule.minAwards, rule.maxAwards) { return true }
             if rule.onlyNSFW || rule.onlySpoiler {
                 let kept = (rule.onlyNSFW && post.over18) || (rule.onlySpoiler && post.spoiler)
                 if !kept { return true }
@@ -161,6 +173,19 @@ public struct PostRule: Codable, Sendable, Equatable, Identifiable {
             if let excludes, excludes.firstMatch(in: title, range: whole) != nil { return true }
             if let requires, requires.firstMatch(in: title, range: whole) == nil { return true }
             return false
+        }
+    }
+}
+
+/// A number a Post Rule can bound.
+public enum PostRuleField: Int, Sendable, Hashable, CaseIterable {
+    case score, comments, awards
+
+    var label: String {
+        switch self {
+        case .score: return "score"
+        case .comments: return "comments"
+        case .awards: return "awards"
         }
     }
 }
@@ -255,9 +280,17 @@ public enum PostRuleStore {
 
     /// The Post Rules stage for one post, which `FilterExplanation` also uses:
     /// a rule hides it unless it is stickied or your own (both exempt).
-    static func outcome(for post: RedditPost, active: [PostRule.Compiled],
-                        username: String?) -> PostFilterOutcome {
-        guard let rule = active.first(where: { $0.hides(post) }) else { return .shown }
+    ///
+    /// With `untested` numbers, a rule's bounds on them are skipped, and a post
+    /// nothing hides says which of them an active rule would have tested.
+    static func outcome(for post: RedditPost, active: [PostRule.Compiled], username: String?,
+                        untested: Set<PostRuleField> = []) -> PostFilterOutcome {
+        guard let rule = active.first(where: { $0.hides(post, untested: untested) }) else {
+            let skipped = PostRuleField.allCases.filter { field in
+                untested.contains(field) && active.contains { $0.rule.bounds(field) }
+            }
+            return skipped.isEmpty ? .shown : .shownUntested(skipped)
+        }
         if post.stickied { return .exempt(.stickied) }
         if let username, !username.isEmpty,
            post.author.caseInsensitiveCompare(username) == .orderedSame { return .exempt(.ownPost) }

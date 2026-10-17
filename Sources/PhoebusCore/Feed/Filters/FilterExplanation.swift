@@ -5,6 +5,9 @@ import Foundation
 /// tester says and what the feed does cannot disagree.
 public enum PostFilterOutcome: Equatable, Sendable {
     case shown
+    /// Nothing hid it, but Post Rules bounding these numbers weren't tested
+    /// because the tester's field was blank.
+    case shownUntested([PostRuleField])
     /// A Post Rule matched but stickied and your own posts are never hidden by one.
     case exempt(PostFilterExemption)
     case hidden(PostFilterMatch)
@@ -15,10 +18,21 @@ public enum PostFilterOutcome: Equatable, Sendable {
     public var description: String {
         switch self {
         case .shown: return "Shown"
+        case .shownUntested(let fields):
+            let names = fields.map(\.label)
+            return "Shown (Post Rules on \(Self.list(names, "and")) weren't tested: no \(Self.list(names, "or")) entered)"
         case .exempt(let reason): return reason.description
         case .hidden(let match): return match.description
         case .blurred(let reason): return reason.description
         }
+    }
+}
+
+extension PostFilterOutcome {
+    /// "a", "a and b", "a, b and c".
+    static func list(_ items: [String], _ joiner: String) -> String {
+        guard items.count > 1 else { return items.first ?? "" }
+        return items.dropLast().joined(separator: ", ") + " \(joiner) " + items[items.count - 1]
     }
 }
 
@@ -124,6 +138,9 @@ public enum PostFilterMatch: Equatable, Sendable {
 /// What the comment filters and the Blocked Users list do to one comment.
 public enum CommentFilterOutcome: Equatable, Sendable {
     case shown
+    /// Nothing matched, but Comment Rules with a score range weren't tested
+    /// because the tester's Score field was blank.
+    case shownScoreUntested
     case hidden(reason: String)
     case collapsed(reason: String)
 
@@ -131,6 +148,7 @@ public enum CommentFilterOutcome: Equatable, Sendable {
     public var description: String {
         switch self {
         case .shown: return "Shown"
+        case .shownScoreUntested: return "Shown (Comment Rules on score weren't tested: no score entered)"
         case .hidden(let reason): return "Hidden: \(reason)"
         case .collapsed(let reason): return "Collapsed: \(reason)"
         }
@@ -146,19 +164,26 @@ public enum FilterExplanation {
     /// Filters, Post Rules with their stickied/own-post exemptions, then Tag
     /// Filters' blur. Hide Read Posts and "No Subscribed in All/Popular" are
     /// feed context rather than user filters, so they are left out here.
+    ///
+    /// `untested` names numbers the caller has no value for (the Filters tester's
+    /// blank fields): Post Rules' bounds on them are skipped, and a post that
+    /// nothing else hides or blurs reports which were. The feed passes none.
     public static func explain(post: RedditPost, filters: [ContentFilter], postFilters: PostFilterRules,
                                postRules: [PostRule], tagFilters: TagFilterSettings,
-                               feed: PostRuleFeed, username: String?) -> PostFilterOutcome {
+                               feed: PostRuleFeed, username: String?,
+                               untested: Set<PostRuleField> = []) -> PostFilterOutcome {
         if let match = contentMatch(post, filters: filters) { return .hidden(match) }
         if let match = postFilterMatch(post, postFilters: postFilters) { return .hidden(match) }
+        var skipped: [PostRuleField] = []
         switch PostRuleStore.outcome(for: post, active: PostRuleStore.activeRules(postRules, feed: feed),
-                                     username: username) {
+                                     username: username, untested: untested) {
         case .hidden(let match): return .hidden(match)
         case .exempt(let reason): return .exempt(reason)
+        case .shownUntested(let fields): skipped = fields
         case .shown, .blurred: break   // Post Rules only hide.
         }
         if let reason = tagBlurReason(post, tagFilters: tagFilters) { return .blurred(reason) }
-        return .shown
+        return skipped.isEmpty ? .shown : .shownUntested(skipped)
     }
 
     /// Apollo's global content filters, first match wins. Shared with
@@ -193,13 +218,16 @@ public enum FilterExplanation {
     /// Names what the comment filters and the Blocked Users list do to
     /// `comment`. Blocked Users runs first in the tree: Hide removes the
     /// comment, Collapse starts it collapsed, and a comment filter's own
-    /// reason wins when both collapse.
+    /// reason wins when both collapse. `scoreTested` false (the tester's blank
+    /// Score) leaves the comment rules' score ranges out and says so.
     public static func explain(comment: RedditComment, subreddit: String, ownUsername: String?,
                                focusedCommentID: String? = nil, filters: [CommentFilter],
-                               blockedUsers: Set<String>, blockedUsersHide: Bool) -> CommentFilterOutcome {
+                               blockedUsers: Set<String>, blockedUsersHide: Bool,
+                               scoreTested: Bool = true) -> CommentFilterOutcome {
         let decision = CommentFilterPolicy.decision(for: comment, subreddit: subreddit,
                                                     ownUsername: ownUsername,
-                                                    focusedCommentID: focusedCommentID, filters: filters)
+                                                    focusedCommentID: focusedCommentID, filters: filters,
+                                                    scoreTested: scoreTested)
         let lowercasedBlocked = Set(blockedUsers.map { $0.lowercased() })
         guard lowercasedBlocked.contains(comment.author.lowercased()) else { return decision }
         if blockedUsersHide { return .hidden(reason: "Blocked user") }

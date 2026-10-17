@@ -63,6 +63,8 @@ public struct CommentFilter: Codable, Sendable, Equatable, Identifiable {
         subreddits = (try? c.decodeIfPresent([String].self, forKey: .subreddits)) ?? []
     }
 
+    public var hasScoreRange: Bool { minScore != nil || maxScore != nil }
+
     /// Whether the filter is in force in `subreddit`.
     public func applies(in subreddit: String) -> Bool {
         subreddits.isEmpty || subreddits.contains { $0.caseInsensitiveCompare(subreddit) == .orderedSame }
@@ -71,8 +73,9 @@ public struct CommentFilter: Codable, Sendable, Equatable, Identifiable {
     /// Why `comment` matches, as the collapsed row's reason line, or nil.
     /// Score bounds skip comments whose score Reddit hides, and pinned
     /// (stickied) comments, which sit at the top whatever their votes.
-    public func matchReason(for comment: RedditComment) -> String? {
-        if !comment.scoreHidden, !comment.stickied {
+    /// `scoreTested` false leaves the score range out (the Filters tester's blank Score).
+    public func matchReason(for comment: RedditComment, scoreTested: Bool = true) -> String? {
+        if scoreTested, !comment.scoreHidden, !comment.stickied {
             if let minScore, comment.score < minScore { return "Filtered: score below \(minScore)" }
             if let maxScore, comment.score > maxScore { return "Filtered: score above \(maxScore)" }
         }
@@ -131,7 +134,7 @@ public enum CommentFilterPolicy {
                                focusedCommentID: String?, filters: [CommentFilter]) -> CommentFilterVerdict {
         switch decision(for: comment, subreddit: subreddit, ownUsername: ownUsername,
                         focusedCommentID: focusedCommentID, filters: filters) {
-        case .shown: return .show
+        case .shown, .shownScoreUntested: return .show
         case .hidden: return .hide
         case .collapsed(let reason): return .collapse(reason: reason)
         }
@@ -140,17 +143,20 @@ public enum CommentFilterPolicy {
     /// The same decision with the matching rule's reason for a hide too, so
     /// `FilterExplanation` can name what hid a comment.
     static func decision(for comment: RedditComment, subreddit: String, ownUsername: String?,
-                         focusedCommentID: String?, filters: [CommentFilter]) -> CommentFilterOutcome {
+                         focusedCommentID: String?, filters: [CommentFilter],
+                         scoreTested: Bool = true) -> CommentFilterOutcome {
         if let ownUsername, !ownUsername.isEmpty,
            ownUsername.caseInsensitiveCompare(comment.author) == .orderedSame { return .shown }
         if let focusedCommentID, focusedCommentID == comment.id || focusedCommentID == comment.name { return .shown }
         var collapseReason: String?
         for filter in filters where filter.applies(in: subreddit) {
-            guard let reason = filter.matchReason(for: comment) else { continue }
+            guard let reason = filter.matchReason(for: comment, scoreTested: scoreTested) else { continue }
             if filter.displayMode == .hide { return .hidden(reason: reason) }
             if collapseReason == nil { collapseReason = reason }
         }
-        return collapseReason.map { .collapsed(reason: $0) } ?? .shown
+        if let collapseReason { return .collapsed(reason: collapseReason) }
+        let skippedScore = !scoreTested && filters.contains { $0.applies(in: subreddit) && $0.hasScoreRange }
+        return skippedScore ? .shownScoreUntested : .shown
     }
 }
 

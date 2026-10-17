@@ -588,6 +588,184 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
           CommentFilterOutcome.hidden(reason: "score below 5").description == "Hidden: score below 5")
 }
 
+// --- FilterTesterInput (the Filters tester's typed-in models) ---
+@MainActor func checkFilterTesterInput() async throws {
+    let empty = FilterTesterInput()
+    check("filter tester: an empty input has nothing to run",
+          !empty.hasPostInput && !empty.hasCommentInput)
+    check("filter tester: an empty input still builds a bare post and comment",
+          empty.post().title == "" && empty.post().url == nil
+            && empty.comment().body == "" && empty.comment().author == "")
+
+    var input = FilterTesterInput()
+    input.title = "My cat photo"
+    input.subreddit = "pics"
+    check("filter tester: a typed title counts as input", input.hasPostInput)
+    let keyword = ContentFilter(kind: .keyword, value: "cat")
+    check("filter tester: a typed keyword hides the built post",
+          FilterExplanation.explain(post: input.post(), filters: [keyword], postFilters: .empty,
+                                    postRules: [], tagFilters: .default, feed: .home, username: nil)
+              == .hidden(.keyword(value: "cat", field: .title)))
+
+    var domainInput = FilterTesterInput()
+    domainInput.link = "example.com"
+    check("filter tester: a bare domain becomes a URL with that host",
+          domainInput.post().url == "https://example.com/"
+            && domainInput.post().url?.hasSuffix("/") == true)
+    check("filter tester: a typed domain filter matches the built post",
+          FilterExplanation.explain(post: domainInput.post(),
+                                    filters: [ContentFilter(kind: .domain, value: "example.com")],
+                                    postFilters: .empty, postRules: [], tagFilters: .default,
+                                    feed: .home, username: nil) == .hidden(.domain("example.com")))
+    domainInput.link = "https://example.com/a?b=1"
+    check("filter tester: a full URL keeps its scheme and path",
+          domainInput.post().url == "https://example.com/a?b=1")
+
+    var nsfwInput = FilterTesterInput()
+    nsfwInput.nsfw = true
+    check("filter tester: a tag toggle alone counts as input", nsfwInput.hasPostInput)
+    let nsfwTag = TagFilterSettings(enabled: true, nsfw: true, spoiler: false, subredditOverrides: [:])
+    check("filter tester: an NSFW toggle is blurred, not hidden, by the tag filter",
+          FilterExplanation.explain(post: nsfwInput.post(), filters: [], postFilters: .empty,
+                                    postRules: [], tagFilters: nsfwTag, feed: .home, username: nil)
+              == .blurred(.nsfw))
+
+    var commentInput = FilterTesterInput()
+    commentInput.commentText = "huge spoilers ahead"
+    commentInput.commentAuthor = "someone"
+    commentInput.commentSubreddit = "AskReddit"
+    check("filter tester: the comment carries its text and author",
+          commentInput.hasCommentInput && commentInput.comment().body == "huge spoilers ahead"
+            && commentInput.comment().author == "someone")
+    let words = CommentFilter(name: "Words", excludedWords: ["spoil"])
+    check("filter tester: a comment rule's reason comes through the explanation",
+          FilterExplanation.explain(comment: commentInput.comment(), subreddit: commentInput.commentSubreddit,
+                                    ownUsername: nil, filters: [words], blockedUsers: [],
+                                    blockedUsersHide: true)
+              == .collapsed(reason: "Filtered: contains \u{201c}spoil\u{201d}"))
+    check("filter tester: a blocked author is hidden through the explanation",
+          FilterExplanation.explain(comment: commentInput.comment(), subreddit: commentInput.commentSubreddit,
+                                    ownUsername: nil, filters: [], blockedUsers: ["Someone"],
+                                    blockedUsersHide: true) == .hidden(reason: "Blocked user"))
+
+    // A blank number is "not entered", not 0.
+    func explainPost(_ input: FilterTesterInput, rules: [PostRule], tags: TagFilterSettings = .default) -> PostFilterOutcome {
+        FilterExplanation.explain(post: input.post(), filters: [], postFilters: .empty, postRules: rules,
+                                  tagFilters: tags, feed: .home, username: nil, untested: input.untestedPostFields)
+    }
+    var numbers = FilterTesterInput()
+    numbers.title = "A post"
+    check("filter tester: blank numbers are untested, typed ones are not",
+          numbers.untestedPostFields == [.score, .comments, .awards]
+            && { var typed = numbers; typed.score = 0; typed.comments = 3; return typed.untestedPostFields == [.awards] }())
+    let minScore = PostRule(name: "High score only", minScore: 100)
+    check("filter tester: a blank score skips a min-score rule and says so",
+          explainPost(numbers, rules: [minScore]) == .shownUntested([.score])
+            && explainPost(numbers, rules: [minScore]).description
+              == "Shown (Post Rules on score weren't tested: no score entered)")
+    numbers.score = 10
+    check("filter tester: a typed score below the minimum is hidden by the rule",
+          explainPost(numbers, rules: [minScore]) == .hidden(.postRule("High score only")))
+    numbers.score = 0
+    check("filter tester: a typed 0 is a score, so a min-score rule hides it",
+          explainPost(numbers, rules: [minScore]) == .hidden(.postRule("High score only")))
+    numbers.score = 500
+    check("filter tester: a typed score inside the range is plainly shown",
+          explainPost(numbers, rules: [minScore]) == .shown)
+
+    var comments = FilterTesterInput()
+    comments.title = "A post"
+    let minComments = PostRule(name: "Discussed", minComments: 5)
+    check("filter tester: a blank comment count skips a min-comments rule and says so",
+          explainPost(comments, rules: [minComments]).description
+            == "Shown (Post Rules on comments weren't tested: no comments entered)")
+    comments.comments = 2
+    check("filter tester: a typed comment count below the minimum is hidden",
+          explainPost(comments, rules: [minComments]) == .hidden(.postRule("Discussed")))
+    comments.comments = 9
+    check("filter tester: a typed comment count inside the range is shown",
+          explainPost(comments, rules: [minComments]) == .shown)
+
+    var awards = FilterTesterInput()
+    awards.title = "A post"
+    let minAwards = PostRule(name: "Awarded", minAwards: 1)
+    check("filter tester: blank awards skip a min-awards rule and say so",
+          explainPost(awards, rules: [minAwards]).description
+            == "Shown (Post Rules on awards weren't tested: no awards entered)")
+    awards.awards = 0
+    check("filter tester: a typed 0 awards is hidden by a min-awards rule",
+          explainPost(awards, rules: [minAwards]) == .hidden(.postRule("Awarded")))
+    awards.awards = 2
+    check("filter tester: typed awards inside the range are shown", explainPost(awards, rules: [minAwards]) == .shown)
+
+    let blankAll = FilterTesterInput()
+    var titleOnly = blankAll
+    titleOnly.title = "A post"
+    check("filter tester: several skipped numbers are listed together",
+          explainPost(titleOnly, rules: [minScore, minAwards]).description
+            == "Shown (Post Rules on score and awards weren't tested: no score or awards entered)"
+            && explainPost(titleOnly, rules: [minScore, minComments, minAwards]).description
+              == "Shown (Post Rules on score, comments and awards weren't tested: no score, comments or awards entered)")
+    check("filter tester: no note when no active rule bounds a blank number",
+          explainPost(titleOnly, rules: []) == .shown
+            && explainPost(titleOnly, rules: [PostRule(name: "Disabled", isEnabled: false, minScore: 100)]) == .shown
+            && explainPost(titleOnly, rules: [PostRule(name: "NSFW only", onlyNSFW: true)]) != .shownUntested([.score]))
+    check("filter tester: a rule's other conditions still run when its score is skipped",
+          explainPost(titleOnly, rules: [PostRule(name: "Mixed", minScore: 100, onlyNSFW: true)])
+            == .hidden(.postRule("Mixed")))
+    var tagged = titleOnly
+    tagged.nsfw = true
+    check("filter tester: a Tag Filter's blur is reported instead of the note",
+          explainPost(tagged, rules: [minScore], tags: nsfwTag) == .blurred(.nsfw))
+    var keywordHit = titleOnly
+    keywordHit.title = "My cat photo"
+    check("filter tester: a keyword that hides the post is reported instead of the note",
+          FilterExplanation.explain(post: keywordHit.post(), filters: [keyword], postFilters: .empty,
+                                    postRules: [minScore], tagFilters: .default, feed: .home, username: nil,
+                                    untested: keywordHit.untestedPostFields) == .hidden(.keyword(value: "cat", field: .title)))
+    check("the feed still reads a post's own numbers: a score of 0 is below a minimum of 100",
+          PostRuleStore.apply([titleOnly.post()], rules: [minScore], feed: .home, username: nil).isEmpty
+            && FilterExplanation.explain(post: titleOnly.post(), filters: [], postFilters: .empty,
+                                         postRules: [minScore], tagFilters: .default, feed: .home, username: nil)
+              == .hidden(.postRule("High score only")))
+
+    // Comment Score is the same: blank is not entered.
+    let scoreRule = CommentFilter(name: "Low scores", minScore: 0)
+    var scoreless = FilterTesterInput()
+    scoreless.commentText = "a perfectly nice comment"
+    func explainComment(_ input: FilterTesterInput, filters: [CommentFilter]) -> CommentFilterOutcome {
+        FilterExplanation.explain(comment: input.comment(), subreddit: input.commentSubreddit, ownUsername: nil,
+                                  filters: filters, blockedUsers: [], blockedUsersHide: true,
+                                  scoreTested: input.commentScoreEntered)
+    }
+    check("filter tester: a blank comment score is not run against a score rule, and says so",
+          !scoreless.commentScoreEntered
+            && explainComment(scoreless, filters: [scoreRule]) == .shownScoreUntested
+            && explainComment(scoreless, filters: [scoreRule]).description
+              == "Shown (Comment Rules on score weren't tested: no score entered)")
+    scoreless.commentScore = -5
+    check("filter tester: a typed comment score below the minimum is collapsed by the rule",
+          explainComment(scoreless, filters: [scoreRule]) == .collapsed(reason: "Filtered: score below 0"))
+    scoreless.commentScore = 12
+    check("filter tester: a typed comment score inside the range is plainly shown",
+          explainComment(scoreless, filters: [scoreRule]) == .shown)
+    scoreless.commentScore = nil
+    check("filter tester: no note when no comment rule has a score range, and a word still matches without a score",
+          explainComment(scoreless, filters: [CommentFilter(name: "Words", excludedWords: ["nice"])])
+              == .collapsed(reason: "Filtered: contains \u{201c}nice\u{201d}")
+            && explainComment(scoreless, filters: [CommentFilter(name: "Words", excludedWords: ["rude"])]) == .shown)
+    check("filter tester: a comment rule for another subreddit leaves no score note",
+          explainComment(scoreless, filters: [CommentFilter(name: "Elsewhere", minScore: 0, subreddits: ["other"])]) == .shown)
+    check("filter tester: a blocked user is reported instead of the score note",
+          FilterExplanation.explain(comment: commentInput.comment(), subreddit: "", ownUsername: nil,
+                                    filters: [scoreRule], blockedUsers: ["someone"], blockedUsersHide: true,
+                                    scoreTested: false) == .hidden(reason: "Blocked user"))
+    check("the comment filters in a thread still read the comment's own score",
+          CommentFilterPolicy.verdict(for: scoreless.comment(), subreddit: "", ownUsername: nil, focusedCommentID: nil,
+                                      filters: [CommentFilter(name: "Floor", minScore: 1)])
+            == .collapse(reason: "Filtered: score below 1"))
+}
+
 // --- Mark read / hide read posts ---
 @MainActor func checkMarkReadHideReadPostsSettingsMarkReadHidingPostsViewController() async throws {
     let readSettingsDefault = MarkReadSettings.default

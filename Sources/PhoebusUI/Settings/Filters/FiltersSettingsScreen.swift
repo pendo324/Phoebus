@@ -7,7 +7,8 @@ import UIKit
 /// Filters: what Phoebus hides. Client-side content filters
 /// (subreddit/keyword/author/domain) applied to feed listings, Reborn's
 /// subreddit-specific filters and Tag Filters, and Apollo's blocked users,
-/// with the post and comment rules as drill-downs.
+/// with the post and comment rules as drill-downs. A pinned tester card runs
+/// a typed-in post or comment through the feed's own explanation.
 public struct FiltersSettingsScreen: View {
     @State private var filters: [ContentFilter] = ContentFilterStore.load()
     @State private var showingAdd = false
@@ -18,6 +19,8 @@ public struct FiltersSettingsScreen: View {
     @State private var showingAddWord = false
     @State private var newWord = ""
     @State private var resImportAlert: RESImportAlert?
+    /// What the tester holds; nothing typed is saved, and leaving the screen clears it.
+    @State private var testerEntry = FilterTesterCard.Entry()
     @Setting(BlockedUsersStore.storage) private var blockedStore
     private var blockedCount: Int { _ = blockedStore; return BlockedUsersStore.names().count }
     @Setting(UserTags.self) private var userTags
@@ -26,14 +29,16 @@ public struct FiltersSettingsScreen: View {
     public init() {}
 
     public var body: some View {
-        List {
-            // Apollo's three sections with all-caps headers ("FILTERED
-            // SUBREDDITS" / "FILTERED KEYWORDS" / "BLOCKED USERS"), each with its
-            // own footer. Order: Filtered Keywords (+ "Add Keyword"), Filtered
-            // Subreddits (+ "Add Subreddit"), the rules, an untitled "Blocked
-            // Users ›" (Phoebus's "User Tags ›" follows it), then Reborn's
-            // spliced Subreddit-Specific Filters (+ "Add Subreddit...") and Filter
-            // Subreddits by Name (+ "Add Word...") sections, and Tag Filters.
+        // Apollo's three sections with all-caps headers ("FILTERED
+        // SUBREDDITS" / "FILTERED KEYWORDS" / "BLOCKED USERS"), each with its
+        // own footer. Order: Filtered Keywords (+ "Add Keyword"), Filtered
+        // Subreddits (+ "Add Subreddit"), the rules, an untitled "Blocked
+        // Users ›" (Phoebus's "User Tags ›" follows it), then Reborn's
+        // spliced Subreddit-Specific Filters (+ "Add Subreddit...") and Filter
+        // Subreddits by Name (+ "Add Word...") sections, and Tag Filters.
+        SettingsPreviewScreenLayout(screen: .filters) {
+            FilterTesterCard(entry: $testerEntry)
+        } content: {
             keywordsSection
             subredditsSection
             rulesSection
@@ -45,7 +50,7 @@ public struct FiltersSettingsScreen: View {
             TagFilterSections()
         }
         .apolloSettingsSearchScroll()
-        .apolloSettingsListAppearance()
+        .onDisappear { testerEntry = FilterTesterCard.Entry() }
         .navigationTitle(SettingsCategory.filters.title)
         .navigationBarTitleDisplayModeIfAvailable()
         .toolbar {

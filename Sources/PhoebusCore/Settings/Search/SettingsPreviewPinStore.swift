@@ -23,6 +23,8 @@ public enum SettingsPreviewScreen: String, Sendable, CaseIterable {
     case commentsTheme = "CommentsThemePreviewPinned"
     // Phoebus's Gestures & Haptics swipe preview, keyed the same way.
     case gestures = "GesturesPreviewPinned"
+    // Phoebus's Filters tester, keyed the same way.
+    case filters = "FiltersPreviewPinned"
 }
 
 /// Whether each screen's live preview card stays pinned.
@@ -63,6 +65,15 @@ public enum SettingsPreviewPinStore {
     /// the threshold, and the screen laid out forever.
     public static func decidingCardHeight(pinned: Double?, inList: Double?) -> Double {
         pinned ?? inList ?? 0
+    }
+
+    /// Whether the height measured where the card is pinned still stands once
+    /// it is measured in the list again: not if the card's own content changed
+    /// size meanwhile, or a card that opened a section and was unpinned for lack
+    /// of room could never be pinned again after closing it.
+    public static func pinnedHeightStillHolds(listBefore: Double?, listNow: Double) -> Bool {
+        guard let listBefore else { return true }
+        return abs(listBefore - listNow) <= 1
     }
 
     public static func caption(pinned: Bool, pinningAvailable: Bool = true) -> String {

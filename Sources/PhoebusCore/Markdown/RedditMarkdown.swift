@@ -19,12 +19,28 @@ public enum RedditMarkdown {
     /// bodies, so without this every redraw would re-parse every visible body.
     private static let cache = RenderCache()
 
-    public static func render(_ raw: String) -> AttributedString {
-        if let hit = cache.value(for: raw) { return hit }
-        let rendered = renderUncached(raw)
-        cache.store(rendered, for: raw)
-        return rendered
+    /// A parsed body with its spoilers still in it, tagged by `SpoilerAttribute`.
+    private struct Rendered {
+        var text: AttributedString
+        var spoilers: Int
     }
+
+    private static func rendered(_ raw: String) -> Rendered {
+        if let hit = cache.value(for: raw) { return hit }
+        let parsed = renderUncached(raw)
+        cache.store(parsed, for: raw)
+        return parsed
+    }
+
+    /// Spoilers hide behind Apollo's "SPOILER" label, so a caller that does not
+    /// reveal them (a snippet, a share card) never draws their text.
+    public static func render(_ raw: String) -> AttributedString {
+        let body = rendered(raw)
+        return body.spoilers == 0 ? body.text : SpoilerMarkup.apply(body.text)
+    }
+
+    /// How many spoilers `raw` renders with.
+    public static func spoilerCount(in raw: String) -> Int { rendered(raw).spoilers }
 
     /// Apollo's code size, before a Text Sizes & Fonts scale.
     public static let codePointSize: Double = 14
@@ -33,38 +49,46 @@ public enum RedditMarkdown {
     /// Fonts multiplier), so code grows with the text around it.
     public static func codePointSize(scale: Double) -> Double { codePointSize * scale }
 
-    /// `render(_:)` with inline code and code blocks at `codePointSize(scale:)`.
-    /// The run's font is fixed in the string, so the view's font can't scale it.
-    public static func render(_ raw: String, codeScale: Double) -> AttributedString {
-        guard codeScale != 1, codeScale.isFinite else { return render(raw) }
+    /// `render(_:)` with inline code and code blocks at `codePointSize(scale:)`
+    /// and the spoilers in `revealing` open. The run's font is fixed in the
+    /// string, so the view's font can't scale it. An `interactive` body's hidden
+    /// spoilers, and the words of a revealed one, carry a link (`SpoilerMarkup.index(of:)`) that toggles them.
+    public static func render(_ raw: String, codeScale: Double, revealing: Set<Int> = [],
+                              interactive: Bool = false) -> AttributedString {
+        let body = codeScale != 1 && codeScale.isFinite ? scaled(raw, codeScale: codeScale) : rendered(raw)
+        return body.spoilers == 0 ? body.text
+            : SpoilerMarkup.apply(body.text, revealing: revealing, interactive: interactive)
+    }
+
+    private static func scaled(_ raw: String, codeScale: Double) -> Rendered {
         // A NUL can't start a Reddit body, so scaled entries can't collide with plain ones.
         let key = "\u{0}\(codeScale)\u{0}" + raw
         if let hit = cache.value(for: key) { return hit }
-        var scaled = render(raw)
+        var body = rendered(raw)
         #if canImport(Darwin) && canImport(SwiftUI)
         let base = codeFont(size: codePointSize)
-        let ranges = scaled.runs.compactMap { run in
+        let ranges = body.text.runs.compactMap { run in
             run[AttributeScopes.SwiftUIAttributes.FontAttribute.self] == base ? run.range : nil
         }
         let font = codeFont(size: codePointSize(scale: codeScale))
-        for range in ranges { scaled[range].swiftUI.font = font }
+        for range in ranges { body.text[range].swiftUI.font = font }
         #endif
-        cache.store(scaled, for: key)
-        return scaled
+        cache.store(body, for: key)
+        return body
     }
 
     private final class RenderCache: @unchecked Sendable {
         private let lock = NSLock()
-        private var entries: [String: AttributedString] = [:]
+        private var entries: [String: Rendered] = [:]
         /// A large thread's bodies fit, so scrolling back up never re-parses.
         private static let limit = 3000
 
-        func value(for key: String) -> AttributedString? {
+        func value(for key: String) -> Rendered? {
             lock.lock(); defer { lock.unlock() }
             return entries[key]
         }
 
-        func store(_ value: AttributedString, for key: String) {
+        func store(_ value: Rendered, for key: String) {
             lock.lock(); defer { lock.unlock() }
             // Cleared wholesale rather than tracked LRU: the next
             // screenful refills it at the cost of one parse each.
@@ -73,7 +97,7 @@ public enum RedditMarkdown {
         }
     }
 
-    static func renderUncached(_ raw: String) -> AttributedString {
+    private static func renderUncached(_ raw: String) -> Rendered {
         // Strip Reddit's zero-width-space blank lines before anything
         // else parses or measures them, and collapse the empty
         // paragraph each leaves behind. See `MarkdownBodyCleanup`.
@@ -95,10 +119,12 @@ public enum RedditMarkdown {
             failurePolicy: .returnPartiallyParsedIfPossible
         )
         if let parsed = try? AttributedString(markdown: preprocessed, options: options) {
-            return applyBlockFormatting(parsed)
+            let (text, spoilers) = SpoilerMarkup.tag(applyBlockFormatting(parsed))
+            return Rendered(text: text, spoilers: spoilers)
         }
         #endif
-        return AttributedString(preprocessed)
+        let (text, spoilers) = SpoilerMarkup.tag(AttributedString(preprocessed))
+        return Rendered(text: text, spoilers: spoilers)
     }
 
     #if canImport(Darwin)
@@ -220,14 +246,10 @@ public enum RedditMarkdown {
     /// exist; the Unicode block has no superscript for most letters,
     /// so anything unmappable keeps its plain form.
     ///
-    /// Spoilers are unwrapped to their text; Apollo hides them behind
-    /// a tap, which needs a custom run attribute this doesn't have yet.
+    /// Spoilers become `SpoilerMarkup` markers, which `render` turns into
+    /// Apollo's tap-to-expand "SPOILER" label once the body is parsed.
     public static func expandRedditInlineSyntax(_ text: String) -> String {
-        var result = spoilerPattern.stringByReplacingMatches(
-            in: text,
-            range: NSRange(text.startIndex..., in: text),
-            withTemplate: "$1"
-        )
+        var result = SpoilerMarkup.fence(text)
         result = superscriptParenPattern.stringByReplacingMatches(
             in: result,
             range: NSRange(result.startIndex..., in: result),
@@ -243,10 +265,6 @@ public enum RedditMarkdown {
         return result
     }
 
-    /// `>!spoiler!<`, Reddit's own spelling.
-    private static let spoilerPattern = try! NSRegularExpression(
-        pattern: #">!(.+?)!<"#, options: [.dotMatchesLineSeparators]
-    )
     /// `^(superscript)`.
     private static let superscriptParenPattern = try! NSRegularExpression(
         pattern: #"\^\(([^)]*)\)"#
@@ -393,14 +411,17 @@ public enum RedditMarkdown {
     /// marker in a run.
     public static func normalizeBlockquotes(_ body: String) -> String {
         guard body.contains(">") || body.contains("&gt;") else { return body }
-        return body
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { normalizeQuoteLine(String($0)) }
+        let lines = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        return lines.enumerated()
+            .map { index, line in
+                normalizeQuoteLine(line, spoilerOpens: SpoilerMarkup.closes(in: lines, from: index))
+            }
             .joined(separator: "\n")
     }
 
-    /// Rewrites one line's leading quote markers, if it has any.
-    public static func normalizeQuoteLine(_ line: String) -> String {
+    /// Rewrites one line's leading quote markers, if it has any. With
+    /// `spoilerOpens`, a `>!` is a spoiler's opener, not a marker.
+    public static func normalizeQuoteLine(_ line: String, spoilerOpens: Bool = false) -> String {
         // Leading whitespace is allowed before a quote marker and must
         // be preserved, since an indented quote is still a quote.
         let leading = line.prefix { $0 == " " || $0 == "\t" }
@@ -408,6 +429,7 @@ public enum RedditMarkdown {
 
         var markers = 0
         while true {
+            if spoilerOpens, rest.hasPrefix(">!") || rest.hasPrefix("&gt;!") { break }
             if rest.hasPrefix("&gt;") {
                 rest.removeFirst(4); markers += 1
             } else if rest.hasPrefix(">") {

@@ -24,13 +24,14 @@ public enum QuoteBlocks {
         var inFence = false
         var previousDepth = 0
 
-        for line in body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
+        let lines = body.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        for (index, line) in lines.enumerated() {
             var depth = 0
             var content = line
             if isFence(line) {
                 inFence.toggle()
             } else if !inFence {
-                (depth, content) = parse(line)
+                (depth, content) = parse(line, spoilerOpens: SpoilerMarkup.closes(in: lines, from: index))
                 // A line without a marker right under a quote line is part of it.
                 if depth == 0, previousDepth > 0, !line.trimmingCharacters(in: .whitespaces).isEmpty {
                     depth = previousDepth
@@ -54,14 +55,16 @@ public enum QuoteBlocks {
 
     /// A line's quote depth and what follows its markers. Up to three spaces
     /// may precede a marker (four is code); `&gt;` is the spelling the API
-    /// returns, and the space after a marker is optional.
-    static func parse(_ line: String) -> (depth: Int, content: String) {
+    /// returns, and the space after a marker is optional. With `spoilerOpens`,
+    /// a `>!` is a spoiler's opener, not a marker.
+    static func parse(_ line: String, spoilerOpens: Bool = false) -> (depth: Int, content: String) {
         var rest = Substring(line)
         var indent = 0
         while rest.first == " ", indent < 4 { rest.removeFirst(); indent += 1 }
         guard indent < 4 else { return (0, line) }
         var depth = 0
         while true {
+            if spoilerOpens, rest.hasPrefix(">!") || rest.hasPrefix("&gt;!") { break }
             if rest.hasPrefix("&gt;") {
                 rest.removeFirst(4)
             } else if rest.first == ">" {

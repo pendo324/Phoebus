@@ -207,7 +207,7 @@ struct PostDetailHeader: View {
                     if !selfTextCollapsed {
                         InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
                             .apolloFont(size: Self.bodyFontSize, role: .postBody)
-                            .foregroundStyle(Color.apolloPrimaryText(
+                            .bodyForeground(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))
                             .onTapGesture { selfTextCollapsed.toggle() }
                     }
@@ -233,7 +233,7 @@ struct PostDetailHeader: View {
                     if !selfTextCollapsed {
                         InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
                             .apolloFont(size: Self.bodyFontSize, role: .postBody)
-                            .foregroundStyle(Color.apolloPrimaryText(
+                            .bodyForeground(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))
                             .onTapGesture { selfTextCollapsed.toggle() }
                     }

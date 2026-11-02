@@ -1424,6 +1424,7 @@ try await checkMarkdownBlockquotes()
 try await checkQuoteBlocks()
 try await checkLongBodyPieces()
 try await checkRenderedTextChunks()
+try await checkSpoilers()
 
 // --- Reddit-only inline syntax the Markdown parser does not know ---
 //
@@ -1440,8 +1441,8 @@ check("a bare word superscript loses its caret",
       !RedditMarkdown.expandRedditInlineSyntax("just ^reddit here").contains("^"))
 check("...and keeps the word itself",
       RedditMarkdown.expandRedditInlineSyntax("just ^reddit here").contains("reddit"))
-check("a spoiler loses its markers",
-      RedditMarkdown.expandRedditInlineSyntax("to >!hidden!< now") == "to hidden now")
+check("a spoiler's markers become the parser-safe ones",
+      RedditMarkdown.expandRedditInlineSyntax("to >!hidden!< now") == "to \u{E000}hidden\u{E001} now")
 check("a caret with no superscript is untouched",
       RedditMarkdown.expandRedditInlineSyntax("2 ^ 3") == "2 ^ 3")
 

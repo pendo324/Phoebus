@@ -1011,7 +1011,7 @@ private struct PostPeekPreview: View {
                 .font(.headline)
                 .multilineTextAlignment(.leading)
             if let selftext = post.selftext, !selftext.isEmpty {
-                Text(selftext)
+                Text(SpoilerMarkup.redacted(selftext, placeholder: "[spoiler]"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(12)

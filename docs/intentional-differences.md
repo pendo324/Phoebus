@@ -202,6 +202,20 @@ Apollo or Reborn, add an entry here.
   top card is not affected. This is a Phoebus addition, so Reborn backups
   carry no value for it.
 
+## Comments
+
+- **A spoiler tapped open closes on a second tap.** Apollo hides an inline
+  `>!spoiler!<` behind a "SPOILER" label that a tap expands; its
+  `MarkdownSpoiler` value carries an `isExpanded` flag, but nothing
+  recovered says whether a second tap closes it again (unknown). Phoebus
+  does: a tap on the revealed words hides the spoiler, each spoiler on its
+  own, and the tap does not fall through to the row (no collapse, no
+  open). A link inside a revealed spoiler still opens; only the plain words
+  re-spoil. The reveal is local to the drawn body and lasts until the row
+  scrolls away, and a collapsed preview, a share card and a one-line
+  snippet never reveal. The legacy `[text](/spoiler)` link is left as the
+  link it is.
+
 ## Navigation
 
 - **A back swipe out of an unsaved post or comment edit asks first.**

@@ -44,7 +44,7 @@ public struct LongBodyText: View {
         // splitting it would apply the limit to each paragraph
         // separately and show N times as many lines as asked for.
         if let lineLimit {
-            Text(RedditMarkdown.render(text, codeScale: codeScale)).lineLimit(lineLimit)
+            RedditMarkdownText(raw: text, codeScale: codeScale, isInteractive: false).lineLimit(lineLimit)
         } else {
             QuotedBody(text) { paragraphs(of: $0) }
         }
@@ -55,20 +55,37 @@ public struct LongBodyText: View {
         if text.count < Self.splitThreshold {
             // Its full height, so a list row never squeezes it to its
             // first lines when something below it grows.
-            Text(RedditMarkdown.render(text, codeScale: codeScale))
+            RedditMarkdownText(raw: text, codeScale: codeScale)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(BodyParagraphs.pieces(of: text).enumerated()), id: \.offset) { index, piece in
-                    Text(RedditMarkdown.render(piece.text, codeScale: codeScale))
-                        // Each paragraph takes its full height; without
-                        // this, a list row squeezes some to one "..." line.
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        // A piece cut from a long paragraph or code block
-                        // continues the one above it.
-                        .padding(.top, index == 0 || piece.continuesPrevious ? 0 : 10)
-                }
+            SpoilerSharingPieces(text: text, codeScale: codeScale)
+        }
+    }
+}
+
+/// The pieces of one long paragraph run, sharing one `SpoilerReveal` so a
+/// spoiler cut across two pieces opens and hides as one.
+private struct SpoilerSharingPieces: View {
+    let text: String
+    let codeScale: Double
+    @State private var reveal = SpoilerReveal()
+
+    var body: some View {
+        let pieces = BodyParagraphs.pieces(of: text)
+        let counts = pieces.map { RedditMarkdown.spoilerCount(in: $0.text) }
+        let bases = SpoilerReveal.bases(counts: counts, continues: pieces.map(\.continuesSpoiler))
+        let total = (bases.last ?? 0) + (counts.last ?? 0)
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(pieces.enumerated()), id: \.offset) { index, piece in
+                RedditMarkdownText(raw: piece.text, codeScale: codeScale, shared: $reveal,
+                                   spoilerBase: bases[index], spoilerTotal: total)
+                    // Each paragraph takes its full height; without
+                    // this, a list row squeezes some to one "..." line.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    // A piece cut from a long paragraph or code block
+                    // continues the one above it.
+                    .padding(.top, index == 0 || piece.continuesPrevious ? 0 : 10)
             }
         }
     }

@@ -20,21 +20,33 @@ struct ChunkedMarkdownText: View {
     }
 
     private struct ChunkedRun: View {
-        let chunks: [AttributedString]
-
-        init(text: String) {
-            chunks = ChunkedMarkdownText.chunks(of: RedditMarkdown.render(text))
-        }
+        let text: String
+        @State private var reveal = SpoilerReveal()
+        @Environment(\.bodyTextColor) private var textColor
 
         var body: some View {
+            let count = RedditMarkdown.spoilerCount(in: text)
+            if count > 0 {
+                chunked(RedditMarkdown.render(text, codeScale: 1, revealing: reveal.revealing(base: 0, count: count), interactive: true)
+                    .colouringRevealedSpoilers(textColor), spoilers: count)
+                    .opensSpoilers($reveal)
+            } else {
+                chunked(RedditMarkdown.render(text), spoilers: 0)
+            }
+        }
+
+        @ViewBuilder
+        private func chunked(_ rendered: AttributedString, spoilers: Int) -> some View {
+            let chunks = ChunkedMarkdownText.chunks(of: rendered)
             if chunks.count == 1, let only = chunks.first {
-                Text(only)
+                Text(only).spoilerActions(for: only, reveal: $reveal, total: spoilers)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(chunks.indices, id: \.self) { index in
                         Text(chunks[index])
                             // Each chunk at its full height so none draws over the next.
                             .fixedSize(horizontal: false, vertical: true)
+                            .spoilerActions(for: chunks[index], reveal: $reveal, total: spoilers)
                     }
                 }
             }

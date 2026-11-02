@@ -95,7 +95,7 @@ struct RecoveredPostSection: View {
             if let body = display.body {
                 InlineMediaBodyView(body, linkContext: .body)
                     .apolloFont(size: PostDetailHeader.bodyFontSize)
-                    .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: apolloTheme))
+                    .bodyForeground(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: apolloTheme))
             }
             if let url = display.url {
                 LinkPreviewCard(url: url, context: .body, fallbackTitle: display.title ?? post.title)

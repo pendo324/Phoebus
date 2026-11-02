@@ -597,7 +597,7 @@ struct MessageRow: View {
                     // (`EnableChatMedia`).
                     InlineMediaBodyView(message.body, context: .messages)
                         .apolloFont(size: 15)
-                        .foregroundStyle(secondary)
+                        .bodyForeground(secondary)
                 }
             }
             .accessibilityElement(children: .ignore)

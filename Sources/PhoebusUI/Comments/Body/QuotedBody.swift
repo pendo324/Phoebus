@@ -50,7 +50,7 @@ struct QuoteBar<Content: View>: View {
                     .frame(width: 2)
             }
             content
-                .foregroundStyle(.secondary)
+                .bodyForeground(Color.secondary)
         }
         .padding(.vertical, 2)
         .fixedSize(horizontal: false, vertical: true)

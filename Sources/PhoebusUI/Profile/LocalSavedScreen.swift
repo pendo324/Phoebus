@@ -154,7 +154,7 @@ struct LocalSavedScreen: View {
                     Spacer(minLength: 0)
                     DeletedReasonChip(label: reason.displayLabel)
                 }
-                Text(recovered.body)
+                Text(SpoilerMarkup.redacted(recovered.body, placeholder: "[spoiler]"))
                     .apolloFont(size: 15)
                     .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: apolloTheme))
                     .lineLimit(8)
@@ -163,7 +163,7 @@ struct LocalSavedScreen: View {
             .background(RoundedRectangle(cornerRadius: 8).fill(DeletedCommentHighlight.color(for: reason)))
             .accessibilityIdentifier("localSaved.recovered.\(record.fullname)")
         } else {
-            Text(record.snippet.isEmpty ? "Comment" : record.snippet)
+            Text(record.snippet.isEmpty ? "Comment" : SpoilerMarkup.redacted(record.snippet, placeholder: "[spoiler]"))
                 .apolloFont(size: 15)
                 .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: apolloTheme))
                 .lineLimit(5)

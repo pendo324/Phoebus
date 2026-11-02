@@ -707,7 +707,7 @@ struct ChatRoomScreen: View {
                 } else {
                     ChunkedMarkdownText(message.body)
                         .font(.body)
-                        .foregroundStyle(mine ? Color.white : Color.primary)
+                        .bodyForeground(mine ? Color.white : Color.primary)
                         // Bubbles are width-capped so a long message
                         // wraps inside a bubble rather than becoming a
                         // full-width block.

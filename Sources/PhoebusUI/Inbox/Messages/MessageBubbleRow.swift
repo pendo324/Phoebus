@@ -65,7 +65,7 @@ public struct MessageBubbleRow<Accessory: View>: View {
                 // image in a PM renders rather than staying a bare URL.
                 InlineMediaBodyView(body_, context: .messages)
                     .font(.body)
-                    .foregroundStyle(textColor)
+                    .bodyForeground(textColor)
                     // Width-capped so a long message wraps inside a
                     // bubble instead of becoming a full-width slab.
                     .frame(maxWidth: 260, alignment: .leading)

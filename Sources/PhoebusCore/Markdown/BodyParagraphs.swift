@@ -2,14 +2,18 @@ import Foundation
 
 /// One `Text`'s worth of a body. `continuesPrevious` marks a piece cut out of
 /// the middle of a paragraph (or code block), which is drawn flush against the
-/// piece before it instead of after a paragraph gap.
+/// piece before it instead of after a paragraph gap. `continuesSpoiler` marks a
+/// piece that opens inside a spoiler the piece before it ended inside: the cut
+/// closed that spoiler with `!<` and this piece reopens it with `>!`.
 public struct BodyPiece: Equatable, Sendable {
     public let text: String
     public let continuesPrevious: Bool
+    public let continuesSpoiler: Bool
 
-    public init(text: String, continuesPrevious: Bool) {
+    public init(text: String, continuesPrevious: Bool, continuesSpoiler: Bool = false) {
         self.text = text
         self.continuesPrevious = continuesPrevious
+        self.continuesSpoiler = continuesSpoiler
     }
 }
 
@@ -41,7 +45,10 @@ public enum BodyParagraphs {
     /// block cut for length reopens its fence on the next piece, so the code
     /// keeps its styling. Cuts fall on a line break; a line longer than the
     /// limit is cut after a sentence, else at a space, and not inside a link,
-    /// inline code or bold span when another spot is near.
+    /// inline code, bold span or spoiler when another spot is near. A cut that
+    /// still lands inside a spoiler closes it at the end of the piece and
+    /// reopens it at the start of the next (`BodyPiece.continuesSpoiler`), so
+    /// neither half draws its words behind a stray `>!`.
     public static func pieces(of body: String, maxLength: Int = maxPieceLength) -> [BodyPiece] {
         let limit = max(maxLength, 40)
         var result: [BodyPiece] = []
@@ -49,13 +56,20 @@ public enum BodyParagraphs {
         var length = 0
         var startsParagraph = true
         var fence: Fence?
+        let spoilers = SpoilerMarkup.spans(in: body)
+        var lineStart = 0
+        var lastEnd = 0
+        var startsInSpoiler = false
+        var reopens = false
 
-        func emit() {
+        func emit(closingSpoiler: Bool = false) {
+            if closingSpoiler, let last = lines.indices.last { lines[last] += "!<" }
             let text = lines.joined(separator: "\n").trimmingCharacters(in: .newlines)
             lines = []
             length = 0
+            defer { startsInSpoiler = false }
             guard !text.isEmpty else { return }
-            result.append(BodyPiece(text: text, continuesPrevious: !startsParagraph))
+            result.append(BodyPiece(text: text, continuesPrevious: !startsParagraph, continuesSpoiler: startsInSpoiler))
             startsParagraph = false
         }
         func push(_ line: String) {
@@ -64,15 +78,26 @@ public enum BodyParagraphs {
         }
         func add(_ line: String) {
             for segment in wrap(line, limit: limit) {
-                if !lines.isEmpty, length + segment.count > limit {
-                    emit()
+                let start = lineStart + segment.offset
+                if !lines.isEmpty, length + segment.text.count > limit {
+                    let inside = spoilers.contains { $0.location < lastEnd && NSMaxRange($0) > start }
+                    emit(closingSpoiler: inside)
                     if let fence { push(fence.marker) }
+                    reopens = inside
                 }
-                push(segment)
+                if reopens {
+                    startsInSpoiler = true
+                    reopens = false
+                    push(">!" + segment.text)
+                } else {
+                    push(segment.text)
+                }
+                lastEnd = start + segment.text.utf16.count
             }
         }
 
         for line in body.components(separatedBy: "\n") {
+            defer { lineStart += line.utf16.count + 1 }
             if let open = fence {
                 if open.closes(line) {
                     fence = nil
@@ -132,19 +157,22 @@ public enum BodyParagraphs {
         return ends
     }
 
-    /// A line cut into segments of at most `limit` characters.
-    private static func wrap(_ line: String, limit: Int) -> [String] {
+    /// A line cut into segments of at most `limit` characters, each with the
+    /// UTF-16 offset in the line where it starts.
+    private static func wrap(_ line: String, limit: Int) -> [(text: String, offset: Int)] {
         var rest = Array(line)
-        guard rest.count > limit else { return [line] }
-        var segments: [String] = []
+        guard rest.count > limit else { return [(line, 0)] }
+        var segments: [(text: String, offset: Int)] = []
+        var consumed = 0
         while rest.count > limit {
             let cut = cutIndex(in: rest, limit: limit)
-            segments.append(String(rest[..<cut]))
+            segments.append((String(rest[..<cut]), consumed))
             var next = cut
             while next < rest.count, rest[next] == " " { next += 1 }
+            consumed += String(rest[..<next]).utf16.count
             rest = Array(rest[next...])
         }
-        segments.append(String(rest))
+        segments.append((String(rest), consumed))
         return segments
     }
 
@@ -161,7 +189,7 @@ public enum BodyParagraphs {
         return spaces.first ?? limit
     }
 
-    /// No unclosed `[`, inline code or `**` in `prefix`.
+    /// No unclosed `[`, inline code, `**` or `>!` in `prefix`.
     private static func isBalanced(_ prefix: ArraySlice<Character>) -> Bool {
         var brackets = 0
         var ticks = 0
@@ -175,7 +203,8 @@ public enum BodyParagraphs {
             default: break
             }
         }
-        return brackets <= 0 && ticks % 2 == 0 && stars % 2 == 0
+        guard brackets <= 0 && ticks % 2 == 0 && stars % 2 == 0 else { return false }
+        return !prefix.contains("!") || !SpoilerMarkup.endsInsideSpoiler(String(prefix))
     }
 
     /// An open fenced code block (three or more backticks or tildes).

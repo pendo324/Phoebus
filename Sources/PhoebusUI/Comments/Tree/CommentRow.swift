@@ -569,7 +569,7 @@ struct CommentRow: View {
                             VStack(alignment: .leading, spacing: 5.7) {
                                 InlineMediaBodyView(archivedComment.body)
                                     .apolloFont(size: 15, role: .commentBody)
-                                    .foregroundStyle(Color.apolloPrimaryText(
+                                    .bodyForeground(Color.apolloPrimaryText(
                                         colorScheme: colorScheme, themeColors: themeColors))
                                 DeletedReasonChip(label: archivedComment.reason.displayLabel)
                             }
@@ -586,7 +586,7 @@ struct CommentRow: View {
                             .onTapGesture { collapseFromBody() }
                             // No extra leading: the body runs on the font's own 18pt pitch, flush
                             // with the avatar.
-                            .foregroundStyle(Color.apolloPrimaryText(
+                            .bodyForeground(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: themeColors))
                     }
                     // Apollo shows no persistent action bar under comments; actions are

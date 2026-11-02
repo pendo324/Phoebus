@@ -564,7 +564,7 @@ struct ProfileCommentRow: View {
             }
             InlineMediaBodyView(comment.body, mediaMetadata: comment.mediaMetadata, showsLinkCards: false)
                 .apolloFont(size: 15)
-                .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors))
+                .bodyForeground(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors))
             if let linkTitle = comment.linkTitle {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(linkTitle)

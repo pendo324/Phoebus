@@ -57,15 +57,16 @@ public enum AccessibilitySummary {
     /// Reddit markdown as it should be heard: link text without its
     /// URL, no emphasis/heading/quote/list markers, no `&amp;`-style
     /// entities, paragraphs as sentence breaks. VoiceOver otherwise
-    /// reads "asterisk asterisk" and every URL character.
+    /// reads "asterisk asterisk" and every URL character. A spoiler is
+    /// announced as "spoiler", never its text.
     public static func spoken(markdown: String) -> String {
-        var t = markdown
+        var t = SpoilerMarkup.redacted(markdown)
         let rules: [(String, String)] = [
             (#"!?\[([^\]]*)\]\([^)]*\)"#, "$1"),          // [text](url) -> text
             (#"https?://\S+"#, "link"),                      // bare URLs
             (#"(?m)^\s{0,3}(#{1,6}|>+|[-*+]|\d+\.)\s+"#, ""), // headings, quotes, bullets
             (#"(\*\*|__|~~|\*|\^|`)"#, ""),               // emphasis, strike, superscript, code
-            (#"&gt;!|!&lt;|>!|!<"#, ""),                      // spoiler fences
+            (#"&gt;!|!&lt;|>!|!<"#, ""),                      // an unclosed fence
             (#"\n{2,}"#, ". "),
             (#"\s+"#, " "),
         ]

@@ -638,7 +638,6 @@ public extension GoogleSearch {
             (#"(?m)^```.*$"#, ""),
             (#"!?\[([^\]]*)\]\([^)]*\)"#, "$1"),
             (#"<(https?://[^>]+)>"#, "$1"),
-            (#">!(.*?)!<"#, "$1"),
             (#"(?m)^\s{0,3}#{1,6}\s*"#, ""),
             (#"(?m)^\s*(?:&gt;|>)\s?"#, ""),
             (#"(?m)^\s*[-*+]\s+"#, "• "),
@@ -652,7 +651,7 @@ public extension GoogleSearch {
             (#"&nbsp;|&#x200B;"#, " "),
             (#"\n{3,}"#, "\n\n"),
         ]
-        var text = markdown
+        var text = SpoilerMarkup.redacted(markdown, placeholder: "[spoiler]")
         for (pattern, template) in rules {
             guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
             text = regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: template)

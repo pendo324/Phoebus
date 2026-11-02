@@ -176,6 +176,100 @@ import PhoebusCore
             && SubredditSwitcherResults.destination(for: "r/") == nil)
 }
 
+// MARK: - Favorites drag-to-reorder
+
+@MainActor func checkFavoritesReorder() async throws {
+    let full = ["apple", "swift", "pics", "linux", "nba"]
+    check("moving a row down lands it after the row it was dropped on (onMove convention)",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [0], to: 3)
+            == ["swift", "pics", "apple", "linux", "nba"])
+    check("moving a row up",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [3], to: 1)
+            == ["apple", "linux", "swift", "pics", "nba"])
+    check("dropping a row onto its own position changes nothing",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [2], to: 2) == full
+            && FavoriteSubredditsOrder.moved(full: full, visible: full, from: [2], to: 3) == full)
+    check("dropping at the end",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [0], to: 5)
+            == ["swift", "pics", "linux", "nba", "apple"])
+    check("several rows move together",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [0, 1], to: 4)
+            == ["pics", "linux", "apple", "swift", "nba"])
+    check("an out-of-range source changes nothing",
+          FavoriteSubredditsOrder.moved(full: full, visible: full, from: [9], to: 0) == full)
+    check("matching ignores case",
+          FavoriteSubredditsOrder.moved(full: full, visible: ["Apple", "Swift", "Pics", "Linux", "NBA"], from: [4], to: 0)
+            == ["nba", "apple", "swift", "pics", "linux"])
+
+    // The filter field hides rows: the moved rows trade the visible rows' slots and the hidden
+    // favorites keep theirs.
+    check("a filtered move leaves the hidden favorites where they were",
+          FavoriteSubredditsOrder.moved(full: full, visible: ["apple", "pics", "nba"], from: [2], to: 0)
+            == ["nba", "swift", "apple", "linux", "pics"])
+    check("a visible list that is not part of the stored order changes nothing",
+          FavoriteSubredditsOrder.moved(full: full, visible: ["pics", "apple"], from: [0], to: 2) == full
+            && FavoriteSubredditsOrder.moved(full: full, visible: ["apple", "gone"], from: [0], to: 2) == full)
+
+    let savedCurrent = FavoriteSubredditsAccountContext.currentUsernameProvider
+    let savedAll = FavoriteSubredditsAccountContext.allUsernamesProvider
+    defer {
+        FavoriteSubredditsAccountContext.currentUsernameProvider = savedCurrent
+        FavoriteSubredditsAccountContext.allUsernamesProvider = savedAll
+        FavoriteSubredditsStore.setPerAccountEnabled(false)
+        for name in full + ["zoology"] { FavoriteSubredditsStore.setFavorite(name, isFavorite: false) }
+        for name in ["smokeone", "smoketwo"] {
+            UserDefaults.standard.removeObject(forKey: "com.pendo324.Phoebus.favoriteSubreddits.account.\(name)")
+        }
+    }
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { nil }
+    FavoriteSubredditsStore.setOrder(["Apple", "Swift", "Pics"])
+    FavoriteSubredditsStore.moveFavorites(visible: FavoriteSubredditsStore.loadOrdered(), from: [2], to: 0)
+    check("a saved move is what the store loads",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "apple", "swift"])
+    FavoriteSubredditsStore.setFavorite("Zoology", isFavorite: true)
+    check("a favorite added after a reorder goes last",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "apple", "swift", "zoology"])
+    FavoriteSubredditsStore.setFavorite("apple", isFavorite: false)
+    check("unfavoriting drops it from the order and keeps the rest",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "swift", "zoology"])
+    FavoriteSubredditsStore.setFavorite("apple", isFavorite: true)
+    check("favoriting it again puts it last, not back in its old place",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "swift", "zoology", "apple"])
+
+    let backedUp = SettingsDomainSnapshot.capture()
+    check("the order is part of a backup, as the favorites list itself",
+          backedUp["com.pendo324.Phoebus.favoriteSubreddits"]
+            == .array(["pics", "swift", "zoology", "apple"].map { .string($0) }))
+
+    let exported = try ApolloBackupImport.read(
+        zipData: RebornBackupArchive.make(defaults: .standard, accounts: nil, kagiToken: nil))
+    check("an exported backup file carries the saved order",
+          exported.preferences["com.pendo324.Phoebus.favoriteSubreddits"] as? [String]
+            == ["pics", "swift", "zoology", "apple"])
+
+    // A backup written before reordering existed carries the same array, so it restores as before.
+    FavoriteSubredditsStore.moveFavorites(visible: FavoriteSubredditsStore.loadOrdered(), from: [3], to: 0)
+    SettingsDomainSnapshot.restore(backedUp)
+    check("restoring a backup brings back the order it was saved with",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "swift", "zoology", "apple"])
+
+    SettingsDomainSnapshot.restore(backedUp.filter { !$0.key.hasPrefix("com.pendo324.Phoebus.favoriteSubreddits") })
+    check("a backup with no favorites in it leaves the saved order alone",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "swift", "zoology", "apple"])
+
+    // Per account: one account's drag leaves another's list alone.
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokeone" }
+    FavoriteSubredditsAccountContext.allUsernamesProvider = { ["smokeone", "smoketwo"] }
+    FavoriteSubredditsStore.setPerAccountEnabled(true)
+    FavoriteSubredditsStore.moveFavorites(visible: FavoriteSubredditsStore.loadOrdered(), from: [3], to: 0)
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smoketwo" }
+    check("another account keeps its own order",
+          FavoriteSubredditsStore.loadOrdered() == ["pics", "swift", "zoology", "apple"])
+    FavoriteSubredditsAccountContext.currentUsernameProvider = { "smokeone" }
+    check("the account that was reordered keeps the new order",
+          FavoriteSubredditsStore.loadOrdered() == ["apple", "pics", "swift", "zoology"])
+}
+
 // MARK: - Open in App / dedicated-app link routing
 
 // Host matching accepts subdomains of a claimed host.

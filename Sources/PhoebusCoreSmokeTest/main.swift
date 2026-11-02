@@ -858,6 +858,8 @@ try await checkQuarantineOptIn()
 
 try await checkSubredditSwitcherSheetResults()
 
+try await checkFavoritesReorder()
+
 try await checkOpenInAppDedicatedAppLink()
 
 try await checkThemeGalleryTokenCompilerApolloReborn()

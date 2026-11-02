@@ -119,8 +119,9 @@ public enum FavoriteSubredditsStore {
     }
 
     /// Favorites in Apollo's native order: the order they were
-    /// favorited, or the order of an imported backup's
-    /// `FavoriteSubreddits` array.
+    /// favorited (a new one goes last, an unfavorited one drops out),
+    /// dragged into place in Edit mode, or the order of an imported
+    /// backup's `FavoriteSubreddits` array.
     public static func loadOrdered() -> [String] {
         guard let array = UserDefaults.standard.stringArray(forKey: activeKey()) else { return [] }
         var seen = Set<String>()
@@ -151,6 +152,12 @@ public enum FavoriteSubredditsStore {
         let ordered = names.map { $0.lowercased() }.filter { seen.insert($0).inserted }
         let rest = loadOrdered().filter { !seen.contains($0) }
         UserDefaults.standard.set(ordered + rest, forKey: activeKey())
+    }
+
+    /// Edit-mode drag-to-reorder: saves the move in the active account's list.
+    public static func moveFavorites(visible: [String], from source: IndexSet, to destination: Int) {
+        let moved = FavoriteSubredditsOrder.moved(full: loadOrdered(), visible: visible, from: source, to: destination)
+        UserDefaults.standard.set(moved, forKey: activeKey())
     }
 
     private static let displayNamesKey = "com.pendo324.Phoebus.favoriteSubreddits.displayNames"

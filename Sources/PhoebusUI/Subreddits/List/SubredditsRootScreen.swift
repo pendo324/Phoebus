@@ -28,6 +28,9 @@ public struct SubredditsRootScreen: View {
 
     @State private var subscriptions: [RedditSubreddit] = []
     @State private var favorites: Set<String> = FavoriteSubredditsStore.load()
+    /// Bumped when Edit mode reorders Favorites: the set above does not change, but the
+    /// order read from the store has.
+    @State private var favoritesOrderRevision = 0
     /// Reborn Confirm Favorite Changes: the star tapped, awaiting confirmation.
     @State private var pendingFavoriteToggle: String?
     /// See `favoriteSubreddits`. Held in `@State` so toggling the
@@ -123,6 +126,7 @@ public struct SubredditsRootScreen: View {
         // Every favorite, subscribed or not (Apollo keeps favorites like
         // u_<you> or r/Randnsfw that are not subscriptions), in the
         // native order.
+        _ = favoritesOrderRevision
         let bySubscription = Dictionary(subscriptions.map { ($0.displayName.lowercased(), $0) }, uniquingKeysWith: { a, _ in a })
         let query = filterText.trimmingCharacters(in: .whitespaces)
         let matching = FavoriteSubredditsStore.loadOrdered()
@@ -280,6 +284,14 @@ public struct SubredditsRootScreen: View {
         names.move(fromOffsets: source, toOffset: destination)
         FollowedUsersOrderStore.save(names)
         $followedUsersOrder.binding.wrappedValue = names
+    }
+
+    /// Persists a drag inside the Favorites section. The rows on screen may be
+    /// narrowed by the filter field, so the move is applied to the stored list.
+    private func moveFavorites(from source: IndexSet, to destination: Int) {
+        FavoriteSubredditsStore.moveFavorites(
+            visible: favoriteSubreddits.map(\.displayName), from: source, to: destination)
+        favoritesOrderRevision += 1
     }
 
     /// The non-favorited subscriptions in A-Z sections, "#" last.
@@ -635,6 +647,10 @@ public struct SubredditsRootScreen: View {
                         }
                         favorites = FavoriteSubredditsStore.load()
                     }
+                    // Stock Apollo Edit mode also drags a favorite into place. A
+                    // list sorted A-Z has no hand order to change.
+                    .onMove(perform: moveFavorites)
+                    .moveDisabled(sortFavoritesAlphabetically)
                 }
                 // The ★ glyph's anchor.
                 .id(SubredditIndexTitle.favorites)

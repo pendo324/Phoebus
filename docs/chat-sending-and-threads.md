@@ -156,6 +156,64 @@ Parsing details that matter (`parseReactions`, `reactions`):
   edit event's id is folded away and a reaction attached to it renders
   nowhere.
 
+## 3a. Chat requests
+
+A chat request is a Matrix **room invite**. `/sync` lists it under
+`rooms.invite` (its state is `invite_state`, not `state`), and Reddit's
+`com.reddit.invites_counter` counts it. Apollo Reborn hosts Reddit's web
+chat and never answers a request natively; Reddit's own apps offer
+Accept, Ignore and Block (and Report). Phoebus has Accept, Decline and
+Block.
+
+- **Accept** is `POST /_matrix/client/v3/rooms/{id}/join` with `{}`.
+  **Decline** is `POST .../rooms/{id}/leave`, which for an invite is
+  Matrix's rejection. Both are idempotent (joining a joined room or
+  leaving a left one answers 200), so the 401 re-mint retry is safe
+  (`RedditChatClient.answerRequest`, `RedditRepository.sendChatRequestAnswer`).
+- **Block** is the account block (`/api/block_user` with the sender's
+  `t2_` id, `blockChatRequester`), run *before* the leave: if it fails the
+  request is untouched and the error says so. The sender is the inviter named
+  in the invite's `m.room.member` event (`ChatRoom.inviter`), else the one
+  other participant.
+- **Errors.** A 401 re-mints. A 403 or 404 that carries a Matrix `errcode`
+  (the invite was withdrawn) is the request's own rejection
+  (`ChatError.requestRejected`) and is never retried as a dead token; a 403
+  with no body still means a dead bearer, as elsewhere. `ChatRequests.failureMessage`
+  turns each into a sentence (offline, no longer available, rate limited, server
+  trouble).
+- **Optimistic.** `ChatLiveSync.answerRequest` asks `ChatSyncState` to apply the
+  answer first: an accepted request becomes a joined room (so it moves from
+  Requests to Messages) and a declined one disappears, and the request count
+  drops, which publishes to the Inbox badge (`InboxUnreadCount.chat` shows the
+  request count while nothing is unread). On failure the request is put back, the
+  count restored and the error rethrown for the screen. The count is Reddit's own
+  counter lowered locally, never recomputed from the invite list, because the two
+  differ (see modmail invites).
+- **A stale sync cannot undo it.** A `/sync` already in flight, or a list fetched
+  while the answer is outstanding, can still carry the old invite. While an
+  answer is outstanding, and for `ChatRequests.staleInviteShield` (30 s) after the
+  homeserver took it, invite entries for that room are ignored, and Reddit's counter
+  is only taken when it is lower than the local one. The sync that reports the join or the
+  leave ends the override, so a genuine later invite shows.
+- **No reply before accepting.** A user who has not joined cannot send into the
+  room, so `ChatRequests.canReply` is false for an invite and the conversation
+  shows the Accept bar in place of the composer. Nothing is sent, queued or
+  silently joined.
+- **What a request carries.** Observed against a live account: the invite is
+  only `invite_state` (create, join rules, the inviter's own `join`, an optional
+  name and `com.reddit.chat.type`, and the `invite` member event, which Reddit
+  lists twice) with no timeline, and `/messages` on the invited room answers 200
+  with an empty chunk. Neither the first message nor any history is available
+  before joining, so the request screen says who it is from and to accept to read
+  the message. The inviter is the `sender` of the `invite` event (also the room's
+  creator and the one `join` member), which is what `ChatRoom.inviter` holds.
+- **Modmail invites.** The invite list also holds invites to subreddit modmail
+  conversations (`com.reddit.chat.type` of `reddit_modmail`, for example a ban
+  notice). Reddit's request counter leaves them out (an account with one person's
+  request and one of these reported 1), so they do not move the optimistic count
+  (`ChatRequests.countsAsRequest`), do not offer Block (`canBlock`), and read as a
+  modmail notice rather than "wants to chat with you".
+
 ## 4. Threads
 
 Threads are reachable. The homeserver advertises
@@ -232,7 +290,8 @@ not its code. This is worth revisiting if Reddit ships sliding sync.
 |---|---|
 | Matrix client, sync parsing, send, threads, edits, reactions, receipts, typing, media | `Sources/PhoebusCore/Inbox/Chat/RedditChatClient.swift` |
 | Persistent ordered outbox | `Sources/PhoebusCore/Inbox/Chat/ChatSendQueue.swift` |
+| Answering requests (join, leave, errors, messages) | `Sources/PhoebusCore/Inbox/Chat/ChatRequests.swift`; optimistic state in `ChatLiveSync.swift` (`ChatSyncState`) |
 | Long-poll sync | `Sources/PhoebusCore/Inbox/Chat/ChatLiveSync.swift` (UI owner `Inbox/Chat/ChatLive.swift`) |
 | Reaction key set | `Sources/PhoebusCore/Inbox/Chat/RedditChatReactions.swift` |
 | Repository facade | `Sources/PhoebusCore/API/Repository/RedditRepository+Chat.swift` |
-| Screens | `Sources/PhoebusUI/Inbox/Chat/ChatListScreen.swift` (`ChatRoomScreen`) |
+| Screens | `Sources/PhoebusUI/Inbox/Chat/ChatListScreen.swift` (`ChatRoomScreen`, `ChatRequestBar`) |

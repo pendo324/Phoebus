@@ -740,6 +740,14 @@ Apollo or Reborn, add an entry here.
   Phoebus sends it to oauth.reddit.com with the account's web bearer, the
   way it sends the moderator endpoints. Reborn leaves compose on the
   cookie.
+- **Chat requests are answered in the app.** Reborn hosts Reddit's web
+  chat and leaves a request to its page; Apollo had no native chat. Phoebus
+  opens a request with Accept, Decline and Block. Reddit does not send the
+  first message before the request is accepted, so the screen says who it is from.
+  Accepting moves it to Messages and lowers the Inbox badge at once, and is
+  put back with the reason if Reddit refuses. Until it is accepted there is
+  no composer, only the Accept bar. Report is not offered. See
+  `docs/chat-sending-and-threads.md`.
 - **The Safari extension's mode is chosen in its popup.** Automatic, Ask
   or Off is set from the extension's toolbar popup, not in Settings.
 

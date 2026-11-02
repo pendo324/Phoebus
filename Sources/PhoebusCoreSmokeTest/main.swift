@@ -151,6 +151,7 @@ try await checkCommentFilters()
 
 try await checkCollapseFlattenLogic()
 try await checkThreadPositionMemory()
+try await checkCommentCollapseMemory()
 try await checkResumeWhereLeftOff()
 
 // --- "more" comment continuation stubs: threads show "N more replies" rows,

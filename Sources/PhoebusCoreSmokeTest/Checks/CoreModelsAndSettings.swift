@@ -1998,6 +1998,119 @@ private final class SmokeFriendsList: @unchecked Sendable {
           ThreadPositionStore.load(from: restored) == ThreadPositionStore.load(from: defaults))
 }
 
+// --- Collapse memory (collapsedComments) ---
+@MainActor func checkCommentCollapseMemory() async throws {
+    func thing(_ id: String, author: String = "u", replies: [String] = []) -> String {
+        let listing = replies.isEmpty ? "\"\"" : "{\"kind\":\"Listing\",\"data\":{\"children\":[\(replies.joined(separator: ","))]}}"
+        return """
+        {"kind":"t1","data":{"id":"\(id)","name":"t1_\(id)","author":"\(author)","body":"b","score":1,
+         "created_utc":0,"parent_id":"t3_x","link_id":"t3_x","saved":false,"score_hidden":false,
+         "stickied":false,"replies":\(listing)}}
+        """
+    }
+    // a > (b > c, d), e, mod (AutoModerator)
+    let json = "[" + [thing("a", replies: [thing("b", replies: [thing("c")]), thing("d")]), thing("e"),
+                       thing("mod", author: "AutoModerator")].joined(separator: ",") + "]"
+    let values = try JSONDecoder().decode([JSONValue].self, from: Data(json.utf8))
+    func tree(autoCollapse: Bool = false, autoModerator: Bool = false) -> [CommentTreeNode] {
+        CommentTreeBuilder.build(from: values, autoCollapse: autoCollapse, autoCollapseAutoModerator: autoModerator)
+    }
+    func collapsed(_ roots: [CommentTreeNode]) -> Set<String> {
+        Set(roots.flatMap { $0.flattenedAll() }.filter(\.isCollapsed).map(\.id))
+    }
+
+    check("nothing saved leaves the tree as built", tree().applyingCollapseChoices(nil) == tree())
+    let one = ThreadCollapseChoices(postID: "p1").choosing("b", collapsed: true)
+    check("a collapsed comment comes back collapsed", collapsed(tree().applyingCollapseChoices(one)) == ["b"])
+
+    let expandedMod = ThreadCollapseChoices(postID: "p1").choosing("mod", collapsed: false)
+    check("a comment the reader expanded stays expanded though Collapse AutoModerator would fold it",
+          collapsed(tree(autoModerator: true).applyingCollapseChoices(expandedMod)).isEmpty)
+    check("comments left alone still follow the auto-collapse setting",
+          collapsed(tree(autoCollapse: true, autoModerator: true).applyingCollapseChoices(expandedMod)) == ["b", "d"])
+    check("a changed setting applies to untouched comments (choices hold no auto results)",
+          collapsed(tree(autoModerator: true).applyingCollapseChoices(one)) == ["b", "mod"])
+
+    let rechosen = one.choosing("b", collapsed: false)
+    check("choosing a comment again replaces and moves its choice",
+          rechosen.choices == [CollapseChoice(id: "b", collapsed: false)])
+    check("collapsedState reads the tree", tree().collapsedState(of: "c") == false
+          && tree().applyingCollapseChoices(one).collapsedState(of: "b") == true
+          && tree().collapsedState(of: "zz") == nil)
+
+    // Collapse/Expand Child Comments: replies only, top-level comments keep their own choice.
+    let bulk = ThreadCollapseChoices(postID: "p1").choosing("a", collapsed: true).choosing("c", collapsed: false)
+        .choosingAllReplies(true, topLevelIDs: ["a", "e", "mod"])
+    check("a bulk collapse drops the replies' own choices and keeps the top-level ones",
+          bulk.allReplies == true && bulk.choices == [CollapseChoice(id: "a", collapsed: true)])
+    check("a bulk collapse folds every reply, not the top-level comments left expanded",
+          collapsed(tree().applyingCollapseChoices(bulk)) == ["a", "b", "c", "d"])
+    check("replies loaded later skip the bulk collapse",
+          collapsed(tree().applyingCollapseChoices(bulk, includingAllReplies: false)) == ["a"])
+    let reopened = bulk.choosing("d", collapsed: false)
+    check("a comment expanded after the bulk collapse stays open",
+          collapsed(tree().applyingCollapseChoices(reopened)) == ["a", "b", "c"])
+
+    let linked = tree().applyingCollapseChoices(
+        ThreadCollapseChoices(postID: "p1").choosing("a", collapsed: true).choosing("b", collapsed: true)
+            .choosing("d", collapsed: true), focusedCommentID: "t1_c")
+    check("a linked comment and its ancestors are never collapsed by memory", collapsed(linked) == ["d"])
+
+    let capped = (0..<(ThreadCollapseChoices.maxChoices + 5)).reduce(ThreadCollapseChoices(postID: "p1")) {
+        $0.choosing("c\($1)", collapsed: true)
+    }
+    check("choices per thread are bounded, evicting the oldest",
+          capped.choices.count == ThreadCollapseChoices.maxChoices && capped.choices.first?.id == "c5"
+            && capped.choices.last?.id == "c\(ThreadCollapseChoices.maxChoices + 4)")
+
+    // Persistence: per thread, per account, bounded.
+    let suite = "phoebus.smoke.collapseMemory"
+    let defaults = UserDefaults(suiteName: suite)!
+    defaults.removePersistentDomain(forName: suite)
+    defer { defaults.removePersistentDomain(forName: suite) }
+    CommentCollapseStore.record(postID: "p1", commentID: "b", collapsed: true, username: "Alice", in: defaults)
+    CommentCollapseStore.record(postID: "p1", commentID: "mod", collapsed: false, username: "Alice", in: defaults)
+    check("a thread's choices read back", CommentCollapseStore.choices(postID: "p1", username: "alice", in: defaults)?.choices
+          == [CollapseChoice(id: "b", collapsed: true), CollapseChoice(id: "mod", collapsed: false)])
+    check("another thread has none", CommentCollapseStore.choices(postID: "p2", username: "alice", in: defaults) == nil)
+    check("another account has none", CommentCollapseStore.choices(postID: "p1", username: "bob", in: defaults) == nil)
+    check("signed out is its own bucket", CommentCollapseStore.choices(postID: "p1", username: .some(nil), in: defaults) == nil)
+    CommentCollapseStore.recordAllReplies(postID: "p1", collapsed: true, topLevelIDs: ["a"], username: "alice", in: defaults)
+    check("a bulk choice is stored with the thread",
+          CommentCollapseStore.choices(postID: "p1", username: "alice", in: defaults)?.allReplies == true)
+    CommentCollapseStore.record(postID: "", commentID: "b", collapsed: true, username: "alice", in: defaults)
+    check("a thread without an id records nothing",
+          CommentCollapseStore.choices(postID: "", username: "alice", in: defaults) == nil)
+
+    for index in 0..<(CommentCollapseStore.threadCapacity + 3) {
+        CommentCollapseStore.record(postID: "t\(index)", commentID: "x", collapsed: true, username: "carol", in: defaults)
+    }
+    check("threads are bounded, evicting the least recently changed",
+          CommentCollapseStore.choices(postID: "t0", username: "carol", in: defaults) == nil
+            && CommentCollapseStore.choices(postID: "t2", username: "carol", in: defaults) == nil
+            && CommentCollapseStore.choices(postID: "t3", username: "carol", in: defaults) != nil
+            && CommentCollapseStore.choices(postID: "t\(CommentCollapseStore.threadCapacity + 2)", username: "carol", in: defaults) != nil)
+
+    // Backed up with the other per-thread memory (thread positions).
+    check("collapse choices are in a settings backup", SettingsDomainSnapshot.isBackedUp("com.pendo324.Phoebus.collapsedComments"))
+    let snapshot = SettingsDomainSnapshot.capture(from: defaults)
+    let decoded = try JSONDecoder().decode([String: JSONValue].self, from: try JSONEncoder().encode(snapshot))
+    let restoreSuite = "phoebus.smoke.collapseMemoryRestore"
+    let restored = UserDefaults(suiteName: restoreSuite)!
+    restored.removePersistentDomain(forName: restoreSuite)
+    defer { restored.removePersistentDomain(forName: restoreSuite) }
+    SettingsDomainSnapshot.restore(decoded, into: restored)
+    check("collapse choices survive a backup round trip",
+          CommentCollapseStore.choices(postID: "p1", username: "alice", in: restored)
+            == CommentCollapseStore.choices(postID: "p1", username: "alice", in: defaults)
+            && CommentCollapseStore.choices(postID: "p1", username: "alice", in: restored) != nil)
+
+    CommentCollapseStore.clear(username: "alice", in: defaults)
+    check("clearing forgets one account's choices and keeps the others",
+          CommentCollapseStore.choices(postID: "p1", username: "alice", in: defaults) == nil
+            && CommentCollapseStore.choices(postID: "t10", username: "carol", in: defaults) != nil)
+}
+
 // --- Resume Where I Left Off (resumeSettings / resumeState) ---
 @MainActor func checkResumeWhereLeftOff() async throws {
     let now = Date(timeIntervalSince1970: 1_800_000_000)

@@ -1497,6 +1497,8 @@ try await checkScrollReturnOffersPerScreen()
 
 try await checkTabReselectScrollPolicyReborn1360()
 
+try await checkCommentInteractionPolicy()
+
 // Last: it prints the pass/fail verdict and exits.
 
 try await checkAutomaticBackupsReborn371()
@@ -1652,6 +1654,8 @@ try await checkListingPaging()
 try await checkRefusedPagesFailTheLoad()
 
 try await checkCommentLoadsSurviveRateLimitBodies()
+
+try await checkCommentInteractionPolicy()
 
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

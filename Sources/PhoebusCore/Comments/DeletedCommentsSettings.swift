@@ -66,6 +66,15 @@ public enum DeletedCommentsClassifier {
         return exactMatches.contains(trimmed)
     }
 
+    /// Reddit's own placeholders for a comment it no longer shows, matched
+    /// exactly. Unlike `bodyLooksDeletedOrRemoved`, which also catches the
+    /// wording archives use, a live comment that merely says "removed" or
+    /// is empty is not one, so this is what takes actions away.
+    public static func bodyIsRedditPlaceholder(_ body: String) -> Bool {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return trimmed == "[deleted]" || trimmed == "[removed]" || trimmed == "[ removed by reddit ]"
+    }
+
     /// Reborn's `ReasonForCurrentBody`: Reddit's own placeholder says
     /// "[deleted]" (or "user deleted comment") only when the author
     /// deleted it; anything else is a removal.

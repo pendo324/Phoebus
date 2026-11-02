@@ -368,7 +368,7 @@ final class CommentTreeStore: ObservableObject {
             lastSubreddit = subreddit
             lastPostID = postID
             lastSort = sort
-            roots = cached.roots
+            roots = cached.roots.applyingCollapseChoices(savedCollapseChoices(), focusedCommentID: focusedCommentID)
             rootMoreStub = cached.moreStub
             postDuplicateCount = cached.duplicateCount
             errorMessage = nil
@@ -528,17 +528,25 @@ final class CommentTreeStore: ObservableObject {
             ContentFilterStore.load().filter { $0.kind == .author }.map { $0.value.lowercased() })
     }
 
-    /// Blocked users, then the Comment Rules, on freshly built comments.
-    private func filtered(_ nodes: [CommentTreeNode]) -> [CommentTreeNode] {
+    /// Blocked users, then the Comment Rules, then the reader's own collapse
+    /// choices (which win over both), on freshly built comments.
+    private func filtered(_ nodes: [CommentTreeNode], includingAllReplies: Bool = true) -> [CommentTreeNode] {
         nodes.applyingBlockedUsers(blockedAuthors(), hide: GeneralSettingsStore.load().hideBlockedUserComments)
             .applyingCommentFilters(CommentFilterStore.load(), subreddit: lastSubreddit,
                                     ownUsername: FavoriteSubredditsAccountContext.currentUsernameProvider(),
                                     focusedCommentID: focusedCommentID)
+            .applyingCollapseChoices(savedCollapseChoices(), includingAllReplies: includingAllReplies,
+                                     focusedCommentID: focusedCommentID)
+    }
+
+    private func savedCollapseChoices() -> ThreadCollapseChoices? {
+        CommentCollapseStore.choices(postID: lastPostID)
     }
 
     /// Collapses or expands every comment's children at once.
     /// Backs the post menu's "Collapse Child Comments" row.
     func setAllChildrenCollapsed(_ collapsed: Bool) {
+        CommentCollapseStore.recordAllReplies(postID: lastPostID, collapsed: collapsed, topLevelIDs: Set(roots.map(\.id)))
         CommentCollapseAnimation.perform(revealsRow: false) {
             roots = roots.map { $0.settingChildrenCollapsed(collapsed) }
         }
@@ -576,6 +584,9 @@ final class CommentTreeStore: ObservableObject {
     }
 
     func toggleCollapse(_ node: CommentTreeNode) {
+        if let wasCollapsed = roots.collapsedState(of: node.id) {
+            CommentCollapseStore.record(postID: lastPostID, commentID: node.id, collapsed: !wasCollapsed)
+        }
         CommentCollapseAnimation.perform {
             rowGeneration[node.id, default: 0] += 1
             roots = roots.map { $0.togglingCollapse(id: node.id) }
@@ -638,7 +649,7 @@ final class CommentTreeStore: ObservableObject {
             }
             // Reborn "Load more replies smoothly" (#1358): the new rows fade in
             // instead of popping, and the rows below slide.
-            let revealed = filtered(built.roots)
+            let revealed = filtered(built.roots, includingAllReplies: false)
             withAnimation(.easeOut(duration: 0.3)) {
                 if rootMoreStub?.id == stub.id {
                     roots.append(contentsOf: revealed)
@@ -686,7 +697,7 @@ final class CommentTreeStore: ObservableObject {
                 roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: []) }
                 return
             }
-            let visible = filtered(revealed)
+            let visible = filtered(revealed, includingAllReplies: false)
             warmBodies(visible, replacingTree: false)
             withAnimation(.easeOut(duration: 0.3)) {
                 roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: visible) }

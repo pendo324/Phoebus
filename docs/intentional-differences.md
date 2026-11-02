@@ -568,6 +568,17 @@ Apollo or Reborn, add an entry here.
   Remember). A comment link opens at its comment instead, and Live sort
   never restores. Neither Apollo nor Reborn has this; it is inspired by
   Continuum's comment thread continuity.
+- **Threads remember what you collapsed and expanded.** Reopening a
+  thread (back, another post, or later) shows the comments you collapsed
+  collapsed, and the ones you expanded expanded, even where Auto Collapse
+  Child Comments, Collapse Pinned Comments, Collapse AutoModerator Comments
+  or a Comment Rule would fold them. Only your own taps are kept, so
+  changing an Auto Collapse setting still applies to comments you left
+  alone. The last 50 threads per account are kept, 150 comments each.
+  Apollo's `CollapsedCommentsTracker` holds collapsed comment ids per post
+  but has no `UserDefaults` key in the stock binary, and Reborn adds none,
+  so there is no stock key or setting; Phoebus has no switch for this
+  either.
 - **A cold launch can pick up where you left off.** With General > Other >
   Resume Where I Left Off on (off by default), the app reopens the tab you
   were on, the Posts tab's feed scrolled back to the post you'd reached,

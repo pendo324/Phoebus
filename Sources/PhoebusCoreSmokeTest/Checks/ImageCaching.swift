@@ -73,3 +73,52 @@ private actor Counter {
     check("a missing account is remembered as having no avatar", goneFresh && goneURL == nil)
     await avatars.clear()
 }
+
+@MainActor func checkInFlightCoalescer() async throws {
+    struct Failed: Error {}
+    let coalescer = InFlightCoalescer<String, Int>()
+
+    let runs = Counter()
+    let results = await withTaskGroup(of: Int?.self) { group -> [Int?] in
+        for _ in 0..<100 {
+            group.addTask { try? await coalescer.value(for: "a") { await runs.hit(); try await Task.sleep(nanoseconds: 100_000_000); return 7 } }
+        }
+        var all: [Int?] = []
+        for await result in group { all.append(result) }
+        return all
+    }
+    let aRuns = await runs.count
+    check("100 concurrent callers for one key run the work once and all get its result", aRuns == 1 && results.count == 100 && results.allSatisfy { $0 == 7 })
+
+    let other = try await coalescer.value(for: "b") { await runs.hit(); return 9 }
+    let afterB = await runs.count
+    check("another key runs its own work", other == 9 && afterB == 2)
+
+    let again = try await coalescer.value(for: "a") { await runs.hit(); return 8 }
+    let afterAgain = await runs.count
+    check("a finished key is not kept: the next caller runs the work again", again == 8 && afterAgain == 3)
+
+    let failing = Counter()
+    do {
+        _ = try await coalescer.value(for: "f") { await failing.hit(); throw Failed() }
+        check("a throwing run reaches its caller", false)
+    } catch {
+        check("a throwing run reaches its caller", error is Failed)
+    }
+    let retried = try await coalescer.value(for: "f") { await failing.hit(); return 1 }
+    let failingRuns = await failing.count
+    check("a failed run is not retained: the next caller retries and succeeds", retried == 1 && failingRuns == 2)
+
+    // A caller cancelled while waiting stops waiting but leaves the shared work to the rest.
+    let slow = Counter()
+    let first = Task { try await coalescer.value(for: "c") { await slow.hit(); try await Task.sleep(nanoseconds: 200_000_000); return 5 } }
+    try await Task.sleep(nanoseconds: 30_000_000)
+    let second = Task { try await coalescer.value(for: "c") { await slow.hit(); return 6 } }
+    try await Task.sleep(nanoseconds: 30_000_000)
+    first.cancel()
+    let survivor = try await second.value
+    let slowRuns = await slow.count
+    check("cancelling the caller that started the work does not cancel it for the others", survivor == 5 && slowRuns == 1)
+    let idle = await coalescer.runningCount
+    check("nothing is left running once the work ends", idle == 0)
+}

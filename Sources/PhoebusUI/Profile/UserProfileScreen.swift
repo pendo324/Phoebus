@@ -808,12 +808,7 @@ private struct BlurredAvatarBackdrop: View {
     }
 
     private static func blurred(_ url: URL) async -> UIImage? {
-        var data = await ImageCache.shared.data(for: url)
-        if data == nil, let (fetched, _) = try? await URLSession.shared.data(from: url) {
-            data = fetched
-            await ImageCache.shared.store(fetched, for: url)
-        }
-        guard let data else { return nil }
+        guard let data = await MediaBytes.data(for: url) else { return nil }
         return await Task.detached(priority: .userInitiated) { () -> UIImage? in
             guard let input = CIImage(data: data) else { return nil }
             let blurred = input.clampedToExtent().applyingGaussianBlur(sigma: 22).cropped(to: input.extent)

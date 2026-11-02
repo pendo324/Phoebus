@@ -183,30 +183,13 @@ public struct CachedAsyncImage: View {
         if let cached = DecodedImageCache.shared.image(for: effectiveURL, target: downsampleTarget) {
             return .success(cached)
         }
-        var bytes = await ImageCache.shared.data(for: effectiveURL)
-        if bytes == nil {
-            do {
-                let (fetched, response) = try await URLSession.shared.data(from: effectiveURL)
-                // Never cache an error page: a 403/404 body or an HTML
-                // bot wall would otherwise sit in the cache and fail to
-                // decode on every later appearance.
-                if let http = response as? HTTPURLResponse {
-                    let type = http.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
-                    guard (200..<300).contains(http.statusCode), !type.hasPrefix("text/") else {
-                        return .failure(LoadFailed())
-                    }
-                }
-                await ImageCache.shared.store(fetched, for: effectiveURL)
-                bytes = fetched
-            } catch {
-                if (error as? URLError)?.code == .cancelled || error is CancellationError || Task.isCancelled {
-                    return nil
-                }
-                return .failure(LoadFailed())
-            }
+        // One request per URL however many rows ask at once, never caching an
+        // error page; a fetch that failed because this row was cancelled is
+        // not a failure.
+        guard let bytes = await MediaBytes.data(forProxied: effectiveURL) else {
+            return Task.isCancelled ? nil : .failure(LoadFailed())
         }
-        guard let bytes,
-              let decoded = await PlatformImage.displayReady(bytes, for: effectiveURL, target: downsampleTarget,
+        guard let decoded = await PlatformImage.displayReady(bytes, for: effectiveURL, target: downsampleTarget,
                                                             screenPixelWidth: screenPixelWidth)
         else { return .failure(LoadFailed()) }
         return .success(decoded)

@@ -365,6 +365,8 @@ try await checkAvatarCacheApolloRebornShowUser()
 
 try await checkProfileLookupFailures()
 
+try await checkInFlightCoalescer()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

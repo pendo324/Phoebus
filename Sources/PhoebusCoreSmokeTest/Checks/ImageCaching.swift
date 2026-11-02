@@ -145,3 +145,66 @@ private actor Counter {
           && InboxAvatarPolicy.avatarUsername(forChatTitle: "t2_abc123") == nil
           && InboxAvatarPolicy.avatarUsername(forChatTitle: "Conversation") == nil)
 }
+
+private func subreddit(_ name: String, icon: String? = nil, community: String? = nil) throws -> RedditSubreddit {
+    var json: [String: Any] = ["name": "t5_\(name)", "display_name": name, "title": name]
+    if let icon { json["icon_img"] = icon }
+    if let community { json["community_icon"] = community }
+    return try JSONDecoder().decode(RedditSubreddit.self, from: JSONSerialization.data(withJSONObject: json))
+}
+
+@MainActor func checkSubredditIconCache() async throws {
+    let cache = SubredditIconCache()
+    let fetches = Counter()
+
+    // Rows of one subreddit that ask together share a single /about.
+    let infos = await withTaskGroup(of: String?.self) { group -> [String?] in
+        for _ in 0..<20 {
+            group.addTask {
+                try? await cache.info(for: "Anime") {
+                    await fetches.hit(); try await Task.sleep(nanoseconds: 100_000_000)
+                    return try subreddit("anime", icon: "https://x/classic.png?a=1&amp;b=2", community: "https://x/community.png")
+                }.displayName
+            }
+        }
+        var all: [String?] = []
+        for await name in group { all.append(name) }
+        return all
+    }
+    let fetchCount = await fetches.count
+    check("twenty rows of one subreddit make one /about", fetchCount == 1 && infos.allSatisfy { $0 == "anime" })
+    let known = await cache.lookup("anime")
+    check("the answer's icons are remembered, with &amp; fixed, for both icon settings",
+          known?.url(useCommunityIcons: false) == "https://x/classic.png?a=1&b=2" && known?.url(useCommunityIcons: true) == "https://x/community.png")
+
+    // The header's /about teaches the cache what the icon view would have fetched.
+    _ = try await cache.info(for: "Headered") { try subreddit("Headered", community: "https://x/h.png") }
+    let header = await cache.lookup("headered")
+    check("a fetch for the feed header seeds the icon", header?.url(useCommunityIcons: true) == "https://x/h.png")
+
+    // Seeding from the subscription list does not overwrite a live answer.
+    await cache.seed(from: [try subreddit("anime", icon: "https://x/stale.png"), try subreddit("fresh", icon: "https://x/fresh.png")])
+    let afterSeed = await cache.lookup("anime")
+    let seeded = await cache.lookup("fresh")
+    check("seeding fills unknown subreddits and leaves known ones alone",
+          afterSeed?.url(useCommunityIcons: true) == "https://x/community.png" && seeded?.url(useCommunityIcons: false) == "https://x/fresh.png")
+
+    // A private or banned subreddit is remembered as having no icon for five minutes; a blip is not.
+    let now = Date()
+    let gone = Counter()
+    for _ in 0..<2 {
+        _ = try? await cache.info(for: "banned", now: now) { await gone.hit(); throw RedditAPIError.httpError(status: 403, body: "") }
+    }
+    let missing = await cache.lookup("banned", now: now.addingTimeInterval(60))
+    check("a subreddit Reddit refuses is remembered as having no icon",
+          missing == SubredditIconCache.Icons(classic: nil, community: nil))
+    let expired = await cache.lookup("banned", now: now.addingTimeInterval(SubredditIconCache.missRetryDelay + 1))
+    check("...for five minutes, then asked again", expired == nil)
+    _ = try? await cache.info(for: "offline", now: now) { throw URLError(.notConnectedToInternet) }
+    let blip = await cache.lookup("offline", now: now)
+    check("a failed connection is not remembered as a subreddit without an icon", blip == nil)
+
+    await cache.removeAll()
+    let cleared = await cache.lookup("anime")
+    check("removeAll forgets every subreddit", cleared == nil)
+}

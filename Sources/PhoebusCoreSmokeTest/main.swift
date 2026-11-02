@@ -371,6 +371,8 @@ try await checkHTTPCacheLimits()
 
 try await checkInboxAvatarPolicy()
 
+try await checkSubredditIconCache()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

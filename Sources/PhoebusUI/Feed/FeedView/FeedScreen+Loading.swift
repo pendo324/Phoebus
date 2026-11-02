@@ -77,7 +77,11 @@ extension FeedScreen {
         guard !subreddit.isEmpty else { return }
         // One fetch also backs the Subreddit Layout header (banner, subscriber
         // count, Join button).
-        let info = try? await repository.fetchSubredditInfo(name: subreddit)
+        // Through the icon cache, so the header's icon shares this request.
+        let repository = repository, subreddit = subreddit
+        let info = try? await SubredditIconCache.shared.info(for: subreddit) {
+            try await repository.fetchSubredditInfo(name: subreddit)
+        }
         isModerator = info?.userIsModerator == true
         subredditInfo = info
     }

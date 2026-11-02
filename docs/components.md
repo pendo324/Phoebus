@@ -17,6 +17,7 @@ Companion docs: [gestures.md](gestures.md) (swipe internals) and
 - Component tables: [1 shell](#1-app-shell-and-navigation), [2 feeds](#2-feeds-and-subreddits), [3 comments](#3-post-detail-and-comments), [4 media](#4-media-viewers-and-services), [5 social](#5-social-inbox-chat-modmail-moderation-profile-auth), [6 settings](#6-settings), [7 extensions](#7-extensions-and-shared)
 - [Settings each area reads](#settings-each-area-reads)
 - [Persistence map](#persistence-map)
+- [Image pipeline and caches](#image-pipeline-and-caches)
 - [Notification bus](#notification-bus)
 - [Recipes](#recipes): add a setting, a settings screen, a pushing screen, a swipe action, a Reborn import key
 - [Pitfalls index](#pitfalls-index)
@@ -363,7 +364,7 @@ flowchart LR
 | Image menu | UI `PressAnchoredImageMenu` | Long-press image menu anchored at the press point | |
 | Hosts | Core `RedGifsClient`, `ImgurClient`, `ImgChestClient`, `GiphyClient`, `StreamableClient`, `VimeoURLParser`, `ImgflipURLParser`, `YouTubeURLParser`, `YouTubeEmbed`, `YouTubePlayback`, `SteamURLParser`, `TweetClient`, `OpenGraphClient`, `LinkPreviewCache`, `SportsClipHost`, `RedditVideoStream`, `RedditMediaUploadClient` | Third-party media resolution and uploads. `RedGifsClient` throws `RedGifsError` (deleted, not found, region-blocked, HTTP status, unreachable, image) and `RedGifsVideoView` shows its message, as Reborn's RedGIFs failure cards do (#1359) | |
 | Inline media | Core `InlineMediaDetector`, `InlineMediaSettings`, `LinkPreviewSettings`, `LinkCardLimit`, `DevvitPostDetector` | Reborn inline media in bodies, rich link previews, Devvit detection | Phoebus-only Maximum Cards (`LinkPreviewSettings.maxCards`, default 5): `InlineMediaBodyView` shows the first N link cards and a "Show N more previews" row; media never hidden. See intentional-differences |
-| Avatars | UI `AvatarView`, `ProfileTabAvatar`; Core `AvatarCache`, `AccountAgeCache` | Circular/rounded avatars per Shared Profile Picture Shape (#1136), cached | |
+| Avatars | UI `AvatarView`, `ProfileTabAvatar`; Core `AvatarCache`, `AccountAgeCache`, `UserProfileSnapshotCache`, `ProfileLookupFailure`, `InboxAvatarPolicy` | Circular/rounded avatars per Shared Profile Picture Shape (#1136), cached | One `/about` per author serves both the avatar and the NEW badge (`UserProfileSnapshotCache`); only a missing account (403/404/410) is cached as "no avatar", never a failed connection or 429. See "Image pipeline and caches". |
 | Audio | Core `VideoAudioSession`; UI `Haptics` | Audio session hand-over, haptics matching Apollo's | |
 | Feed video sound | UI `FeedVideoSound` | Only one feed video audible at a time (Reborn #1250) | |
 | Archive | UI `ArchiveImageTombstone` | Reborn "image removed" check for Hidden & Deleted media | |
@@ -601,8 +602,35 @@ State (not settings), same mechanism:
 
 Outside `UserDefaults`: credentials in the keychain
 (`KeychainCredentialStore`), widget data in the App Group container
-(`SharedFeedCache`), image/video caches in memory (`CachedAsyncImage`,
-`VideoPlayerCache`, `AvatarCache`, `LinkPreviewCache`).
+(`SharedFeedCache`), downloaded pictures in the HTTP cache (`URLCache.shared`,
+`Library/Caches`) and in memory (`ImageCache`, `DecodedImageCache`), lookups in
+memory (`AvatarCache`, `AccountAgeCache`, `SubredditIconCache`,
+`LinkPreviewCache`, `VideoPlayerCache`); see "Image pipeline and caches".
+
+## Image pipeline and caches
+
+```
+row ─► CachedAsyncImage ─► DecodedImageCache  (NSCache, 96 MB, key "<url>#<target>")
+                       └─► MediaBytes ─► ImageCache (NSCache, 64 MB of bytes, key URL)
+                                     └─► InFlightCoalescer ─► URLSession.shared ─► URLCache.shared
+```
+
+| Layer | Where | Limit | Cleared by |
+|---|---|---|---|
+| HTTP cache | `URLCache.shared`, set first thing in `PhoebusApp.init` from Core `HTTPCacheLimits`; `Library/Caches/<bundle id>/Cache.db` | 32 MB memory, 256 MB disk (the OS default is 512 KB / 10 MB). Reddit's image hosts send `max-age` or `Expires` headers and its API answers are `no-store`, so only pictures and previews land here | Clear Cache, Clear Artwork & Previews |
+| Image bytes | `ImageCache` | 64 MB, emptied on a memory warning | same |
+| Decoded images | `DecodedImageCache`, keyed `url#target` so one picture's sizes coexist | 96 MB, emptied on a memory warning | same |
+| Avatar URLs | `AvatarCache` (username to URL; the thread's batch `user_data_by_account_ids` fills it) | 1 h, per launch | same |
+| Account age | `AccountAgeCache` | 1 h, per launch | same |
+| Subreddit icons | Core `SubredditIconCache` (seeded from the persisted subscription list) | per launch; a subreddit Reddit refuses is "no icon" for 5 min | same |
+| Custom banners and icons | `SubredditCustomArtStore`: photos in Application Support, a set of their file names, decoded copies in memory | user data; memory copies dropped on a memory warning | Clear Cache drops the memory copies only; Clear Banners & Icons removes the photos |
+
+- **One request per URL.** `MediaBytes.data(forProxied:)` is the only way bytes are fetched (`CachedAsyncImage`, the prefetcher, viewers, share cards, the profile backdrop). It goes through Core `InFlightCoalescer`, so rows asking for one URL together share a request; the work runs in its own task, so a row that scrolls away stops waiting without cancelling it, and nothing is kept once it ends.
+- **Only a real miss is cached.** `ProfileLookupFailure` sorts a failed `/about` into missing account (403/404/410, cached), rate limited (429), cancelled and transient (neither cached). The account-age lookup stands down during `RedditRateLimitHold` like the avatar one. A refused subreddit `/about` is "no icon" for 5 minutes (`SubredditIconCache.info(for:fetch:)`, which also lets the feed header's own `/about` feed the icons). HTTP error bodies and `text/*` are never stored as images.
+- **Downsampling.** `ImageDownsampleTarget` (Core) is a decode size: `.screenWidth` (default), `.none` (viewers), `.pixelWidth` (awards, gallery tiles) and `.avatar(pointSize:scale:)`. `AvatarView` decodes at its own size times the screen scale; the profile header asks for its 96pt target, decoded from the same bytes with no second request. A picture already smaller than a `pixelWidth` target is not scaled up. Reddit's signed `?width=&s=` URLs cannot be rewritten to a smaller size (HTTP 403), so downsampling is on the device.
+- **Placeholders.** `CachedAsyncImage` reserves 200pt for its spinner by default; `placeholderHeight: nil` (avatars, flair emoji) draws a plain tile in the slot instead.
+- **Who fetches `/about`.** Avatars and the NEW badge go through `UserProfileSnapshotCache`: the first to ask fetches once, concurrent callers share it, and it fills `AvatarCache` and `AccountAgeCache` (a picture the batch lookup supplied is not swapped). The inbox draws an avatar only for a real username (`InboxAvatarPolicy`). Compact feed rows, moderator lists and "more replies" still look authors up one by one.
+- **What Clear Cache does** (`CacheClearing`): both Clear Cache and Clear Artwork & Previews empty everything in the table; Clear Cache also empties the temp folder. The Data & Storage footer and the What Phoebus Keeps on Disk note quote the disk size from `HTTPCacheLimits`.
 
 ## Notification bus
 

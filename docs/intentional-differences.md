@@ -434,7 +434,12 @@ Apollo or Reborn, add an entry here.
   into Data & Storage's Clear Cache row, which asks what to clear (the
   app cache, only artwork and previews, or the in-app browser's cache)
   before it does. Sign Out and Clear Banners & Icons ask first too.
-  Export Debug Logs does not: it only opens the share sheet.
+  Export Debug Logs does not: it only opens the share sheet. The Storage
+  footer reads "Maximum of around 256 MB." where Apollo's reads 200 MB,
+  because that is the size of the picture cache Phoebus keeps
+  (`HTTPCacheLimits`), and What Phoebus Keeps on Disk adds a line under
+  its listing saying where the pictures are and that Clear Cache empties
+  them.
 
 - **There is no Anonymous Install Count switch.** Reborn's switch turns
   off its install heartbeat; Phoebus sends none, so the switch changed

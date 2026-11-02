@@ -153,7 +153,8 @@ public struct InboxCategoryScreen: View {
                                 unreadOverrides[message.name] = false
                             }
                         }
-                        .apolloSwipeActions(settings: swipeSettings, subject: subject(for: message)) { action in
+                        .apolloSwipeActions(settings: CommentInteractionPolicy(author: message.author, body: message.body).restricting(swipeSettings),
+                                            subject: subject(for: message)) { action in
                             Task { await handleSwipeAction(action, on: message) }
                         }
                         .apolloHidesDisclosureIndicator()
@@ -164,7 +165,8 @@ public struct InboxCategoryScreen: View {
                                onMarkedRead: { unreadOverrides[message.name] = false }) { sub, postID, commentID in
                         commentTarget = InboxCommentTarget(subreddit: sub, postID: postID, commentID: commentID)
                     }
-                        .apolloSwipeActions(settings: swipeSettings, subject: subject(for: message)) { action in
+                        .apolloSwipeActions(settings: CommentInteractionPolicy(author: message.author, body: message.body).restricting(swipeSettings),
+                                            subject: subject(for: message)) { action in
                             Task { await handleSwipeAction(action, on: message) }
                         }
                         .accessibilityIdentifier("inbox.messageRow.\(message.name)")
@@ -369,6 +371,8 @@ public struct InboxCategoryScreen: View {
     /// marked unread again.
     private func handleSwipeAction(_ action: SwipeAction, on message: RedditMessage) async {
         if [.upvote, .downvote, .save].contains(action), !message.wasComment { return }
+        // A reply or message whose text was deleted or removed takes no vote, reply or save.
+        guard CommentInteractionPolicy(author: message.author, body: message.body).allows(swipe: action) else { return }
         await ContentActions.perform(action, on: VotableRef(name: message.name), repository: repository,
                                      hooks: SwipeActionHooks(
             onReply: { swipeReplyTarget = message },
@@ -550,6 +554,8 @@ struct MessageRow: View {
     @State private var isSubmittingReply = false
     @State private var showingTagEditor = false
 
+    private var interaction: CommentInteractionPolicy { CommentInteractionPolicy(author: message.author, body: message.body) }
+
     init(message: RedditMessage, repository: RedditRepository, isNew: Bool, parentBody: String? = nil,
          onMarkedRead: @escaping () -> Void = {},
          onOpenComment: ((String, String, String) -> Void)? = nil) {
@@ -638,10 +644,12 @@ struct MessageRow: View {
         }
         // Mirrors Apollo's CopyMessageTextActivity.
         .contextMenu {
-            Button {
-                PasteboardHelper.copy(message.body)
-            } label: {
-                Label("Copy Text", systemImage: "doc.on.doc")
+            if interaction.allows(.copyText) {
+                Button {
+                    PasteboardHelper.copy(message.body)
+                } label: {
+                    Label("Copy Text", systemImage: "doc.on.doc")
+                }
             }
         }
         .userTagEditor(isPresented: $showingTagEditor, username: message.author)
@@ -670,14 +678,18 @@ struct MessageRow: View {
                 .layoutPriority(-1)
             Spacer(minLength: 8)
             Menu {
-                Button { showingReply.toggle() } label: {
-                    Label("Reply", systemImage: "arrowshape.turn.up.left")
+                if interaction.allows(.reply) {
+                    Button { showingReply.toggle() } label: {
+                        Label("Reply", systemImage: "arrowshape.turn.up.left")
+                    }
                 }
-                Button { PasteboardHelper.copy(message.body) } label: {
-                    Label("Copy Text", systemImage: "doc.on.doc")
+                if interaction.allows(.copyText) {
+                    Button { PasteboardHelper.copy(message.body) } label: {
+                        Label("Copy Text", systemImage: "doc.on.doc")
+                    }
                 }
                 // Phoebus-only user tags (`UserTags`).
-                if !message.author.isEmpty, message.author != "[deleted]" {
+                if interaction.allows(.tagUser) {
                     UserTagMenuItem(username: message.author) { showingTagEditor = true }
                         .accessibilityIdentifier("inbox.message.tagUser")
                 }

@@ -353,7 +353,8 @@ struct ProfileListingView: View {
                         assignmentVersion += 1
                     }))
                 .accessibilityIdentifier("profile.commentRow.\(comment.id)")
-                .apolloSwipeActions(settings: commentSwipeSettings, subject: SwipeSubject(comment: comment)) { action in
+                .apolloSwipeActions(settings: CommentInteractionPolicy(comment: comment).restricting(commentSwipeSettings),
+                                    subject: SwipeSubject(comment: comment)) { action in
                     Task { await handleCommentSwipeAction(action, on: comment) }
                 }
         case .post(let post):
@@ -476,6 +477,7 @@ struct ProfileListingView: View {
     }
 
     private func handleCommentSwipeAction(_ action: SwipeAction, on comment: RedditComment) async {
+        guard CommentInteractionPolicy(comment: comment).allows(swipe: action) else { return }
         await ContentActions.perform(action, on: comment, repository: repository, hooks: SwipeActionHooks(
             onReply: { replyTarget = comment },
             onShare: { shareCommentTarget = comment },
@@ -542,17 +544,20 @@ struct ProfileCommentRow: View {
                     .apolloFont(size: 15, weight: .medium)
                     .foregroundStyle(Color.apolloPrimaryText(colorScheme: colorScheme, themeColors: themeColors))
                     .lineLimit(1)
-                HStack(spacing: 5) {
-                    StockIcon("posts-points")
-                        .rotationEffect(.degrees(comment.likes == false ? 180 : 0))
-                    if let score = voteCounts.commentScoreText(comment.score, scoreHidden: comment.scoreHidden) {
-                        Text(score)
-                            .apolloFont(size: 13)
+                // A deleted or removed comment has no score to show.
+                if CommentInteractionPolicy(comment: comment).allows(.vote) {
+                    HStack(spacing: 5) {
+                        StockIcon("posts-points")
+                            .rotationEffect(.degrees(comment.likes == false ? 180 : 0))
+                        if let score = voteCounts.commentScoreText(comment.score, scoreHidden: comment.scoreHidden) {
+                            Text(score)
+                                .apolloFont(size: 13)
+                        }
                     }
+                    .foregroundStyle(comment.likes == true ? Color.orange
+                                     : (comment.likes == false ? Color.blue : Color.apolloIdleVoteArrow))
+                    .padding(.leading, 4)
                 }
-                .foregroundStyle(comment.likes == true ? Color.orange
-                                 : (comment.likes == false ? Color.blue : Color.apolloIdleVoteArrow))
-                .padding(.leading, 4)
                 Spacer(minLength: 0)
                 StockIcon("inline-more-options")
                     .foregroundStyle(colorScheme == .dark ? Color(hex: "505256") : Color(hex: "C4C4C6"))

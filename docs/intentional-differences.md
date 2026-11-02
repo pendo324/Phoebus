@@ -139,6 +139,18 @@ Apollo or Reborn, add an entry here.
   lookup once and fills the gaps; Arctic Shift's copy wins where both
   have one. Reborn uses Arctic Shift only; the fallback is inspired by
   Continuum's removed comment recovery.
+- **A deleted or removed comment offers nothing that writes.** A comment
+  whose text is Reddit's `[deleted]` or `[removed]` placeholder, one you
+  just deleted, and one restored from an archive (it is still deleted on
+  Reddit) show no vote arrow or score, take no vote, reply, quote, save,
+  award, report or moderator action from the ••• menu, the long press,
+  the row swipes or VoiceOver, and a swipe slot set to one of them
+  reveals nothing on that row. Collapse, Share, Copy Link, Remind Me In…
+  and Mute Notifications stay; a restored comment also keeps Copy Text,
+  Translate, Select Text and its recovered author's profile. A deleted
+  account's comment with its text intact is still live. Reborn's recovery
+  leaves the stock row's actions in place; `CommentInteractionPolicy`
+  decides them for every surface.
 - **Saved items are kept locally.** Every save made in Phoebus keeps a
   small snapshot (title or comment text, subreddit, author, link). When
   Saved has been paged to its end, or after "Check for Missing", items

@@ -337,18 +337,22 @@ struct CommentTreeContent: View {
                             isRevealed: store.revealedFullnames.contains(node.comment.name),
                             onReveal: { store.revealComment(node.comment.name) },
                             onToggleCollapse: { toggleCollapse(node) },
-                            onReplyTapped: { replyTargetID = (replyTargetID == node.id) ? nil : node.id },
+                            onReplyTapped: {
+                                guard interactionPolicy(for: node).allows(.reply) else { return }
+                                replyTargetID = (replyTargetID == node.id) ? nil : node.id
+                            },
                             onQuoteTapped: {
+                                guard interactionPolicy(for: node).allows(.quote) else { return }
                                 // Apollo's select-mode "Quote" action: pre-fills the reply composer with
                                 // the comment text as a markdown blockquote.
                                 quotedText[node.id] = RedditMarkdown.asBlockquote(node.comment.body)
                                 quotedPreview[node.id] = (author: node.comment.author, snippet: node.comment.body, age: node.comment.created.apolloRelativeTime)
                                 replyTargetID = node.id
                             },
-                            onAuthorTapped: { onAuthorTapped?(node.comment.author) },
+                            onAuthorTapped: { onAuthorTapped?(interactionPolicy(for: node).author) },
                             onEdited: { store.commentEdited(id: node.id, body: $0) },
                             onDeleted: { store.commentDeleted(id: node.id) },
-                            onShareAsImage: shareAsImageAction(for: node.comment)
+                            onShareAsImage: interactionPolicy(for: node).allows(.shareAsImage) ? shareAsImageAction(for: node.comment) : nil
                         )
                         // Reborn "Siri & Spotlight" (#1299): the comment, for onscreen context.
                         .siriCommentContext(node.comment.name)
@@ -397,7 +401,7 @@ struct CommentTreeContent: View {
                             }
                         )
                     }
-                    .apolloSwipeActions(settings: swipeSettings, subject: SwipeSubject(comment: node.comment)) { action in
+                    .apolloSwipeActions(settings: interactionPolicy(for: node).restricting(swipeSettings), subject: SwipeSubject(comment: node.comment)) { action in
                         Task { await handleSwipeAction(action, on: node) }
                     }
                     // Apollo's hairline sits on top of each row, starting at that row's own
@@ -474,6 +478,15 @@ struct CommentTreeContent: View {
         return chain.reversed()
     }
 
+    /// What the row for `node` offers; `CommentRow` builds the same policy.
+    private func interactionPolicy(for node: CommentTreeNode) -> CommentInteractionPolicy {
+        let recovered = CommentTreeStore.archivedCopy(
+            for: node.comment, recoveryActive: store.deletedCommentsRecoveryActive, archive: store.archivedComments)
+        return CommentInteractionPolicy(
+            comment: node.comment, recovered: recovered,
+            textRevealed: !deletedCommentsSettings.tapToReveal || store.revealedFullnames.contains(node.comment.name))
+    }
+
     private func recoveredHighlight(for node: CommentTreeNode) -> Color? {
         guard let archived = CommentTreeStore.archivedCopy(
             for: node.comment,
@@ -505,6 +518,8 @@ struct CommentTreeContent: View {
     }
 
     private func handleSwipeAction(_ action: SwipeAction, on node: CommentTreeNode) async {
+        let policy = interactionPolicy(for: node)
+        guard policy.allows(swipe: action) else { return }
         await ContentActions.perform(action, on: node.comment, repository: repository, hooks: SwipeActionHooks(
             onReply: { replyTargetID = (replyTargetID == node.id) ? nil : node.id },
             onShare: { shareCommentTarget = node.comment },
@@ -523,8 +538,8 @@ struct CommentTreeContent: View {
                 guard parentID.hasPrefix("t1_") else { return }
                 store.scrollRequest = store.rowID(String(parentID.dropFirst(3)))
             },
-            author: node.comment.author, subreddit: subreddit,
-            selectableText: (title: node.comment.author, body: node.comment.body)
+            author: policy.author, subreddit: subreddit,
+            selectableText: (title: policy.author, body: policy.text)
         ))
     }
 }

@@ -59,9 +59,12 @@ struct CommentRow: View {
     private var voteState: Bool? { voteStore.vote(for: node.comment.name, serverValue: node.comment.likes) }
     /// The archive's author for a recovered comment (Reborn restores it
     /// with `setAuthor:`), else Reddit's.
-    private var displayAuthor: String {
-        if let author = archivedComment?.author, !author.isEmpty, author != "[deleted]" { return author }
-        return node.comment.author
+    private var displayAuthor: String { policy.author }
+
+    /// What this row offers; the thread's swipes ask the same policy.
+    private var policy: CommentInteractionPolicy {
+        CommentInteractionPolicy(comment: node.comment, recovered: archivedComment,
+                                 textRevealed: !tapToReveal || isRevealed, locallyDeleted: isDeleted, isOwn: isOwnComment)
     }
 
     private var authorHighlight: AuthorHighlight {
@@ -147,23 +150,21 @@ struct CommentRow: View {
         ForEach(ActionMenuLayoutStore.arrange(commentMenuIDs, for: .comment), id: \.self) { id in
             commentMenuRow(id)
         }
-        if isModerator {
+        let moderatorIDs = moderatorMenuIDs.filter(policy.allowsMenuItem)
+        if isModerator, !moderatorIDs.isEmpty {
             Divider()
-            ForEach(ActionMenuLayoutStore.arrange(moderatorMenuIDs, for: .moderatorComment), id: \.self) { id in
+            ForEach(ActionMenuLayoutStore.arrange(moderatorIDs, for: .moderatorComment), id: \.self) { id in
                 commentMenuRow(id)
             }
         }
     }
 
     private var commentMenuIDs: [String] {
-        var ids = ["upvote", "downvote", "reply", "quote", "save"]
-        if isOwnComment && !isDeleted { ids += ["edit", "delete", "vote-insights"] }
+        var ids = ["upvote", "downvote", "reply", "quote", "save", "edit", "delete", "vote-insights"]
         ids += ["share", "copy-link", "copy-text"]
         if onShareAsImage != nil { ids.append("share-image") }
-        ids.append("copy-username")
-        if displayAuthor != "[deleted]" { ids.append("tag-user") }
-        ids += ["translate", "award", "report", "remind-me", "mute-notifications"]
-        return ids
+        ids += ["copy-username", "tag-user", "translate", "award", "report", "remind-me", "mute-notifications"]
+        return ids.filter(policy.allowsMenuItem)
     }
 
     private let moderatorMenuIDs = ["mod-approve", "mod-remove", "mod-spam", "mod-distinguish", "mod-sticky", "mod-notes"]
@@ -205,7 +206,7 @@ struct CommentRow: View {
                 Label("Copy Link", systemImage: "link")
             }
         case "copy-text":
-            Button { PasteboardHelper.copy(node.comment.body) } label: {
+            Button { PasteboardHelper.copy(policy.text) } label: {
                 Label("Copy Text", systemImage: "doc.on.doc")
             }
         case "share-image":
@@ -214,7 +215,7 @@ struct CommentRow: View {
             }
         case "copy-username":
             // Reborn: Copy Username (from the avatar's hold menu).
-            Button { PasteboardHelper.copy(node.comment.author) } label: {
+            Button { PasteboardHelper.copy(policy.author) } label: {
                 Label("Copy Username", systemImage: "doc.on.doc")
             }
         case "tag-user":
@@ -280,11 +281,13 @@ struct CommentRow: View {
     private var accessibility: CommentAccessibility {
         CommentAccessibility(
             label: AccessibilitySummary.comment(
-                author: node.comment.author, body: node.comment.body, score: displayScore,
-                scoreHidden: node.comment.scoreHidden || voteCounts.hideCommentScores, created: node.comment.created,
+                author: displayAuthor, body: policy.text, score: displayScore,
+                scoreHidden: node.comment.scoreHidden || voteCounts.hideCommentScores || !policy.allows(.vote), created: node.comment.created,
                 isOP: node.comment.isSubmitter == true, collapsed: node.isCollapsed,
                 hiddenReplies: node.isCollapsed ? Self.descendantCount(node) : 0, vote: voteState),
-            author: node.comment.author, voteState: voteState, isSaved: isSaved,
+            author: displayAuthor, voteState: voteState, isSaved: isSaved,
+            canVote: policy.allows(.vote), canReply: policy.allows(.reply), canSave: policy.allows(.save),
+            canOpenAuthor: policy.allows(.openProfile),
             onCollapse: onToggleCollapse, onReply: onReplyTapped, onAuthor: onAuthorTapped,
             onVote: { direction in Task { await vote(direction: direction) } },
             onSave: { Task { await toggleSave() } })
@@ -349,7 +352,7 @@ struct CommentRow: View {
                         .truncationMode(.tail)
                         .layoutPriority(-1)
                         .hitArea(CommentHeaderHitArea.author)
-                        .onTapGesture(perform: onAuthorTapped)
+                        .onTapGesture { policy.allows(.openProfile) ? onAuthorTapped() : collapseFromHeader() }
                         .hitAreaLayout(CommentHeaderHitArea.author)
                         .accessibilityIdentifier("comment.authorLabel.\(node.id)")
                         .accountAgeLookup(for: node.comment.author, isEnabled: general.highlightAccountAge,
@@ -407,35 +410,37 @@ struct CommentRow: View {
                     // row's, with the arrow reflecting the user's vote. An explicit
                     // `HStack` (not `Label`, which is inert and has wide icon-to-title
                     // spacing) gives a 3pt gap and makes the whole cluster a live vote
-                    // control.
-                    Button {
-                        Task { await vote(direction: voteState == true ? 0 : 1) }
-                    } label: {
-                        HStack(spacing: 5) {
-                            // The arrow is sized separately from the number. It is Apollo's
-                            // `posts-points` glyph at 10x12pt, 5pt from the 13pt regular score.
-                            // The idle pair is #61626A (`apolloIdleVoteArrow`'s opt-out colour);
-                            // the helper stays so "Colourize Vote Arrows" still reaches comments.
-                            if voteState == false {
-                                StockIcon("posts-points")
-                                    .rotationEffect(.degrees(180))
-                            } else {
-                                StockIcon("posts-points")
+                    // control. A deleted or removed comment has no score to vote on.
+                    if policy.allows(.vote) {
+                        Button {
+                            Task { await vote(direction: voteState == true ? 0 : 1) }
+                        } label: {
+                            HStack(spacing: 5) {
+                                // The arrow is sized separately from the number. It is Apollo's
+                                // `posts-points` glyph at 10x12pt, 5pt from the 13pt regular score.
+                                // The idle pair is #61626A (`apolloIdleVoteArrow`'s opt-out colour);
+                                // the helper stays so "Colourize Vote Arrows" still reaches comments.
+                                if voteState == false {
+                                    StockIcon("posts-points")
+                                        .rotationEffect(.degrees(180))
+                                } else {
+                                    StockIcon("posts-points")
+                                }
+                                // Reddit hides a new comment's score for a while; Apollo draws an em
+                                // dash.
+                                if let score = voteCounts.commentScoreText(displayScore, scoreHidden: node.comment.scoreHidden) {
+                                    Text(score)
+                                        .apolloFont(size: 13, role: .commentHeader)
+                                }
                             }
-                            // Reddit hides a new comment's score for a while; Apollo draws an em
-                            // dash.
-                            if let score = voteCounts.commentScoreText(displayScore, scoreHidden: node.comment.scoreHidden) {
-                                Text(score)
-                                    .apolloFont(size: 13, role: .commentHeader)
-                            }
+                            .foregroundStyle(voteState == true ? Color.orange
+                                             : (voteState == false ? Color.blue : Color.apolloIdleVoteArrow))
+                            .hitArea(CommentHeaderHitArea.score)
                         }
-                        .foregroundStyle(voteState == true ? Color.orange
-                                         : (voteState == false ? Color.blue : Color.apolloIdleVoteArrow))
-                        .hitArea(CommentHeaderHitArea.score)
+                        .buttonStyle(.plain)
+                        .hitAreaLayout(CommentHeaderHitArea.score)
+                        .accessibilityIdentifier("comment.scoreUpvote.\(node.id)")
                     }
-                    .buttonStyle(.plain)
-                    .hitAreaLayout(CommentHeaderHitArea.score)
-                    .accessibilityIdentifier("comment.scoreUpvote.\(node.id)")
                     // Locked comments carry Apollo's lock glyph, green like the pin.
                     if node.comment.locked == true {
                         StockIcon("inline-locked", size: CGSize(width: 11, height: 14))
@@ -644,13 +649,13 @@ struct CommentRow: View {
                 showingReport = false
             }
         }
-        .apolloTranslator(isPresented: $showingTranslator, text: node.comment.body)
+        .apolloTranslator(isPresented: $showingTranslator, text: policy.text)
         .sheet(isPresented: $showingInsights) {
             CommentVoteInsightsSheet(comment: node.comment, repository: repository)
         }
         .sheet(isPresented: $showingRemindMe) {
             NavigationStack {
-                RemindMeScreen(title: String(node.comment.body.prefix(140)), permalink: node.comment.permalinkPath) {
+                RemindMeScreen(title: String(policy.text.prefix(140)), permalink: node.comment.permalinkPath) {
                     showingRemindMe = false
                 }
             }
@@ -858,6 +863,12 @@ struct CommentAccessibility: ViewModifier {
     let author: String
     let voteState: Bool?
     let isSaved: Bool
+    /// What the comment's `CommentInteractionPolicy` allows; a deleted comment
+    /// offers none of these as VoiceOver actions.
+    let canVote: Bool
+    let canReply: Bool
+    let canSave: Bool
+    let canOpenAuthor: Bool
     let onCollapse: () -> Void
     let onReply: () -> Void
     let onAuthor: () -> Void
@@ -871,15 +882,30 @@ struct CommentAccessibility: ViewModifier {
             .accessibilityHint("Double tap to collapse, double tap and hold for actions")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { onCollapse() }
-            .accessibilityAction(named: voteState == true ? "Remove Upvote" : "Upvote") {
+            .modifier(OptionalAccessibilityAction(name: voteState == true ? "Remove Upvote" : "Upvote", enabled: canVote) {
                 onVote(voteState == true ? 0 : 1)
-            }
-            .accessibilityAction(named: voteState == false ? "Remove Downvote" : "Downvote") {
+            })
+            .modifier(OptionalAccessibilityAction(name: voteState == false ? "Remove Downvote" : "Downvote", enabled: canVote) {
                 onVote(voteState == false ? 0 : -1)
-            }
-            .accessibilityAction(named: "Reply") { onReply() }
-            .accessibilityAction(named: isSaved ? "Unsave" : "Save") { onSave() }
-            .accessibilityAction(named: "Go to \(author)") { onAuthor() }
+            })
+            .modifier(OptionalAccessibilityAction(name: "Reply", enabled: canReply) { onReply() })
+            .modifier(OptionalAccessibilityAction(name: isSaved ? "Unsave" : "Save", enabled: canSave) { onSave() })
+            .modifier(OptionalAccessibilityAction(name: "Go to \(author)", enabled: canOpenAuthor) { onAuthor() })
+    }
+}
+
+private struct OptionalAccessibilityAction: ViewModifier {
+    let name: String
+    let enabled: Bool
+    let action: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if enabled {
+            content.accessibilityAction(named: name, action)
+        } else {
+            content
+        }
     }
 }
 

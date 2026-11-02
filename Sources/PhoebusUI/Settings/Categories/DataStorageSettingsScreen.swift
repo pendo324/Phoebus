@@ -71,7 +71,7 @@ public struct DataStorageSettingsScreen: View {
                 Button("Clear Browser Cache") { Task { await CacheClearing.clearBrowserCache(); didClearCache = true } }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Clear Cache removes downloaded images, link previews, profile pictures and temporary files. Artwork & Previews removes only the pictures and previews; Browser Cache only the in-app browser's cached pages, not its sign-ins.")
+                Text("Clear Cache removes downloaded images, link previews, profile pictures, subreddit icons and temporary files. Artwork & Previews removes only the pictures and previews; Browser Cache only the in-app browser's cached pages, not its sign-ins. Photos you chose for subreddit banners and icons stay.")
             }
             // Reborn's "Clear Custom Banners & Icons".
             Button("Clear Banners & Icons") {

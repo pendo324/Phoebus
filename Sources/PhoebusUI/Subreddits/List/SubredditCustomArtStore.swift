@@ -81,6 +81,12 @@ public final class SubredditCustomArtStore: ObservableObject {
         (try? FileManager.default.contentsOfDirectory(atPath: Self.directory.path).count) ?? 0
     }
 
+    /// Forgets the decoded copies; the saved photos stay and are read again
+    /// when a view asks.
+    public func clearMemory() {
+        cache.removeAll()
+    }
+
     public func clearAll() {
         try? FileManager.default.removeItem(at: Self.directory)
         cache.removeAll()

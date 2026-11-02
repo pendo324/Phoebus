@@ -107,6 +107,43 @@ public actor ChatLiveSync {
         lastUpdate = update
         for continuation in subscribers.values { continuation.yield(update) }
     }
+
+    private func publishLocalChange() {
+        publish(Update(snapshot: state.snapshot(nextBatch: lastUpdate?.snapshot.nextBatch), timelineRoomIDs: [],
+                       ephemeral: state.ephemeral, isInitial: false))
+    }
+
+    /// Accepts or declines a chat request, optimistically.
+    ///
+    /// The list and the badge change at once, `perform` sends the answer, and
+    /// a failure puts the request back before the error reaches the caller.
+    public func answerRequest(
+        _ action: ChatRequestAction,
+        room: ChatRoom,
+        perform: @Sendable () async throws -> Void
+    ) async throws {
+        guard state.beginRequest(action, room: room) else { throw ChatRequestError.notPending }
+        publishLocalChange()
+        do {
+            try await perform()
+            state.settleRequest(roomID: room.id)
+        } catch {
+            state.rollbackRequest(roomID: room.id)
+            publishLocalChange()
+            throw error
+        }
+    }
+
+    public func answerRequest(_ action: ChatRequestAction, room: ChatRoom) async throws {
+        try await answerRequest(action, room: room) { [repository] in
+            try await repository.sendChatRequestAnswer(action, roomID: room.id)
+        }
+    }
+
+    /// A fetched room list with the local answers still in effect.
+    public func reconciled(_ result: RedditChatClient.SyncResult) -> RedditChatClient.SyncResult {
+        state.reconciled(result)
+    }
 }
 
 /// One `/sync` response as a change set: only the rooms, counters and
@@ -173,19 +210,81 @@ public struct ChatSyncState: Sendable {
     /// Typing and receipts per room, merged: receipts accumulate, and
     /// typing is replaced whenever a sync reports it.
     public private(set) var ephemeral: [String: RedditChatClient.RoomEphemeral] = [:]
+    /// Requests answered here whose answer the homeserver's sync has not yet reflected.
+    private var answered: [String: AnsweredRequest] = [:]
+
+    private struct AnsweredRequest {
+        let action: ChatRequestAction
+        /// The request as it was, to put back when the answer fails.
+        let original: ChatRoom
+        /// When the homeserver accepted the answer; nil while it is in flight.
+        var settledAt: Date?
+        /// Whether the request was part of Reddit's request counter, and so lowered it.
+        var counted: Bool = true
+
+        func hidesInvite(at now: Date) -> Bool {
+            guard let settledAt else { return true }
+            return now.timeIntervalSince(settledAt) < ChatRequests.staleInviteShield
+        }
+    }
 
     public init() {}
 
-    public mutating func apply(_ delta: ChatSyncDelta, replacing: Bool = false) {
-        if replacing { rooms = [:]; ephemeral = [:] }
+    /// Starts answering a request: it leaves Requests (declined) or becomes a
+    /// joined room (accepted) and the request count drops. False when the room
+    /// is not a pending request or is already being answered.
+    public mutating func beginRequest(_ action: ChatRequestAction, room: ChatRoom) -> Bool {
+        let current = rooms[room.id] ?? room
+        guard current.isInvite, answered[room.id] == nil else { return false }
+        let counted = ChatRequests.countsAsRequest(current)
+        answered[room.id] = AnsweredRequest(action: action, original: current, settledAt: nil, counted: counted)
+        rooms[room.id] = action == .accept ? current.withInvite(false) : nil
+        if counted { requestsCount = max(0, requestsCount - 1) }
+        return true
+    }
+
+    /// The homeserver took the answer. The local view stays until a sync agrees with it.
+    public mutating func settleRequest(roomID: String, now: Date = Date()) {
+        answered[roomID]?.settledAt = now
+    }
+
+    /// The answer failed: the request is back where it was.
+    public mutating func rollbackRequest(roomID: String) {
+        guard let entry = answered.removeValue(forKey: roomID) else { return }
+        rooms[roomID] = entry.original
+        if entry.counted { requestsCount += 1 }
+    }
+
+    /// A fetched list with answers still in effect applied, so a pull to refresh
+    /// during an answer does not bring a request back.
+    public func reconciled(_ result: RedditChatClient.SyncResult, now: Date = Date()) -> RedditChatClient.SyncResult {
+        let hiding = answered.filter { $0.value.hidesInvite(at: now) }
+        guard !hiding.isEmpty else { return result }
+        var list: [ChatRoom] = []
+        for room in result.rooms {
+            guard room.isInvite, let entry = hiding[room.id] else { list.append(room); continue }
+            if entry.action == .accept, let local = rooms[room.id] { list.append(local) }
+        }
+        return RedditChatClient.SyncResult(
+            unreadCount: result.unreadCount, requestsCount: min(result.requestsCount, requestsCount),
+            rooms: list, nextBatch: result.nextBatch)
+    }
+
+    public mutating func apply(_ delta: ChatSyncDelta, replacing: Bool = false, now: Date = Date()) {
+        if replacing { rooms = [:]; ephemeral = [:]; answered = [:] }
         for roomID in Set(delta.typing.keys).union(delta.receipts.keys) {
             let old = ephemeral[roomID] ?? .init()
             ephemeral[roomID] = .init(
                 typingUserIDs: delta.typing[roomID] ?? old.typingUserIDs,
                 readReceipts: old.readReceipts.merging(delta.receipts[roomID] ?? [:]) { $1 })
         }
-        for id in delta.leftRoomIDs { rooms[id] = nil }
+        for id in delta.leftRoomIDs { rooms[id] = nil; answered[id] = nil }
         for (id, change) in delta.rooms {
+            if let entry = answered[id] {
+                // A sync that began before the answer still lists the old invite.
+                if change.room.isInvite, entry.hidesInvite(at: now) { continue }
+                answered[id] = nil
+            }
             rooms[id] = rooms[id].map { Self.merge($0, change) } ?? change.room
         }
         // Reddit's own counters when the response carries them;
@@ -193,7 +292,12 @@ public struct ChatSyncState: Sendable {
         unreadCount = delta.unreadCount ?? (delta.rooms.isEmpty ? unreadCount : rooms.values
             .filter { $0.countsTowardGlobalBadge && !$0.isInvite }
             .reduce(0) { $0 + $1.notificationCount })
-        requestsCount = delta.requestsCount ?? (delta.rooms.isEmpty ? requestsCount : rooms.values.filter(\.isInvite).count)
+        // Reddit's counter can still include a request answered a moment ago, so
+        // while an answer is awaiting its sync the lower of the two is kept.
+        let answering = answered.values.contains { $0.hidesInvite(at: now) }
+        let derived = rooms.values.filter { $0.isInvite && ChatRequests.countsAsRequest($0) }.count
+        let reported = delta.requestsCount ?? (delta.rooms.isEmpty ? requestsCount : derived)
+        requestsCount = answering ? min(reported, requestsCount) : reported
     }
 
     static func merge(_ old: ChatRoom, _ change: ChatSyncDelta.RoomChange) -> ChatRoom {
@@ -209,13 +313,14 @@ public struct ChatSyncState: Sendable {
             preview: newer ? new.preview : old.preview,
             previewSender: newer ? new.previewSender : old.previewSender,
             notificationCount: change.hasCounts ? new.notificationCount : old.notificationCount,
-            countsTowardGlobalBadge: change.hasCounts ? new.countsTowardGlobalBadge : old.countsTowardGlobalBadge)
+            countsTowardGlobalBadge: change.hasCounts ? new.countsTowardGlobalBadge : old.countsTowardGlobalBadge,
+            inviter: new.inviter ?? old.inviter)
     }
 
     public func snapshot(nextBatch: String?) -> RedditChatClient.SyncResult {
         RedditChatClient.SyncResult(
             unreadCount: unreadCount, requestsCount: requestsCount,
-            rooms: rooms.values.sorted { $0.lastMessageTimestamp > $1.lastMessageTimestamp },
+            rooms: rooms.values.sorted(by: ChatRoom.newestFirst),
             nextBatch: nextBatch)
     }
 }

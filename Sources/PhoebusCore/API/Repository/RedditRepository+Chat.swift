@@ -152,6 +152,26 @@ extension RedditRepository {
         await drainChatQueue(roomID: roomID)
     }
 
+    /// Joins (accepts) or leaves (declines) a chat request's room, re-minting once on 401.
+    /// Both are idempotent on the homeserver, so the retry is safe.
+    public func sendChatRequestAnswer(_ action: ChatRequestAction, roomID: String) async throws {
+        do {
+            try await RedditChatClient.answerRequest(action, roomID: roomID, bearer: try await chatBearer())
+        } catch RedditChatClient.ChatError.unauthorized {
+            await clearChatBearer()
+            try await RedditChatClient.answerRequest(action, roomID: roomID, bearer: try await chatBearer(forceMint: true))
+        }
+    }
+
+    /// Blocks a request's sender on their Reddit account, so a declined
+    /// request is not followed by another.
+    public func blockChatRequester(matrixUserID: String) async throws {
+        guard let fullname = ChatRequests.blockFullname(forMatrixUserID: matrixUserID) else {
+            throw ChatRequestError.cannotBlock
+        }
+        try await blockUser(fullname: fullname)
+    }
+
     /// Edits one of your own messages.
     public func editChatMessage(roomID: String, eventID: String, newBody: String) async throws {
         let txn = ChatSendQueue.makeTransactionID()

@@ -42,11 +42,13 @@ public enum RedditChatClient {
 
     // MARK: Bearer
 
-    public enum ChatError: Error, LocalizedError {
+    public enum ChatError: Error, LocalizedError, Equatable {
         case noWebSession
         case mintFailed
         case unauthorized
         case httpError(status: Int)
+        /// The homeserver refused a join or leave with a Matrix error (`errcode`).
+        case requestRejected(status: Int, errcode: String?)
 
         public var errorDescription: String? {
             switch self {
@@ -58,6 +60,8 @@ public enum RedditChatClient {
                 return "Reddit rejected the Chat token. Try again, or re-harvest your web session."
             case .httpError(let status):
                 return "Reddit Chat returned HTTP \(status)."
+            case .requestRejected(let status, let errcode):
+                return "Reddit Chat refused the request (HTTP \(status)\(errcode.map { ", \($0)" } ?? ""))."
             }
         }
     }
@@ -242,7 +246,7 @@ public enum RedditChatClient {
             }
         }
         // Newest first, the order a chat list is read in.
-        rooms.sort { $0.lastMessageTimestamp > $1.lastMessageTimestamp }
+        rooms.sort(by: ChatRoom.newestFirst)
         return SyncResult(unreadCount: unread, requestsCount: requests, rooms: rooms, nextBatch: nextBatch)
     }
 
@@ -251,6 +255,7 @@ public enum RedditChatClient {
         var name: String?
         var chatType: String?
         var participants = Set<String>()
+        var inviter: String?
         var lastTimestamp: Double = 0
         var preview: String?
         var previewSender: String?
@@ -276,6 +281,8 @@ public enum RedditChatClient {
                        membership == "join" || membership == "invite" {
                         participants.insert(userID)
                     }
+                    // The invite event is sent by whoever started the chat.
+                    if membership == "invite", let sender = event["sender"] as? String { inviter = sender }
                 case "m.room.message":
                     // A redacted message has no content and must not become an empty preview.
                     if let unsigned = event["unsigned"] as? [String: Any],
@@ -317,7 +324,8 @@ public enum RedditChatClient {
             preview: preview,
             previewSender: previewSender,
             notificationCount: notificationCount,
-            countsTowardGlobalBadge: countsTowardBadge
+            countsTowardGlobalBadge: countsTowardBadge,
+            inviter: inviter
         )
     }
 
@@ -1109,6 +1117,8 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
     public let notificationCount: Int
     /// Whether this room feeds Reddit's global chat badge.
     public let countsTowardGlobalBadge: Bool
+    /// For a request: the Matrix user id that sent the invite.
+    public let inviter: String?
 
     public init(
         id: String,
@@ -1120,7 +1130,8 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
         preview: String?,
         previewSender: String?,
         notificationCount: Int,
-        countsTowardGlobalBadge: Bool
+        countsTowardGlobalBadge: Bool,
+        inviter: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -1132,6 +1143,22 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
         self.previewSender = previewSender
         self.notificationCount = notificationCount
         self.countsTowardGlobalBadge = countsTowardGlobalBadge
+        self.inviter = inviter
+    }
+
+    /// The same room as a request or as a joined conversation.
+    public func withInvite(_ isInvite: Bool) -> ChatRoom {
+        ChatRoom(id: id, name: name, chatType: chatType, participants: participants, isInvite: isInvite,
+                 lastMessageTimestamp: lastMessageTimestamp, preview: preview, previewSender: previewSender,
+                 notificationCount: notificationCount, countsTowardGlobalBadge: countsTowardGlobalBadge,
+                 inviter: inviter)
+    }
+
+    /// Newest first. Invites carry no message, so ties are broken by id to keep
+    /// a request from moving between refreshes.
+    public static func newestFirst(_ lhs: ChatRoom, _ rhs: ChatRoom) -> Bool {
+        lhs.lastMessageTimestamp != rhs.lastMessageTimestamp
+            ? lhs.lastMessageTimestamp > rhs.lastMessageTimestamp : lhs.id < rhs.id
     }
 
     public var lastMessageDate: Date? {

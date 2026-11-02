@@ -363,6 +363,8 @@ try await checkTagFiltersApolloRebornFeature()
 
 try await checkAvatarCacheApolloRebornShowUser()
 
+try await checkProfileLookupFailures()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

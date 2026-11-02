@@ -39,6 +39,13 @@ public actor AvatarCache {
         entries[username.lowercased()] = Entry(url: url, fetchedAt: Date())
     }
 
+    /// Remembers a failed lookup as "no avatar" only when it says something
+    /// about the account (see `ProfileLookupFailure`).
+    public func store(failure: ProfileLookupFailure, for username: String) {
+        guard failure.isDefinitiveMiss else { return }
+        store(url: nil, for: username)
+    }
+
     public func clear() {
         entries.removeAll()
     }

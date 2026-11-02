@@ -428,8 +428,12 @@ public struct ShareAsImageScreen: View {
         for name in Set(names) where name != "[deleted]" && !name.isEmpty {
             var urlString = await AvatarCache.shared.cachedURL(for: name)
             if urlString == nil, !(await AvatarCache.shared.hasFreshEntry(for: name)) {
-                urlString = try? await repository.fetchUserProfile(username: name).iconImage
-                await AvatarCache.shared.store(url: urlString, for: name)
+                do {
+                    urlString = try await repository.fetchUserProfile(username: name).iconImage
+                    await AvatarCache.shared.store(url: urlString, for: name)
+                } catch {
+                    await AvatarCache.shared.store(failure: ProfileLookupFailure(error), for: name)
+                }
             }
             guard let urlString, let url = URL(string: urlString.replacingOccurrences(of: "&amp;", with: "&")),
                   let data = await MediaBytes.data(for: url),

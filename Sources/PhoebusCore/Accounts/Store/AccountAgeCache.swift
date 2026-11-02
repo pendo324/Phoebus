@@ -40,8 +40,13 @@ public actor AccountAgeCache {
         let fetchedAt: Date
     }
 
+    private enum Outcome {
+        case found(Date)
+        case failed(ProfileLookupFailure)
+    }
+
     private var entries: [String: Entry] = [:]
-    private var lookups: [String: Task<Date?, Never>] = [:]
+    private var lookups: [String: Task<Outcome, Never>] = [:]
 
     public func removeAll() { entries.removeAll() }
     /// Account-creation date never changes, so this could cache forever, but a
@@ -66,18 +71,33 @@ public actor AccountAgeCache {
     }
 
     /// The creation date for `username`: the fresh cached value, the lookup
-    /// already running for it, or a new `fetch`. A failed fetch is cached as
-    /// "unavailable" so a failing author is not re-queried on every row.
+    /// already running for it, or a new `fetch`. An account Reddit has no
+    /// page for is cached as "unavailable" so it is not re-queried on every
+    /// row; a dropped connection, a 429 or a 5xx is not cached, so the badge
+    /// returns on a later row (see `ProfileLookupFailure`). While Reddit's
+    /// rate limit hold runs, no lookup is sent.
     public func createdDate(for username: String, fetch: @escaping @Sendable () async throws -> Date) async -> Date? {
         let key = username.lowercased()
         if let entry = entries[key], isFresh(entry) { return entry.createdAt }
-        if let running = lookups[key] { return await running.value }
-        let lookup = Task<Date?, Never> { try? await fetch() }
+        if let running = lookups[key] { return outcomeDate(await running.value) }
+        guard RedditRateLimitHold.shared.remaining() == 0 else { return nil }
+        let lookup = Task<Outcome, Never> {
+            do { return .found(try await fetch()) } catch { return .failed(ProfileLookupFailure(error)) }
+        }
         lookups[key] = lookup
-        let createdAt = await lookup.value
+        let outcome = await lookup.value
         lookups[key] = nil
-        entries[key] = Entry(createdAt: createdAt, fetchedAt: Date())
-        return createdAt
+        switch outcome {
+        case .found(let date): entries[key] = Entry(createdAt: date, fetchedAt: Date())
+        case .failed(let failure) where failure.isDefinitiveMiss: entries[key] = Entry(createdAt: nil, fetchedAt: Date())
+        case .failed: break
+        }
+        return outcomeDate(outcome)
+    }
+
+    private func outcomeDate(_ outcome: Outcome) -> Date? {
+        if case .found(let date) = outcome { return date }
+        return nil
     }
 
     public func store(createdAt: Date?, for username: String) {

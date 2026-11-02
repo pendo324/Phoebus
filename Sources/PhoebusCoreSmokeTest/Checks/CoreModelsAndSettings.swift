@@ -1254,7 +1254,6 @@ private final class SmokeFriendsList: @unchecked Sendable {
         var count = 0
         func hit() { count += 1 }
     }
-    struct LookupFailed: Error {}
     let counter = FetchCounter()
     let created = Date(timeIntervalSinceNow: -3 * 24 * 60 * 60)
     await AccountAgeCache.shared.clear()
@@ -1266,10 +1265,11 @@ private final class SmokeFriendsList: @unchecked Sendable {
     let cachedDate = await AccountAgeCache.shared.createdDate(for: "SmokeNewcomer") { await counter.hit(); return Date() }
     let cachedCount = await counter.count
     check("a later row for the same author reads the cache", cachedCount == 1 && cachedDate == created)
-    let failedDate = await AccountAgeCache.shared.createdDate(for: "smokesuspended") { await counter.hit(); throw LookupFailed() }
+    let failedDate = await AccountAgeCache.shared.createdDate(for: "smokesuspended") { await counter.hit(); throw RedditAPIError.httpError(status: 404, body: "") }
     _ = await AccountAgeCache.shared.createdDate(for: "smokesuspended") { await counter.hit(); return Date() }
     let failedCount = await counter.count
-    check("a failed lookup shows no date and is not retried", failedDate == nil && failedCount == 2)
+    // Only a missing account is a miss worth remembering; transient failures are in checkProfileLookupFailures.
+    check("a lookup for a missing account shows no date and is not retried", failedDate == nil && failedCount == 2)
     await AccountAgeCache.shared.clear()
 }
 

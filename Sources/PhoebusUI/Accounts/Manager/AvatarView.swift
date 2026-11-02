@@ -75,10 +75,9 @@ public struct AvatarView: View {
             await AvatarCache.shared.store(url: user.iconImage, for: username)
             avatarURLString = user.iconImage
         } catch {
-            if case RedditAPIError.httpError(429, _)? = error as? RedditAPIError { return }
-            // Cache the miss too, so a failing/suspended account
-            // doesn't get re-queried on every row appearance.
-            await AvatarCache.shared.store(url: nil, for: username)
+            // A suspended account is cached as a miss; a dropped connection or
+            // a 429 only for as long as `ProfileLookupFailure` says.
+            await AvatarCache.shared.store(failure: ProfileLookupFailure(error), for: username)
         }
     }
 }

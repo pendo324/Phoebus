@@ -160,7 +160,7 @@ private struct FlairEmoji: View {
     @ScaledMetric(relativeTo: .subheadline) private var size: CGFloat = 17
 
     var body: some View {
-        CachedAsyncImage(url: url)
+        CachedAsyncImage(url: url, placeholderHeight: nil)
             .frame(width: size, height: size)
     }
 }

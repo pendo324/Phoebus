@@ -901,7 +901,7 @@ struct LinkFlairLabel: View {
             ForEach(Array(runs.enumerated()), id: \.offset) { _, run in
                 switch run {
                 case .emoji(let url):
-                    CachedAsyncImage(url: url)
+                    CachedAsyncImage(url: url, placeholderHeight: nil)
                         .frame(width: 15, height: 15)
                 case .text(let value):
                     let trimmed = value.trimmingCharacters(in: .whitespaces)
@@ -949,7 +949,7 @@ struct CommentFlairPill: View {
                 ForEach(Array(runs.enumerated()), id: \.offset) { _, run in
                     switch run {
                     case .emoji(let url):
-                        CachedAsyncImage(url: url)
+                        CachedAsyncImage(url: url, placeholderHeight: nil)
                             .frame(width: size + 1.5, height: size + 1.5)
                     case .text(let value):
                         let trimmed = value.trimmingCharacters(in: .whitespaces)

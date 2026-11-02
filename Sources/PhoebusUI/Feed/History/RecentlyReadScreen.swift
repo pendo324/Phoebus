@@ -52,12 +52,11 @@ public struct RecentlyReadScreen: View {
                     } label: {
                         HStack {
                             if settings.showThumbnails, let thumbnailURL = entry.thumbnailURL, let url = URL(string: thumbnailURL) {
-                                AsyncImage(url: url) { image in
-                                    image.resizable().aspectRatio(contentMode: .fill)
-                                } placeholder: {
-                                    Color.gray.opacity(0.2)
-                                }
+                                CachedAsyncImage(url: url, contentMode: .fill,
+                                                 downsampleTarget: .pixelWidth(44, scale: CachedAsyncImage.screenScale),
+                                                 placeholderHeight: nil)
                                 .frame(width: 44, height: 44)
+                                .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                             // Rows show the subreddit name (caption, gray) first, then the post title

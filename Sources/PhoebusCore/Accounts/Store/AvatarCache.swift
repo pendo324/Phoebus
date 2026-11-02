@@ -36,7 +36,7 @@ public actor AvatarCache {
     }
 
     public func store(url: String?, for username: String) {
-        entries[username.lowercased()] = Entry(url: url, fetchedAt: Date())
+        entries[username.lowercased()] = Entry(url: ImageURLCleaning.cleaned(url), fetchedAt: Date())
     }
 
     /// Remembers a failed lookup as "no avatar" only when it says something

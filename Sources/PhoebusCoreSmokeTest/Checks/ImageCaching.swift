@@ -228,3 +228,19 @@ private func subreddit(_ name: String, icon: String? = nil, community: String? =
           && ImageDownsampleTarget.none.maxPixelSize(for: avatar256, screenPixelWidth: 1170) == nil
           && ImageDownsampleTarget.galleryTile.cacheKey == "1280")
 }
+
+@MainActor func checkImageURLCleaning() async throws {
+    check("&amp; in an image URL is unescaped and the signed query survives",
+          ImageURLCleaning.cleaned("https://styles.redditmedia.com/a.png?width=256&amp;height=256&amp;s=abc") == "https://styles.redditmedia.com/a.png?width=256&height=256&s=abc")
+    check("an empty or missing URL is no URL", ImageURLCleaning.cleaned("") == nil && ImageURLCleaning.cleaned(nil) == nil)
+    let avatars = AvatarCache.shared
+    await avatars.clear()
+    await avatars.store(url: "https://x/a.png?w=1&amp;s=2", for: "Escaped")
+    await avatars.store(url: "", for: "Blank")
+    let escaped = await avatars.cachedURL(for: "escaped")
+    let blank = await avatars.cachedURL(for: "blank")
+    let blankKnown = await avatars.hasFreshEntry(for: "blank")
+    check("the avatar cache stores the unescaped URL", escaped == "https://x/a.png?w=1&s=2")
+    check("an empty avatar URL is stored as a known 'no avatar'", blank == nil && blankKnown)
+    await avatars.clear()
+}

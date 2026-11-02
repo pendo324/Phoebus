@@ -603,7 +603,8 @@ public struct UserProfileScreen: View {
                 // Its own 96pt target: the row avatars of this account are decoded
                 // smaller from the same bytes, and this one must stay sharp.
                 CachedAsyncImage(url: url, contentMode: .fill,
-                                 downsampleTarget: .avatar(pointSize: size, scale: CachedAsyncImage.screenScale))
+                                 downsampleTarget: .avatar(pointSize: size, scale: CachedAsyncImage.screenScale),
+                                 placeholderHeight: nil)
             } else {
                 Color.clear
             }

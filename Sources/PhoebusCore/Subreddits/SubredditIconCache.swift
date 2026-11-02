@@ -18,8 +18,8 @@ public actor SubredditIconCache {
         public let community: String?
 
         public init(classic: String?, community: String?) {
-            self.classic = SubredditIconCache.cleaned(classic)
-            self.community = SubredditIconCache.cleaned(community)
+            self.classic = ImageURLCleaning.cleaned(classic)
+            self.community = ImageURLCleaning.cleaned(community)
         }
 
         public func url(useCommunityIcons: Bool) -> String? {
@@ -94,9 +94,4 @@ public actor SubredditIconCache {
         }
     }
 
-    /// Reddit HTML-escapes the URL in JSON; an empty one means none.
-    public static func cleaned(_ raw: String?) -> String? {
-        guard let raw, !raw.isEmpty else { return nil }
-        return raw.replacingOccurrences(of: "&amp;", with: "&")
-    }
 }

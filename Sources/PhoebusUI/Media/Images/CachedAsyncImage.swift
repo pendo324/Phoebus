@@ -62,11 +62,17 @@ public struct CachedAsyncImage: View {
     /// See `ImageDownsampleTarget`. Defaults to `.none` (native
     /// resolution).
     private let downsampleTarget: ImageDownsampleTarget
+    /// The height a loading image reserves for its spinner. Nil for an image
+    /// in a fixed small slot (an avatar, a flair emoji), which shows a plain
+    /// tile in the slot instead of a spinner taller than the text beside it.
+    private let placeholderHeight: CGFloat?
 
-    public init(url: URL?, contentMode: ContentMode = .fit, downsampleTarget: ImageDownsampleTarget = .screenWidth) {
+    public init(url: URL?, contentMode: ContentMode = .fit, downsampleTarget: ImageDownsampleTarget = .screenWidth,
+                placeholderHeight: CGFloat? = 200) {
         self.url = url
         self.contentMode = contentMode
         self.downsampleTarget = downsampleTarget
+        self.placeholderHeight = placeholderHeight
     }
 
     /// The image to draw now: this view's own, or one already decoded for a
@@ -87,14 +93,16 @@ public struct CachedAsyncImage: View {
             } else if failed, loadedURL == url {
                 Image(systemName: "photo")
                     .foregroundStyle(.secondary)
-                    .frame(minHeight: 120)
+                    .frame(minHeight: placeholderHeight == nil ? nil : 120)
+            } else if placeholderHeight == nil {
+                Color.secondary.opacity(0.12)
             } else {
                 // A bare `ProgressView()` has a tiny intrinsic size, and in a `List` that
                 // near-zero height gets locked into the scroll content height, pushing
                 // later content out of `ScrollViewProxy.scrollTo` reach. Reserve a stable
                 // minimum height.
                 ProgressView()
-                    .frame(minHeight: 200)
+                    .frame(minHeight: placeholderHeight)
                     .frame(maxWidth: .infinity)
             }
         }

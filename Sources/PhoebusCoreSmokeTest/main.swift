@@ -375,6 +375,8 @@ try await checkSubredditIconCache()
 
 try await checkAvatarDownsampleTargets()
 
+try await checkImageURLCleaning()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

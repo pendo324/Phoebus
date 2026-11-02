@@ -122,3 +122,10 @@ private actor Counter {
     let idle = await coalescer.runningCount
     check("nothing is left running once the work ends", idle == 0)
 }
+
+@MainActor func checkHTTPCacheLimits() async throws {
+    check("the HTTP cache holds 32 MB in memory and 256 MB on disk",
+          HTTPCacheLimits.memoryCapacity == 32 * 1024 * 1024 && HTTPCacheLimits.diskCapacity == 256 * 1024 * 1024)
+    check("the Storage footer and the explainer name the disk size",
+          HTTPCacheLimits.storageFooter == "Maximum of around 256 MB." && HTTPCacheLimits.explainerNote.contains("256 MB"))
+}

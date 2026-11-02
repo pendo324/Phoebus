@@ -91,7 +91,7 @@ public struct DataStorageSettingsScreen: View {
             Text("Storage")
                 .apolloSectionHeader()
         } footer: {
-            Text("Maximum of around 200 MB.")
+            Text(HTTPCacheLimits.storageFooter)
                 .apolloSectionFooter()
         }
     }

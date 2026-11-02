@@ -27,6 +27,11 @@ struct PhoebusApp: App {
     }
 
     init() {
+        // Pictures and previews are kept on disk by URLSession.shared, so its
+        // cache is sized before anything makes a request.
+        URLCache.shared = URLCache(memoryCapacity: HTTPCacheLimits.memoryCapacity,
+                                   diskCapacity: HTTPCacheLimits.diskCapacity)
+
         // Local crash recording first, so it covers everything after.
         CrashRecorder.start()
 

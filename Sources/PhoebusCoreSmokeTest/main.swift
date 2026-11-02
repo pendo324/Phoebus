@@ -367,6 +367,8 @@ try await checkProfileLookupFailures()
 
 try await checkInFlightCoalescer()
 
+try await checkHTTPCacheLimits()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

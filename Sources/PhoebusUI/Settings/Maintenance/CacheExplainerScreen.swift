@@ -46,6 +46,8 @@ public struct CacheExplainerScreen: View {
                     .font(.body)
                     .foregroundStyle(.primary)
                     .textCase(nil)
+            } footer: {
+                Text(HTTPCacheLimits.explainerNote)
             }
             .apolloCardRowFill()
         }

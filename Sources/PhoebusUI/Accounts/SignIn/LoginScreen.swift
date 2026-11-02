@@ -183,7 +183,7 @@ public struct LoginScreen: View {
             // to nothing, so a failed lookup is an error, not success.
             if let accountManager, let credential = await auth.credential {
                 let repository = RedditRepository(client: RedditAPIClient(auth: auth))
-                let identity = try await repository.fetchIdentity()
+                let identity = try await repository.fetchIdentity(fresh: true)
                 accountManager.addOAuthAccount(credential, username: identity.name)
             }
             onSuccess()

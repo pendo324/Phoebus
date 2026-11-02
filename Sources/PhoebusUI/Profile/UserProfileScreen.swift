@@ -652,7 +652,7 @@ public struct UserProfileScreen: View {
     /// Re-reads the header and social links after Edit Profile saved, and the
     /// avatar cache so feeds and comments show a new picture.
     private func refreshAfterEdit() async {
-        if let fresh = try? await repository.fetchUserProfile(username: username) {
+        if let fresh = try? await repository.fetchUserProfile(username: username, fresh: true) {
             user = fresh
             await AvatarCache.shared.store(url: fresh.iconImage, for: username)
         }

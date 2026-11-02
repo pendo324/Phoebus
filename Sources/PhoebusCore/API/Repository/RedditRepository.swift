@@ -24,6 +24,35 @@ public actor RedditRepository {
         self.client = client
     }
 
+    // MARK: Repeated lookups
+    //
+    // The same `/about` and `/api/me.json` answers are wanted by several
+    // surfaces within seconds (a feed header, its icon and a thread's
+    // moderator check; the tab icon and the own-profile tab; every screen
+    // that needs the signed-in name), so each is one request while it
+    // runs and is reused for a short while. A repository belongs to one
+    // account, so the answers are never shared between accounts.
+
+    /// How long a subreddit's `/about` is reused.
+    public static let subredditInfoMaxAge: TimeInterval = 300
+    /// How long a user's `/about` is reused.
+    public static let userProfileMaxAge: TimeInterval = 120
+    /// How long the signed-in account's identity is reused.
+    public static let identityMaxAge: TimeInterval = 300
+    /// What counts as current for the unread badge: its polls are far apart, so
+    /// an answer a launch's other readers just fetched serves it.
+    public static let unreadCountMaxAge: TimeInterval = 10
+
+    private let subredditAbout = ShortLivedLookup<Data>()
+    private let userAbout = ShortLivedLookup<Data>()
+    private let identityBlob = ShortLivedLookup<Data>()
+
+    /// A change that makes a kept subreddit answer stale (subscribed, opted in to a
+    /// quarantine, accepted a moderator invite): the next ask goes to Reddit.
+    public func forgetSubredditInfo(_ name: String) async {
+        await subredditAbout.forget(name.lowercased())
+    }
+
     /// Fetch a subreddit (or /r/all, /r/popular, multi) listing.
     /// `timeframe` only applies to "top"/"controversial" sorts,
     /// matching Reddit's `t=` query parameter.
@@ -310,6 +339,7 @@ public actor RedditRepository {
             "sr": subredditFullname,
             "action": subscribe ? "sub" : "unsub",
         ])
+        await subredditAbout.removeAll()
         if subscribe { SiriContentCapture.eligibilityChanged([subredditFullname], allow: true) }
         await Self.announce(SubscriptionChange(fullname: subredditFullname, subscribed: subscribe))
     }
@@ -331,6 +361,7 @@ public actor RedditRepository {
             "sr_name": subredditName,
             "action": subscribe ? "sub" : "unsub",
         ])
+        await forgetSubredditInfo(subredditName)
         if subscribe { SiriContentCapture.eligibilityChanged(["r/\(subredditName)"], allow: true) }
         await Self.announce(SubscriptionChange(name: subredditName, subscribed: subscribe))
     }
@@ -340,6 +371,9 @@ public actor RedditRepository {
     public func setQuarantineOptIn(subredditName: String, optIn: Bool) async throws {
         try await client.post(path: "/api/quarantine_option",
                               parameters: QuarantineNotice.optionParameters(subreddit: subredditName, accept: optIn))
+        // What Reddit serves for the subreddit changes with the opt-in, its
+        // about data included.
+        await forgetSubredditInfo(subredditName)
     }
 
     @discardableResult
@@ -357,7 +391,7 @@ public actor RedditRepository {
     /// uploaded images in comments, from `/about`'s
     /// `allowed_media_in_comments`. nil when unknown.
     public func subredditAllowsImageComments(_ subreddit: String) async -> Bool? {
-        guard let data = try? await client.get(path: "/r/\(subreddit)/about"),
+        guard let data = try? await subredditAboutData(subreddit),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let about = root["data"] as? [String: Any] else { return nil }
         return NativeCommentImages.allowsImageComments(aboutData: about)
@@ -577,13 +611,15 @@ public actor RedditRepository {
     /// including `pref_no_profanity`. Web-session accounts use that endpoint,
     /// decoding its `{kind: "t2", data: {...}}` wrapper instead of the bare
     /// object `/api/v1/me` returns.
-    public func fetchIdentity() async throws -> RedditUser {
+    /// Reused for `identityMaxAge`; `fresh` asks Reddit now (a sign-in
+    /// check, a re-read of the account's preferences) and shares a request
+    /// that is already running.
+    public func fetchIdentity(fresh: Bool = false) async throws -> RedditUser {
+        let data = try await identityData(maxAge: fresh ? 0 : Self.identityMaxAge)
         let user: RedditUser
         if await client.isUsingWebSession {
-            let data = try await client.get(path: "/api/me.json")
             user = try JSONDecoder.reddit.decode(RedditThing<RedditUser>.self, from: data).data
         } else {
-            let data = try await client.get(path: "/api/v1/me")
             user = try JSONDecoder.reddit.decode(RedditUser.self, from: data)
         }
         if let blurs = user.blursMatureMedia {
@@ -592,10 +628,28 @@ public actor RedditRepository {
         return user
     }
 
-    public func fetchSubredditInfo(name: String) async throws -> RedditSubreddit {
-        let data = try await client.get(path: "/r/\(name)/about")
+    /// The identity endpoint's raw answer, one request per `maxAge`; the
+    /// unread badge reads its count from it.
+    private func identityData(maxAge: TimeInterval) async throws -> Data {
+        let webSession = await client.isUsingWebSession
+        let path = webSession ? "/api/me.json" : "/api/v1/me"
+        let client = client
+        return try await identityBlob.value(for: path, maxAge: maxAge) { try await client.get(path: path) }
+    }
+
+    /// Reused for `subredditInfoMaxAge` unless `fresh`; subscribing, a quarantine
+    /// opt-in and accepting a moderator invite forget it.
+    public func fetchSubredditInfo(name: String, fresh: Bool = false) async throws -> RedditSubreddit {
+        let data = try await subredditAboutData(name, fresh: fresh)
         let thing = try JSONDecoder.reddit.decode(RedditThing<RedditSubreddit>.self, from: data)
         return thing.data
+    }
+
+    private func subredditAboutData(_ name: String, fresh: Bool = false) async throws -> Data {
+        let client = client
+        return try await subredditAbout.value(for: name.lowercased(), maxAge: fresh ? 0 : Self.subredditInfoMaxAge) {
+            try await client.get(path: "/r/\(name)/about")
+        }
     }
 
     public func fetchSubredditRules(name: String) async throws -> [SubredditRule] {
@@ -934,8 +988,12 @@ public actor RedditRepository {
         return result
     }
 
-    public func fetchUserProfile(username: String) async throws -> RedditUser {
-        let data = try await client.get(path: "/user/\(username)/about")
+    /// Reused for `userProfileMaxAge` unless `fresh` (after Edit Profile).
+    public func fetchUserProfile(username: String, fresh: Bool = false) async throws -> RedditUser {
+        let client = client
+        let data = try await userAbout.value(for: username.lowercased(), maxAge: fresh ? 0 : Self.userProfileMaxAge) {
+            try await client.get(path: "/user/\(username)/about")
+        }
         let thing = try JSONDecoder.reddit.decode(RedditThing<RedditUser>.self, from: data)
         return thing.data
     }
@@ -965,8 +1023,8 @@ public actor RedditRepository {
         // Reddit's own counter first; the unread listing as a fallback.
         // A web session's `/api/v1/me` is `{}`, so it asks `/api/me.json`,
         // which carries the same count.
-        let mePath = await client.isUsingWebSession ? "/api/me.json" : "/api/v1/me"
-        if let data = try? await client.get(path: mePath),
+        // Shares an answer the launch's identity reads just fetched, not an older one.
+        if let data = try? await identityData(maxAge: Self.unreadCountMaxAge),
            let count = InboxUnreadCount.fromIdentity(data) {
             return count
         }

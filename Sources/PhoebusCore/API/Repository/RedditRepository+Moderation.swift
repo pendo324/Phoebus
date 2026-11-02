@@ -43,6 +43,7 @@ extension RedditRepository {
     /// `/api/accept_moderator_invite`.
     public func acceptModeratorInvite(subreddit: String) async throws {
         try await client.post(path: "/r/\(subreddit)/api/accept_moderator_invite", parameters: ["api_type": "json"])
+        await forgetSubredditInfo(subreddit)
     }
 
     /// Declines a pending moderator invite for the signed-in user;

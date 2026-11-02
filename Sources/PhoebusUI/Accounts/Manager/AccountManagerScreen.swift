@@ -303,7 +303,7 @@ private struct AddOAuthAccountSheet: View {
             // OAuth's token response carries none, unlike the web-session flow's
             // /api/me.json probe.
             let repository = RedditRepository(client: RedditAPIClient(auth: ephemeralAuth))
-            let identity = try await repository.fetchIdentity()
+            let identity = try await repository.fetchIdentity(fresh: true)
             onSuccess(credential, identity.name)
         } catch {
             onError(UserFacingError.text(for: error))

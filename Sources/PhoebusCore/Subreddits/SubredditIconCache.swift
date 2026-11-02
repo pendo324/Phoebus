@@ -67,6 +67,12 @@ public actor SubredditIconCache {
         return entry.icons
     }
 
+    /// Drops what is known about one subreddit (a quarantine opt-in changes what
+    /// Reddit serves for it), so the next row asks again.
+    public func forget(_ subreddit: String) {
+        entries[subreddit.lowercased()] = nil
+    }
+
     public func store(_ value: Icons, for subreddit: String) {
         entries[subreddit.lowercased()] = Entry(icons: value, expiresAt: nil)
     }

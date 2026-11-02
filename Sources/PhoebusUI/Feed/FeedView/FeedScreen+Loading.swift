@@ -89,6 +89,9 @@ extension FeedScreen {
     /// Opting in to or out of a quarantined subreddit changes what Reddit
     /// serves for it: the posts, the about data and the highlights.
     func reloadAfterQuarantineChange() async {
+        // The repository forgets the subreddit's kept about data when the
+        // opt-in is sent; the icon map's "no icon" for the refused subreddit goes too.
+        await SubredditIconCache.shared.forget(subreddit)
         await load()
         await checkModeratorStatus()
         await loadCommunityHighlights(force: true)

@@ -379,6 +379,10 @@ try await checkImageURLCleaning()
 
 try await checkUserProfileSnapshotCache()
 
+try await checkShortLivedLookup()
+
+try await checkRepeatedLookupsShareARequest()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

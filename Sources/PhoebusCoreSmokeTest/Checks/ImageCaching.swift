@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import PhoebusCore
 
 // MARK: - Image caching
@@ -298,4 +301,153 @@ private func subreddit(_ name: String, icon: String? = nil, community: String? =
     let blipAge = await ages.hasFreshEntry(for: "smokeblip")
     check("a failed connection is recorded for neither", !blipAvatar && !blipAge)
     await avatars.clear(); await ages.clear()
+}
+
+@MainActor func checkShortLivedLookup() async throws {
+    struct Blip: Error {}
+    let lookup = ShortLivedLookup<Int>()
+    let calls = Counter()
+
+    // Ten concurrent askers share one request.
+    let results = await withTaskGroup(of: Int?.self) { group -> [Int?] in
+        for _ in 0..<10 {
+            group.addTask { try? await lookup.value(for: "a", maxAge: 300) { await calls.hit(); try await Task.sleep(nanoseconds: 80_000_000); return 5 } }
+        }
+        var all: [Int?] = []
+        for await r in group { all.append(r) }
+        return all
+    }
+    let afterConcurrent = await calls.count
+    check("ten concurrent askers make one request", afterConcurrent == 1 && results.allSatisfy { $0 == 5 })
+
+    // Later askers within maxAge are answered without one; after it, they ask again.
+    let sequential = try await lookup.value(for: "a", maxAge: 300) { await calls.hit(); return 6 }
+    let afterSequential = await calls.count
+    check("a later asker inside maxAge reads the kept answer", sequential == 5 && afterSequential == 1)
+    let expired = try await lookup.value(for: "a", maxAge: 300, now: Date().addingTimeInterval(301)) { await calls.hit(); return 7 }
+    let afterExpiry = await calls.count
+    check("after maxAge the next asker asks again", expired == 7 && afterExpiry == 2)
+
+    // maxAge 0 asks now, and what it learns is what later askers get.
+    let fresh = try await lookup.value(for: "a", maxAge: 0) { await calls.hit(); return 8 }
+    let later = try await lookup.value(for: "a", maxAge: 300) { await calls.hit(); return 9 }
+    let afterFresh = await calls.count
+    check("a fresh ask bypasses the kept answer and refreshes it", fresh == 8 && later == 8 && afterFresh == 3)
+
+    // forget (a subscribe, a quarantine opt-in) makes the next ask go out.
+    await lookup.forget("a")
+    let afterForget = try await lookup.value(for: "a", maxAge: 300) { await calls.hit(); return 10 }
+    check("forgetting an answer makes the next ask go out", afterForget == 10)
+
+    // A failure is not kept: the next asker retries, and keys are independent.
+    let flaky = Counter()
+    _ = try? await lookup.value(for: "b", maxAge: 300) { await flaky.hit(); throw Blip() }
+    let recovered = try await lookup.value(for: "b", maxAge: 300) { await flaky.hit(); return 1 }
+    let flakyCalls = await flaky.count
+    check("a transient failure is not kept, the next asker retries", recovered == 1 && flakyCalls == 2)
+
+    // The table does not grow without bound.
+    let small = ShortLivedLookup<Int>(limit: 10)
+    for i in 0..<40 { _ = try await small.value(for: "k\(i)", maxAge: 300) { i } }
+    let kept = await small.keptCount
+    check("a long session keeps a bounded number of answers", kept <= 10)
+}
+
+// MARK: - Repeated lookups through the repository
+
+private final class AboutStub: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var paths: [String] = []
+    nonisolated(unsafe) static var fail = false
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let url = request.url!
+        Self.paths.append(url.path)
+        let status = Self.fail ? 503 : 200
+        let user = #"{"id":"u1","name":"exampleuser","comment_karma":1,"link_karma":2,"created_utc":1700000000}"#
+        let body: String
+        if url.path.contains("/about") && url.path.contains("/user/") {
+            body = #"{"kind":"t2","data":\#(user)}"#
+        } else if url.path.contains("/about") {
+            body = #"{"kind":"t5","data":{"name":"t5_abc","display_name":"anime","title":"Anime","user_is_subscriber":false}}"#
+        } else if url.path.contains("/me") {
+            body = user
+        } else {
+            body = "{}"
+        }
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)!,
+                            cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@MainActor func checkRepeatedLookupsShareARequest() async throws {
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [AboutStub.self]
+    let session = URLSession(configuration: configuration)
+    let credentials = InMemoryCredentialStore()
+    try credentials.save(RedditCredential(accessToken: "tok", refreshToken: "rt",
+                                          expiration: Date().addingTimeInterval(3600), isPermanent: true))
+    let auth = RedditAuthClient(session: session, credentialStore: credentials, webSessionStore: InMemoryWebSessionStore())
+    let repository = RedditRepository(client: RedditAPIClient(auth: auth, session: session))
+    func count(_ part: String) -> Int { AboutStub.paths.filter { $0.contains(part) }.count }
+
+    // A thread's moderator check and a feed header's icon ask for one subreddit together and again later.
+    AboutStub.paths = []; AboutStub.fail = false
+    await withTaskGroup(of: Void.self) { group in
+        for _ in 0..<5 { group.addTask { _ = try? await repository.fetchSubredditInfo(name: "anime") } }
+    }
+    _ = try await repository.fetchSubredditInfo(name: "Anime")
+    check("five concurrent and one later /r/anime/about askers make one request", count("/r/anime/about") == 1)
+    _ = try await repository.fetchSubredditInfo(name: "anime", fresh: true)
+    check("a fresh ask goes out", count("/r/anime/about") == 2)
+
+    // Subscribing and a quarantine opt-in make the kept answer stale.
+    try await repository.subscribe(subredditName: "anime", subscribe: true)
+    _ = try await repository.fetchSubredditInfo(name: "anime")
+    check("the about data is asked again after subscribing", count("/r/anime/about") == 3)
+    _ = try await repository.fetchSubredditInfo(name: "anime")
+    check("...and is kept again after that", count("/r/anime/about") == 3)
+    try await repository.setQuarantineOptIn(subredditName: "anime", optIn: true)
+    _ = try await repository.fetchSubredditInfo(name: "anime")
+    check("a quarantine opt-in makes the next about read go to Reddit", count("/r/anime/about") == 4)
+
+    // A failure is not kept.
+    AboutStub.fail = true
+    do { _ = try await repository.fetchSubredditInfo(name: "other") } catch {}
+    AboutStub.fail = false
+    _ = try await repository.fetchSubredditInfo(name: "other")
+    check("a failed about read is retried, not kept", count("/r/other/about") == 2)
+
+    // The own-profile tab and the tab icon both read the account's /about.
+    AboutStub.paths = []
+    async let tabIcon = repository.fetchUserProfile(username: "ExampleUser")
+    async let profileTab = repository.fetchUserProfile(username: "exampleuser")
+    _ = try await (tabIcon, profileTab)
+    _ = try await repository.fetchUserProfile(username: "exampleuser")
+    check("the tab icon, the profile tab and a later read share one /user/<me>/about", count("/user/") == 1)
+    _ = try await repository.fetchUserProfile(username: "exampleuser", fresh: true)
+    check("a profile read after an edit goes out", count("/user/") == 2)
+
+    // Identity: every screen that needs the signed-in name shares one /api/v1/me.
+    AboutStub.paths = []
+    await withTaskGroup(of: Void.self) { group in
+        for _ in 0..<4 { group.addTask { _ = try? await repository.fetchIdentity() } }
+    }
+    _ = try await repository.fetchIdentity()
+    check("the launch's identity reads make one /api/v1/me", count("/api/v1/me") == 1)
+    _ = try await repository.fetchIdentity(fresh: true)
+    check("a sign-in check reads it fresh", count("/api/v1/me") == 2)
+    _ = try await repository.fetchUnreadInboxCount()
+    check("the unread badge reuses an identity answer a moment old", count("/api/v1/me") == 2)
+    let badge = RedditRepository(client: RedditAPIClient(auth: auth, session: session))
+    AboutStub.paths = []
+    _ = try await badge.fetchUnreadInboxCount()
+    _ = try await badge.fetchIdentity()
+    check("a badge poll with nothing recent asks, and identity readers then share its answer", count("/api/v1/me") == 1)
 }

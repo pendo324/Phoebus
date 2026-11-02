@@ -143,7 +143,7 @@ public final class AccountManager: ObservableObject {
         } else {
             let legacyAuth = RedditAuthClient(credentialStore: legacyCredentialStore, webSessionStore: legacyWebSessionStore)
             let legacyRepository = RedditRepository(client: RedditAPIClient(auth: legacyAuth))
-            guard let identity = try? await legacyRepository.fetchIdentity() else {
+            guard let identity = try? await legacyRepository.fetchIdentity(fresh: true) else {
                 // Identity could not be resolved (e.g. offline at launch): leave the
                 // legacy store untouched and retry next launch.
                 return

@@ -46,50 +46,6 @@ enum MemoryWarningPurge {
     }
 }
 
-/// A target rung to downsample a decoded image to, rather than keeping the
-/// fetched bytes at full resolution in memory.
-///
-/// Gallery View picks a rung near a 640pt target for grid thumbnails.
-/// Downsampling via `CGImageSourceCreateThumbnailAtIndex` keeps one shared
-/// cache, network path and Imgur-proxy rewrite.
-public enum ImageDownsampleTarget: Equatable, Sendable {
-    /// No downsampling: decode and display at native resolution. For the
-    /// zoomable viewers.
-    case none
-    /// No wider than the screen: what inline media can show. The default,
-    /// so a 12-megapixel photo in a comment isn't decoded and drawn in full
-    /// while the list scrolls.
-    case screenWidth
-    /// Downsample so the image's longer side is approximately this
-    /// many points, at the given scale.
-    case pixelWidth(CGFloat, scale: CGFloat)
-
-    /// Gallery View's grid rung target.
-    public static let galleryTile = ImageDownsampleTarget.pixelWidth(640, scale: 2)
-
-    /// The longest side to decode at, for an image of `pixelSize`; nil
-    /// decodes at full size.
-    func maxPixelSize(for pixelSize: CGSize, screenPixelWidth: CGFloat) -> CGFloat? {
-        switch self {
-        case .none:
-            return nil
-        case .screenWidth:
-            guard pixelSize.width > screenPixelWidth, pixelSize.width > 0 else { return nil }
-            return (max(pixelSize.width, pixelSize.height) * screenPixelWidth / pixelSize.width).rounded(.up)
-        case .pixelWidth(let width, let scale):
-            return width * scale
-        }
-    }
-
-    var cacheKey: String {
-        switch self {
-        case .none: return "full"
-        case .screenWidth: return "screen"
-        case .pixelWidth(let width, let scale): return "\(Int(width * scale))"
-        }
-    }
-}
-
 public struct CachedAsyncImage: View {
     let url: URL?
     /// Decoded once per load, not in every `body`.
@@ -163,6 +119,15 @@ public struct CachedAsyncImage: View {
     }
 
     private struct LoadFailed: Error {}
+
+    /// Device pixels per point, for `ImageDownsampleTarget.avatar`.
+    static var screenScale: CGFloat {
+        #if canImport(UIKit)
+        UIScreen.main.scale
+        #else
+        3
+        #endif
+    }
 
     /// The screen's width in pixels, for `ImageDownsampleTarget.screenWidth`.
     static var screenPixelWidth: CGFloat {

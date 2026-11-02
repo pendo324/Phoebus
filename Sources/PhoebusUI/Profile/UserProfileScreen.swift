@@ -600,7 +600,10 @@ public struct UserProfileScreen: View {
         let url = user.iconImage.flatMap { URL(string: $0.replacingOccurrences(of: "&amp;", with: "&")) }
         let image = Group {
             if let url {
-                CachedAsyncImage(url: url, contentMode: .fill)
+                // Its own 96pt target: the row avatars of this account are decoded
+                // smaller from the same bytes, and this one must stay sharp.
+                CachedAsyncImage(url: url, contentMode: .fill,
+                                 downsampleTarget: .avatar(pointSize: size, scale: CachedAsyncImage.screenScale))
             } else {
                 Color.clear
             }

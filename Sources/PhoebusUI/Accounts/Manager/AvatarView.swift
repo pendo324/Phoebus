@@ -30,7 +30,7 @@ public struct AvatarView: View {
     public var body: some View {
         Group {
             if let avatarURLString, let url = URL(string: avatarURLString) {
-                CachedAsyncImage(url: url)
+                CachedAsyncImage(url: url, downsampleTarget: .avatar(pointSize: size, scale: CachedAsyncImage.screenScale))
                     .clipShape(AvatarClipShape(style: shape))
             } else {
                 AvatarClipShape(style: shape)

@@ -208,3 +208,23 @@ private func subreddit(_ name: String, icon: String? = nil, community: String? =
     let cleared = await cache.lookup("anime")
     check("removeAll forgets every subreddit", cleared == nil)
 }
+
+@MainActor func checkAvatarDownsampleTargets() async throws {
+    let avatar256 = CGSize(width: 256, height: 256)
+    let row = ImageDownsampleTarget.avatar(pointSize: 27, scale: 3)
+    let header = ImageDownsampleTarget.avatar(pointSize: 96, scale: 3)
+    check("a 27pt avatar row decodes at 81 px", row.maxPixelSize(for: avatar256, screenPixelWidth: 1170) == 81)
+    check("a 96pt profile header decodes the 256 px picture as it is", header.maxPixelSize(for: avatar256, screenPixelWidth: 1170) == nil)
+    check("the header asks for more pixels than the row, so the row's bitmap is never stretched into it",
+          header.cacheKey == "288" && row.cacheKey == "81" && header.cacheKey != row.cacheKey)
+    check("a picture smaller than the target is not scaled up",
+          row.maxPixelSize(for: CGSize(width: 64, height: 64), screenPixelWidth: 1170) == nil)
+    check("a huge picture is brought down to the header's pixels",
+          header.maxPixelSize(for: CGSize(width: 2000, height: 1000), screenPixelWidth: 1170) == 288)
+    check("an unreadable size still gets the target", row.maxPixelSize(for: .zero, screenPixelWidth: 1170) == 81)
+    check("the screen-width and full-size targets are unchanged",
+          ImageDownsampleTarget.screenWidth.maxPixelSize(for: CGSize(width: 2340, height: 1170), screenPixelWidth: 1170) == 1170
+          && ImageDownsampleTarget.screenWidth.maxPixelSize(for: avatar256, screenPixelWidth: 1170) == nil
+          && ImageDownsampleTarget.none.maxPixelSize(for: avatar256, screenPixelWidth: 1170) == nil
+          && ImageDownsampleTarget.galleryTile.cacheKey == "1280")
+}

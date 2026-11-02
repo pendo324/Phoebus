@@ -373,6 +373,8 @@ try await checkInboxAvatarPolicy()
 
 try await checkSubredditIconCache()
 
+try await checkAvatarDownsampleTargets()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

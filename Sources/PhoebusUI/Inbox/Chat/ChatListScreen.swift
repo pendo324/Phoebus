@@ -14,7 +14,8 @@ import PhoebusCore
 ///
 /// Covers the conversation list (unread counts, previews, pending requests) and
 /// the rooms: reading, sending through `ChatSendQueue`, images, reactions,
-/// edits and threads. See `docs/chat-sending-and-threads.md`.
+/// edits and threads, and answering a request (Phoebus only; Reborn's web chat
+/// does it in its page). See `docs/chat-sending-and-threads.md`.
 public struct ChatListScreen: View {
     let repository: RedditRepository
 
@@ -26,6 +27,17 @@ public struct ChatListScreen: View {
     @State private var errorMessage: String?
     @State private var selectedSection: Section = .messages
     @State private var selfUserID: String?
+    @State private var openRequest: OpenRequest?
+
+    /// A pending request opened from the list. It is held apart from the
+    /// list's rows so accepting it, which moves the row to Messages, does not
+    /// pop the screen the user is looking at.
+    struct OpenRequest: Hashable, Identifiable {
+        let room: ChatRoom
+        var id: String { room.id }
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    }
 
     /// Sections: Messages, Requests, Threads.
     ///
@@ -127,11 +139,19 @@ public struct ChatListScreen: View {
                     .foregroundStyle(.secondary)
             }
             ForEach(visibleRooms) { room in
-                // A pending request is not yet readable: messages are
-                // not fetchable until accepted, so it stays a plain
-                // row rather than a link that leads to an error.
+                // A request opens to its first message with Accept and Decline.
                 if room.isInvite {
-                    roomRow(room)
+                    Button {
+                        openRequest = OpenRequest(room: room)
+                    } label: {
+                        HStack {
+                            roomRow(room)
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 } else {
                     SettingsLink {
                         ChatRoomScreen(
@@ -182,6 +202,17 @@ public struct ChatListScreen: View {
             .background(.bar)
             .accessibilityIdentifier("chat.sectionPicker")
         }
+        .navigationDestination(item: $openRequest) { target in
+            ChatRoomScreen(
+                room: target.room,
+                title: title(for: target.room),
+                selfUserID: selfUserID,
+                displayNames: displayNames,
+                repository: repository,
+                onRequestAccepted: { selectedSection = .messages }
+            )
+        }
+        .apolloTracksForwardNavigation($openRequest)
         .task { await load() }
         // Kept current by the live sync rather than reloaded on a timer.
         .task {
@@ -249,7 +280,8 @@ public struct ChatListScreen: View {
             // other participant, and without knowing which one is you every DM reads
             // "you, them".
             if selfUserID == nil { selfUserID = await repository.chatSelfUserID() }
-            let result = try await repository.fetchChatRooms()
+            // A request answered a moment ago stays answered, whichever sync reports it.
+            let result = await ChatLive.shared.engine(for: repository).reconciled(try await repository.fetchChatRooms())
             rooms = result.rooms
             unreadCount = result.unreadCount
             requestsCount = result.requestsCount
@@ -284,7 +316,10 @@ struct ChatRoomScreen: View {
     let selfUserID: String?
     let displayNames: [String: String]
     let repository: RedditRepository
+    /// Called when a pending request is accepted, so the list can show Messages.
+    var onRequestAccepted: (() -> Void)?
 
+    @State private var accepted = false
     @State private var messages: [RedditChatClient.ChatMessage] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -310,6 +345,9 @@ struct ChatRoomScreen: View {
     @State private var isUploading = false
     @State private var uploadError: String?
 
+    /// A room that is still a request takes no messages until it is accepted.
+    private var isPendingRequest: Bool { !ChatRequests.canReply(in: room) && !accepted }
+
     var body: some View {
         ScrollViewReader { proxy in
             // A scroll view over a plain stack, not a `List`: a list sizes rows lazily
@@ -321,7 +359,9 @@ struct ChatRoomScreen: View {
                 if let errorMessage {
                     Text(errorMessage).font(.caption).foregroundStyle(.red)
                 }
-                if !isLoading && messages.isEmpty && errorMessage == nil {
+                if isPendingRequest {
+                    requestIntro
+                } else if !isLoading && messages.isEmpty && errorMessage == nil {
                     Text("No messages in this conversation.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -370,7 +410,19 @@ struct ChatRoomScreen: View {
                     ProgressView().padding(.top, 20)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if isPendingRequest {
+                    ChatRequestBar(
+                        prompt: ChatRequests.isModmail(room) ? "Accept to read and reply." : "Accept to reply to \(title).",
+                        blockName: title,
+                        canBlock: ChatRequests.canBlock(room, selfUserID: selfUserID),
+                        answer: answerRequest,
+                        onAccepted: requestAccepted
+                    )
+                } else {
+                    composer
+                }
+            }
             .onChange(of: messages.count) { _, _ in
                 // A conversation opens at its very end: once now, and again after this
                 // layout pass, since the first scroll lands before a long message has its
@@ -431,6 +483,54 @@ struct ChatRoomScreen: View {
                 }
             }
         }
+    }
+
+    /// What a request shows before it is answered. Reddit sends neither the first
+    /// message in the invite nor its history before the room is joined, so there is
+    /// only who it is from.
+    @ViewBuilder
+    private var requestIntro: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if ChatRequests.isModmail(room) {
+                Text(title)
+                    .font(.headline)
+                Text("Sent through a subreddit's modmail. Accept the request to read it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("\(title) wants to chat with you")
+                    .font(.headline)
+                Text("Accept the request to read their message.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .accessibilityIdentifier("chat.request.intro")
+    }
+
+    /// Accepts, declines or blocks through `ChatLive`, which moves the room in the
+    /// list and the badge first and puts it back if this fails. Returns what to
+    /// tell the user, nil on success.
+    private func answerRequest(_ action: ChatRequestAction, alsoBlock: Bool) async -> String? {
+        let requester = ChatRequests.requester(of: room, selfUserID: selfUserID)
+        do {
+            try await ChatLive.shared.engine(for: repository).answerRequest(action, room: room) { [repository, room] in
+                if alsoBlock, let requester { try await repository.blockChatRequester(matrixUserID: requester) }
+                try await repository.sendChatRequestAnswer(action, roomID: room.id)
+            }
+            return nil
+        } catch {
+            return ChatRequests.failureMessage(for: error, action: action)
+        }
+    }
+
+    /// The request is now a conversation: this screen becomes it in place.
+    private func requestAccepted() {
+        accepted = true
+        onRequestAccepted?()
+        Task { await load() }
     }
 
     private var composer: some View {
@@ -769,10 +869,12 @@ struct ChatRoomScreen: View {
         // Edit and delete apply to your own messages only; the server
         // would reject the rest.
         .contextMenu {
-            Button {
-                reactingTo = message
-            } label: {
-                Label("React", systemImage: "face.smiling")
+            if !isPendingRequest {
+                Button {
+                    reactingTo = message
+                } label: {
+                    Label("React", systemImage: "face.smiling")
+                }
             }
             if mine {
                 if !message.isMedia {
@@ -959,6 +1061,11 @@ struct ChatRoomScreen: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
+        // Nothing to fetch for a request: its history is empty until it is accepted.
+        if isPendingRequest {
+            errorMessage = nil
+            return
+        }
         await refreshPending()
         do {
             let fetched = try await repository.fetchChatMessages(roomID: room.id)
@@ -1006,6 +1113,100 @@ struct ChatRoomScreen: View {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+}
+
+/// Accept, Decline and Block under a pending request. A leaf view so that
+/// reading `dismiss` does not re-render the conversation above it.
+struct ChatRequestBar: View {
+    let prompt: String
+    /// Who a Block would apply to.
+    let blockName: String
+    let canBlock: Bool
+    /// Returns what to tell the user when the answer failed, nil when it worked.
+    let answer: (ChatRequestAction, _ alsoBlock: Bool) async -> String?
+    let onAccepted: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var isWorking = false
+    @State private var errorMessage: String?
+    @State private var confirming: Confirmation?
+
+    enum Confirmation: Identifiable {
+        case decline, block
+        var id: Self { self }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("chat.request.error")
+            }
+            Text(prompt)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Button {
+                    Task { await run(.accept, alsoBlock: false) }
+                } label: {
+                    Group {
+                        if isWorking { ProgressView() } else { Text("Accept") }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.apolloAccent)
+                .accessibilityIdentifier("chat.request.accept")
+
+                Button("Decline", role: .destructive) { confirming = .decline }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("chat.request.decline")
+
+                if canBlock {
+                    Button("Block", role: .destructive) { confirming = .block }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("chat.request.block")
+                }
+            }
+            .disabled(isWorking)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .confirmationDialog(
+            confirming == .block ? "Block \(blockName)?" : "Decline this chat request?",
+            isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
+            titleVisibility: .visible
+        ) {
+            if confirming == .block {
+                Button("Block and Decline", role: .destructive) { Task { await run(.decline, alsoBlock: true) } }
+            } else {
+                Button("Decline", role: .destructive) { Task { await run(.decline, alsoBlock: false) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(confirming == .block
+                 ? "They won't be able to message you, and the request is removed."
+                 : "The request is removed from your list.")
+        }
+    }
+
+    private func run(_ action: ChatRequestAction, alsoBlock: Bool) async {
+        isWorking = true
+        errorMessage = nil
+        let failure = await answer(action, alsoBlock)
+        isWorking = false
+        if let failure {
+            errorMessage = failure
+        } else if action == .accept {
+            onAccepted()
+        } else {
+            dismiss()
         }
     }
 }

@@ -169,7 +169,11 @@ extension RedditRepository {
         guard let fullname = ChatRequests.blockFullname(forMatrixUserID: matrixUserID) else {
             throw ChatRequestError.cannotBlock
         }
-        try await blockUser(fullname: fullname)
+        do {
+            try await blockUser(fullname: fullname)
+        } catch {
+            throw ChatRequestError.blockFailed((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+        }
     }
 
     /// Edits one of your own messages.

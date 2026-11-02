@@ -24,11 +24,14 @@ public enum ChatRequestError: Error, LocalizedError, Equatable {
     case notPending
     /// The sender has no Reddit account id to block.
     case cannotBlock
+    /// Blocking failed, so the request was left as it was.
+    case blockFailed(String)
 
     public var errorDescription: String? {
         switch self {
         case .notPending: return "That chat request has already been answered."
         case .cannotBlock: return "Couldn't tell who sent this request, so they can't be blocked."
+        case .blockFailed(let detail): return "Couldn't block this person, so the request was left as it was. \(detail)"
         }
     }
 }

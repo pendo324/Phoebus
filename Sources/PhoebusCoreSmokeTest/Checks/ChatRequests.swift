@@ -194,6 +194,9 @@ private func requestsDelta(_ json: String) -> ChatSyncDelta {
           message(RedditChatClient.ChatError.httpError(status: 503)).contains("trouble"))
     check("a missing web session explains how to sign in",
           message(RedditChatClient.ChatError.noWebSession).contains("web session"))
+    check("a failed block says the request was kept",
+          message(ChatRequestError.blockFailed("HTTP 500."), .decline).contains("left as it was")
+            && message(ChatRequestError.cannotBlock, .decline).contains("can't be blocked"))
     check("a second answer to the same request is explained",
           message(ChatRequestError.notPending).contains("already been answered"))
 

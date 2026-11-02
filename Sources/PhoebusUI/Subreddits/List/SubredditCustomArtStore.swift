@@ -29,20 +29,31 @@ public final class SubredditCustomArtStore: ObservableObject {
     /// Bumped on every change so views re-read.
     @Published public private(set) var revision = 0
     private var cache: [String: UIImage] = [:]
+    /// The saved photos' file names, read from the folder once, so the icons
+    /// and banners without custom art (nearly all of them) are answered
+    /// without a file open in every view body.
+    private lazy var savedNames: Set<String> = Set((try? FileManager.default.contentsOfDirectory(atPath: Self.directory.path)) ?? [])
 
-    private init() {}
+    private init() {
+        MemoryWarningPurge.register { [weak self] in await self?.clearMemory() }
+    }
 
     private static var directory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("SubredditCustomArt", isDirectory: true)
     }
 
-    private static func fileURL(_ subreddit: String, _ kind: SubredditCustomArtKind) -> URL {
+    private static func fileName(_ subreddit: String, _ kind: SubredditCustomArtKind) -> String {
         let key = subreddit.lowercased().trimmingCharacters(in: .whitespaces)
-        return directory.appendingPathComponent("\(kind.rawValue)-\(key).\(kind == .banner ? "jpg" : "png")")
+        return "\(kind.rawValue)-\(key).\(kind == .banner ? "jpg" : "png")"
+    }
+
+    private static func fileURL(_ subreddit: String, _ kind: SubredditCustomArtKind) -> URL {
+        directory.appendingPathComponent(fileName(subreddit, kind))
     }
 
     public func image(for subreddit: String, kind: SubredditCustomArtKind) -> UIImage? {
+        guard savedNames.contains(Self.fileName(subreddit, kind)) else { return nil }
         let url = Self.fileURL(subreddit, kind)
         if let hit = cache[url.path] { return hit }
         guard let img = UIImage(contentsOfFile: url.path) else { return nil }
@@ -51,7 +62,7 @@ public final class SubredditCustomArtStore: ObservableObject {
     }
 
     public func has(_ subreddit: String, kind: SubredditCustomArtKind) -> Bool {
-        FileManager.default.fileExists(atPath: Self.fileURL(subreddit, kind).path)
+        savedNames.contains(Self.fileName(subreddit, kind))
     }
 
     @discardableResult
@@ -65,6 +76,7 @@ public final class SubredditCustomArtStore: ObservableObject {
         try? FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
         let url = Self.fileURL(subreddit, kind)
         guard (try? data.write(to: url, options: .atomic)) != nil else { return false }
+        savedNames.insert(Self.fileName(subreddit, kind))
         cache[url.path] = nil
         revision += 1
         return true
@@ -73,6 +85,7 @@ public final class SubredditCustomArtStore: ObservableObject {
     public func remove(_ subreddit: String, kind: SubredditCustomArtKind) {
         let url = Self.fileURL(subreddit, kind)
         try? FileManager.default.removeItem(at: url)
+        savedNames.remove(Self.fileName(subreddit, kind))
         cache[url.path] = nil
         revision += 1
     }
@@ -89,6 +102,7 @@ public final class SubredditCustomArtStore: ObservableObject {
 
     public func clearAll() {
         try? FileManager.default.removeItem(at: Self.directory)
+        savedNames.removeAll()
         cache.removeAll()
         revision += 1
     }

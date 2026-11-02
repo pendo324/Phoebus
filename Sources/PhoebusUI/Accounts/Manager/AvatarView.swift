@@ -71,14 +71,10 @@ public struct AvatarView: View {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
-        do {
-            let user = try await repository.fetchUserProfile(username: username)
-            await AvatarCache.shared.store(url: user.iconImage, for: username)
-            avatarURLString = user.iconImage
-        } catch {
-            // A suspended account is cached as a miss; a dropped connection or
-            // a 429 only for as long as `ProfileLookupFailure` says.
-            await AvatarCache.shared.store(failure: ProfileLookupFailure(error), for: username)
+        // The same `/about` also answers the NEW badge (`UserProfileSnapshotCache`);
+        // a suspended account is cached as a miss, a dropped connection or a 429 not.
+        if (try? await UserProfileSnapshotCache.shared.snapshot(for: username, repository: repository)) != nil {
+            avatarURLString = await AvatarCache.shared.cachedURL(for: username)
         }
     }
 }

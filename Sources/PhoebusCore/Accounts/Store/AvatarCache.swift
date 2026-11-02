@@ -39,11 +39,19 @@ public actor AvatarCache {
         entries[username.lowercased()] = Entry(url: ImageURLCleaning.cleaned(url), fetchedAt: Date())
     }
 
+    /// Fills the entry only when none is fresh, so a second source for the
+    /// same author (the batch lookup's picture versus `/about`'s) never swaps
+    /// a picture rows already drew.
+    public func storeIfAbsent(url: String?, for username: String) {
+        guard !hasFreshEntry(for: username) else { return }
+        store(url: url, for: username)
+    }
+
     /// Remembers a failed lookup as "no avatar" only when it says something
     /// about the account (see `ProfileLookupFailure`).
     public func store(failure: ProfileLookupFailure, for username: String) {
         guard failure.isDefinitiveMiss else { return }
-        store(url: nil, for: username)
+        storeIfAbsent(url: nil, for: username)
     }
 
     public func clear() {

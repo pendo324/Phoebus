@@ -244,3 +244,58 @@ private func subreddit(_ name: String, icon: String? = nil, community: String? =
     check("an empty avatar URL is stored as a known 'no avatar'", blank == nil && blankKnown)
     await avatars.clear()
 }
+
+@MainActor func checkUserProfileSnapshotCache() async throws {
+    let shared = UserProfileSnapshotCache.shared
+    let avatars = AvatarCache.shared, ages = AccountAgeCache.shared
+    let created = Date(timeIntervalSinceNow: -2 * 24 * 60 * 60)
+    let snapshot = UserProfileSnapshot(iconURL: "https://x/a.png?w=1&amp;s=2", createdAt: created)
+    await avatars.clear(); await ages.clear()
+
+    // The avatar asks first; the badge then reads the date without a request.
+    let aboutCalls = Counter()
+    _ = try await shared.snapshot(for: "SmokeBoth") { await aboutCalls.hit(); return snapshot }
+    let badgeDate = await ages.createdDate(for: "smokeboth") { await aboutCalls.hit(); return Date() }
+    let avatarURL = await avatars.cachedURL(for: "smokeboth")
+    let aboutAfterAvatar = await aboutCalls.count
+    check("one /about serves the avatar and then the badge", aboutAfterAvatar == 1 && badgeDate == created && avatarURL == "https://x/a.png?w=1&s=2")
+
+    // The badge asks first; the avatar then finds its picture.
+    let aboutCalls2 = Counter()
+    let date = await ages.createdDate(for: "SmokeBadgeFirst") {
+        try await shared.snapshot(for: "SmokeBadgeFirst") { await aboutCalls2.hit(); return snapshot }.createdAt
+    }
+    let freshAvatar = await avatars.hasFreshEntry(for: "smokebadgefirst")
+    let aboutAfterBadge = await aboutCalls2.count
+    check("one /about serves the badge and then the avatar", aboutAfterBadge == 1 && date == created && freshAvatar)
+
+    // Rows asking together share the request.
+    let aboutCalls3 = Counter()
+    await withTaskGroup(of: Void.self) { group in
+        for _ in 0..<10 {
+            group.addTask {
+                _ = try? await shared.snapshot(for: "SmokeBusy") { await aboutCalls3.hit(); try await Task.sleep(nanoseconds: 80_000_000); return snapshot }
+            }
+        }
+    }
+    let busyCalls = await aboutCalls3.count
+    check("ten concurrent callers for one author make one /about", busyCalls == 1)
+
+    // A picture the batch lookup already supplied is not swapped for /about's.
+    await avatars.store(url: "https://i.redd.it/snoovatar/batch.png", for: "SmokeBatched")
+    _ = try await shared.snapshot(for: "SmokeBatched") { snapshot }
+    let batched = await avatars.cachedURL(for: "smokebatched")
+    let batchedAge = await ages.cachedCreatedDate(for: "smokebatched")
+    check("a fresh batch picture is kept, and /about still supplies the date", batched == "https://i.redd.it/snoovatar/batch.png" && batchedAge == created)
+
+    // A missing account is a miss for both; a failed connection is neither.
+    do { _ = try await shared.snapshot(for: "SmokeGone") { throw RedditAPIError.httpError(status: 404, body: "") } } catch {}
+    let goneAvatar = await avatars.hasFreshEntry(for: "smokegone")
+    let goneAge = await ages.hasFreshEntry(for: "smokegone")
+    check("a missing account is recorded as a miss for the avatar and the badge", goneAvatar && goneAge)
+    do { _ = try await shared.snapshot(for: "SmokeBlip") { throw URLError(.notConnectedToInternet) } } catch {}
+    let blipAvatar = await avatars.hasFreshEntry(for: "smokeblip")
+    let blipAge = await ages.hasFreshEntry(for: "smokeblip")
+    check("a failed connection is recorded for neither", !blipAvatar && !blipAge)
+    await avatars.clear(); await ages.clear()
+}

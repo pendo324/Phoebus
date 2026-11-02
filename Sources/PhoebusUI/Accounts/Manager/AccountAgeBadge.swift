@@ -48,7 +48,7 @@ private struct AccountAgeLookupModifier: ViewModifier {
             }
             let repository = repository, username = username
             createdAt = await AccountAgeCache.shared.createdDate(for: username) {
-                try await repository.fetchUserProfile(username: username).created
+                try await UserProfileSnapshotCache.shared.snapshot(for: username, repository: repository).createdAt
             }
         }
     }

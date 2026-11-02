@@ -377,6 +377,8 @@ try await checkAvatarDownsampleTargets()
 
 try await checkImageURLCleaning()
 
+try await checkUserProfileSnapshotCache()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

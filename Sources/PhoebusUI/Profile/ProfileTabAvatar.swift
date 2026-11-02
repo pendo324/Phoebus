@@ -21,12 +21,7 @@ public final class ProfileTabAvatar: ObservableObject {
         loadedFor = username.lowercased()
         var urlString = await AvatarCache.shared.cachedURL(for: username)
         if urlString == nil {
-            do {
-                urlString = try await repository.fetchUserProfile(username: username).iconImage
-                await AvatarCache.shared.store(url: urlString, for: username)
-            } catch {
-                await AvatarCache.shared.store(failure: ProfileLookupFailure(error), for: username)
-            }
+            urlString = try? await UserProfileSnapshotCache.shared.snapshot(for: username, repository: repository).iconURL
         }
         guard let urlString, let url = URL(string: urlString.replacingOccurrences(of: "&amp;", with: "&")) else { return }
         guard let data = await MediaBytes.data(for: url) else { return }

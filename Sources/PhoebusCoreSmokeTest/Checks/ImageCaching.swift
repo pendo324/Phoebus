@@ -129,3 +129,19 @@ private actor Counter {
     check("the Storage footer and the explainer name the disk size",
           HTTPCacheLimits.storageFooter == "Maximum of around 256 MB." && HTTPCacheLimits.explainerNote.contains("256 MB"))
 }
+
+@MainActor func checkInboxAvatarPolicy() async throws {
+    check("an inbox sender with a username gets an avatar lookup",
+          InboxAvatarPolicy.avatarUsername(forAuthor: "AHMessengerBot") == "AHMessengerBot"
+          && InboxAvatarPolicy.avatarUsername(forAuthor: "a-b_9") == "a-b_9")
+    check("no avatar lookup for a deleted, empty or subreddit-notice sender",
+          InboxAvatarPolicy.avatarUsername(forAuthor: "[deleted]") == nil && InboxAvatarPolicy.avatarUsername(forAuthor: "") == nil
+          && InboxAvatarPolicy.avatarUsername(forAuthor: "u/pendo324 is permanently banned from r/ApolloReborn") == nil)
+    check("a chat row named after one person looks that person up",
+          InboxAvatarPolicy.avatarUsername(forChatTitle: "pendo324") == "pendo324")
+    check("no lookup for a chat row titled by a notice, several names, an id or the fallback",
+          InboxAvatarPolicy.avatarUsername(forChatTitle: "u/pendo324 is permanently banned from r/ApolloReborn") == nil
+          && InboxAvatarPolicy.avatarUsername(forChatTitle: "alice, bob") == nil
+          && InboxAvatarPolicy.avatarUsername(forChatTitle: "t2_abc123") == nil
+          && InboxAvatarPolicy.avatarUsername(forChatTitle: "Conversation") == nil)
+}

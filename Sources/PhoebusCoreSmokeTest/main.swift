@@ -369,6 +369,8 @@ try await checkInFlightCoalescer()
 
 try await checkHTTPCacheLimits()
 
+try await checkInboxAvatarPolicy()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

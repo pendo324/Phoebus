@@ -503,8 +503,8 @@ struct ChatMirrorRow: View {
             }
             HStack(spacing: 0) {
                 Group {
-                    if general.showUserProfilePictures {
-                        AvatarView(username: title, repository: repository, size: 20)
+                    if general.showUserProfilePictures, let username = InboxAvatarPolicy.avatarUsername(forChatTitle: title) {
+                        AvatarView(username: username, repository: repository, size: 20)
                     } else {
                         Color.clear.frame(width: 20, height: 20)
                     }
@@ -663,8 +663,8 @@ struct MessageRow: View {
     private var footer: some View {
         HStack(spacing: 0) {
             Group {
-                if general.showUserProfilePictures {
-                    AvatarView(username: message.author, repository: repository, size: 20)
+                if general.showUserProfilePictures, let username = InboxAvatarPolicy.avatarUsername(forAuthor: message.author) {
+                    AvatarView(username: username, repository: repository, size: 20)
                 } else {
                     Color.clear.frame(width: 20, height: 20)
                 }

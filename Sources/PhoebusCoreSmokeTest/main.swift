@@ -1030,6 +1030,7 @@ checkKeylessRouteResponses()
 checkKeylessRouteHealth()
 try await checkKeylessRouteFallbackRequests()
 checkKeylessRefusalMessages()
+checkKeylessSignInWithoutAPIKey()
 
 try await checkChatSendQueueDesignPortedFrom()
 

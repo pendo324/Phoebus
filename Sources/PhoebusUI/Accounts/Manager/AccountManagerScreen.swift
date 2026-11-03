@@ -273,6 +273,10 @@ private struct AddOAuthAccountSheet: View {
 
     private func startLogin() async {
         guard !isAuthenticating else { return }
+        guard RedditOAuthConfig.hasConfiguredClientID else {
+            onError(RedditOAuthConfig.missingClientIDMessage)
+            return
+        }
         isAuthenticating = true
         defer { isAuthenticating = false }
 

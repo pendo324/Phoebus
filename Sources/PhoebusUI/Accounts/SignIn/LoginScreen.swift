@@ -79,8 +79,14 @@ public struct LoginScreen: View {
                 }
 
                 Button("Create Account") {
-                    Task { await startLogin() }
+                    // Without an API key the web sign-in page is the only way in; it has Reddit's sign-up link.
+                    if RedditOAuthConfig.hasConfiguredClientID {
+                        Task { await startLogin() }
+                    } else {
+                        showingWebSessionLogin = true
+                    }
                 }
+                .accessibilityIdentifier("login.createAccount")
                 .font(.system(size: 13))
                 .buttonStyle(.plain)
                 .foregroundStyle(Color(hex: "007AFF"))
@@ -156,6 +162,10 @@ public struct LoginScreen: View {
     }
 
     private func startLogin() async {
+        guard RedditOAuthConfig.hasConfiguredClientID else {
+            errorMessage = RedditOAuthConfig.missingClientIDMessage
+            return
+        }
         isAuthenticating = true
         defer { isAuthenticating = false }
         let state = UUID().uuidString

@@ -19,6 +19,13 @@ public enum RedditOAuthConfig {
     public static let defaultRedirectURI = "phoebus://oauth-callback"
     public nonisolated(unsafe) static var clientID = RedditOAuthConfig.defaultClientID
     public nonisolated(unsafe) static var redirectURI = RedditOAuthConfig.defaultRedirectURI
+    /// False while the client ID is still the build placeholder, when signing
+    /// in with an API key can only fail at Reddit; API-Key-Free sign-in still works.
+    public static var hasConfiguredClientID: Bool {
+        !clientID.isEmpty && clientID != defaultClientID
+    }
+    public static let missingClientIDMessage =
+        "No Reddit API key is set. Add one under Custom API Settings, or sign in without an API key."
     /// The "Reddit API Secret" field. Empty by default: Reddit's "installed
     /// app" type has no secret (only "web app"/confidential apps do).
     public nonisolated(unsafe) static var clientSecret = ""

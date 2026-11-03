@@ -753,7 +753,10 @@ Apollo or Reborn, add an entry here.
 - **You bring your own Reddit API key.** Phoebus never uses Apollo's
   Reddit client ID; the build default is a placeholder. The key is
   entered under Custom API Settings and applies app-wide, so there is no
-  per-account key editor.
+  per-account key editor. Until a key is entered, "Sign In With API Key"
+  says so instead of sending Reddit the placeholder, and "Create Account"
+  opens the web sign-in (Reddit's page has its sign-up link), so a keyless
+  install is never sent into a flow that can only fail.
 - **Sign-in always uses a throwaway cookie store.** Web-session login, the
   Universal OAuth web view and the system OAuth sheet each start with no
   Reddit cookies, so adding a second account shows Reddit's login form

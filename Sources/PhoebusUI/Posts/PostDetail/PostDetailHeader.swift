@@ -359,14 +359,7 @@ struct PostDetailHeader: View {
             // (`posts-points`, `posts-liked`, `posts-clock`) at 13pt
             // with 9pt cluster gaps. See `StockIcon`.
             HStack(spacing: 9) {
-                HStack(spacing: 5) {
-                    StockIcon("posts-points")
-                    // Abbreviated like the feed: "10.9K". "Hide Post Scores" keeps
-                    // only the arrow; the "% Upvoted" stays, as it doesn't give the score.
-                    if let score = voteCounts.postScoreText(displayScore) {
-                        Text(score)
-                    }
-                }
+                scoreStat
                 // Info Row Popup / Overlay: the % and the age explain themselves on a tap, as in
                 // Reborn.
                 if let ratio = post.upvoteRatio {
@@ -542,6 +535,34 @@ struct PostDetailHeader: View {
             isEditing = false
         } catch {
             // Leave editor open on failure so the user can retry.
+        }
+    }
+
+    /// The score in the info-row glyph. Abbreviated like the feed: "10.9K".
+    /// "Hide Post Scores" keeps only the arrow; the "% Upvoted" stays, as it
+    /// doesn't give the score. With Add Downvote Tap (`ThreeStateVoting`) a
+    /// tap cycles none, up, down, none; otherwise the score is not a control
+    /// here (the action bar's arrows are).
+    @ViewBuilder
+    private var scoreStat: some View {
+        let stat = HStack(spacing: 5) {
+            StockIcon("posts-points")
+            if let score = voteCounts.postScoreText(displayScore) {
+                Text(score)
+            }
+        }
+        if infoRow.downvoteTap {
+            Button {
+                let direction = ScoreTapVote.direction(current: voteState, downvoteTap: true)
+                Task { await vote(direction: direction) }
+            } label: {
+                stat.contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(voteState == nil ? "Upvote" : (voteState == true ? "Downvote" : "Remove Downvote"))
+            .accessibilityIdentifier("postDetail.scoreVote")
+        } else {
+            stat
         }
     }
 

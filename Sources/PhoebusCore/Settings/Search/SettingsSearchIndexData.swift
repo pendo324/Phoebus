@@ -295,6 +295,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Popup", breadcrumb: "Settings → Posts → Info Row", screen: .infoRow, rowTitle: "Popup"),
         SettingsSearchEntry(title: "Overlay", breadcrumb: "Settings → Posts → Info Row", screen: .infoRow, rowTitle: "Overlay"),
         SettingsSearchEntry(title: "Translation", breadcrumb: "Settings → Posts → Info Row", screen: .infoRow, rowTitle: "Translation"),
+        SettingsSearchEntry(title: "Add Downvote Tap", breadcrumb: "Settings → Posts → Info Row", screen: .infoRow, rowTitle: "Add Downvote Tap"),
         SettingsSearchEntry(title: "Show Popular", breadcrumb: "Settings → Feed → Subreddit Shortcuts", screen: .feedShortcuts, rowTitle: "Show Popular"),
         SettingsSearchEntry(title: "Show All Posts", breadcrumb: "Settings → Feed → Subreddit Shortcuts", screen: .feedShortcuts, rowTitle: "Show All Posts"),
         SettingsSearchEntry(title: "Show Moderator Posts", breadcrumb: "Settings → Feed → Subreddit Shortcuts", screen: .feedShortcuts, rowTitle: "Show Moderator Posts"),

@@ -64,9 +64,13 @@ public struct InfoRowSettingsScreen: View {
                 Toggle("Translation", isOn: Binding(
                     get: { translationMarkerAvailable && settings.tapToTranslation },
                     set: { $settings.tapToTranslation.wrappedValue = $0 }))
-                    .apolloSearchRow("Translation", lastBeforeFooter: true)
+                    .apolloSearchRow("Translation")
                     .disabled(!translationMarkerAvailable)
                     .accessibilityIdentifier("infoRow.translation")
+
+                Toggle("Add Downvote Tap", isOn: $settings.downvoteTap)
+                    .apolloSearchRow("Add Downvote Tap", lastBeforeFooter: true)
+                    .accessibilityIdentifier("infoRow.downvoteTap")
             } header: {
                 Text("Tap Actions")
                     .apolloSectionHeader()
@@ -88,6 +92,7 @@ public struct InfoRowSettingsScreen: View {
         } else {
             footer += "\n\nTranslation becomes available after enabling Tap to Translate or a Details toggle in Translation settings."
         }
+        footer += "\n\nAdd Downvote Tap makes tapping a score cycle through upvote, downvote and no vote."
         return footer
     }
 }

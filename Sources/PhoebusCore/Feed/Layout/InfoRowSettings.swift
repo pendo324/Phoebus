@@ -7,7 +7,7 @@ import Foundation
 ///
 /// Backs `UDKeyIconRowMagnifier`, `UDKeyInfoRowTapUpvote`,
 /// `UDKeyInfoRowTapComments`, `UDKeyInfoRowPopupMode`,
-/// `UDKeyInfoRowOverlayMode`, `UDKeyInfoRowTapTranslation`.
+/// `UDKeyInfoRowOverlayMode`, `UDKeyInfoRowTapTranslation`, `ThreeStateVoting`.
 public struct InfoRowSettings: Codable, Sendable, Equatable {
     /// Whether the Translation info-row marker is available at all: only once
     /// translation is switched on in Translation settings, so it never
@@ -40,6 +40,10 @@ public struct InfoRowSettings: Codable, Sendable, Equatable {
     /// Real key `UDKeyInfoRowTapTranslation` - only meaningful once a
     /// translation marker is available elsewhere.
     public var tapToTranslation: Bool
+    /// Real key `ThreeStateVoting` ("Add Downvote Tap", Reborn 4.0, off by
+    /// default) - tapping a score cycles upvote, downvote, no vote; see
+    /// `ScoreTapVote`.
+    public var downvoteTap: Bool
 
     public static let `default` = InfoRowSettings(
         magnifierOnHold: true,
@@ -47,16 +51,18 @@ public struct InfoRowSettings: Codable, Sendable, Equatable {
         tapToComments: true,
         popupMode: true,
         overlayMode: false,
-        tapToTranslation: true
+        tapToTranslation: true,
+        downvoteTap: false
     )
 
-    public init(magnifierOnHold: Bool, tapToUpvote: Bool, tapToComments: Bool, popupMode: Bool, overlayMode: Bool, tapToTranslation: Bool) {
+    public init(magnifierOnHold: Bool, tapToUpvote: Bool, tapToComments: Bool, popupMode: Bool, overlayMode: Bool, tapToTranslation: Bool, downvoteTap: Bool = false) {
         self.magnifierOnHold = magnifierOnHold
         self.tapToUpvote = tapToUpvote
         self.tapToComments = tapToComments
         self.popupMode = popupMode
         self.overlayMode = overlayMode
         self.tapToTranslation = tapToTranslation
+        self.downvoteTap = downvoteTap
     }
 
     public init(from decoder: Decoder) throws {
@@ -67,6 +73,7 @@ public struct InfoRowSettings: Codable, Sendable, Equatable {
         popupMode = (try? container.decodeIfPresent(Bool.self, forKey: .popupMode)) ?? Self.default.popupMode
         overlayMode = (try? container.decodeIfPresent(Bool.self, forKey: .overlayMode)) ?? Self.default.overlayMode
         tapToTranslation = (try? container.decodeIfPresent(Bool.self, forKey: .tapToTranslation)) ?? Self.default.tapToTranslation
+        downvoteTap = (try? container.decodeIfPresent(Bool.self, forKey: .downvoteTap)) ?? Self.default.downvoteTap
     }
 
     /// Summary text for a sub-screen's disclosure row, previewing the current
@@ -82,6 +89,7 @@ public struct InfoRowSettings: Codable, Sendable, Equatable {
         if !disabled.isEmpty {
             parts.append("\(disabled.joined(separator: ", ")) off")
         }
+        if downvoteTap { parts.append("Downvote tap on") }
         return parts.joined(separator: " · ")
     }
 }
@@ -98,4 +106,20 @@ public enum InfoRowSettingsStore {
 
 extension InfoRowSettings: StoredSettingsModel {
     public static var store: SettingsStore<InfoRowSettings> { InfoRowSettingsStore.storage }
+}
+
+/// Reborn 4.0 "Add Downvote Tap" (`ThreeStateVoting`, `Apollo-Reborn#1403`):
+/// what tapping a score sends. Off, a tap upvotes or, on an upvote, removes it
+/// (a downvoted score is upvoted). On, a tap cycles none, up, down, none.
+public enum ScoreTapVote {
+    /// The vote direction to send (1 up, -1 down, 0 none) for a tap on the
+    /// score of an item whose vote is `current` (true up, false down).
+    public static func direction(current: Bool?, downvoteTap: Bool) -> Int {
+        guard downvoteTap else { return current == true ? 0 : 1 }
+        switch current {
+        case nil: return 1
+        case true?: return -1
+        case false?: return 0
+        }
+    }
 }

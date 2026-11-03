@@ -334,7 +334,7 @@ extension PostRow {
     /// action is off does nothing, as Reborn's.
     func activateInfoRowStat(_ stat: InfoRowStat) {
         switch stat {
-        case .score: infoRowScoreTapped()
+        case .score: infoRowScoreUpvoted()
         case .comments:
             if infoRowSettings.tapToComments { onCommentsTap?() }
         case .age: showAgeDetail()

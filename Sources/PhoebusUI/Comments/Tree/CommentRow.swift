@@ -97,6 +97,8 @@ struct CommentRow: View {
     @State private var confirmingDelete = false
     @State private var displayBody: String
     @Setting(GeneralSettings.self) private var general
+    /// "Add Downvote Tap" (`ThreeStateVoting`) for the score tap below.
+    @Setting(InfoRowSettings.self) private var infoRow
     @State private var isMuted = false
     /// Local optimistic mirrors of moderator-only comment state, since
     /// `node.comment` is nested in an immutable value-type tree.
@@ -356,7 +358,8 @@ struct CommentRow: View {
                     // control. A deleted or removed comment has no score to vote on.
                     if policy.allows(.vote) {
                         Button {
-                            Task { await vote(direction: voteState == true ? 0 : 1) }
+                            let direction = ScoreTapVote.direction(current: voteState, downvoteTap: infoRow.downvoteTap)
+                            Task { await vote(direction: direction) }
                         } label: {
                             HStack(spacing: 5) {
                                 // The arrow is sized separately from the number. It is Apollo's

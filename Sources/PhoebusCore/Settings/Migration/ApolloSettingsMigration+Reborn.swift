@@ -65,7 +65,7 @@ extension ApolloSettingsMigration {
         "LibreTranslateURL", "LibreTranslateAPIKey", "MicrosoftTranslateAPIKey",
         "MicrosoftTranslateRegion", "TranslationSkipLanguages",
         // Info row
-        "IconRowMagnifier", "InfoRowTapUpvote", "InfoRowTapComments", "InfoRowPopupMode",
+        "IconRowMagnifier", "InfoRowTapUpvote", "InfoRowTapComments", "InfoRowPopupMode", "ThreeStateVoting",
         "InfoRowOverlayMode", "InfoRowTapTranslation",
         // Pure black (group domain)
         "UsePureBlackDarkMode", "UsePurePUREBlackMode", "PureBlackModeReduceSmearing",
@@ -188,7 +188,6 @@ extension ApolloSettingsMigration {
         "TranslationProviderUserSelected": "UI hint",
         "UseFullWidthSwipeBack": "stock key with no known meaning (no matching UI); not guessed",
         // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
-        "ThreeStateVoting": "ported in a later change",
         "SubredditShowIcon": "ported in a later change",
         "ReduceRateLimiting": "no switch: the reductions always apply",
         // Reborn 4.0 state and screens with no counterpart.
@@ -545,6 +544,7 @@ extension ApolloSettingsMigration {
         take("InfoRowPopupMode", "Info Row Popup", bool) { info.popupMode = $0 }
         take("InfoRowOverlayMode", "Info Row Overlay", bool) { info.overlayMode = $0 }
         take("InfoRowTapTranslation", "Info Row Tap to Translate", bool) { info.tapToTranslation = $0 }
+        take("ThreeStateVoting", "Add Downvote Tap", bool) { info.downvoteTap = $0 }
         InfoRowSettingsStore.save(info)
 
         // MARK: Pure black (stock Apollo, group domain)

@@ -70,6 +70,15 @@ Apollo or Reborn, add an entry here.
   Reborn also adds a "Jump Button Navigation" row to the comments •••
   menu; Phoebus has the General > Comments row only. Holding the button
   steps back in New Comments mode only; Threads mode keeps its tap.
+- **Add Downvote Tap leaves the post-detail score inert unless it is on.**
+  Reborn's "Add Downvote Tap" (`Apollo-Reborn#1403`, `ThreeStateVoting`)
+  changes what tapping a score does on feed rows, comments and the
+  post-detail header, where Apollo's score tap upvotes. Phoebus's
+  post-detail score has never been a control, so it becomes one only
+  while the option is on (the action bar's arrows are the vote controls
+  there otherwise). On feed rows the Info Row "Upvote" switch still turns
+  score taps off altogether, and releasing the magnifier on a score
+  toggles the upvote, not the three-step cycle.
 - **Link posts have Other Discussions.** A link post's ••• menu in the
   comments view (and a crosspost's) has "Other Discussions", listing the
   other posts of the same link from Reddit's `/duplicates` endpoint as

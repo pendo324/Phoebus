@@ -126,8 +126,17 @@ struct PostRow: View {
 
     /// Real Info Row tap action for the score
     /// (`UDKeyInfoRowTapUpvote`): tapping the score itself upvotes,
-    /// rather than only the dedicated up-arrow button.
+    /// rather than only the dedicated up-arrow button. With Add Downvote
+    /// Tap (`ThreeStateVoting`) it cycles none, up, down, none instead.
     func infoRowScoreTapped() {
+        guard infoRowSettings.tapToUpvote else { return }
+        let direction = ScoreTapVote.direction(current: voteState, downvoteTap: infoRowSettings.downvoteTap)
+        Task { await vote(direction: direction) }
+    }
+
+    /// Releasing the magnifier on the score always toggles the upvote, as
+    /// Reborn's does; the downvote step belongs to a direct tap.
+    func infoRowScoreUpvoted() {
         guard infoRowSettings.tapToUpvote else { return }
         Task { await vote(direction: voteState == true ? 0 : 1) }
     }

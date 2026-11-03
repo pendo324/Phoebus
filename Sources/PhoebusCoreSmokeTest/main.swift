@@ -627,6 +627,8 @@ try await checkDeletedCommentsSettings()
 
 try await checkInfoRowSettings()
 
+try await checkDownvoteTap()
+
 try await checkSeparateSettingsPerAccount()
 
 try await checkLinkPreviewSettings()

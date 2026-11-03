@@ -1641,5 +1641,9 @@ try await checkFeedAuthorFlair()
 
 try await checkListingPaging()
 
+try await checkRefusedPagesFailTheLoad()
+
+try await checkCommentLoadsSurviveRateLimitBodies()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

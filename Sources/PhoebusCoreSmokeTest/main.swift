@@ -1639,5 +1639,7 @@ try await checkFlairInfo()
 
 try await checkFeedAuthorFlair()
 
+try await checkListingPaging()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

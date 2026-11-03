@@ -708,10 +708,11 @@ public actor RedditRepository {
         try await client.getListing(path: "/subreddits/mine/subscriber", after: after, limit: 100)
     }
 
-    /// Every page of a subreddit listing. Bounded: Reddit caps these
-    /// lists far below 10 pages of 100, and an empty `{}` response
-    /// decodes as an empty listing, so a malformed cursor must not be
-    /// able to spin here forever.
+    /// Every page of a subreddit listing. Accounts hold well over 1,000
+    /// subscriptions (Reborn walked one with 1,935), so the walk is bounded
+    /// by a cursor that stops advancing and a page ceiling (10,000), not by a
+    /// small page count: an empty `{}` response decodes as an empty listing,
+    /// so a malformed cursor must not be able to spin here forever.
     private func fetchAllSubreddits(path: String) async throws -> [RedditSubreddit] {
         var all: [RedditSubreddit] = []
         var after: String?
@@ -720,8 +721,9 @@ public actor RedditRepository {
             let listing = try await client.getListing(path: path, after: after, limit: 100)
             pages += 1
             all += listing.decodedChildren(RedditSubreddit.self)
-            after = listing.data.after
-        } while after != nil && pages < 10
+            guard let next = listing.data.after, next != after else { break }
+            after = next
+        } while pages < 100
         return all
     }
 

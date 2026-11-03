@@ -1422,6 +1422,8 @@ try await checkInlineMediaABareLinkIs()
 
 try await checkMarkdownBlockquotes()
 try await checkQuoteBlocks()
+try await checkLongBodyPieces()
+try await checkRenderedTextChunks()
 
 // --- Reddit-only inline syntax the Markdown parser does not know ---
 //

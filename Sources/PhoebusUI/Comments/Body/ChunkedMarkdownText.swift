@@ -45,6 +45,10 @@ struct ChunkedMarkdownText: View {
     /// after this many.
     static let chunkLength = 1200
 
+    /// The most a chunk holds when no paragraph break comes: a wall of text
+    /// is cut at a line break or space instead.
+    static let maxChunkLength = 2000
+
     /// Splits at paragraph breaks (a blank line), keeping the break with
     /// the chunk before it so the spacing between paragraphs survives.
     static func chunks(of text: AttributedString) -> [AttributedString] {
@@ -52,25 +56,12 @@ struct ChunkedMarkdownText: View {
         guard characters.count > chunkLength else { return [text] }
         var result: [AttributedString] = []
         var start = characters.startIndex
-        var count = 0
-        var index = characters.startIndex
-        while index < characters.endIndex {
-            let next = characters.index(after: index)
-            count += 1
-            if count >= chunkLength, characters[index] == "\n", next < characters.endIndex, characters[next] == "\n" {
-                // Through the blank line, so the next chunk starts at
-                // its paragraph rather than with an empty line.
-                let end = characters.index(after: next)
-                result.append(AttributedString(text[start..<end]))
-                start = end
-                index = end
-                count = 0
-                continue
-            }
-            index = next
-        }
-        if start < characters.endIndex {
-            result.append(AttributedString(text[start..<characters.endIndex]))
+        var offset = 0
+        for end in BodyParagraphs.chunkEnds(of: String(characters), softLength: chunkLength, hardLength: maxChunkLength) {
+            let endIndex = characters.index(start, offsetBy: end - offset)
+            result.append(AttributedString(text[start..<endIndex]))
+            start = endIndex
+            offset = end
         }
         return result
     }

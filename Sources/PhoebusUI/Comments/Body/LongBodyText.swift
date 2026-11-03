@@ -7,8 +7,9 @@ import PhoebusCore
 /// (seen with ~11,590 characters) pushes everything below it off-screen.
 ///
 /// The body is split on blank lines and rendered as one `Text` per paragraph
-/// in a `VStack`. `AttributedString` styling is preserved since
-/// `RedditMarkdown` already separates blocks with blank lines.
+/// in a `VStack`; a single paragraph or code block too long for one `Text`
+/// is cut into pieces too (`BodyParagraphs`). `AttributedString` styling is
+/// preserved since `RedditMarkdown` already separates blocks with blank lines.
 public struct LongBodyText: View {
     let text: String
     let lineLimit: Int?
@@ -57,13 +58,16 @@ public struct LongBodyText: View {
             Text(RedditMarkdown.render(text, codeScale: codeScale))
                 .fixedSize(horizontal: false, vertical: true)
         } else {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(Array(BodyParagraphs.split(text).enumerated()), id: \.offset) { _, paragraph in
-                    Text(RedditMarkdown.render(paragraph, codeScale: codeScale))
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(BodyParagraphs.pieces(of: text).enumerated()), id: \.offset) { index, piece in
+                    Text(RedditMarkdown.render(piece.text, codeScale: codeScale))
                         // Each paragraph takes its full height; without
                         // this, a list row squeezes some to one "..." line.
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        // A piece cut from a long paragraph or code block
+                        // continues the one above it.
+                        .padding(.top, index == 0 || piece.continuesPrevious ? 0 : 10)
                 }
             }
         }

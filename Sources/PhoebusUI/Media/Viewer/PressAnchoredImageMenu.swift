@@ -85,29 +85,28 @@ struct PressAnchoredImageMenu: UIViewRepresentable {
                   probe.convert(probe.bounds, to: source).contains(location) else { return nil }
             pressLocation = location
             let urls = urls
-            let isGIF = isGIF
+            let subject = MediaHoldMenu.Subject(kind: isGIF ? .gif : .image, mediaURL: url, albumCount: urls.count)
             return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
-                var actions: [UIMenuElement] = [
-                    UIAction(title: isGIF ? "Copy GIF" : "Copy Image", image: UIImage(systemName: "doc.on.doc")) { _ in
-                        Task {
-                            if let data = await MediaBytes.data(for: url) {
-                                PasteboardHelper.copyImage(data)
+                let actions = MediaHoldMenu.items(for: subject).map { item in
+                    let action = UIAction(title: item.action.title, image: UIImage(systemName: item.action.symbol)) { [weak interaction] _ in
+                        switch item.action {
+                        case .copyImage, .copyGIF:
+                            Task {
+                                if let data = await MediaBytes.data(for: url) {
+                                    PasteboardHelper.copyImage(data)
+                                }
                             }
+                        case .copyLink: PasteboardHelper.copy(url: subject.shareURL)
+                        case .saveImage: SaveAllMediaJob.shared.start([.image(url)])
+                        case .saveGIF: SaveAllMediaJob.shared.start([.gif(url)])
+                        case .saveAllMedia: SaveAllMediaJob.shared.start(urls.map { .image($0) })
+                        case .share: Self.share(url, from: interaction?.view)
+                        case .saveVideo: break
                         }
-                    },
-                    UIAction(title: isGIF ? "Save GIF" : "Save Image", image: UIImage(systemName: "square.and.arrow.down")) { _ in
-                        SaveAllMediaJob.shared.start([isGIF ? .gif(url) : .image(url)])
-                    },
-                ]
-                if urls.count > 1 {
-                    actions.append(UIAction(title: SaveAllMediaSummary.menuTitle,
-                                            image: UIImage(systemName: SaveAllMediaSummary.menuSymbol)) { _ in
-                        SaveAllMediaJob.shared.start(urls.map { .image($0) })
-                    })
+                    }
+                    if !item.isEnabled { action.attributes = .disabled }
+                    return action
                 }
-                actions.append(UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { [weak interaction] _ in
-                    Self.share(url, from: interaction?.view)
-                })
                 return UIMenu(title: "", children: actions)
             }
         }

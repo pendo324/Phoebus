@@ -234,6 +234,27 @@ Apollo or Reborn, add an entry here.
   switch, and a clip needs a host lookup on top of the video itself, so
   these tiles also stay on their poster when Autoplay Videos is Never, or
   Wi-Fi Only on a metered connection. Reddit-hosted tiles are unchanged.
+- **Holding media in a post or comment shows a media menu; holding a feed
+  row's media still shows the post menu.** Inline comment and post-body
+  images, GIFs and videos, and the post screen's image, GIF, video, RedGIFs,
+  Streamable, sports clip and album tile, get Reborn's menu (Copy Image or
+  Copy GIF, Save, Save All Media for an album tile, Share; a video gets Copy
+  Link, Save Video and Share). Reborn also keeps Apollo's own single-media
+  menu in feed rows and gives only albums the media menu there; Phoebus's
+  feed rows keep the row's ••• menu for every kind of media, as before
+  (that menu carries Save All Media and Download Video…).
+- **Share on an image or GIF sends its link, not the file.** Reborn writes
+  the downloaded file to the share sheet; Phoebus's album and fullscreen
+  menus already shared the URL, and the new menus match them. Copy Image
+  and Copy GIF do copy the original bytes (a GIF stays animated). An Imgur
+  `.gifv` is an MP4 page, so its "copy" is Copy Link.
+- **The comment media menu has no "Inline Media Settings" row.** Reborn adds
+  one that opens its settings; Phoebus's Inline Images settings live under
+  Settings > Comments and the menu stays the same everywhere.
+- **Save Video on an inline v.redd.it video saves up to 720p.** The inline
+  player streams HLS, which cannot be saved; the saver takes the manifest's
+  sharpest progressive track up to 720p (the poster lookup) and pairs its
+  audio. A post screen's own video saves Reddit's `fallback_url` rendition.
 
 ## Comments
 

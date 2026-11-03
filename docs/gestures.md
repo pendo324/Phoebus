@@ -250,6 +250,19 @@ gate the left two thirds when Hold for Speed is active.
 **Copy this pattern for any new full-surface gesture** rather than
 inventing a parallel mechanism.
 
+## Hold menus on media
+
+Media inside a post or comment (`.mediaHoldMenu`, `MediaHoldMenuView.swift`)
+uses a plain SwiftUI `.contextMenu` and no recognizer of its own, applied
+after `apolloMediaPager` so it wraps the tap targets that open the viewer.
+It nests inside the comment row's or post body's own `.contextMenu`; the
+deeper one answers a hold on the media. A hold is not a row swipe (that
+needs 10pt of horizontal travel, and a context-menu press fails after about
+10pt of movement) and the Feed Video Scrubber strip, which takes a touch at
+distance 0, keeps a hold on its bottom 28pt. Feed rows are untouched: their
+media never gets this menu and a hold there is the row's ••• menu. The
+fullscreen viewer keeps `PressAnchoredImageMenu`.
+
 ## Status-bar tap
 
 The feed, `PostDetailScreen` and `CommentTreeScreen` lists take the

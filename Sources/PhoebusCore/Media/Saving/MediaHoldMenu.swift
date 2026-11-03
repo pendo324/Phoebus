@@ -12,7 +12,7 @@ public enum MediaHoldMenu {
         case video
     }
 
-    public enum Action: Sendable, Equatable {
+    public enum Action: Sendable, Hashable {
         case copyImage
         case copyGIF
         case copyLink

@@ -190,6 +190,7 @@ private struct InlineImageView: View {
             }
             .modifier(InlineMediaChrome(ratio: ratio, settings: settings))
             .apolloMediaPager(items: [.image(url)], isPresented: $showingFullscreen)
+            .mediaHoldMenu(.init(kind: .image, mediaURL: url, loadFailed: failed))
         }
         .task(id: url) { await load() }
         .accessibilityIdentifier("comment.inlineImage")
@@ -239,6 +240,7 @@ private struct InlineGIFView: View {
             })
             .modifier(InlineMediaChrome(ratio: boxRatio, settings: settings))
             .apolloMediaPager(items: [.gif(url)], isPresented: $showingFullscreen)
+            .mediaHoldMenu(.init(kind: .gif, mediaURL: url))
             .overlay(alignment: .bottomTrailing) {
                 if mode.showsPlayBadge(isUnmetered: unmetered) {
                     GIFPlaybackBadge(isPlaying: isPlaying) { userPlaying = !isPlaying }
@@ -433,6 +435,7 @@ private struct InlineVideoPosterView: View {
             .overlay { RebornPlayCircle().allowsHitTesting(false) }
             .modifier(InlineMediaChrome(ratio: boxRatio, settings: settings, isVideo: true))
             .apolloMediaPager(items: [.video(url)], isPresented: $showingFullscreen)
+            .mediaHoldMenu(.init(kind: .video, mediaURL: url))
         }
         .accessibilityIdentifier("comment.inlineVideo")
     }

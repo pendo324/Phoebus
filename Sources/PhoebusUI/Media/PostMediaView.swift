@@ -282,12 +282,14 @@ public struct PostMediaView: View {
             CachedAsyncImage(url: url)
                 .apolloMediaFrame()
                 .apolloMediaPager(items: [.image(url)], isPresented: $showingFullscreenImage, votePost: votePost, repository: voteRepository, onJumpToComments: onJumpToComments, onDoubleTap: onDoubleTapMedia)
+                .mediaHoldMenu(.init(kind: .image, mediaURL: url))
         case .gif(let url):
             AnimatedGIFView(url: url,
                             redditMP4URL: votePost?.preview?.images?.first?.variants?.mp4?.source?.url
                                 .flatMap { URL(string: GalleryTile.unescaped($0)) })
                 .environment(\.floatingPiPIsGIF, true)
                 .apolloMediaFrame()
+                .mediaHoldMenu(.init(kind: .gif, mediaURL: url))
         case .video(let url):
             // A standalone v.redd.it/native video post reaches the
             // same fullscreen pager as an image via `.apolloMediaPager`.
@@ -319,6 +321,8 @@ public struct PostMediaView: View {
             }
             // Reddit's GIF uploads arrive as silent videos flagged is_gif.
             .environment(\.floatingPiPIsGIF, votePost?.media?.redditVideo?.isGif == true)
+            // Saves the progressive rendition, not the HLS stream it plays.
+            .mediaHoldMenu(.init(kind: .video, mediaURL: votePost.flatMap(PostMediaKind.downloadableVideoURL(for:)) ?? url))
         case .redgifs(let id):
             RedGifsVideoView(gifID: id, unmuteContext: .commentsHeader)
         case .gfycat(let id):
@@ -497,7 +501,7 @@ struct GalleryMediaView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .contextMenu { FeedAlbumMenu(urls: urls, index: index) }
+            .mediaHoldMenu(.init(kind: .image, mediaURL: urls[index], albumCount: urls.count), albumURLs: urls)
             .accessibilityIdentifier("gallery.thumbnail.\(index)")
         }
     }
@@ -548,44 +552,6 @@ struct FeedGalleryCarouselView: View {
                         .onTapGesture { isRevealed = true }
                 }
             }
-        }
-    }
-}
-
-/// The album image long-press menu (#1048): holding an album image
-/// offers Copy Image, Save Image, Save All Media and Share for that
-/// page, a snapshot taken when the menu opens so paging can't change
-/// what a later action acts on. In the feed, the row's own post menu
-/// claims the hold instead and carries Save All Media.
-struct FeedAlbumMenu: View {
-    let urls: [URL]
-    let index: Int
-
-    var body: some View {
-        let url = urls[min(index, urls.count - 1)]
-        Button {
-            Task {
-                if let data = await MediaBytes.data(for: url) {
-                    PasteboardHelper.copyImage(data)
-                }
-            }
-        } label: {
-            Label("Copy Image", systemImage: "doc.on.doc")
-        }
-        Button {
-            SaveAllMediaJob.shared.start([.image(url)])
-        } label: {
-            Label("Save Image", systemImage: "square.and.arrow.down")
-        }
-        if urls.count > 1 {
-            Button {
-                SaveAllMediaJob.shared.start(urls.map { .image($0) })
-            } label: {
-                Label(SaveAllMediaSummary.menuTitle, systemImage: SaveAllMediaSummary.menuSymbol)
-            }
-        }
-        ShareLink(item: url) {
-            Label("Share", systemImage: "square.and.arrow.up")
         }
     }
 }
@@ -653,6 +619,8 @@ struct RedGifsVideoView: View {
                                       // The player owns the taps.
                                       attachesTapGestures: false,
                                       isEnabled: !suppressesOwnFullscreen)
+                    .mediaHoldMenu(.init(kind: .video, mediaURL: resolvedURL, linkURL: MediaHoldMenu.redGifsPage(id: gifID)),
+                                   isEnabled: !suppressesOwnFullscreen)
             } else if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(.secondary)
             } else {
@@ -725,6 +693,8 @@ struct StreamableVideoView: View {
                                       // The player owns the taps.
                                       attachesTapGestures: false,
                                       isEnabled: !suppressesOwnFullscreen)
+                    .mediaHoldMenu(.init(kind: .video, mediaURL: resolvedURL, linkURL: MediaHoldMenu.streamablePage(id: videoID)),
+                                   isEnabled: !suppressesOwnFullscreen)
             } else if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(.secondary)
             } else {
@@ -791,6 +761,8 @@ struct SportsClipView: View {
                                       // The player owns the taps.
                                       attachesTapGestures: false,
                                       isEnabled: !suppressesOwnFullscreen)
+                    .mediaHoldMenu(.init(kind: .video, mediaURL: resolvedURL, linkURL: pageURL),
+                                   isEnabled: !suppressesOwnFullscreen)
             } else if failed {
                 Button(pageURL.absoluteString) {
                     #if canImport(UIKit)

@@ -1,13 +1,15 @@
 import SwiftUI
 import PhoebusCore
 
-/// The feed's title quick-switcher: a "Subreddits" sheet with a focused
-/// search field and the favorites, or local and Reddit matches while typing.
-/// Return goes to the typed name.
+/// The feed's title quick-switcher: a "Subreddits" sheet with a search field
+/// and the favorites, or local and Reddit matches while typing. Return goes
+/// to the typed name. It opens with the keyboard down so the favorites are
+/// visible; tapping the field raises it.
 ///
-/// Reborn "Subreddit Switcher Sheet" (#1313). It replaces the in-nav-bar
-/// field and floating results list with a native sheet; the sheet scrolls on
-/// its own and never reaches the feed's Hide Bars on Scroll.
+/// Reborn "Subreddit Switcher Sheet" (#1313; it stopped focusing the field on
+/// open in 4.0.1, #1564). It replaces the in-nav-bar field and floating
+/// results list with a native sheet; the sheet scrolls on its own and never
+/// reaches the feed's Hide Bars on Scroll.
 public struct SubredditSwitcherSheet: View {
     let repository: RedditRepository
     /// The subreddit the feed is showing, checkmarked in the list.
@@ -92,12 +94,6 @@ public struct SubredditSwitcherSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task(id: query) { await loadRemote(for: query) }
-        .task {
-            // The sheet must be on screen before it takes input, or the
-            // keyboard is dropped.
-            try? await Task.sleep(nanoseconds: 80_000_000)
-            fieldFocused = true
-        }
     }
 
     private var searchField: some View {

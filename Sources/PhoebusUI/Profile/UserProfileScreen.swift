@@ -29,6 +29,7 @@ public struct UserProfileScreen: View {
     // Reborn's social-link badges, scraped from Reddit's public profile page
     // HTML (no API field exposes them). Failures are silent: no band is shown.
     @State private var socialLinks: [SocialLink] = []
+    @Environment(\.openURL) private var openURL
     /// Reborn "Profile Layout" wiring (`ProfileLayoutSettings.swift`);
     /// `profileHeader(user:)` reads every field this struct carries.
     @Setting(ProfileLayoutSettingsStore.storage) private var profileLayoutSettings
@@ -257,7 +258,6 @@ public struct UserProfileScreen: View {
             Text(watchUserMessage ?? "")
         }
         .userTagEditor(isPresented: $showingTagEditor, username: username)
-        .apolloInAppBrowser(url: $socialLinkURL)
         .sheet(isPresented: $showingCompose) {
             ComposeMessageScreen(to: username, repository: repository) {
                 showingCompose = false
@@ -283,7 +283,9 @@ public struct UserProfileScreen: View {
             HStack(spacing: 8) {
                 ForEach(socialLinks) { link in
                     Button {
-                        socialLinkURL = URL(string: link.urlString)
+                        // The app's one link router, so a reddit.com profile or
+                        // subreddit opens here, and the rest follows "Open Links In".
+                        if let url = URL(string: link.urlString) { openURL(url) }
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: SocialLinkScraper.systemImageName(forType: link.type))
@@ -304,8 +306,6 @@ public struct UserProfileScreen: View {
         }
         .accessibilityIdentifier("profile.socialLinksBand")
     }
-
-    @State private var socialLinkURL: URL?
 
     /// A pushed profile subpage. Driven by an item binding rather than
     /// `NavigationLink` so the push is recorded for the back and

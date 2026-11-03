@@ -440,6 +440,25 @@ import PhoebusCore
     check("LinkRouter does NOT treat v.redd.it media as a screen", !LinkRouter.isRedditURL(URL(string: "https://v.redd.it/x")!))
     check("LinkRouter recognizes x.com as Twitter", LinkRouter.isTwitterURL(URL(string: "https://x.com/u/status/1")!))
     check("LinkRouter ignores unrelated hosts", !LinkRouter.isRedditURL(URL(string: "https://example.com/r/swift")!))
+
+    // A profile's social links are tapped through this router too: a link to a
+    // Reddit user or subreddit, in any host spelling, opens in the app.
+    func routed(_ link: String, _ general: GeneralSettings = linkGeneral) -> LinkDestination {
+        LinkRouter.route(URL(string: link)!, general: general, browser: inAppBrowser, nitterHost: nil)
+    }
+    check("a social link to /user/ opens the profile",
+          routed("https://www.reddit.com/user/spez") == .native(.user("spez")))
+    check("...and /u/ with a trailing slash and a tracking query",
+          routed("https://reddit.com/u/spez/?utm_source=share") == .native(.user("spez")))
+    check("...and an r/ subreddit", routed("https://www.reddit.com/r/swift/") == .native(.subreddit("swift")))
+    for host in ["old.reddit.com", "m.reddit.com", "np.reddit.com", "new.reddit.com", "sh.reddit.com"] {
+        check("a \(host) user link opens the profile", routed("https://\(host)/user/spez") == .native(.user("spez")))
+        check("a \(host) subreddit link opens the subreddit", routed("https://\(host)/r/swift") == .native(.subreddit("swift")))
+    }
+    check("with Open Reddit Links in Apollo off the same link goes to the browser",
+          routed("https://www.reddit.com/user/spez", linkOff) == .inApp(URL(string: "https://www.reddit.com/user/spez")!))
+    check("a non-Reddit social link is not captured",
+          routed("https://github.com/spez") == .inApp(URL(string: "https://github.com/spez")!))
 }
 
 // MARK: - FeedPaginationPolicy

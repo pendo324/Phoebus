@@ -60,6 +60,16 @@ Apollo or Reborn, add an entry here.
   rather than truncating the name or the stats. Settings > Appearance >
   Flair > Show Flair in Feeds (Phoebus-only, on by default) hides it in all
   feed rows; User Flair still governs flair everywhere.
+- **The jump button's New Comments mode visits the comments Phoebus
+  highlights as new.** Reborn's "Jump Button Navigation" (`Apollo-Reborn#1506`)
+  calls a comment new when it was created after the previous visit's
+  saved timestamp. Phoebus has no such timestamp for a thread: it keeps
+  the comment ids of the last visit, so the mode steps through the same
+  set the New Comments Highlightifier draws, and the two always agree.
+  A pull to refresh that finds more comments makes those the new ones.
+  Reborn also adds a "Jump Button Navigation" row to the comments •••
+  menu; Phoebus has the General > Comments row only. Holding the button
+  steps back in New Comments mode only; Threads mode keeps its tap.
 - **Link posts have Other Discussions.** A link post's ••• menu in the
   comments view (and a crosspost's) has "Other Discussions", listing the
   other posts of the same link from Reddit's `/duplicates` endpoint as

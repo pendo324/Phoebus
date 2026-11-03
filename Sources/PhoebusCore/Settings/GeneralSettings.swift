@@ -388,6 +388,36 @@ public enum JumpButtonPosition: String, Codable, Sendable, CaseIterable, Identif
     }
 }
 
+/// Reborn "Jump Button Navigation" (General > Comments): what the floating
+/// comment jump button steps through. Stored by Reborn as an integer under
+/// `CommentNavigationMode` (0 = parent threads, 1 = new comments).
+public enum CommentNavigationMode: String, Codable, Sendable, CaseIterable, Identifiable {
+    case threads
+    case newComments
+
+    public var id: String { rawValue }
+    public var displayName: String {
+        switch self {
+        case .threads: return "Threads"
+        case .newComments: return "New Comments"
+        }
+    }
+
+    /// The value Reborn stores under `CommentNavigationMode`.
+    public var stockValue: Int { self == .newComments ? 1 : 0 }
+
+    /// Any value other than 1 reads as Threads, as Reborn does.
+    public init(stockValue: Int) { self = stockValue == 1 ? .newComments : .threads }
+
+    public var jumpButtonAccessibilityLabel: String {
+        self == .newComments ? "Next New Comment" : "Next Comment"
+    }
+
+    public var jumpButtonAccessibilityHint: String {
+        self == .newComments ? "Hold to jump to the previous new comment." : ""
+    }
+}
+
 public struct GeneralSettings: Codable, Sendable, Equatable {
     /// When true, top-level comments with replies start collapsed,
     /// matching Apollo's "Auto Collapse Child Comments" toggle.
@@ -501,6 +531,9 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var showJumpButton: Bool
     /// Real Apollo "Jump Button Position" - see `JumpButtonPosition`.
     public var jumpButtonPosition: JumpButtonPosition
+    /// Reborn "Jump Button Navigation" (`CommentNavigationMode`): what the
+    /// jump button steps through - see `CommentNavigationMode`.
+    public var commentNavigationMode: CommentNavigationMode
     /// Real Apollo "Show Awards" (Settings > Appearance > Other):
     /// show or hide Reddit's current awards on comments and in the post
     /// header. They only load over a web session.
@@ -818,6 +851,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         newCommentsHighlightifier: false,
         showJumpButton: true,
         jumpButtonPosition: .bottomTrailing,
+        commentNavigationMode: .threads,
         showAwards: true,
         showPostFlair: true,
         showUserFlair: true,
@@ -919,6 +953,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         newCommentsHighlightifier: Bool = false,
         showJumpButton: Bool = true,
         jumpButtonPosition: JumpButtonPosition = .bottomTrailing,
+        commentNavigationMode: CommentNavigationMode = .threads,
         showAwards: Bool = true,
         showPostFlair: Bool = true,
         showUserFlair: Bool = true,
@@ -1016,6 +1051,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.newCommentsHighlightifier = newCommentsHighlightifier
         self.showJumpButton = showJumpButton
         self.jumpButtonPosition = jumpButtonPosition
+        self.commentNavigationMode = commentNavigationMode
         self.showAwards = showAwards
         self.showPostFlair = showPostFlair
         self.showUserFlair = showUserFlair
@@ -1120,6 +1156,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         newCommentsHighlightifier = try container.decode(.newCommentsHighlightifier, default: d, \.newCommentsHighlightifier)
         showJumpButton = try container.decode(.showJumpButton, default: d, \.showJumpButton)
         jumpButtonPosition = try container.decode(.jumpButtonPosition, default: d, \.jumpButtonPosition)
+        commentNavigationMode = try container.decode(.commentNavigationMode, default: d, \.commentNavigationMode)
         showAwards = try container.decode(.showAwards, default: d, \.showAwards)
         showPostFlair = try container.decode(.showPostFlair, default: d, \.showPostFlair)
         showUserFlair = try container.decode(.showUserFlair, default: d, \.showUserFlair)

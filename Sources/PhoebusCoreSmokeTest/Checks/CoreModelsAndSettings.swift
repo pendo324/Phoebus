@@ -1411,7 +1411,9 @@ private final class SmokeFriendsList: @unchecked Sendable {
 @MainActor func checkNewCommentsTrackerApolloSNewCommentsTracker() async throws {
     let trackerPostID = "smoketest_post_\(UUID().uuidString)"
     check("first visit to a post has no new comments", NewCommentsTracker.newCommentIDs(postID: trackerPostID, currentIDs: ["c1", "c2"]).isEmpty)
+    check("a post never visited has no baseline", !NewCommentsTracker.hasBaseline(postID: trackerPostID))
     NewCommentsTracker.markSeen(postID: trackerPostID, commentIDs: ["c1", "c2"])
+    check("a visited post has a baseline", NewCommentsTracker.hasBaseline(postID: trackerPostID))
     let secondVisitNew = NewCommentsTracker.newCommentIDs(postID: trackerPostID, currentIDs: ["c1", "c2", "c3"])
     check("second visit identifies only the genuinely new comment", secondVisitNew == ["c3"])
     NewCommentsTracker.markSeen(postID: trackerPostID, commentIDs: ["c1", "c2", "c3"])

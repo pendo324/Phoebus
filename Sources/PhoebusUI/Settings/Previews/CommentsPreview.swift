@@ -60,7 +60,7 @@ struct CommentsPreview: View {
         }
         .overlay(alignment: general.jumpButtonPosition.alignment) {
             if general.showJumpButton {
-                CommentJumpButtonLabel().padding(8)
+                CommentJumpButtonLabel(mode: general.commentNavigationMode).padding(8)
             }
         }
         .inertSettingsPreview(label: "Preview: a sample comment thread as it appears under a post.")

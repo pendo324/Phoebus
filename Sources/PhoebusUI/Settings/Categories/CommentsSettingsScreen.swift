@@ -105,6 +105,11 @@ public struct CommentsSettingsScreen: View {
                                  options: JumpButtonPosition.allCases.map { $0 },
                                  display: { $0.displayName })
                 .apolloSearchRow("Jump Button Position")
+            // Reborn "Jump Button Navigation" (CommentNavigationMode).
+            ApolloSettingsPicker("Jump Button Navigation", selection: $settings.commentNavigationMode,
+                                 options: CommentNavigationMode.allCases.map { $0 },
+                                 display: { $0.displayName })
+                .apolloSearchRow("Jump Button Navigation")
             // Phoebus-only: reopening a thread returns to the comment you'd reached.
             Toggle("Remember Thread Position", isOn: $threadPosition.rememberThreadPosition)
                 .accessibilityIdentifier("settings.general.rememberThreadPosition")

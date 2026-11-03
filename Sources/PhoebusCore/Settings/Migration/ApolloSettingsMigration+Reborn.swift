@@ -25,7 +25,7 @@ extension ApolloSettingsMigration {
         "HideRPopularRedditList", "HideRAllRedditList", "HideModeratorRedditList",
         "SubredditFeedIconStyle", "SubredditFeedLayout", "3DTouchMarksRead", "HideBarsOnScroll", "ShareOldRedditLinks",
         "HideTopBarOnScroll", "CollapseNavigationActions", "ScrollReturnButton",
-        "ShowCommentJumpButton", "CommentJumpButtonPosition", "ShowAwards", "ShowPostFlair",
+        "ShowCommentJumpButton", "CommentJumpButtonPosition", "CommentNavigationMode", "ShowAwards", "ShowPostFlair",
         "ShowUserFlair", "AllowSaveCategories", "UnifyModmailInInbox", "LiveTextAnalyzer",
         "LoopVideosWithAudio", "ShowMediaViewerControlsWhenOpened", "VideoDeblurinatorEnabled",
         "UnmuteVideosWhenOpenedSetting", "ShowCommentsButton", "SharePostIncludesTitle",
@@ -188,7 +188,7 @@ extension ApolloSettingsMigration {
         "TranslationProviderUserSelected": "UI hint",
         "UseFullWidthSwipeBack": "stock key with no known meaning (no matching UI); not guessed",
         // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
-        "ThreeStateVoting": "ported in a later change", "CommentNavigationMode": "ported in a later change",
+        "ThreeStateVoting": "ported in a later change",
         "SubredditShowIcon": "ported in a later change",
         "ReduceRateLimiting": "no switch: the reductions always apply",
         // Reborn 4.0 state and screens with no counterpart.
@@ -309,6 +309,10 @@ extension ApolloSettingsMigration {
         // Stock values "bottom-right" (default), "bottom-left", etc.
         take("CommentJumpButtonPosition", "Jump Button Position", string) {
             general.jumpButtonPosition = JumpButtonPosition(stockValue: $0) ?? .bottomTrailing
+        }
+        // Reborn 4.0: 0 = Threads (default), 1 = New Comments.
+        take("CommentNavigationMode", "Jump Button Navigation", int) {
+            general.commentNavigationMode = CommentNavigationMode(stockValue: $0)
         }
         take("ShowAwards", "Show Awards", bool) { general.showAwards = $0 }
         take("ShowPostFlair", "Show Post Flair", bool) { general.showPostFlair = $0 }

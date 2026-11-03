@@ -67,6 +67,10 @@ final class CommentTreeStore: ObservableObject {
     /// "Remember Thread Position" tracks rows only if it was on as the
     /// thread opened, so rows carry no marker views otherwise.
     let tracksThreadPosition = ThreadPositionSettingsStore.load().rememberThreadPosition
+    /// The same markers also tell New Comments jump navigation which rows
+    /// are really on screen, so that mode turns them on too.
+    let tracksRowMarkers = ThreadPositionSettingsStore.load().rememberThreadPosition
+        || GeneralSettingsStore.load().commentNavigationMode == .newComments
     let threadScroll = ThreadScrollTracker()
     /// The post header's row id for `threadScroll` (`PostDetailScreen` only).
     static let headerRowID = "#postHeader"
@@ -155,6 +159,95 @@ final class CommentTreeStore: ObservableObject {
         let topmost = ids.firstIndex(where: onScreenRootIDs.contains) ?? -1
         return ids[(topmost + 1) % ids.count]
     }
+    /// Whether an earlier visit left a baseline for `newCommentIDs`.
+    private(set) var hadPreviousVisit = false
+    /// The comment the last New Comments jump landed on.
+    private var newCommentCursorID: String?
+    private var isSearchingNewComments = false
+    private var jumpScrollGeneration = 0
+    /// "More replies" rows whose load did not insert anything this visit.
+    private var failedReplyGroups: Set<String> = []
+    /// Reborn caps one tap at three reply-group loads; each is a Reddit request.
+    private static let maxReplyLoadsPerJump = 3
+
+    enum NewCommentJumpOutcome {
+        case landed(ordinal: Int, total: Int, wrapped: Bool)
+        case noPreviousVisit
+        case nothingNew
+        case moreRepliesToSearch
+        case busy
+    }
+
+    /// The jump button's New Comments mode: scrolls to the next (`direction`
+    /// > 0) or previous new comment, loading unloaded reply groups on the way.
+    func jumpToNewComment(direction: Int, ownUsername: String?, repository: RedditRepository,
+                          scroll: @MainActor (String) -> Void) async -> NewCommentJumpOutcome {
+        guard !isSearchingNewComments else { return .busy }
+        guard hadPreviousVisit else { return .noPreviousVisit }
+        isSearchingNewComments = true
+        defer { isSearchingNewComments = false }
+
+        var rows = NewCommentNavigator.rows(roots: roots, rootMoreStub: rootMoreStub)
+        var anchor = NewCommentNavigator.anchor(
+            rows: rows, onScreen: threadScroll.isTracking ? threadScroll.visibleRowIDs() : nil, cursorID: newCommentCursorID)
+        var loads = 0
+        while true {
+            let step = NewCommentNavigator.step(rows: rows, newIDs: newCommentIDs, ownUsername: ownUsername,
+                                                anchor: anchor, direction: direction, skippedStubs: failedReplyGroups)
+            switch step {
+            case .none:
+                return .nothingNew
+            case .comment(let id, let ordinal, let total, let wrapped):
+                newCommentCursorID = id
+                scroll(rowID(id))
+                // `scrollTo` trusts estimated row heights and can land short on a
+                // long thread; step the rest of the way until the row is at the
+                // top, stopping if the reader drags.
+                jumpScrollGeneration += 1
+                let generation = jumpScrollGeneration
+                threadScroll.onDragBegan = { [weak self] in
+                    self?.jumpScrollGeneration += 1
+                    self?.threadDragBegan()
+                }
+                _ = await threadScroll.scroll(toRow: id, order: rows.map(\.id)) { [weak self] in
+                    !Task.isCancelled && self?.jumpScrollGeneration == generation
+                }
+                return .landed(ordinal: ordinal, total: total, wrapped: wrapped)
+            case .expand(let stubID):
+                guard loads < Self.maxReplyLoadsPerJump else { return .moreRepliesToSearch }
+                guard let stub = rows.compactMap({ row -> MoreStub? in
+                    guard case .more(let id, _) = row, id == stubID else { return nil }
+                    return stubs[id]
+                }).first else { return .nothingNew }
+                loads += 1
+                // The group may disappear or grow into several rows: keep the
+                // search anchored on a neighbour that survives, on the side
+                // the replies will appear.
+                if case .row(let anchorID) = anchor, anchorID == stubID,
+                   let index = rows.firstIndex(where: { $0.id == stubID }) {
+                    anchor = direction > 0
+                        ? (index > 0 ? .row(rows[index - 1].id) : .top)
+                        : (index + 1 < rows.count ? .row(rows[index + 1].id) : .end)
+                }
+                await resolveMoreStub(stub, repository: repository)
+                rows = NewCommentNavigator.rows(roots: roots, rootMoreStub: rootMoreStub)
+                if rows.contains(where: { $0.id == stubID }) { failedReplyGroups.insert(stubID) }
+            }
+        }
+    }
+
+    /// Every "more replies" marker in the loaded thread, by id.
+    private var stubs: [String: MoreStub] {
+        var found: [String: MoreStub] = [:]
+        func visit(_ node: CommentTreeNode) {
+            if let stub = node.moreStub { found[stub.id] = stub }
+            node.children.forEach(visit)
+        }
+        roots.forEach(visit)
+        if let rootMoreStub { found[rootMoreStub.id] = rootMoreStub }
+        return found
+    }
+
     /// Set when a "N more replies" marker resolves to nothing (the
     /// referenced comments were deleted server-side), so the UI can show
     /// `DeletedMoreCommentsExplanationScreen` instead of vanishing the row.
@@ -371,6 +464,7 @@ final class CommentTreeStore: ObservableObject {
             roots = cached.roots.applyingCollapseChoices(savedCollapseChoices(), focusedCommentID: focusedCommentID)
             rootMoreStub = cached.moreStub
             postDuplicateCount = cached.duplicateCount
+            hadPreviousVisit = true
             errorMessage = nil
             // Refresh the entry's age on use, so a post the user keeps
             // returning to stays cached rather than falling off the window.
@@ -413,6 +507,7 @@ final class CommentTreeStore: ObservableObject {
             Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub, duplicateCount: built.postDuplicateCount)
             await prefetchAvatars(of: roots, repository: repository)
             let allIDs = roots.flatMap { $0.allIDs() }
+            hadPreviousVisit = NewCommentsTracker.hasBaseline(postID: postID)
             newCommentIDs = NewCommentsTracker.newCommentIDs(postID: postID, currentIDs: allIDs)
             NewCommentsTracker.markSeen(postID: postID, commentIDs: allIDs)
             // Also snapshot the post's total comment count for the feed

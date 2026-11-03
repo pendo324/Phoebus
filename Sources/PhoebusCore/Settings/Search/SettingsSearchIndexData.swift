@@ -155,6 +155,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Auto Collapse Child Comments", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Auto Collapse Child Comments"),
         SettingsSearchEntry(title: "Tap to Collapse...", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Tap to Collapse..."),
         SettingsSearchEntry(title: "Jump Button Position", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Jump Button Position"),
+        SettingsSearchEntry(title: "Jump Button Navigation", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Jump Button Navigation"),
         SettingsSearchEntry(title: "Threads to Remember", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Threads to Remember"),
         SettingsSearchEntry(title: "Comment Age", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Comment Age"),
         SettingsSearchEntry(title: "Show Deleted Comments", breadcrumb: "Settings → Comments", screen: .categoryComments, rowTitle: "Show Deleted Comments"),

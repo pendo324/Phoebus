@@ -11,9 +11,18 @@ enum ApolloToast {
     private static var hideWork: DispatchWorkItem?
 
     static func showError(_ title: String, detail: String, systemImage: String = "exclamationmark.triangle") {
+        present(title, detail: detail, systemImage: systemImage, tint: .red)
+    }
+
+    /// The same toast for a plain status, not a failure.
+    static func showNotice(_ title: String, detail: String = "", systemImage: String = "info.circle") {
+        present(title, detail: detail, systemImage: systemImage, tint: .secondary)
+    }
+
+    private static func present(_ title: String, detail: String, systemImage: String, tint: Color) {
         guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive }) else { return }
-        let host = UIHostingController(rootView: ToastView(title: title, detail: detail, systemImage: systemImage))
+        let host = UIHostingController(rootView: ToastView(title: title, detail: detail, systemImage: systemImage, tint: tint))
         host.view.backgroundColor = .clear
         let window = window ?? UIWindow(windowScene: scene)
         window.windowLevel = .alert + 1
@@ -36,16 +45,19 @@ enum ApolloToast {
         let title: String
         let detail: String
         let systemImage: String
+        let tint: Color
 
         var body: some View {
             VStack {
                 HStack(spacing: 10) {
                     Image(systemName: systemImage)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(tint)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.subheadline.weight(.semibold))
-                        Text(detail).font(.footnote).foregroundStyle(.secondary)
+                        if !detail.isEmpty {
+                            Text(detail).font(.footnote).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)

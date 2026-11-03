@@ -345,6 +345,8 @@ try await checkNewCommentsTrackerApolloSNewCommentsTracker()
 
 try await checkCommentTreeAllIDsUsedByNewCommentsTracker()
 
+try await checkNewCommentNavigation()
+
 try await checkYouTubeURLParsingApolloSYouTubePlayerController()
 
 try await checkModQueueReportReasonParsingApollo()

@@ -31,6 +31,12 @@ public enum NewCommentsTracker {
         return Set(currentIDs.filter { !previousSet.contains($0) })
     }
 
+    /// Whether a previous visit left a baseline to diff against; without one
+    /// nothing can be new (Reborn's jump button says "No previous visit recorded").
+    public static func hasBaseline(postID: String) -> Bool {
+        loadAll()[postID] != nil
+    }
+
     /// Records the current full set of comment IDs as "seen" for this
     /// post, to be diffed against on the next visit.
     public static func markSeen(postID: String, commentIDs: [String]) {

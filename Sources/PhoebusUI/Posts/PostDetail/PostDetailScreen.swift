@@ -46,6 +46,10 @@ public struct PostDetailScreen: View {
     /// Mark NSFW / Mark Spoiler changes since the post was loaded.
     @State private var markOverrides: [PostMark: Bool] = [:]
     @State private var signedInUsername: String?
+    /// When a hold on the jump button fired, so its release is not also a tap.
+    @State private var jumpLongPressFired: Date?
+    /// Where the last New Comments jump landed, as the jump button's VoiceOver value.
+    @State private var jumpPosition = ""
 
     /// Reborn "Apollo AI". Gated on `ApolloAISettings.summariesEnabled` so the menu
     /// action only appears once the user has opted in from `ApolloAISettingsScreen`.
@@ -331,18 +335,37 @@ public struct PostDetailScreen: View {
                 // Find in Comments rests at the top (#1036), clear of this button.
                 if generalSettings.showJumpButton, !showingFindInComments {
                 // Mirrors ShowCommentJumpButton / CommentJumpButtonPosition
-                // (default: on, bottom-right): scrolls to the next top-level comment.
+                // (default: on, bottom-right): scrolls to the next top-level comment,
+                // or in Reborn's New Comments mode (CommentNavigationMode) to the next
+                // new one, with a hold for the previous.
                 VStack(spacing: 12) {
                     if !commentStore.roots.isEmpty {
+                        let mode = generalSettings.commentNavigationMode
                         Button {
+                            if let fired = jumpLongPressFired {
+                                jumpLongPressFired = nil
+                                if Date().timeIntervalSince(fired) < 5 { return }
+                            }
                             Haptics.selection()
+                            if mode == .newComments {
+                                jumpToNewComment(direction: 1, scrollProxy: scrollProxy)
+                                return
+                            }
                             // Jumps to the comment after the one being read.
                             guard let targetID = commentStore.nextRootIDForJump() else { return }
                             withAnimation { scrollProxy.scrollTo(commentStore.rowID(targetID), anchor: .top) }
                         } label: {
-                            CommentJumpButtonLabel()
+                            CommentJumpButtonLabel(mode: mode)
                         }
-                        .accessibilityLabel("Next Comment")
+                        .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                            guard mode == .newComments else { return }
+                            jumpLongPressFired = Date()
+                            Haptics.selection()
+                            jumpToNewComment(direction: -1, scrollProxy: scrollProxy)
+                        })
+                        .accessibilityLabel(mode.jumpButtonAccessibilityLabel)
+                        .accessibilityHint(mode.jumpButtonAccessibilityHint)
+                        .accessibilityValue(mode == .newComments ? jumpPosition : "")
                         .accessibilityIdentifier("postDetail.jumpToNextComment")
                     }
                 }
@@ -516,7 +539,7 @@ public struct PostDetailScreen: View {
         }
         .onDisappear { InAppBrowserContext.clear(postID: post.name) }
         .threadRowMarker(CommentTreeStore.headerRowID, tracker: commentStore.threadScroll,
-                         enabled: commentStore.tracksThreadPosition)
+                         enabled: commentStore.tracksRowMarkers)
     }
 
     private static let findFieldRowID = "postDetail.findFieldRow"
@@ -630,6 +653,30 @@ public struct PostDetailScreen: View {
         findQuery = ""
         findMatches = []
         findCurrentIndex = 0
+    }
+
+    /// The jump button's New Comments mode; see `CommentTreeStore.jumpToNewComment`.
+    private func jumpToNewComment(direction: Int, scrollProxy: ScrollViewProxy) {
+        Task {
+            let outcome = await commentStore.jumpToNewComment(
+                direction: direction, ownUsername: signedInUsername, repository: repository
+            ) { rowID in
+                withAnimation { scrollProxy.scrollTo(rowID, anchor: .top) }
+            }
+            switch outcome {
+            case .landed(let ordinal, let total, let wrapped):
+                // VoiceOver reads the button's value when it changes.
+                jumpPosition = "\(wrapped ? (direction > 0 ? "Back to first · " : "Back to last · ") : "")New comment \(ordinal) of \(total)"
+            case .noPreviousVisit:
+                ApolloToast.showNotice("No previous visit recorded", detail: "Revisit this post later to jump to new comments.")
+            case .nothingNew:
+                ApolloToast.showNotice("No new comments found")
+            case .moreRepliesToSearch:
+                ApolloToast.showNotice("More replies to search", detail: "Tap the jump button again to continue.")
+            case .busy:
+                break
+            }
+        }
     }
 
     private func moveMatch(by delta: Int, scrollProxy: ScrollViewProxy) {

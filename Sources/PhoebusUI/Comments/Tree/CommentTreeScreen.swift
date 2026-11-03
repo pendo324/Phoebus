@@ -356,7 +356,7 @@ struct CommentTreeContent: View {
                         )
                         // Reborn "Siri & Spotlight" (#1299): the comment, for onscreen context.
                         .siriCommentContext(node.comment.name)
-                        .threadRowMarker(node.id, tracker: store.threadScroll, enabled: store.tracksThreadPosition)
+                        .threadRowMarker(node.id, tracker: store.threadScroll, enabled: store.tracksRowMarkers)
                         .onAppear {
                             store.prefetchImages(after: node.id)
                             // See `CommentTreeStore.visibleTopLevelRootID`: only depth-0 comments update

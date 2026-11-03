@@ -67,6 +67,9 @@ final class ThreadScrollTracker: NSObject {
                                  insetBottom: Double(scrollView.adjustedContentInset.bottom))
     }
 
+    /// Whether the comment list has been found, so `visibleRowIDs` means something.
+    var isTracking: Bool { scrollView != nil }
+
     /// Row ids really on screen.
     func visibleRowIDs() -> Set<String> {
         guard let scrollView else { return [] }

@@ -450,6 +450,51 @@ private func makeFilterComment(id: String, author: String = "someone", body: Str
     ])
     check("gallery URLs are unescaped (&amp; -> &)", !galleryPost.galleryImageURLs[0].absoluteString.contains("&amp;"))
     check("non-gallery post has empty galleryImageURLs", post.galleryImageURLs.isEmpty)
+
+    // A gallery posted through the API: every photo "failed" with no `s` (Apollo-Reborn#1587).
+    func failedGallery(thumbnail: String, mixed: Bool = false) -> RedditPost {
+        let json = """
+        {
+            "id": "gal2", "name": "t3_gal2", "title": "API Gallery",
+            "author": "someuser", "subreddit": "test", "selftext": "",
+            "url": "https://www.reddit.com/gallery/gal2",
+            "permalink": "/r/test/comments/gal2/api_gallery/",
+            "score": 1, "upvote_ratio": 1, "num_comments": 0,
+            "created_utc": 1700000000, "is_self": false, "over_18": false,
+            "spoiler": false, "stickied": false, "saved": false, "likes": null,
+            "thumbnail": "\(thumbnail)",
+            "is_gallery": true,
+            "gallery_data": { "items": [ {"media_id": "b2Second"}, {"media_id": "a1First"} ] },
+            "media_metadata": {
+                "a1First": {"status": "failed"},
+                "b2Second": \(mixed
+                    ? #"{"status": "valid", "e": "Image", "m": "image/png", "s": {"u": "https://preview.redd.it/b2Second.png?width=100&amp;auto=webp", "x": 100, "y": 50}}"#
+                    : #"{"status": "failed"}"#)
+            }
+        }
+        """.data(using: .utf8)!
+        return try! JSONDecoder.reddit.decode(RedditPost.self, from: json)
+    }
+    let failedThumb = "https://preview.redd.it/a1First.png?width=140&amp;height=140&amp;crop=1:1,smart&amp;auto=webp&amp;s=abc"
+    let failed = failedGallery(thumbnail: failedThumb)
+    check("a gallery of failed photos still lists every photo", failed.galleryImageURLs.count == 2)
+    check("failed photos are rebuilt at i.redd.it, the first with the thumbnail's extension, the rest with the same one",
+          failed.galleryImageURLs.map(\.absoluteString) == ["https://i.redd.it/b2Second.png", "https://i.redd.it/a1First.png"])
+    check("failed photos become gallery tiles in gallery_data order",
+          GalleryTile.tiles(for: failed).map(\.galleryMediaID) == ["b2Second", "a1First"])
+    check("a failed gallery's tiles are still photos with a square placeholder ratio",
+          GalleryTile.tiles(for: failed).allSatisfy { $0.kind == .photo && $0.aspectRatio == 1 })
+    check("with no usable thumbnail, failed photos are named .jpeg",
+          failedGallery(thumbnail: "self").galleryImageURLs.map(\.absoluteString)
+            == ["https://i.redd.it/b2Second.jpeg", "https://i.redd.it/a1First.jpeg"])
+    check("a GIF thumbnail names only the first photo .gif, the rest .jpeg",
+          failedGallery(thumbnail: "https://preview.redd.it/a1First.gif?width=140").galleryImageURLs.map(\.absoluteString)
+            == ["https://i.redd.it/b2Second.jpeg", "https://i.redd.it/a1First.gif"])
+    check("a failed GIF photo becomes an AnimatedImage tile with its own mp4",
+          GalleryTile.tiles(for: failedGallery(thumbnail: "https://preview.redd.it/a1First.gif?width=140")).last.map { $0.kind == .gif && $0.gifMP4URL?.absoluteString == "https://i.redd.it/a1First.gif" } == true)
+    let mixed = failedGallery(thumbnail: failedThumb, mixed: true)
+    check("valid photos keep their own URL while failed ones are rebuilt",
+          mixed.galleryImageURLs.map(\.absoluteString) == ["https://preview.redd.it/b2Second.png?width=100&auto=webp", "https://i.redd.it/a1First.png"])
 }
 
 // --- Reddit markdown rendering (bodyMarkdown/markdownNode) ---

@@ -61,7 +61,7 @@ public struct GalleryTile: Identifiable, Sendable {
     /// Empty for a text/link post with no viewable media.
     public static func tiles(for post: RedditPost) -> [GalleryTile] {
         if post.isGallery == true, let galleryData = post.galleryData,
-           let mediaMetadata = post.mediaMetadata, !galleryData.items.isEmpty {
+           let mediaMetadata = post.galleryMediaMetadata, !galleryData.items.isEmpty {
             var tiles: [GalleryTile] = []
             let count = galleryData.items.count
             for (index, item) in galleryData.items.enumerated() {

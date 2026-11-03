@@ -131,7 +131,7 @@ public enum GalleryPostMedia {
     /// grid can size cells to real proportions. Reads `media_metadata`
     /// (gallery), `reddit_video` dimensions, then `preview.images[0].source`.
     public static func aspectRatio(for post: RedditPost) -> Double? {
-        if post.isGallery == true, let galleryData = post.galleryData, let mediaMetadata = post.mediaMetadata,
+        if post.isGallery == true, let galleryData = post.galleryData, let mediaMetadata = post.galleryMediaMetadata,
            let firstID = galleryData.items.first?.mediaID,
            let source = mediaMetadata[firstID]?.source,
            let width = source.x, let height = source.y, height > 0 {
@@ -155,7 +155,7 @@ public enum GalleryPostMedia {
     /// gallery image (see `GalleryTile`), since `aspectRatio(for:)` only
     /// reads the first gallery item.
     public static func aspectRatio(mediaID: String, in post: RedditPost) -> Double? {
-        guard let mediaMetadata = post.mediaMetadata,
+        guard let mediaMetadata = post.galleryMediaMetadata,
               let source = mediaMetadata[mediaID]?.source,
               let width = source.x, let height = source.y, height > 0 else { return nil }
         return Double(width) / Double(height)

@@ -126,7 +126,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     /// Resolves this post's gallery images in display order, unescaping
     /// Reddit's HTML-entity-encoded URLs (`&amp;` -> `&`).
     public var galleryImageURLs: [URL] {
-        guard isGallery == true, let galleryData, let mediaMetadata else { return [] }
+        guard isGallery == true, let galleryData, let mediaMetadata = galleryMediaMetadata else { return [] }
         return galleryData.items.compactMap { item -> URL? in
             guard let metadata = mediaMetadata[item.mediaID], let sourceURL = metadata.source?.url else { return nil }
             let unescaped = sourceURL.replacingOccurrences(of: "&amp;", with: "&")

@@ -110,7 +110,7 @@ extension ApolloSettingsMigration {
         "OpenLinksInSteamApp", "OpenLinksInBlueskyApp", "OpenLinksInGitHubApp",
         NitterInstances.enabledKey, NitterInstances.hostKey,
         // Media misc
-        "ApolloGalleryVideosMuted", "ScrollEdgeEffectStyle",
+        "ApolloGalleryVideosMuted", "ScrollEdgeEffectStyle", "ApolloGalleryTileSizeV2", "ApolloGalleryTileSize",
         // Automatic backups
         "AutomaticBackupsEnabled", "AutomaticBackupIntervalDays",
         // In-app update prompt (#1343)
@@ -189,10 +189,10 @@ extension ApolloSettingsMigration {
         "UseFullWidthSwipeBack": "stock key with no known meaning (no matching UI); not guessed",
         // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
         "ThreeStateVoting": "ported in a later change", "CommentNavigationMode": "ported in a later change",
-        "SubredditShowIcon": "ported in a later change", "ApolloGalleryTileSizeV2": "ported in a later change",
-        "ApolloGalleryTileSize": "ported in a later change", "ReduceRateLimiting": "no switch: the reductions always apply",
+        "SubredditShowIcon": "ported in a later change",
+        "ReduceRateLimiting": "no switch: the reductions always apply",
         // Reborn 4.0 state and screens with no counterpart.
-        "ApolloGalleryPinchIntroductionAcknowledged": "one-shot hint",
+        "ApolloGalleryPinchIntroductionAcknowledged": "no pinch introduction card",
         "ReduceRateLimitingOffered": "one-shot offer state",
         "KeylessRouteUpdates": "no remote route file",
         "SearchTabSectionOrder": "Search tab has no trending/random sections",
@@ -807,6 +807,12 @@ extension ApolloSettingsMigration {
             UserDefaults.standard.set($0, forKey: NitterInstances.enabledKey)
         }
         take("ApolloGalleryVideosMuted", "Gallery Videos Muted", bool) { GalleryMuteStore.isMuted = $0 }
+        // Gallery tile size (#1357, #1434): the five-step key, else the older four-step one (+1).
+        if !take(GalleryTileSize.key, "Gallery Tile Size", int, { GalleryTileSize.storage.save($0, to: .standard) }) {
+            take(GalleryTileSize.legacyKey, "Gallery Tile Size", int) {
+                GalleryTileSize.storage.save(GalleryTileSize.index(fromLegacy: $0), to: .standard)
+            }
+        }
         // Share as Image "Link" (#1278); the Boolean is its pre-menu form.
         if !take("ApolloShareAsImageLinkMode", "Share Link", { int($0).flatMap(ShareLinkMode.init(rawValue:)) }, { ShareLinkMode.write($0) }) {
             take("ApolloShareAsImageIncludeLink", "Share Link", bool) { ShareLinkMode.write($0 ? .post : .none) }

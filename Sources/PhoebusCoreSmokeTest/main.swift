@@ -1675,6 +1675,8 @@ try await checkGalleryViewerRealMediaRealChrome()
 
 try await checkGalleryMuteIsStickyAndThe()
 
+try await checkGalleryTileSizeStepsAndPinch()
+
 try await checkTheAudioSessionSurvivesAPage()
 
 try await checkBuildChannelParsing()

@@ -1601,3 +1601,100 @@ extension NSLock {
     check("an ordinary post never shows the banner",
           !StickiedPostBanner.shows(isStickied: false, isAggregateFeed: false))
 }
+
+// --- Gallery View tile size: five bounded steps, a pinch, Reborn's key ---
+//
+// Reborn's tile sizes are 90/128/185/260/360pt, columns 1...12, with two
+// columns kept on phones for the 128 and 185 steps. A pinch lands on the
+// nearest step. The step is stored under `ApolloGalleryTileSizeV2` (the older
+// four-step `ApolloGalleryTileSize` counts as one lower) and a backup carries it.
+@MainActor func checkGalleryTileSizeStepsAndPinch() async throws {
+    check("the tile sizes are Reborn's five widths",
+          GalleryTileSize.widths == [90, 128, 185, 260, 360] && GalleryTileSize.defaultIndex == 2)
+    check("the default size is two columns on common phone widths",
+          [375.0, 390, 402, 430].allSatisfy { GalleryTileSize.columns(forWidth: $0, sizeIndex: 2) == 2 })
+    check("the smallest size is four columns on common phone widths",
+          [375.0, 390, 402, 430].allSatisfy { GalleryTileSize.columns(forWidth: $0, sizeIndex: 0) == 4 })
+    check("the 128pt size is three columns and the 360pt size one on a 402pt phone",
+          GalleryTileSize.columns(forWidth: 402, sizeIndex: 1) == 3 && GalleryTileSize.columns(forWidth: 402, sizeIndex: 3) == 1
+              && GalleryTileSize.columns(forWidth: 402, sizeIndex: 4) == 1)
+    check("a narrow window keeps two columns at the default size",
+          GalleryTileSize.columns(forWidth: 320, sizeIndex: 2) == 2)
+    check("a window too narrow for two 128pt tiles can drop to one column",
+          GalleryTileSize.columns(forWidth: 250, sizeIndex: 2) == 1)
+    check("columns stop at twelve", GalleryTileSize.columns(forWidth: 100_000, sizeIndex: 0) == 12)
+    check("an unlaid-out or invalid width gives one column",
+          GalleryTileSize.columns(forWidth: 0, sizeIndex: 2) == 1 && GalleryTileSize.columns(forWidth: .nan, sizeIndex: 0) == 1
+              && GalleryTileSize.columns(forWidth: -5, sizeIndex: 1) == 1)
+    check("a larger iPad width gets more columns than a phone",
+          GalleryTileSize.columns(forWidth: 1024, sizeIndex: 2) == 5)
+    check("an out-of-range step is clamped when counting columns",
+          GalleryTileSize.columns(forWidth: 402, sizeIndex: 99) == GalleryTileSize.columns(forWidth: 402, sizeIndex: 4)
+              && GalleryTileSize.columns(forWidth: 402, sizeIndex: -3) == GalleryTileSize.columns(forWidth: 402, sizeIndex: 0))
+
+    check("stepping moves one size and stops at both ends",
+          GalleryTileSize.stepped(2, by: 1) == 3 && GalleryTileSize.stepped(2, by: -1) == 1
+              && GalleryTileSize.stepped(4, by: 1) == 4 && GalleryTileSize.stepped(0, by: -1) == 0
+              && GalleryTileSize.stepped(99, by: -1) == 3)
+
+    check("a pinch that barely moves keeps the size",
+          GalleryTileSize.sizeIndex(afterPinchScale: 1.0, from: 2) == 2
+              && GalleryTileSize.sizeIndex(afterPinchScale: 1.1, from: 2) == 2
+              && GalleryTileSize.sizeIndex(afterPinchScale: 0.9, from: 2) == 2)
+    check("spreading enlarges the tiles and pinching shrinks them",
+          GalleryTileSize.sizeIndex(afterPinchScale: 1.4, from: 2) == 3
+              && GalleryTileSize.sizeIndex(afterPinchScale: 0.7, from: 2) == 1)
+    check("a big pinch skips sizes but never leaves the range",
+          GalleryTileSize.sizeIndex(afterPinchScale: 0.4, from: 2) == 0
+              && GalleryTileSize.sizeIndex(afterPinchScale: 10, from: 2) == 4
+              && GalleryTileSize.sizeIndex(afterPinchScale: 0.01, from: 0) == 0)
+    check("a nonsense pinch scale keeps the size",
+          GalleryTileSize.sizeIndex(afterPinchScale: .nan, from: 3) == 3
+              && GalleryTileSize.sizeIndex(afterPinchScale: 0, from: 3) == 3
+              && GalleryTileSize.sizeIndex(afterPinchScale: -2, from: 3) == 3
+              && GalleryTileSize.sizeIndex(afterPinchScale: .infinity, from: 3) == 3)
+
+    let suite = "GalleryTileSizeSmoke"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    check("the tile size uses Reborn's own defaults key",
+          GalleryTileSize.key == "ApolloGalleryTileSizeV2" && GalleryTileSize.legacyKey == "ApolloGalleryTileSize")
+    check("an unset size is the default", GalleryTileSize.storage.load(from: defaults) == 2)
+    GalleryTileSize.storage.save(4, to: defaults)
+    check("a saved size is stored as a plain integer under Reborn's key", defaults.object(forKey: "ApolloGalleryTileSizeV2") as? Int == 4
+          && GalleryTileSize.storage.load(from: defaults) == 4)
+    GalleryTileSize.storage.save(99, to: defaults)
+    check("a saved size is clamped", defaults.integer(forKey: "ApolloGalleryTileSizeV2") == 4)
+    defaults.set(-7, forKey: "ApolloGalleryTileSizeV2")
+    check("an invalid stored size reads back clamped", GalleryTileSize.storage.load(from: defaults) == 0)
+    defaults.removeObject(forKey: "ApolloGalleryTileSizeV2")
+    for legacy in 0...3 {
+        defaults.set(legacy, forKey: "ApolloGalleryTileSize")
+        check("the older four-step size \(legacy) reads as step \(legacy + 1)",
+              GalleryTileSize.storage.load(from: defaults) == legacy + 1)
+    }
+    defaults.set(0, forKey: "ApolloGalleryTileSizeV2")
+    check("the five-step key wins over the older one", GalleryTileSize.storage.load(from: defaults) == 0)
+
+    // A backup carries the size; one from before it leaves the size alone.
+    let before = GalleryTileSize.storage.load()
+    defer { GalleryTileSize.storage.save(before, to: .standard) }
+    GalleryTileSize.storage.save(1, to: .standard)
+    let old = ApolloSettingsMigration.apply(.init(preferences: ["DefaultPostsSort": "hot"]))
+    check("a backup without a gallery size leaves it alone",
+          GalleryTileSize.storage.load() == 1 && !old.applied.contains("Gallery Tile Size"))
+    let v2 = ApolloSettingsMigration.apply(.init(preferences: ["ApolloGalleryTileSizeV2": 3]))
+    check("a backup's gallery size is imported",
+          GalleryTileSize.storage.load() == 3 && v2.applied.contains("Gallery Tile Size"))
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["ApolloGalleryTileSizeV2": 40]))
+    check("an out-of-range backup size is clamped", GalleryTileSize.storage.load() == 4)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["ApolloGalleryTileSize": 0]))
+    check("a backup with only the older four-step size maps it up one", GalleryTileSize.storage.load() == 1)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["ApolloGalleryTileSize": 3, "ApolloGalleryTileSizeV2": 0]))
+    check("a backup with both takes the five-step one", GalleryTileSize.storage.load() == 0)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["ApolloGalleryTileSizeV2": true]))
+    check("a boolean in the size key is ignored", GalleryTileSize.storage.load() == 0)
+    check("the gallery size keys are imported, not skipped",
+          ApolloSettingsMigration.notImported["ApolloGalleryTileSizeV2"] == nil
+              && ApolloSettingsMigration.notImported["ApolloGalleryTileSize"] == nil)
+}

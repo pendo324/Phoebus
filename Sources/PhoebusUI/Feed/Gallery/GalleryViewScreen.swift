@@ -58,7 +58,12 @@ public struct GalleryViewScreen: View {
     /// means all kinds.
     @State private var allowedKinds: Set<GalleryPostMedia.Kind> = []
     @Setting(GeneralSettingsStore.storage) private var generalSettings
-
+    /// Reborn's 5-step tile size (`ApolloGalleryTileSizeV2`).
+    @Setting(GalleryTileSize.storage) private var tileSizeIndex
+    /// The tile to keep in view across a size change, picked when the
+    /// size changes and consumed once the new column count has laid out.
+    @State private var sizeChangeAnchor: String?
+    @State private var visibleTiles = VisibleTileTracker()
 
     public init(
         subreddit: String,
@@ -83,6 +88,7 @@ public struct GalleryViewScreen: View {
 
     public var body: some View {
         GeometryReader { proxy in
+            ScrollViewReader { scroller in
             ScrollView {
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red).padding()
@@ -102,9 +108,7 @@ public struct GalleryViewScreen: View {
                             .padding(.top, 60)
                     }
                 }
-                // Column count is `floor(width/185)` clamped to 2...5, with 3pt tile
-                // spacing.
-                let columns = Self.columnCount(forWidth: proxy.size.width)
+                let columns = GalleryTileSize.columns(forWidth: Double(proxy.size.width), sizeIndex: tileSizeIndex)
                 WaterfallGrid(items: filteredTiles, columns: columns, spacing: Self.tileSpacing, aspectRatio: { $0.aspectRatio ?? 1.0 }) { tile in
                     Button {
                         // Opens Reborn's own viewer in place, not the post screen,
@@ -115,6 +119,7 @@ public struct GalleryViewScreen: View {
                     }
                     .buttonStyle(.plain)
                     .onAppear {
+                        visibleTiles.appeared(tile.id)
                         // Load-ahead: tops up when the visible index is within
                         // `columnCount * 3` rows of the end, so fast scrolling does not
                         // outrun the fetch and hit the grid's end.
@@ -125,6 +130,7 @@ public struct GalleryViewScreen: View {
                             Task { await loadMore() }
                         }
                     }
+                    .onDisappear { visibleTiles.disappeared(tile.id) }
                 }
                 .padding(.horizontal, Self.tileSpacing)
                 // Footer: a transient line under the tiles reporting pagination state.
@@ -140,6 +146,18 @@ public struct GalleryViewScreen: View {
                     .accessibilityIdentifier("gallery.footer")
                 }
             }
+            // Pinch to step the tile size; applied when the pinch ends.
+            .simultaneousGesture(
+                MagnifyGesture().onEnded { value in
+                    setTileSize(GalleryTileSize.sizeIndex(afterPinchScale: Double(value.magnification), from: tileSizeIndex))
+                })
+            .onChange(of: tileSizeIndex) { _, _ in
+                guard let anchor = sizeChangeAnchor else { return }
+                sizeChangeAnchor = nil
+                // After the new columns have laid out.
+                DispatchQueue.main.async { scroller.scrollTo(anchor, anchor: .center) }
+            }
+            }
         }
         // The screen titles itself "Gallery"; the feed name appears only in
         // the empty-state and error copy (e.g. "No media found in r/swift
@@ -149,6 +167,25 @@ public struct GalleryViewScreen: View {
         .apolloForwardSwipe()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Reborn's minus/plus pair: smaller/larger tiles, bounded at both ends.
+            ToolbarItem(placement: .primaryAction) {
+                Button { setTileSize(GalleryTileSize.stepped(tileSizeIndex, by: -1)) } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                }
+                .disabled(tileSizeIndex <= 0)
+                .accessibilityLabel("Smaller gallery tiles")
+                .accessibilityValue("Size \(tileSizeIndex + 1) of \(GalleryTileSize.count)")
+                .accessibilityIdentifier("gallery.smallerTiles")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button { setTileSize(GalleryTileSize.stepped(tileSizeIndex, by: 1)) } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                }
+                .disabled(tileSizeIndex >= GalleryTileSize.count - 1)
+                .accessibilityLabel("Larger gallery tiles")
+                .accessibilityValue("Size \(tileSizeIndex + 1) of \(GalleryTileSize.count)")
+                .accessibilityIdentifier("gallery.largerTiles")
+            }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     // The sort set includes Best and Controversial. "best" is home-only,
@@ -268,15 +305,17 @@ public struct GalleryViewScreen: View {
         allTiles.filter { $0.kind == kind }.count
     }
 
-    /// Column count: `floor(width/185)`, clamped to 2...5.
-    static func columnCount(forWidth width: CGFloat) -> Int {
-        guard width > 0 else { return 2 }
-        let raw = Int((width / 185).rounded(.down))
-        return min(5, max(2, raw))
-    }
-
     /// Tile gutter, 3pt.
-    static let tileSpacing: CGFloat = 3
+    static let tileSpacing = CGFloat(GalleryTileSize.spacing)
+
+    /// Changes the tile size, remembering a tile near the middle of the
+    /// screen so the grid stays on it.
+    private func setTileSize(_ next: Int) {
+        let clamped = GalleryTileSize.clamped(next)
+        guard clamped != tileSizeIndex else { return }
+        sizeChangeAnchor = visibleTiles.middleTile(in: filteredTiles.map(\.id))
+        $tileSizeIndex.update { $0 = clamped }
+    }
 
     private func toggle(_ kind: GalleryPostMedia.Kind) {
         if allowedKinds.isEmpty {
@@ -427,6 +466,23 @@ public struct GalleryViewScreen: View {
         } catch {
             errorMessage = UserFacingError.message(for: error)
         }
+    }
+}
+
+/// The ids of the tiles currently built on screen. A class, so tracking
+/// appear/disappear during a scroll does not invalidate the grid.
+@MainActor
+private final class VisibleTileTracker {
+    private var ids = Set<String>()
+
+    func appeared(_ id: String) { ids.insert(id) }
+    func disappeared(_ id: String) { ids.remove(id) }
+
+    /// The on-screen tile in the middle of grid order, which sits near
+    /// the middle of the screen.
+    func middleTile(in order: [String]) -> String? {
+        let visible = order.filter { ids.contains($0) }
+        return visible.isEmpty ? nil : visible[visible.count / 2]
     }
 }
 

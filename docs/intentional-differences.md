@@ -213,6 +213,14 @@ Apollo or Reborn, add an entry here.
   place. Inline images and videos are never hidden, and a link post's own
   top card is not affected. This is a Phoebus addition, so Reborn backups
   carry no value for it.
+- **Gallery View's pinch changes the size when you lift your fingers.**
+  Reborn resizes the tiles live while the fingers move and shows a
+  one-time "Pinch to Zoom" card the first time. Phoebus steps to the
+  nearest of the five tile sizes when the pinch ends, keeps the tile that
+  was mid-screen in view, and has no introduction card (the minus and plus
+  buttons in the bar are always there). The size is stored under Reborn's
+  `ApolloGalleryTileSizeV2` and imported from backups; the card's
+  `ApolloGalleryPinchIntroductionAcknowledged` is not.
 
 ## Comments
 

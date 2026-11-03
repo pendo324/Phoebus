@@ -383,6 +383,8 @@ try await checkShortLivedLookup()
 
 try await checkRepeatedLookupsShareARequest()
 
+try await checkFeedPageAvatarBatch()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

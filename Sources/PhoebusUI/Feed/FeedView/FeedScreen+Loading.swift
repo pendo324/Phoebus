@@ -227,7 +227,17 @@ extension FeedScreen {
     }
 
     func loadMore() async {
-        await listing.loadMore(listingRequest, filter: filtered)
+        await listing.loadMore(listingRequest, filter: filtered, pageLanded: prefetchAvatars)
+    }
+
+    /// Reborn's API-Key-Free request diet (`Apollo-Reborn#1416`): a page's authors
+    /// are looked up in one batch as the page lands, not one `/about` per row as it
+    /// scrolls in. Rows show an author's picture only inside a subreddit.
+    func prefetchAvatars(for page: [RedditPost]) async {
+        guard generalSettings.showUserProfilePictures, !isAggregateFeed else { return }
+        let authors = AvatarBatchAuthors.authors(in: page)
+        guard !authors.isEmpty else { return }
+        await AvatarCache.shared.prefetch(authors: authors, repository: repository)
     }
 
     func load() async {
@@ -238,7 +248,8 @@ extension FeedScreen {
         await autoHideReadPostsBeforeRefresh()
         let name = subreddit
         await listing.load(listingRequest, filter: filtered,
-                           errorText: { Self.feedErrorMessage(for: $0, subreddit: name) })
+                           errorText: { Self.feedErrorMessage(for: $0, subreddit: name) },
+                           pageLanded: prefetchAvatars)
         // Feeds the widget extension through the shared App Group
         // container; the pool, since the widgets rotate through it.
         if subreddit.isEmpty, multiredditPath == nil, !posts.isEmpty, listing.errorMessage == nil {

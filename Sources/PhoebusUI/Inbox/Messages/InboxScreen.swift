@@ -301,7 +301,9 @@ public struct InboxCategoryScreen: View {
         if messages.isEmpty { isLoading = true }
         defer { isLoading = false }
         do {
-            messages = try await repository.fetchInbox(category: category)
+            let fetched = try await repository.fetchInbox(category: category)
+            await prefetchAvatars(for: fetched)
+            messages = fetched
             unreadOverrides = [:]
             mayHaveMore = messages.count >= 25
             await loadParentBodies(for: messages)
@@ -347,10 +349,18 @@ public struct InboxCategoryScreen: View {
             // Leave the row; it retries when it appears again.
             return
         }
+        await prefetchAvatars(for: page)
         let known = Set(messages.map(\.name))
         messages += page.filter { !known.contains($0.name) }
         mayHaveMore = page.count >= 25
         await loadParentBodies(for: page)
+    }
+
+    /// The page's senders in one batch (Reborn's request diet, `Apollo-Reborn#1416`)
+    /// rather than an `/about` per row, queued before the rows ask.
+    private func prefetchAvatars(for page: [RedditMessage]) async {
+        guard generalSettings.showUserProfilePictures else { return }
+        await AvatarCache.shared.prefetch(authors: AvatarBatchAuthors.authors(in: page), repository: repository)
     }
 
     private func loadParentBodies(for page: [RedditMessage]) async {

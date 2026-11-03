@@ -81,6 +81,8 @@ public struct RedditPost: Codable, Sendable, Identifiable {
     public let postHint: String?
     /// Reddit's `edited`: when the self text was last edited.
     public var edited: RedditEditedTime? = nil
+    /// The author's `t2_` id, for the batched avatar lookup.
+    public var authorFullname: String? = nil
     /// `removed_by_category` ("moderator", "deleted", "reddit"...), set
     /// once the post is removed. Drives removed-post recovery.
     public let removedByCategory: String?
@@ -121,6 +123,7 @@ public struct RedditPost: Codable, Sendable, Identifiable {
         case postHint = "post_hint"
         case edited
         case removedByCategory = "removed_by_category"
+        case authorFullname = "author_fullname"
     }
 
     /// Resolves this post's gallery images in display order, unescaping

@@ -411,13 +411,7 @@ final class CommentTreeStore: ObservableObject {
             warmBodies(roots)
             postDuplicateCount = built.postDuplicateCount
             Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub, duplicateCount: built.postDuplicateCount)
-            if GeneralSettingsStore.load().showUserProfilePictures {
-                // Every author's picture in one request per 100 (#1220).
-                let authors = roots.flatMap { $0.flattenedAll() }.compactMap { node in
-                    node.comment.authorFullname.map { (username: node.comment.author, fullname: $0) }
-                }
-                await AvatarCache.shared.prefetch(authors: authors, repository: repository)
-            }
+            await prefetchAvatars(of: roots, repository: repository)
             let allIDs = roots.flatMap { $0.allIDs() }
             newCommentIDs = NewCommentsTracker.newCommentIDs(postID: postID, currentIDs: allIDs)
             NewCommentsTracker.markSeen(postID: postID, commentIDs: allIDs)
@@ -613,6 +607,15 @@ final class CommentTreeStore: ObservableObject {
         Self.recentTrees.edit { $0.markingDeleted(id) }
     }
 
+    /// Every author's picture in one request per 100 (#1220), for the comments a
+    /// load or a "more replies" expansion adds (Reborn's request diet, `Apollo-Reborn#1416`).
+    /// Awaited before the rows show, so their lookups find the batch already queued.
+    private func prefetchAvatars(of nodes: [CommentTreeNode], repository: RedditRepository) async {
+        guard GeneralSettingsStore.load().showUserProfilePictures else { return }
+        let authors = AvatarBatchAuthors.authors(in: nodes.flatMap { $0.flattenedAll().map(\.comment) })
+        await AvatarCache.shared.prefetch(authors: authors, repository: repository)
+    }
+
     /// Resolves a "more replies" stub (nested, or the root-level
     /// `rootMoreStub`) by fetching its children via `/api/morechildren`
     /// and splicing them into the tree in place. See `MoreStub`'s doc
@@ -650,6 +653,7 @@ final class CommentTreeStore: ObservableObject {
             // Reborn "Load more replies smoothly" (#1358): the new rows fade in
             // instead of popping, and the rows below slide.
             let revealed = filtered(built.roots, includingAllReplies: false)
+            await prefetchAvatars(of: revealed, repository: repository)
             withAnimation(.easeOut(duration: 0.3)) {
                 if rootMoreStub?.id == stub.id {
                     roots.append(contentsOf: revealed)
@@ -699,6 +703,7 @@ final class CommentTreeStore: ObservableObject {
             }
             let visible = filtered(revealed, includingAllReplies: false)
             warmBodies(visible, replacingTree: false)
+            await prefetchAvatars(of: visible, repository: repository)
             withAnimation(.easeOut(duration: 0.3)) {
                 roots = roots.map { $0.resolvingMoreStub(stubID: stub.id, with: visible) }
             }

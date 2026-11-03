@@ -56,8 +56,10 @@ final class FeedListingModel: ObservableObject {
     /// - Parameters:
     ///   - filter: the feed's `FeedFilterPipeline` pass, applied to every page.
     ///   - errorText: the copy for a failure.
+    ///   - pageLanded: called with a fetched page before its posts show, so work the
+    ///     rows would otherwise start one by one (author lookups) is already queued.
     func load(_ request: Request, filter: ([RedditPost]) async -> [RedditPost],
-              errorText: (Error) -> String) async {
+              errorText: (Error) -> String, pageLanded: ([RedditPost]) async -> Void = { _ in }) async {
         generation += 1
         let current = generation
         // A failure shown from an earlier attempt goes as this one starts.
@@ -71,6 +73,8 @@ final class FeedListingModel: ObservableObject {
         defer { if current == generation { isLoading = false } }
         do {
             guard let page = try await fetchFiltered(request, after: nil, generation: current, filter: filter) else { return }
+            await pageLanded(page.posts)
+            guard current == generation else { return }
             submitted.removeAll { Date().timeIntervalSince($0.at) >= SubmittedPost.lifetime }
             posts = page.posts.restoringSubmitted(submitted)
             if let lastOfFirstPage = page.posts.last {
@@ -87,7 +91,8 @@ final class FeedListingModel: ObservableObject {
 
     /// Fetches the next page with Reddit's `after` cursor and appends it,
     /// through the same filter as the first page.
-    func loadMore(_ request: Request, filter: ([RedditPost]) async -> [RedditPost]) async {
+    func loadMore(_ request: Request, filter: ([RedditPost]) async -> [RedditPost],
+                  pageLanded: ([RedditPost]) async -> Void = { _ in }) async {
         guard let after = afterToken, !isLoadingMore else { return }
         let current = generation
         isLoadingMore = true
@@ -97,6 +102,8 @@ final class FeedListingModel: ObservableObject {
             // belongs to the old listing.
             guard let page = try await fetchFiltered(request, after: after, generation: current, filter: filter) else { return }
             let fetched = page.posts
+            await pageLanded(fetched)
+            guard current == generation else { return }
             // Reddit can repeat a post across page boundaries (vote/rank
             // churn between requests); appending blindly would duplicate
             // SwiftUI ids.

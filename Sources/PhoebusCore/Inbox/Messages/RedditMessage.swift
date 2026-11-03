@@ -25,6 +25,8 @@ public struct RedditMessage: Decodable, Sendable, Identifiable {
     /// Present on replies, nil on the root, used to group a flat inbox
     /// listing back into threads.
     public let firstMessageName: String?
+    /// The sender's `t2_` id, for the batched avatar lookup.
+    public let authorFullname: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, author, subject, body, new, subreddit, context, replies
@@ -34,6 +36,7 @@ public struct RedditMessage: Decodable, Sendable, Identifiable {
         case parentID = "parent_id"
         case linkTitle = "link_title"
         case firstMessageName = "first_message_name"
+        case authorFullname = "author_fullname"
     }
 
     /// Custom decode for two reasons. Reddit returns `"replies": ""` for a
@@ -60,6 +63,7 @@ public struct RedditMessage: Decodable, Sendable, Identifiable {
         linkTitle = text(.linkTitle)
         context = text(.context)
         firstMessageName = text(.firstMessageName)
+        authorFullname = text(.authorFullname)
         replies = (try? container.decode(RepliesListing.self, forKey: .replies))?.messages ?? []
     }
 
@@ -77,7 +81,8 @@ public struct RedditMessage: Decodable, Sendable, Identifiable {
         linkTitle: String? = nil,
         context: String? = nil,
         replies: [RedditMessage] = [],
-        firstMessageName: String? = nil
+        firstMessageName: String? = nil,
+        authorFullname: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -93,6 +98,7 @@ public struct RedditMessage: Decodable, Sendable, Identifiable {
         self.context = context
         self.replies = replies
         self.firstMessageName = firstMessageName
+        self.authorFullname = authorFullname
     }
 
     /// The whole conversation, root first, flattened depth-first.

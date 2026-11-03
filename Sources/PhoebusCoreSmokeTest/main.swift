@@ -1025,6 +1025,11 @@ try await checkWebSessionModeratorRequestsWebBearer()
 
 try await checkWebSessionSubredditWritesUseRField()
 
+checkKeylessRouteTable()
+checkKeylessRouteResponses()
+checkKeylessRouteHealth()
+try await checkKeylessRouteFallbackRequests()
+
 try await checkChatSendQueueDesignPortedFrom()
 
 try await checkChatMediaDateHeaders()

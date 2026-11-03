@@ -760,6 +760,14 @@ Apollo or Reborn, add an entry here.
   instead of re-filing the signed-in one. Reborn clears the shared web view
   jar for an additional account; Phoebus leaves that jar alone. The system
   OAuth sheet therefore does not share Safari's Reddit login.
+- **Keyless route fallback ships in the app, with no remote route file.**
+  Reborn's API-Key-Free mode can fetch a `keyless-routes.json` from its
+  repository every 15 minutes and re-route reads without a release. Phoebus
+  has no config host, and a signed-in client taking its routing table from a
+  server is a trust question, so the table (`KeylessRouteTable`) is built in
+  and changes with a release; a backup's `KeylessRouteUpdates` is not
+  imported. The routes and the three-refusals cooldown are Reborn's, and
+  there is no "Use Route Updates" switch or Routes screen.
 - **Push notifications go through a self-hosted notification backend.**
   There is no central push server: the backend you run delivers through
   the Bark app when a Bark push URL is set, and otherwise over APNs when

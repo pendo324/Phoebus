@@ -95,7 +95,8 @@ public actor RedditAPIClient {
     public static let webBrowserUserAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
 
-    private func webJSONRequest(path: String, method: String, parameters: [String: String], session: WebSessionCredential) -> URLRequest {
+    private func webJSONRequest(path: String, method: String, parameters: [String: String], session: WebSessionCredential,
+                                route: KeylessRoute = .www) -> URLRequest {
         var path = path
         var parameters = parameters
         // Reborn "Post flair and wiki saves" (#1309): www only serves these
@@ -133,8 +134,8 @@ public actor RedditAPIClient {
         }
         // `baseURLOverride` also redirects the web-session transport, so a
         // local mock server can stand in for both hosts during verification.
-        let webBase = Self.baseURLOverride ?? URL(string: "https://www.reddit.com")!
-        var components = URLComponents(url: webBase.appendingPathComponent(effectivePath), resolvingAgainstBaseURL: false)!
+        let webBase = Self.baseURLOverride ?? URL(string: "https://\(route.host)")!
+        var components = URLComponents(url: webBase.appendingPathComponent(route.path(for: effectivePath)), resolvingAgainstBaseURL: false)!
         var request: URLRequest
 
         if method == "GET" || method == "DELETE" {
@@ -201,17 +202,14 @@ public actor RedditAPIClient {
             return try await sendWithWebBearer(path: path, method: method, parameters: parameters,
                                                rawBody: rawBody, webSession: webSession)
         }
+        if let webSession = await auth.webSession, Self.baseURLOverride == nil,
+           KeylessRouteTable.mayResend(method: method, path: path) {
+            return try await sendByKeylessRoutes(path: path, method: method, parameters: parameters,
+                                                 rawBody: rawBody, webSession: webSession)
+        }
         let request = try await authorizedRequest(path: path, method: method, parameters: parameters, rawBody: rawBody)
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, http.statusCode == 429, await auth.webSession != nil,
-           let wait = RedditRateLimitHold.shared.record(reset: http.value(forHTTPHeaderField: "x-ratelimit-reset"),
-                                                        retryAfter: http.value(forHTTPHeaderField: "Retry-After")) {
-            // Only web sessions: an API-key account's 429s are per-request
-            // and carry their own headers.
-            await MainActor.run {
-                NotificationCenter.default.post(name: .apolloRedditRateLimited, object: nil, userInfo: ["seconds": wait])
-            }
-        }
+        await noteWebSessionRateLimit(response)
         if (response as? HTTPURLResponse)?.statusCode == 401, await auth.webSession == nil {
             try await auth.refresh(replacing: Self.bearerToken(of: request))
             let retry = try await authorizedRequest(path: path, method: method, parameters: parameters, rawBody: rawBody)
@@ -221,6 +219,53 @@ public actor RedditAPIClient {
         }
         try Self.validate(response, data: data)
         return data
+    }
+
+    /// Only web sessions: an API-key account's 429s are per-request and carry
+    /// their own headers.
+    private func noteWebSessionRateLimit(_ response: URLResponse) async {
+        guard let http = response as? HTTPURLResponse, http.statusCode == 429, await auth.webSession != nil,
+              let wait = RedditRateLimitHold.shared.record(reset: http.value(forHTTPHeaderField: "x-ratelimit-reset"),
+                                                           retryAfter: http.value(forHTTPHeaderField: "Retry-After")) else { return }
+        await MainActor.run {
+            NotificationCenter.default.post(name: .apolloRedditRateLimited, object: nil, userInfo: ["seconds": wait])
+        }
+    }
+
+    /// Reborn "Keyless route fallback": a read www.reddit.com refuses with
+    /// its block page (or old.reddit.com's sign-in redirect) is sent again by
+    /// the next route of `KeylessRouteTable`. Only reads and the read-only
+    /// `/api/morechildren` POST have a second route, so no write is resent.
+    private func sendByKeylessRoutes(path: String, method: String, parameters: [String: String], rawBody: RawBody?,
+                                     webSession: WebSessionCredential) async throws -> Data {
+        let health = KeylessRouteHealth.shared
+        var tried: Set<KeylessRoute> = []
+        var refusal: (status: Int, body: String)?
+        while let route = health.choose(account: webSession.username, method: method, path: path, tried: tried) {
+            tried.insert(route)
+            if KeylessRouteDebug.blocks(route) {
+                health.noteRefusal(account: webSession.username, method: method, path: path, route: route)
+                refusal = (403, "")
+                continue
+            }
+            let built = webJSONRequest(path: path, method: method, parameters: parameters, session: webSession, route: route)
+            let request = rawBody?.apply(to: built) ?? built
+            let (data, response) = try await session.data(for: request)
+            if KeylessRouteResponse.isRefusal(response) {
+                health.noteRefusal(account: webSession.username, method: method, path: path, route: route)
+                // old.reddit.com's sign-in page is a 200, which `validate` would let through as the answer.
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 403
+                refusal = (status == 200 ? 403 : status, String(data: data, encoding: .utf8) ?? "")
+                continue
+            }
+            await noteWebSessionRateLimit(response)
+            if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
+                health.noteSuccess(account: webSession.username, method: method, path: path, route: route)
+            }
+            try Self.validate(response, data: data)
+            return data
+        }
+        throw RedditAPIError.httpError(status: refusal?.status ?? 403, body: refusal?.body ?? "")
     }
 
     /// Sends a request Reddit refuses over the cookie (`WebBearerRouting`) to

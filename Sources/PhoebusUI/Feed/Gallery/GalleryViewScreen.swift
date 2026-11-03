@@ -68,6 +68,8 @@ public struct GalleryViewScreen: View {
     /// size changes and consumed once the new column count has laid out.
     @State private var sizeChangeAnchor: String?
     @State private var visibleTiles = VisibleTileTracker()
+    /// Which tiles may play, shared by every tile in the grid.
+    @StateObject private var playback = GalleryTilePlayback()
 
     public init(
         subreddit: String,
@@ -146,7 +148,7 @@ public struct GalleryViewScreen: View {
                         // which stays one tap away via the viewer's info card.
                         viewerStart = GalleryViewerStart(id: filteredTiles.firstIndex(where: { $0.id == tile.id }) ?? 0)
                     } label: {
-                        GalleryGridCell(tile: tile, nsfwBlurOverride: generalSettings.nsfwBlurOverride)
+                        GalleryGridCell(tile: tile, nsfwBlurOverride: generalSettings.nsfwBlurOverride, playback: playback)
                     }
                     .buttonStyle(.plain)
                     .onAppear {
@@ -162,6 +164,7 @@ public struct GalleryViewScreen: View {
                         }
                     }
                     .onDisappear { visibleTiles.disappeared(tile.id) }
+                    .galleryTileFrame(id: tile.id, in: Self.gridSpace)
                 }
                 .padding(.horizontal, Self.tileSpacing)
                 // Footer: a transient line under the tiles reporting pagination state.
@@ -177,6 +180,10 @@ public struct GalleryViewScreen: View {
                     .accessibilityIdentifier("gallery.footer")
                 }
             }
+            .coordinateSpace(name: Self.gridSpace)
+            .onPreferenceChange(GalleryTileFramesKey.self) { playback.setFrames($0) }
+            .onAppear { playback.setViewport(height: Double(proxy.size.height)) }
+            .onChange(of: proxy.size.height) { _, height in playback.setViewport(height: Double(height)) }
             // Pinch to step the tile size; applied when the pinch ends.
             .simultaneousGesture(
                 MagnifyGesture().onEnded { value in
@@ -339,6 +346,8 @@ public struct GalleryViewScreen: View {
     private func count(of kind: GalleryPostMedia.Kind) -> Int {
         allTiles.filter { $0.kind == kind }.count
     }
+
+    static let gridSpace = "galleryGrid"
 
     /// Tile gutter, 3pt.
     static let tileSpacing = CGFloat(GalleryTileSize.spacing)
@@ -626,6 +635,7 @@ private struct GalleryGridCell: View {
     @Setting(MatureMediaPreference.storage) private var matureMediaPrefs
     let tile: GalleryTile
     let nsfwBlurOverride: NSFWBlurOverride
+    let playback: GalleryTilePlayback
 
     @State private var isRevealed = false
 
@@ -646,7 +656,8 @@ private struct GalleryGridCell: View {
                 .overlay {
                     GalleryTileAutoplayOverlay(
                         tile: tile,
-                        isVisibleToReader: !needsWarning || isRevealed)
+                        isVisibleToReader: !needsWarning || isRevealed,
+                        playback: playback)
                 }
                 #endif
                 .clipped()

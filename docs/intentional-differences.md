@@ -228,6 +228,12 @@ Apollo or Reborn, add an entry here.
   Saved or the category chosen there. The gallery has no Sort menu (Saved
   keeps its saved order). "Kept Locally" items, which Reddit no longer
   lists, have no gallery: their media is gone.
+- **Sports-clip and Streamable tiles follow Autoplay Videos.** Reborn's
+  grid starts a sports-clip tile whenever Play Videos in Gallery View is on
+  (and Sports Clip Links Play Inline is). Phoebus has no such inline
+  switch, and a clip needs a host lookup on top of the video itself, so
+  these tiles also stay on their poster when Autoplay Videos is Never, or
+  Wi-Fi Only on a metered connection. Reddit-hosted tiles are unchanged.
 
 ## Comments
 

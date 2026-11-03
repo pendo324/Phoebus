@@ -1679,6 +1679,8 @@ try await checkGalleryTileSizeStepsAndPinch()
 
 try await checkGalleryViewSavedScope()
 
+try await checkGalleryViewSportsClipTilesAndPlaybackOrder()
+
 try await checkTheAudioSessionSurvivesAPage()
 
 try await checkBuildChannelParsing()

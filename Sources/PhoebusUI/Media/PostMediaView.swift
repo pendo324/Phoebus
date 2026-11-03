@@ -733,9 +733,10 @@ struct StreamableVideoView: View {
             }
         }
         .task {
-            do {
-                resolvedURL = try await StreamableClient.shared.resolvePlayableURL(forID: videoID)
-            } catch {
+            // Shared with Gallery View's grid tile, so one clip is looked up once.
+            if let url = await GalleryHostedVideoResolver.shared.resolve(.streamable(id: videoID), forGrid: false) {
+                resolvedURL = url
+            } else {
                 errorMessage = "Couldn't load Streamable video"
             }
         }
@@ -803,14 +804,10 @@ struct SportsClipView: View {
             }
         }
         .task {
-            do {
-                let metadata = try await OpenGraphClient.fetchMetadata(for: pageURL)
-                if let videoURLString = metadata.videoURLString, let url = URL(string: videoURLString) {
-                    resolvedURL = url
-                } else {
-                    failed = true
-                }
-            } catch {
+            // Shared with Gallery View's grid tile, so one clip is looked up once.
+            if let url = await GalleryHostedVideoResolver.shared.resolve(.sportsClip(pageURL: pageURL), forGrid: false) {
+                resolvedURL = url
+            } else {
                 failed = true
             }
         }

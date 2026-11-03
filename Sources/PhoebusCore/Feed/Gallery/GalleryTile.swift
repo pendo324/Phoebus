@@ -36,6 +36,8 @@ public struct GalleryTile: Identifiable, Sendable {
     /// transcode. Grid-only: the viewer still opens `fullResolutionURL`
     /// (Reborn `gifMP4URL`).
     public var gifMP4URL: URL? = nil
+    /// A sports-clip or Streamable post: no stream until the host is asked.
+    public var hostedVideo: GalleryHostedVideo? = nil
 
     public var isNSFW: Bool { post.over18 }
     public var isSpoiler: Bool { post.spoiler }
@@ -116,7 +118,8 @@ public struct GalleryTile: Identifiable, Sendable {
             videoURL: video,
             aspectRatio: GalleryPostMedia.aspectRatio(for: post),
             duration: duration,
-            gifMP4URL: kind == .gif ? GalleryTile.previewMP4(for: post) : nil)]
+            gifMP4URL: kind == .gif ? GalleryTile.previewMP4(for: post) : nil,
+            hostedVideo: video == nil ? GalleryHostedVideo.of(post) : nil)]
     }
 
     /// Flattens a post array into tiles, in order.

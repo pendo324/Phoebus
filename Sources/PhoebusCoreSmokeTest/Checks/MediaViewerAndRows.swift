@@ -1757,3 +1757,84 @@ extension NSLock {
     check("Saved pages are the largest Reddit lists", SavedGalleryScope.pageSize == 100)
     check("a text-only saved post makes no tile", GalleryPostMedia.filterMediaPosts([d]).isEmpty)
 }
+
+// --- Gallery View: sports-clip tiles and which tiles claim the playback cap ---
+//
+// Sports-clip and Streamable links have no Reddit stream, so their grid tile asks
+// the host once it holds a playback slot; Redgifs and Gfycat stay viewer-only.
+// With clips playing, a screen can hold more playable tiles than the cap of 12,
+// so tiles at least half on screen claim the slots before edge slivers.
+@MainActor func checkGalleryViewSportsClipTilesAndPlaybackOrder() async throws {
+    func post(url: String, redditVideo: Bool = false) -> RedditPost {
+        let media = redditVideo
+            ? #""media": {"reddit_video": {"fallback_url": "https://v.redd.it/x/DASH_720.mp4", "hls_url": "https://v.redd.it/x/HLSPlaylist.m3u8", "duration": 12, "width": 1280, "height": 720, "is_gif": false}},"#
+            : ""
+        let json = """
+        {"id": "p1", "name": "t3_p1", "title": "Goal", "author": "u", "subreddit": "soccer", "selftext": "",
+         "url": "\(url)", \(media) "thumbnail": "https://b.thumbs.redditmedia.com/t.jpg",
+         "preview": {"images": [{"source": {"url": "https://preview.redd.it/p1.jpg", "width": 1280, "height": 720}}]},
+         "permalink": "/r/soccer/comments/p1/x/", "score": 1, "upvote_ratio": 1.0, "num_comments": 0,
+         "created_utc": 0, "is_self": false, "over_18": false, "spoiler": false, "stickied": false,
+         "saved": false, "likes": null}
+        """
+        return try! JSONDecoder.reddit.decode(RedditPost.self, from: Data(json.utf8))
+    }
+    let clip = post(url: "https://streamin.top/v/abc123")
+    let streamable = post(url: "https://streamable.com/xy12z")
+    let redgifs = post(url: "https://www.redgifs.com/watch/somegif")
+    let plain = post(url: "https://i.redd.it/pic.jpg")
+    let reddit = post(url: "https://v.redd.it/x", redditVideo: true)
+
+    check("a sports-clip link is a hosted video",
+          GalleryHostedVideo.of(clip) == .sportsClip(pageURL: URL(string: "https://streamin.top/v/abc123")!))
+    check("a Streamable link is a hosted video", GalleryHostedVideo.of(streamable) == .streamable(id: "xy12z"))
+    check("Redgifs stays viewer-only (a lookup mints a token each time)", GalleryHostedVideo.of(redgifs) == nil)
+    check("a plain image and a Reddit video are not hosted videos",
+          GalleryHostedVideo.of(plain) == nil && GalleryHostedVideo.of(reddit) == nil)
+    check("the tile and the viewer share one lookup key per clip",
+          GalleryHostedVideo.of(clip)?.key == "clip:https://streamin.top/v/abc123"
+              && GalleryHostedVideo.of(streamable)?.key == "streamable:xy12z")
+
+    check("a sports-clip post is a video in the filter, not a photo", GalleryPostMedia.kind(for: clip) == .video)
+    check("a Streamable post is a video, Redgifs a GIF, a picture a photo",
+          GalleryPostMedia.kind(for: streamable) == .video && GalleryPostMedia.kind(for: redgifs) == .gif
+              && GalleryPostMedia.kind(for: plain) == .photo)
+    let clipTile = GalleryTile.tiles(for: clip).first
+    check("a sports-clip tile is a video with its poster, no stream yet and a host to ask",
+          clipTile?.kind == .video && clipTile?.videoURL == nil && clipTile?.hostedVideo != nil
+              && clipTile?.thumbnailURL.absoluteString == "https://preview.redd.it/p1.jpg")
+    let redditTile = GalleryTile.tiles(for: reddit).first
+    check("a Reddit video tile has its stream and asks no host",
+          redditTile?.videoURL != nil && redditTile?.hostedVideo == nil)
+    check("a photo tile asks no host", GalleryTile.tiles(for: plain).first?.hostedVideo == nil)
+
+    typealias Candidate = GalleryPlaybackPlanner.Candidate
+    let viewport = (min: 0.0, max: 800.0)
+    func order(_ c: [Candidate]) -> [String] {
+        GalleryPlaybackPlanner.claimOrder(c, viewportMinY: viewport.min, viewportMaxY: viewport.max)
+    }
+    check("tiles claim in the order given when all are fully on screen",
+          order([.init(id: "a", minY: 0, maxY: 200), .init(id: "b", minY: 200, maxY: 400)]) == ["a", "b"])
+    check("a sliver under the bar waits for the whole tiles below it",
+          order([.init(id: "sliver", minY: -190, maxY: 10), .init(id: "whole", minY: 10, maxY: 210)]) == ["whole", "sliver"])
+    check("a sliver at the bottom edge waits too",
+          order([.init(id: "bottomSliver", minY: 780, maxY: 980), .init(id: "whole", minY: 600, maxY: 780)])
+              == ["whole", "bottomSliver"])
+    check("a tile exactly half on screen counts as mostly visible",
+          order([.init(id: "half", minY: -100, maxY: 100), .init(id: "whole", minY: 100, maxY: 300)]) == ["half", "whole"])
+    check("off-screen and zero-height tiles never claim",
+          order([.init(id: "above", minY: -400, maxY: -200), .init(id: "below", minY: 900, maxY: 1100),
+                 .init(id: "flat", minY: 100, maxY: 100), .init(id: "in", minY: 0, maxY: 100)]) == ["in"])
+
+    var many: [Candidate] = [.init(id: "sliver", minY: -190, maxY: 10)]
+    for index in 0..<14 { many.append(.init(id: "t\(index)", minY: 10 + Double(index) * 50, maxY: 60 + Double(index) * 50)) }
+    let playing = GalleryPlaybackPlanner.playing(many, viewportMinY: 0, viewportMaxY: 800)
+    check("at most twelve tiles play, and the top sliver does not take a slot from a whole tile",
+          playing.count == GalleryAutoplaySettings.maxPlayingTiles && !playing.contains("sliver")
+              && playing.first == "t0" && playing.last == "t11")
+    check("with room to spare the sliver plays after the whole tiles",
+          GalleryPlaybackPlanner.playing(Array(many.prefix(4)), viewportMinY: 0, viewportMaxY: 800)
+              == ["t0", "t1", "t2", "sliver"])
+    check("a zero cap plays nothing",
+          GalleryPlaybackPlanner.playing(many, viewportMinY: 0, viewportMaxY: 800, limit: 0).isEmpty)
+}

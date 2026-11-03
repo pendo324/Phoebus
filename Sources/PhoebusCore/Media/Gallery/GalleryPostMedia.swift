@@ -124,6 +124,8 @@ public enum GalleryPostMedia {
         if raw.contains("v.redd.it") || raw.hasSuffix(".mp4") || raw.contains("streamable.com") {
             return .video
         }
+        // Sports-clip links are clips, not stills, even though Reddit only gives them a poster.
+        if GalleryHostedVideo.of(post) != nil { return .video }
         return .photo
     }
 

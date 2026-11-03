@@ -309,6 +309,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Subreddit List Enhancements", breadcrumb: "Settings → Feed → Subreddit List Sections", screen: .subredditSections, rowTitle: "Subreddit List Enhancements"),
         SettingsSearchEntry(title: "Modern Subreddit Dividers", breadcrumb: "Settings → Feed → Subreddit List Sections", screen: .subredditSections, rowTitle: "Modern Subreddit Dividers"),
         SettingsSearchEntry(title: "Banner", breadcrumb: "Settings → Feed → Subreddit Layout", screen: .subredditLayout, rowTitle: "Banner"),
+        SettingsSearchEntry(title: "Subreddit Icon", breadcrumb: "Settings → Feed → Subreddit Layout", screen: .subredditLayout, rowTitle: "Subreddit Icon"),
         SettingsSearchEntry(title: "Join Button", breadcrumb: "Settings → Feed → Subreddit Layout", screen: .subredditLayout, rowTitle: "Join Button"),
         SettingsSearchEntry(title: "User Flair Button", breadcrumb: "Settings → Feed → Subreddit Layout", screen: .subredditLayout, rowTitle: "User Flair Button"),
         SettingsSearchEntry(title: "Sidebar Button", breadcrumb: "Settings → Feed → Subreddit Layout", screen: .subredditLayout, rowTitle: "Sidebar Button"),

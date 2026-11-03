@@ -45,7 +45,7 @@ extension ApolloSettingsMigration {
         "BoldPostTitles", "CompactModeHideVotingButtons", "CompactModeRightVotingButtons",
         "LargeThumbnailsShowVotingButtons", "ShowGIFProgressLocation", "RememberRedditPostSize",
         // Subreddit header / highlights
-        "SubredditShowBanner", "SubredditShowJoinButton", "SubredditShowDisplayName",
+        "SubredditShowBanner", "SubredditShowIcon", "SubredditShowJoinButton", "SubredditShowDisplayName",
         "SubredditShowSubtitle", "SubredditShowDescription", "SubredditShowSidebarButton",
         "SubredditShowUserFlairButton", "CommunityHighlights", "CommunityHighlightsWeb",
         // Inline media, link previews
@@ -187,8 +187,7 @@ extension ApolloSettingsMigration {
         "CommunityHighlightsWebCache": "cache",
         "TranslationProviderUserSelected": "UI hint",
         "UseFullWidthSwipeBack": "stock key with no known meaning (no matching UI); not guessed",
-        // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
-        "SubredditShowIcon": "ported in a later change",
+        // Reborn 4.0 settings Phoebus has no switch for.
         "ReduceRateLimiting": "no switch: the reductions always apply",
         // Reborn 4.0 state and screens with no counterpart.
         "ApolloGalleryPinchIntroductionAcknowledged": "no pinch introduction card",
@@ -420,6 +419,7 @@ extension ApolloSettingsMigration {
 
         var layout = SubredditLayoutSettingsStore.load()
         take("SubredditShowBanner", "Subreddit Banner", bool) { layout.subredditShowBanner = $0 }
+        take("SubredditShowIcon", "Subreddit Icon", bool) { layout.subredditShowIcon = $0 }
         take("SubredditShowJoinButton", "Subreddit Join Button", bool) { layout.subredditShowJoinButton = $0 }
         take("SubredditShowDisplayName", "Subreddit Display Name", bool) { layout.subredditShowDisplayName = $0 }
         take("SubredditShowSubtitle", "Subreddit Subtitle", bool) { layout.subredditShowSubtitle = $0 }

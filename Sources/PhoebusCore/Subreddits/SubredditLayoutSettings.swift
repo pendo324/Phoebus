@@ -55,6 +55,10 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
     public var showSubredditHeaders: Bool
     public var subredditHeaderImmersive: Bool
     public var subredditShowBanner: Bool
+    /// `SubredditShowIcon` (default on): the community avatar in the Compact
+    /// and Immersive headers. Off removes it and the name moves up under the
+    /// banner (`IdentityHeaderLayout.nameTop`).
+    public var subredditShowIcon: Bool
     public var subredditShowJoinButton: Bool
     public var subredditShowDisplayName: Bool
     /// Reborn header bands. `SubredditShowSubtitle` (default on): the
@@ -85,6 +89,7 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
         showSubredditHeaders: false,
         subredditHeaderImmersive: true,
         subredditShowBanner: true,
+        subredditShowIcon: true,
         subredditShowJoinButton: true,
         subredditShowDisplayName: true,
         subredditShowSubtitle: true,
@@ -98,6 +103,7 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
         showSubredditHeaders: Bool,
         subredditHeaderImmersive: Bool,
         subredditShowBanner: Bool,
+        subredditShowIcon: Bool = true,
         subredditShowJoinButton: Bool,
         subredditShowDisplayName: Bool,
         subredditShowSubtitle: Bool = true,
@@ -109,6 +115,7 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
         self.showSubredditHeaders = showSubredditHeaders
         self.subredditHeaderImmersive = subredditHeaderImmersive
         self.subredditShowBanner = subredditShowBanner
+        self.subredditShowIcon = subredditShowIcon
         self.subredditShowJoinButton = subredditShowJoinButton
         self.subredditShowDisplayName = subredditShowDisplayName
         self.subredditShowSubtitle = subredditShowSubtitle
@@ -123,6 +130,7 @@ public struct SubredditLayoutSettings: Codable, Sendable, Equatable {
         showSubredditHeaders = (try? container.decodeIfPresent(Bool.self, forKey: .showSubredditHeaders)) ?? SubredditLayoutSettings.default.showSubredditHeaders
         subredditHeaderImmersive = (try? container.decodeIfPresent(Bool.self, forKey: .subredditHeaderImmersive)) ?? SubredditLayoutSettings.default.subredditHeaderImmersive
         subredditShowBanner = (try? container.decodeIfPresent(Bool.self, forKey: .subredditShowBanner)) ?? SubredditLayoutSettings.default.subredditShowBanner
+        subredditShowIcon = (try? container.decodeIfPresent(Bool.self, forKey: .subredditShowIcon)) ?? SubredditLayoutSettings.default.subredditShowIcon
         subredditShowJoinButton = (try? container.decodeIfPresent(Bool.self, forKey: .subredditShowJoinButton)) ?? SubredditLayoutSettings.default.subredditShowJoinButton
         subredditShowDisplayName = (try? container.decodeIfPresent(Bool.self, forKey: .subredditShowDisplayName)) ?? SubredditLayoutSettings.default.subredditShowDisplayName
         subredditShowSubtitle = (try? container.decodeIfPresent(Bool.self, forKey: .subredditShowSubtitle)) ?? SubredditLayoutSettings.default.subredditShowSubtitle

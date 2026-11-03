@@ -64,8 +64,22 @@ public enum IdentityHeaderLayout {
         ((totalWidth - avatarDiameter) / 2).rounded(.down)
     }
 
-    /// Where the name sits: 8pt below the avatar.
-    public static func nameTop(bannerHeight: Double) -> Double {
-        avatarTop(bannerHeight: bannerHeight) + avatarDiameter + 8
+    /// Gap between the avatar (or the avatar block's end) and the name.
+    public static let nameGap: Double = 8
+
+    /// With the Subreddit Icon switch off the name starts this far
+    /// below the banner's bottom edge (or the top of the header).
+    public static let avatarlessNameTop: Double = 14
+
+    /// Where the name sits: 8pt below the avatar, or 14pt below the banner
+    /// when the icon is hidden.
+    public static func nameTop(bannerHeight: Double, showsAvatar: Bool = true) -> Double {
+        guard showsAvatar else { return bannerHeight + avatarlessNameTop }
+        return avatarTop(bannerHeight: bannerHeight) + avatarDiameter + nameGap
+    }
+
+    /// The height of the banner-and-avatar block above the name.
+    public static func avatarBlockHeight(bannerHeight: Double, showsAvatar: Bool = true) -> Double {
+        nameTop(bannerHeight: bannerHeight, showsAvatar: showsAvatar) - nameGap
     }
 }

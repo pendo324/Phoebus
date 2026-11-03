@@ -45,6 +45,7 @@ extension FeedScreen {
             || subredditLayoutSettings.subredditShowJoinButton
         // A custom banner (Reborn #266) counts as a banner too.
         let customBanner = SubredditCustomArtStore.shared.image(for: subreddit, kind: .banner)
+        let showsIcon = subredditLayoutSettings.subredditShowIcon
         let bannerURL: URL? = subredditLayoutSettings.subredditShowBanner ? officialBannerURL : nil
         let hasBanner = subredditLayoutSettings.subredditShowBanner && (bannerURL != nil || customBanner != nil)
         // The subreddit banner is 104pt, shorter than the profile's 150pt.
@@ -81,17 +82,24 @@ extension FeedScreen {
                 }
 
                 // The avatar, centred, pulled up so it overlaps the
-                // banner by `avatarOverlap`.
-                SubredditIconView(
-                    subreddit: subreddit,
-                    repository: repository,
-                    size: CGFloat(IdentityHeaderLayout.avatarDiameter)
-                )
-                .subredditArtOptions(subreddit, kind: .icon,
-                                     viewURL: (info.communityIcon?.isEmpty == false ? info.communityIcon : info.iconImage)
-                                        .flatMap { URL(string: $0.replacingOccurrences(of: "&amp;", with: "&")) })
-                .padding(.top, CGFloat(IdentityHeaderLayout.avatarTop(bannerHeight: Double(bannerHeight))))
+                // banner by `avatarOverlap`. Reborn "Subreddit Icon"
+                // (SubredditShowIcon) off drops it.
+                if showsIcon {
+                    SubredditIconView(
+                        subreddit: subreddit,
+                        repository: repository,
+                        size: CGFloat(IdentityHeaderLayout.avatarDiameter)
+                    )
+                    .subredditArtOptions(subreddit, kind: .icon,
+                                         viewURL: (info.communityIcon?.isEmpty == false ? info.communityIcon : info.iconImage)
+                                            .flatMap { URL(string: $0.replacingOccurrences(of: "&amp;", with: "&")) })
+                    .padding(.top, CGFloat(IdentityHeaderLayout.avatarTop(bannerHeight: Double(bannerHeight))))
+                }
             }
+            // Without the avatar the banner alone would end the block; the name
+            // keeps its 14pt below it.
+            .frame(minHeight: CGFloat(IdentityHeaderLayout.avatarBlockHeight(
+                bannerHeight: Double(bannerHeight), showsAvatar: showsIcon)), alignment: .top)
             // No extra bottom padding here: a ZStack sizes to the
             // union of its children, and the avatar already reports
             // `avatarTop + 96`, so adding the overhang again doubles it.

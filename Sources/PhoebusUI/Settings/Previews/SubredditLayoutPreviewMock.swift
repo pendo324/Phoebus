@@ -44,7 +44,7 @@ struct SubredditLayoutPreviewMock: View {
         var height: CGFloat = 12
         if isNative { return 96 }
         if settings.subredditShowBanner { height += Self.bannerHeight }
-        height += Self.iconSide
+        height += settings.subredditShowIcon ? Self.iconSide : CGFloat(IdentityHeaderLayout.avatarlessNameTop)
         if settings.subredditShowDisplayName { height += 36 }
         if settings.subredditShowSubtitle { height += 24 }
         if settings.subredditShowJoinButton
@@ -105,10 +105,14 @@ struct SubredditLayoutPreviewMock: View {
                 }
                 // Avatar overlaps the banner's bottom edge; 14pt floor
                 // when there is no banner.
-                icon
-                    .padding(.top, settings.subredditShowBanner
-                             ? Self.bannerHeight - Self.avatarBannerOverlap : 14)
+                if settings.subredditShowIcon {
+                    icon
+                        .padding(.top, settings.subredditShowBanner
+                                 ? Self.bannerHeight - Self.avatarBannerOverlap : 14)
+                }
             }
+            // The name starts 14pt under the banner when the icon is off.
+            .padding(.bottom, settings.subredditShowIcon ? 0 : CGFloat(IdentityHeaderLayout.avatarlessNameTop))
 
             if settings.subredditShowDisplayName {
                 Text("Phoebus")

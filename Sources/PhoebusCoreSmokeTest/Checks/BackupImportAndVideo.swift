@@ -215,6 +215,26 @@ import PhoebusCore
               IdentityHeaderLayout.nameTop(bannerHeight: 104)
                   == IdentityHeaderLayout.avatarTop(bannerHeight: 104) + 96 + 8)
 
+        // Subreddit Icon off: the name starts 14pt under the banner (or the top).
+        check("with the icon hidden the name sits 14pt below the banner",
+              IdentityHeaderLayout.nameTop(bannerHeight: 104, showsAvatar: false) == 104 + 14)
+        check("a bannerless header with no icon puts the name 14pt from the top",
+              IdentityHeaderLayout.nameTop(bannerHeight: 0, showsAvatar: false) == 14)
+        check("the block above the name ends 8pt higher than the name",
+              IdentityHeaderLayout.avatarBlockHeight(bannerHeight: 104, showsAvatar: false) == 104 + 6
+                  && IdentityHeaderLayout.avatarBlockHeight(bannerHeight: 104)
+                      == IdentityHeaderLayout.avatarTop(bannerHeight: 104) + 96)
+        check("the header icon is on by default", SubredditLayoutSettings.default.subredditShowIcon)
+        // Stored layouts from before the switch existed decode with the icon on.
+        check("a stored layout without the icon key keeps the icon on",
+              (try? JSONDecoder().decode(SubredditLayoutSettings.self, from: Data(#"{"subredditShowBanner":false}"#.utf8)))?
+                  .subredditShowIcon == true)
+        var iconOff = SubredditLayoutSettings.default
+        iconOff.subredditShowIcon = false
+        check("the icon switch round-trips through storage",
+              (try? JSONDecoder().decode(SubredditLayoutSettings.self, from: JSONEncoder().encode(iconOff)))?
+                  .subredditShowIcon == false)
+
         // The centred body column, capped so centred text does not run to
         // unreadable line lengths on iPad.
         check("the body column is inset on a phone",
@@ -549,6 +569,7 @@ import PhoebusCore
             "CommentsSlideGestures": ["upvote", "downvote", "collapse-root", "reply"],
             "InlineImageAlignment": 1, "AutoplayInlineGIFs": 2,
             "CommunityHighlights": true, "CommunityHighlightsWeb": true,
+            "SubredditShowIcon": false,
             "CompactModeHideThumbnails": true,
             "ShowGIFProgressLocation": "media-viewer",
             "ShowDetailedProfiles": false,
@@ -584,6 +605,7 @@ import PhoebusCore
         check("inline alignment 1 is Left and autoplay 2 is Wi-Fi only",
               im.alignment == .left && im.autoplayMode == .wifiOnly)
         check("highlights REST + web is Full", SubredditLayoutSettingsStore.load().communityHighlights == .full)
+        check("SubredditShowIcon off hides the header icon", !SubredditLayoutSettingsStore.load().subredditShowIcon)
         check("pure black comes from the group domain",
               PureBlackSettingsStore.load().isEnabled && PureBlackSettingsStore.load().isPurerEnabled)
         check("GIF progress 'media-viewer' is imported", AppearanceSettingsStore.load().gifProgressLocation == .mediaViewer)
@@ -621,7 +643,6 @@ import PhoebusCore
 // and a backup from before they existed leaves the same settings alone.
 @MainActor func checkRebornFourPointZeroKeysAreAccountedFor() async throws {
     let deliberate = [
-        "SubredditShowIcon",
         "ReduceRateLimiting", "ApolloGalleryPinchIntroductionAcknowledged",
         "ReduceRateLimitingOffered", "KeylessRouteUpdates", "SearchTabSectionOrder", "RecentlyReadCompactPosts",
         "HiddenContentCompactPosts", "SettingsIconAppearance", "LiquidGlassEnabled", "ApolloRebornSetupAssistantState",
@@ -632,9 +653,8 @@ import PhoebusCore
     ]
     check("every Reborn 4.0 key without a Phoebus setting is a listed skip with a reason",
           deliberate.allSatisfy { !(ApolloSettingsMigration.notImported[$0] ?? "").isEmpty })
-    check("keys for ports that have not landed say so",
-          ["SubredditShowIcon"]
-            .allSatisfy { ApolloSettingsMigration.notImported[$0] == "ported in a later change" })
+    check("no key is left waiting for a port",
+          ApolloSettingsMigration.notImported.values.allSatisfy { $0 != "ported in a later change" })
     check("Reduce Rate Limiting is skipped because the request reductions always apply",
           ApolloSettingsMigration.notImported["ReduceRateLimiting"] == "no switch: the reductions always apply")
     check("the route file key is skipped because there is no remote route file",
@@ -661,6 +681,22 @@ import PhoebusCore
           ResumeSettingsStore.load().resumeWhereLeftOff && !old.applied.contains("Resume Where I Left Off"))
     check("...and the navigation gesture switch", !NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled)
     check("...and Show Recently Visited", !SubredditSectionsSettingsStore.load().showRecentlyVisited)
+
+    // Subreddit Icon (SubredditShowIcon): imported as written; a backup without it keeps the current value.
+    check("SubredditShowIcon is imported, not skipped", ApolloSettingsMigration.notImported["SubredditShowIcon"] == nil)
+    var iconLayout = SubredditLayoutSettingsStore.load()
+    let iconLayout0 = iconLayout
+    defer { SubredditLayoutSettingsStore.save(iconLayout0) }
+    iconLayout.subredditShowIcon = false
+    SubredditLayoutSettingsStore.save(iconLayout)
+    let iconOld = ApolloSettingsMigration.apply(.init(preferences: ["DefaultPostsSort": "hot"]))
+    check("a backup without SubredditShowIcon leaves the header icon switch alone",
+          !SubredditLayoutSettingsStore.load().subredditShowIcon && !iconOld.applied.contains("Subreddit Icon"))
+    let iconOn = ApolloSettingsMigration.apply(.init(preferences: ["SubredditShowIcon": true]))
+    check("SubredditShowIcon on shows the header icon",
+          SubredditLayoutSettingsStore.load().subredditShowIcon && iconOn.applied.contains("Subreddit Icon"))
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["SubredditShowIcon": 0]))
+    check("a non-boolean SubredditShowIcon is ignored", SubredditLayoutSettingsStore.load().subredditShowIcon)
 
     // Restore Reading Session: Reborn 4.0.0 shipped it on, 4.0.1 off; the backup's value is taken as written.
     ResumeSettingsStore.storage.save(ResumeSettings(resumeWhereLeftOff: false))

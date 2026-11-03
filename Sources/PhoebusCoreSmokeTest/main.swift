@@ -1711,5 +1711,7 @@ try await checkCommentLoadsSurviveRateLimitBodies()
 
 try await checkCommentInteractionPolicy()
 
+try await checkMediaHoldMenus()
+
 // Last: it prints the pass/fail verdict and exits.
 try await checkCompactFeedRowMeasuredAgainstThe()

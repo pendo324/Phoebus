@@ -7,7 +7,8 @@ import Foundation
 /// that jump is still running is ignored.
 public enum TabReselectScrollPolicy {
     public enum Action: Equatable, Sendable {
-        /// A jump to the top is already running: change nothing.
+        /// A jump to the top is already running, or the tap is the end of a
+        /// long press (`TabLongPressGate`): change nothing.
         case ignore
         /// Scroll to the top, saving the reading position.
         case scrollToTop
@@ -24,11 +25,12 @@ public enum TabReselectScrollPolicy {
     /// top offset (`-adjustedContentInset.top`); `offsetY` is nil when the
     /// screen has no scrollable list.
     public static func action(
-        offsetY: Double?, topY: Double, jumpInFlight: Bool, canPop: Bool
+        offsetY: Double?, topY: Double, jumpInFlight: Bool, canPop: Bool,
+        endsLongPress: Bool = false
     ) -> Action {
         // An intermediate frame of the jump may already be at the top; it
         // must not pop the page early or replace the saved spot.
-        if jumpInFlight { return .ignore }
+        if jumpInFlight || endsLongPress { return .ignore }
         if let offsetY, offsetY > topY + topTolerance { return .scrollToTop }
         return canPop ? .popPage : .atRoot
     }

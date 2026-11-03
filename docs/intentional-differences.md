@@ -316,6 +316,15 @@ Apollo or Reborn, add an entry here.
   while Loop Videos is off). Seek Interval moves the fullscreen viewer's
   and the gallery viewer's skip buttons; the in-app PiP card keeps
   Reborn's own Skip Amount and loop setting.
+- **Holding the Posts tab opens the subreddit switcher from the
+  Subreddits list too, and a pick starts the feed from the list.** Reborn
+  (`Apollo-Reborn#1387`) opens the sheet only when a feed is somewhere in
+  the Posts stack, and a pick pops to that feed and switches it in place.
+  Phoebus's feed has no in-place switch (the title's switcher pushes the
+  next feed), so a pick from the tab pops the Posts tab to the Subreddits
+  list and pushes the picked feed there: back goes to the list, never to
+  the feed or post that was open. The sheet shows no checkmark, since the
+  tab does not know which feed is frontmost.
 
 ## Posting
 

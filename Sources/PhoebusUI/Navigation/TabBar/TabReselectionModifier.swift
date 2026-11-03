@@ -194,7 +194,8 @@ private struct TabReselectionScrollsThenPops: UIViewRepresentable {
                 offsetY: scroll.map { Double($0.contentOffset.y) },
                 topY: scroll.map { Double(-$0.adjustedContentInset.top) } ?? 0,
                 jumpInFlight: proxy?.isJumping ?? false,
-                canPop: nav.viewControllers.count > 1
+                canPop: nav.viewControllers.count > 1,
+                endsLongPress: TabLongPressState.suppressesReselect(tab: tab)
             ) {
             case .ignore:
                 return

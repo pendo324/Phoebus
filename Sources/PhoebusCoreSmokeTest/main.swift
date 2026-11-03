@@ -1548,6 +1548,7 @@ try await checkReturnButtonReborn371()
 try await checkScrollReturnOffersPerScreen()
 
 try await checkTabReselectScrollPolicyReborn1360()
+try await checkTabLongPressPolicyReborn1387()
 
 try await checkCommentInteractionPolicy()
 

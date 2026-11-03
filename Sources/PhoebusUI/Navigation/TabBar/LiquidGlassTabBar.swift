@@ -320,8 +320,19 @@ public extension View {
 #if canImport(UIKit)
 import UIKit
 
+/// The long press in progress on a tab, read by the re-tap handlers so the
+/// lift that ends a press is not also a re-tap.
+@MainActor
+public enum TabLongPressState {
+    static var gate = TabLongPressGate()
+
+    static func suppressesReselect(tab: Int) -> Bool {
+        gate.suppressesReselect(tab: tab, now: Date())
+    }
+}
+
 /// Press-and-hold on one tab bar item (Reborn: holding the Settings tab
-/// opens the Settings Shortcuts menu).
+/// opens the Settings Shortcuts menu, holding Posts the subreddit switcher).
 ///
 /// SwiftUI's `TabView` exposes no gesture on its items, so a probe finds
 /// the real `UITabBar` and adds a long-press recognizer scoped to the
@@ -329,10 +340,14 @@ import UIKit
 public struct TabItemLongPressProbe: UIViewRepresentable {
     let index: Int
     let count: Int
+    /// For a tab whose re-tap does something (Posts): cancel the glass bar's
+    /// selection lens when the press fires and mark the press so the lift is
+    /// not a re-tap.
+    let isReselectTab: Bool
     let action: () -> Void
 
-    public init(index: Int, count: Int, action: @escaping () -> Void) {
-        self.index = index; self.count = count; self.action = action
+    public init(index: Int, count: Int, isReselectTab: Bool = false, action: @escaping () -> Void) {
+        self.index = index; self.count = count; self.isReselectTab = isReselectTab; self.action = action
     }
 
     public func makeCoordinator() -> Coordinator { Coordinator() }
@@ -346,6 +361,7 @@ public struct TabItemLongPressProbe: UIViewRepresentable {
     public func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.index = index
         context.coordinator.count = count
+        context.coordinator.isReselectTab = isReselectTab
         context.coordinator.action = action
         DispatchQueue.main.async {
             guard let tabBar = uiView.window.flatMap(Self.findTabBar) else { return }
@@ -357,9 +373,11 @@ public struct TabItemLongPressProbe: UIViewRepresentable {
         UIKitTree.firstDescendant(of: UITabBar.self, in: view)
     }
 
+    @MainActor
     public final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var index = 0
         var count = 1
+        var isReselectTab = false
         var action: () -> Void = {}
         private weak var attachedBar: UITabBar?
 
@@ -367,26 +385,46 @@ public struct TabItemLongPressProbe: UIViewRepresentable {
             guard attachedBar !== bar else { return }
             attachedBar = bar
             let press = UILongPressGestureRecognizer(target: self, action: #selector(pressed(_:)))
-            press.minimumPressDuration = 0.45
+            press.minimumPressDuration = TabLongPressPolicy.minimumPressDuration
             press.delegate = self
             bar.addGestureRecognizer(press)
         }
 
         public func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
-            guard let bar = recognizer.view, count > 0 else { return false }
-            let x = recognizer.location(in: bar).x
-            let slot = bar.bounds.width / CGFloat(count)
-            return Int(x / slot) == index
+            guard let bar = recognizer.view else { return false }
+            return TabLongPressPolicy.slot(atX: Double(recognizer.location(in: bar).x),
+                                           width: Double(bar.bounds.width), count: count) == index
         }
 
         public func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
         @objc private func pressed(_ recognizer: UILongPressGestureRecognizer) {
-            guard recognizer.state == .began else { return }
-            // Matches the account switcher's medium impact for
-            // deliberate menu actions.
-            Haptics.medium()
-            action()
+            switch recognizer.state {
+            case .began:
+                if isReselectTab {
+                    TabLongPressState.gate.began(tab: index)
+                    Self.cancelSelectionLens(on: recognizer.view)
+                }
+                // Matches the account switcher's medium impact for
+                // deliberate menu actions.
+                Haptics.medium()
+                action()
+            case .ended, .cancelled, .failed:
+                if isReselectTab { TabLongPressState.gate.ended(now: Date()) }
+            default:
+                break
+            }
+        }
+
+        /// iOS 26's glass bar arms its drag-to-switch "Liquid Lens" on the same
+        /// touch; turning it off and on cancels it, so the lift does not select
+        /// a tab behind the sheet. Absent before iOS 26.
+        private static func cancelSelectionLens(on view: UIView?) {
+            guard let lens = view?.gestureRecognizers?.first(where: {
+                NSStringFromClass(type(of: $0)) == "_UIContinuousSelectionGestureRecognizer"
+            }) else { return }
+            lens.isEnabled = false
+            lens.isEnabled = true
         }
     }
 }

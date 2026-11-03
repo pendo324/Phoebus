@@ -241,6 +241,10 @@ struct MainTabView: View {
     /// which enables back/forward page swipes on Settings.
     @StateObject private var settingsNavigation = SettingsNavigationModel(tab: 4)
     @State private var showingSettingsShortcuts = false
+    /// Hold the Posts tab: the subreddit switcher sheet, and the name picked in it
+    /// until the sheet is gone.
+    @State private var showingPostsSwitcher = false
+    @State private var pendingPostsSwitcherName: String?
     private static let tabBarSwipeNavigationAtLaunch = GeneralSettingsStore.load().tabBarSwipeNavigation
     /// "Floating Post Tabs"; see `FloatingPostTabsSettings`. One
     /// app-wide manager, installed into the environment and overlaid
@@ -380,6 +384,23 @@ struct MainTabView: View {
         .background(TabItemLongPressProbe(index: 4, count: 5) {
             showingSettingsShortcuts = true
         }.frame(width: 0, height: 0))
+        // Hold the Posts tab for the subreddit switcher (`Apollo-Reborn#1387`).
+        .background(TabItemLongPressProbe(index: TabLongPressPolicy.postsTab, count: 5, isReselectTab: true) {
+            openPostsSwitcher()
+        }.frame(width: 0, height: 0))
+        .sheet(isPresented: $showingPostsSwitcher, onDismiss: {
+            guard let name = pendingPostsSwitcherName else { return }
+            pendingPostsSwitcherName = nil
+            showFeedOnPostsTab(name)
+        }) {
+            // No checkmark: which feed is on screen is the Posts stack's own state.
+            SubredditSwitcherSheet(repository: repository, current: "") { name in
+                pendingPostsSwitcherName = name
+                showingPostsSwitcher = false
+            } onDone: {
+                showingPostsSwitcher = false
+            }
+        }
         .apolloActionSheet(
             isPresented: $showingSettingsShortcuts,
             title: "Settings Shortcuts",
@@ -404,6 +425,33 @@ struct MainTabView: View {
         // A settings page asked for by route id (the PiP card's gear).
         .onReceive(NotificationCenter.default.publisher(for: .apolloOpenSettingsRoute)) { note in
             if let id = note.object as? String { openSettingsShortcut(id) }
+        }
+    }
+
+    private func openPostsSwitcher() {
+        guard !showingPostsSwitcher else { return }
+        liquidGlassSelection = 0
+        showingPostsSwitcher = true
+    }
+
+    /// The picked feed, directly above the Subreddits list: whatever feed or post
+    /// the Posts tab had open is popped first.
+    private func showFeedOnPostsTab(_ name: String) {
+        liquidGlassSelection = 0
+        let destination = Self.rootDestination(forSubredditName: name)
+        let hasPushedScreens = subredditsDestination != nil || deepLink != nil || !postsNavigation.path.isEmpty
+        switch TabLongPressPolicy.switchPlan(hasPushedScreens: hasPushedScreens) {
+        case .openFeed:
+            subredditsDestination = destination
+        case .popToRootThenOpenFeed(let delay):
+            postsNavigation.path = []
+            deepLink = nil
+            subredditsDestination = nil
+            // Pushed on the next turn, as the other tab shortcuts are: in the same turn
+            // as the pop the stack isn't settled and the push is dropped.
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                subredditsDestination = destination
+            }
         }
     }
 

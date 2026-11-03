@@ -61,6 +61,49 @@ import PhoebusCore
           P.action(offsetY: -100, topY: -100, jumpInFlight: true, canPop: true) == .ignore)
 }
 
+// MARK: - Hold the Posts tab for the subreddit switcher (`Apollo-Reborn#1387`)
+@MainActor func checkTabLongPressPolicyReborn1387() async throws {
+    typealias P = TabLongPressPolicy
+    check("a bar of five items gives each its fifth of the width",
+          P.slot(atX: 0, width: 390, count: 5) == 0 && P.slot(atX: 77, width: 390, count: 5) == 0
+              && P.slot(atX: 78, width: 390, count: 5) == 1 && P.slot(atX: 389, width: 390, count: 5) == 4)
+    check("the Posts tab is the first slot and Settings the last",
+          P.postsTab == 0 && P.slot(atX: 30, width: 390, count: 5) == P.postsTab
+              && P.slot(atX: 360, width: 390, count: 5) == 4)
+    check("a press outside the bar or on an empty bar belongs to no tab",
+          P.slot(atX: -1, width: 390, count: 5) == nil && P.slot(atX: 390, width: 390, count: 5) == nil
+              && P.slot(atX: 10, width: 390, count: 0) == nil && P.slot(atX: 10, width: 0, count: 5) == nil)
+    check("a press needs 0.45s, as the Settings shortcut menu did", P.minimumPressDuration == 0.45)
+
+    check("a feed or post open on Posts is popped before the picked feed shows",
+          P.switchPlan(hasPushedScreens: true) == .popToRootThenOpenFeed(delay: P.popSettleDelay))
+    check("at the Subreddits list the picked feed opens at once", P.switchPlan(hasPushedScreens: false) == .openFeed)
+    check("the pop gets 0.35s to settle before the push", P.popSettleDelay == 0.35)
+
+    // The lift that ends a press is not a re-tap.
+    typealias R = TabReselectScrollPolicy
+    check("a re-tap that ends a long press does nothing, below the top or at it",
+          R.action(offsetY: 400, topY: -100, jumpInFlight: false, canPop: true, endsLongPress: true) == .ignore
+              && R.action(offsetY: -100, topY: -100, jumpInFlight: false, canPop: true, endsLongPress: true) == .ignore)
+    check("a plain re-tap still acts",
+          R.action(offsetY: 400, topY: -100, jumpInFlight: false, canPop: true, endsLongPress: false) == .scrollToTop)
+
+    let t0 = Date(timeIntervalSince1970: 1_000)
+    var gate = TabLongPressGate()
+    check("with no press nothing is suppressed", !gate.suppressesReselect(tab: 0, now: t0))
+    gate.began(tab: 0)
+    check("a re-selection during the press is suppressed", gate.suppressesReselect(tab: 0, now: t0.addingTimeInterval(3)))
+    check("a press on Posts does not suppress another tab", !gate.suppressesReselect(tab: 4, now: t0))
+    gate.ended(now: t0.addingTimeInterval(3))
+    check("one lifting just after the press ends is still part of it",
+          gate.suppressesReselect(tab: 0, now: t0.addingTimeInterval(3.2)))
+    check("a re-tap after the grace is a real re-tap",
+          !gate.suppressesReselect(tab: 0, now: t0.addingTimeInterval(3 + TabLongPressGate.releaseGrace)))
+    var stray = TabLongPressGate()
+    stray.ended(now: t0)
+    check("an end without a press suppresses nothing", !stray.suppressesReselect(tab: 0, now: t0))
+}
+
 // MARK: - Automatic Backups (Reborn, PR #1060)
 //
 // Keys AutomaticBackupsEnabled (default OFF) and AutomaticBackupIntervalDays

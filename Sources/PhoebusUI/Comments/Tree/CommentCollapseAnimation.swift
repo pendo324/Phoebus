@@ -1,4 +1,5 @@
 import SwiftUI
+import PhoebusCore
 #if canImport(UIKit)
 import UIKit
 import ObjectiveC
@@ -36,15 +37,18 @@ enum CommentCollapseAnimation {
 
     /// Runs `change` as an animated collapse/expand. `revealsRow` is false
     /// for bulk changes ("Collapse Child Comments"), which have no single
-    /// comment to bring back on screen.
-    static func perform(revealsRow: Bool = true, _ change: () -> Void) {
+    /// comment to bring back on screen. `position` is the toggled comment's
+    /// place among the list's comment rows (`CollapseReveal.position`).
+    static func perform(revealsRow: Bool = true, position: CollapseReveal.Position? = nil, _ change: () -> Void) {
         let list = commentsList()
         if let list {
             install(on: type(of: list.collectionViewLayout))
             installLayoutHook(on: type(of: list))
         }
         activeUntil = CFAbsoluteTimeGetCurrent() + duration + 0.3
+        revealGeneration += 1
         pending = Update()
+        knownToggledRow = list.flatMap { list in position.flatMap { commentRow(for: $0, in: list) } }
         heightsBefore = list.map(visibleHeights) ?? [:]
         listBefore = list
         withAnimation(.easeInOut(duration: duration)) { change() }
@@ -437,18 +441,58 @@ enum CommentCollapseAnimation {
     // MARK: - Reveal
 
     /// Apollo's completion: if the toggled comment's top is above the
-    /// visible area, scroll it down to the top edge.
+    /// visible area, scroll it down to the top edge (`CollapseReveal`).
     private static func revealToggledRow() {
         defer { pending = Update(); heightsBefore = [:] }
         guard let collectionView = pending.collectionView ?? listBefore,
-              let row = pending.toggledRow ?? resizedRow(in: collectionView),
-              row.section < collectionView.numberOfSections,
-              row.item < collectionView.numberOfItems(inSection: row.section),
-              let frame = collectionView.layoutAttributesForItem(at: row)?.frame else { return }
-        let inset = collectionView.adjustedContentInset.top
-        let visibleTop = collectionView.contentOffset.y + inset
-        guard frame.minY < visibleTop - 0.5 else { return }
-        collectionView.setContentOffset(CGPoint(x: collectionView.contentOffset.x, y: frame.minY - inset), animated: true)
+              let row = knownToggledRow ?? pending.toggledRow ?? resizedRow(in: collectionView) else { return }
+        settleReveal(of: row, in: collectionView, pass: 0, generation: revealGeneration)
+    }
+
+    /// The toggled comment's row, from its place among the comment rows. The
+    /// list's update records name it only when the change animated as a
+    /// batch; a collapse of many rows (a whole thread) reloads the list, and
+    /// the first resized row is then some other one. The comments are the
+    /// end of the last section, after any rows a post's header puts before
+    /// them, so the row is that many in from the section's end.
+    private static var knownToggledRow: IndexPath?
+
+    private static func commentRow(for position: CollapseReveal.Position, in list: UICollectionView) -> IndexPath? {
+        let section = list.numberOfSections - 1
+        guard section >= 0 else { return nil }
+        let leading = list.numberOfItems(inSection: section) - position.count
+        guard leading >= 0 else { return nil }
+        return IndexPath(item: leading + position.index, section: section)
+    }
+
+    /// Bumped by each collapse, so a reveal still correcting itself stops when
+    /// the next one starts.
+    private static var revealGeneration = 0
+
+    /// One pass of the reveal. A comment far above the screen has only an
+    /// estimated frame until the rows on the way to it are built, so the
+    /// first scroll can land short or past it (a swipe on a deep reply with
+    /// Collapse Top sends the list to a thread's first comment, thousands of
+    /// points up). Each pass measures the row again and corrects until it
+    /// rests under the bars; the reader's drag ends it.
+    private static func settleReveal(of row: IndexPath, in list: UICollectionView, pass: Int, generation: Int) {
+        guard generation == revealGeneration, pass < ScrollRestorePolicy.maxSteps, !list.isDragging, list.window != nil,
+              row.section < list.numberOfSections, row.item < list.numberOfItems(inSection: row.section),
+              let frame = list.layoutAttributesForItem(at: row)?.frame else { return }
+        let id = "\(row.section).\(row.item)"
+        let inset = list.adjustedContentInset
+        let viewport = CollapseReveal.Viewport(
+            offsetY: Double(list.contentOffset.y), boundsHeight: Double(list.bounds.height),
+            insetTop: Double(inset.top), insetBottom: Double(inset.bottom), contentHeight: Double(list.contentSize.height))
+        guard let target = CollapseReveal.scrollTarget(
+            collapsedID: id, rows: [CollapseReveal.Row(id: id, minY: Double(frame.minY), maxY: Double(frame.maxY))],
+            viewport: viewport, settling: pass > 0) else { return }
+        // A far scroll jumps: animating it would build every row it passes.
+        let animated = pass == 0 && abs(target - viewport.offsetY) <= Double(list.bounds.height) * 1.5
+        list.setContentOffset(CGPoint(x: list.contentOffset.x, y: CGFloat(target)), animated: animated)
+        DispatchQueue.main.asyncAfter(deadline: .now() + (animated ? duration + 0.05 : 0.034)) {
+            settleReveal(of: row, in: list, pass: pass + 1, generation: generation)
+        }
     }
 
     /// The first visible row whose height changed.
@@ -474,7 +518,7 @@ enum CommentCollapseAnimation {
 #else
 @MainActor
 enum CommentCollapseAnimation {
-    static func perform(revealsRow: Bool = true, _ change: () -> Void) {
+    static func perform(revealsRow: Bool = true, position: CollapseReveal.Position? = nil, _ change: () -> Void) {
         withAnimation(.easeInOut(duration: 0.3)) { change() }
     }
 }

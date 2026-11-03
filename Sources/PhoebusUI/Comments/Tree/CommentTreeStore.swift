@@ -676,7 +676,7 @@ final class CommentTreeStore: ObservableObject {
         if let wasCollapsed = roots.collapsedState(of: node.id) {
             CommentCollapseStore.record(postID: lastPostID, commentID: node.id, collapsed: !wasCollapsed)
         }
-        CommentCollapseAnimation.perform {
+        CommentCollapseAnimation.perform(position: CollapseReveal.position(of: node.id, roots: roots, rootMoreStub: rootMoreStub)) {
             rowGeneration[node.id, default: 0] += 1
             roots = roots.map { $0.togglingCollapse(id: node.id) }
         }

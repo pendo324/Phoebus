@@ -90,12 +90,15 @@ public struct CommentTreeScreen: View {
                 await store.fetch(subreddit: subreddit, postID: postID, sort: sort, repository: repository)
             }
             // Land on the linked comment, at the top. `scrollTo` resolves against the
-            // realized row, so waiting for the tree to arrive is enough.
+            // realized row, so waiting for the tree to arrive is enough. Not animated
+            // (Reborn #1584): the screen opens on the comment instead of gliding to it.
             .onChange(of: store.roots.count) { _, _ in
                 restoreThreadPosition(scrollProxy: scrollProxy)
                 guard let focusedCommentID, !hasScrolledToFocusedComment, !store.roots.isEmpty else { return }
                 hasScrolledToFocusedComment = true
-                withAnimation { scrollProxy.scrollTo(store.rowID(focusedCommentID), anchor: .top) }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { scrollProxy.scrollTo(store.rowID(focusedCommentID), anchor: .top) }
             }
             // Pull-to-refresh. `force: true` because `fetch` no-ops for
             // an already-loaded (postID, sort).

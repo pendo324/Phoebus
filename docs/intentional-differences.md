@@ -797,6 +797,18 @@ Apollo or Reborn, add an entry here.
 - **The Safari extension's mode is chosen in its popup.** Automatic, Ask
   or Off is set from the extension's toolbar popup, not in Settings.
 
+- **No "Reduce Rate Limiting" switch.** Reborn's setting (`ReduceRateLimiting`, off by
+  default, offered at the first API-Key-Free sign-in or rate limit) trades
+  polish for fewer requests: profile pictures only from batched lookups
+  without collectible frames, Community Highlights every 30 minutes instead
+  of 2, the session check every 10 minutes instead of every minute. Phoebus
+  has no collectible frames, keeps a subreddit's highlights for seven days
+  before refreshing them and has no session check on a timer, so there is
+  nothing to trade: the batched
+  author lookups, the rate limit hold stand-down and the link preview
+  trimming apply to every account all the time. A backup's
+  `ReduceRateLimiting` and `ReduceRateLimitingOffered` are not imported.
+
 ## Backups
 
 - **Some Reborn data is not imported from backups.** Custom themes are

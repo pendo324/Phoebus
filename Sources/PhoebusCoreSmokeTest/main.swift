@@ -389,6 +389,8 @@ try await checkOptionalLookupsStandDownDuringHold()
 
 try await checkLinkPreviewLookupsAreTrimmed()
 
+try await checkSubscriptionWalkUsesFullPages()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

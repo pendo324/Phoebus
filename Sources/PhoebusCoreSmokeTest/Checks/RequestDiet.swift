@@ -268,3 +268,24 @@ private func dietMessage(_ id: String, author: String, fullname: String?) -> Red
     await LinkPreviewCache.shared.clear()
     DietStub.reset()
 }
+
+@MainActor func checkSubscriptionWalkUsesFullPages() async throws {
+    // A web session spends one request per page: every page of the walk asks for 100, never Reddit's default 25.
+    let session = DietStub.session()
+    let repository = try dietRepository(session: session)
+    DietStub.reset()
+    DietStub.respond = { url in
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let after = items.first { $0.name == "after" }?.value
+        let row = { (id: String) in #"{"kind":"t5","data":{"name":"t5_\#(id)","display_name":"sub\#(id)","title":"S"}}"# }
+        switch after {
+        case nil: return (200, #"{"kind":"Listing","data":{"after":"t5_p1","children":[\#(row("a"))]}}"#)
+        case "t5_p1": return (200, #"{"kind":"Listing","data":{"after":"t5_p2","children":[\#(row("b"))]}}"#)
+        default: return (200, #"{"kind":"Listing","data":{"after":null,"children":[\#(row("c"))]}}"#)
+        }
+    }
+    let subscribed = try await repository.fetchSubscribedSubreddits()
+    let limits = DietStub.urls.compactMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "limit" }?.value }
+    check("the subscription walk reads every page and asks for 100 on each", subscribed.count == 3 && limits == ["100", "100", "100"])
+    DietStub.reset()
+}

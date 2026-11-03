@@ -15,7 +15,9 @@ import FoundationNetworking
 /// - Bluesky posts: the public AppView
 /// - DOI and Nature article links: Crossref
 /// - everything else: the page's OpenGraph tags, then Reddit's own
-///   preview of the address (`api/info?url=`) when the page is walled
+///   preview of the address (`api/info?url=`) when the page is walled; the
+///   other host spelling ("www.") is tried only when Reddit has no
+///   submission of the first (Reborn `Apollo-Reborn#1579`)
 public enum LinkPreviewFetcher {
     /// The signed-in account's repository, for Reddit lookups; set by the
     /// app's account manager. Without one, Reddit's public JSON is used.
@@ -68,8 +70,12 @@ public enum LinkPreviewFetcher {
             return preview
         }
         if let parts = BlueskyPost.parts(from: url) {
-            if let preview = await bluesky(parts, session: session) { return preview }
-            return await page(url, session: session)
+            switch await bluesky(parts, session: session) {
+            case .found(let preview): return preview
+            // Settled: the page fetch and Reddit lookups would find nothing about a post that is gone.
+            case .gone: return BlueskyPost.unavailablePreview(actor: parts.actor)
+            case .failed: return await page(url, session: session)
+            }
         }
         if let doi = CrossrefWork.doi(from: url) {
             if let preview = await crossref(doi: doi, url: url, session: session) { return preview }
@@ -89,12 +95,19 @@ public enum LinkPreviewFetcher {
     // MARK: - Sources
 
     private static func json(_ url: URL, session: URLSession, headers: [String: String] = [:]) async -> Any? {
+        await jsonResponse(url, session: session, headers: headers).object
+    }
+
+    /// The parsed body of a 2xx answer (nil otherwise) and the HTTP status (nil when no answer came).
+    private static func jsonResponse(_ url: URL, session: URLSession,
+                                     headers: [String: String] = [:]) async -> (object: Any?, status: Int?) {
         var request = URLRequest(url: url, timeoutInterval: 10)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
         guard let (data, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
-        return try? JSONSerialization.jsonObject(with: data)
+              let http = response as? HTTPURLResponse else { return (nil, nil) }
+        guard (200..<300).contains(http.statusCode) else { return (nil, http.statusCode) }
+        return (try? JSONSerialization.jsonObject(with: data), http.statusCode)
     }
 
     private static func page(_ url: URL, session: URLSession) async -> LinkPreview? {
@@ -236,11 +249,31 @@ public enum LinkPreviewFetcher {
             if let sibling = components.url { candidates.append(sibling) }
         }
         for candidate in candidates {
-            guard let object = await redditJSON(path: "/api/info", parameters: ["url": candidate.absoluteString], session: session),
-                  let preview = parseRedditInfo(object, url: url) else { continue }
-            return preview
+            // A failed lookup (a 429, a blocked session) would fail the same way for the sibling.
+            guard let object = await redditJSON(path: "/api/info", parameters: ["url": candidate.absoluteString], session: session) else { return nil }
+            switch redditInfoOutcome(object, url: url) {
+            case .preview(let preview): return preview
+            // Reddit's scraper already met this site's wall: the sibling would find the same submissions.
+            case .noPreview: return nil
+            case .noSubmission: continue
+            }
         }
         return nil
+    }
+
+    /// What `api/info?url=` said about one spelling of a link.
+    public enum RedditInfoOutcome {
+        case preview(LinkPreview)
+        /// Reddit has submissions of the address, none with a picture.
+        case noPreview
+        /// Reddit has no submission of this exact address: the other host spelling may have some.
+        case noSubmission
+    }
+
+    public static func redditInfoOutcome(_ object: Any, url: URL) -> RedditInfoOutcome {
+        if let preview = parseRedditInfo(object, url: url) { return .preview(preview) }
+        let children = ((object as? [String: Any])?["data"] as? [String: Any])?["children"] as? [[String: Any]]
+        return children?.isEmpty == true ? .noSubmission : .noPreview
     }
 
     public static func parseRedditInfo(_ object: Any, url: URL) -> LinkPreview? {
@@ -282,21 +315,33 @@ public enum LinkPreviewFetcher {
                            imageURL: ((json["user"] as? [String: Any])?["avatar_url"] as? String).flatMap(URL.init(string:)))
     }
 
-    private static func bluesky(_ parts: (actor: String, rkey: String), session: URLSession) async -> LinkPreview? {
+    private enum BlueskyLookup {
+        case found(LinkPreview)
+        /// Bluesky answered about the post itself: deleted, blocked, or an account that is gone.
+        case gone
+        /// No answer worth a verdict (offline, rate limited, undecodable).
+        case failed
+    }
+
+    private static func bluesky(_ parts: (actor: String, rkey: String), session: URLSession) async -> BlueskyLookup {
         var did = parts.actor
         if !did.hasPrefix("did:") {
             var components = URLComponents(string: "https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle")!
             components.queryItems = [URLQueryItem(name: "handle", value: parts.actor)]
-            guard let object = await json(components.url!, session: session),
-                  let resolved = (object as? [String: Any])?["did"] as? String else { return nil }
+            let answer = await jsonResponse(components.url!, session: session)
+            guard let resolved = (answer.object as? [String: Any])?["did"] as? String else {
+                return BlueskyPost.statusMeansGone(answer.status) ? .gone : .failed
+            }
             did = resolved
         }
         var components = URLComponents(string: "https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread")!
         components.queryItems = [URLQueryItem(name: "uri", value: "at://\(did)/app.bsky.feed.post/\(parts.rkey)"),
                                  URLQueryItem(name: "depth", value: "0"),
                                  URLQueryItem(name: "parentHeight", value: "0")]
-        guard let object = await json(components.url!, session: session) else { return nil }
-        return BlueskyPost.parseThread(object)
+        let answer = await jsonResponse(components.url!, session: session)
+        guard let object = answer.object else { return BlueskyPost.statusMeansGone(answer.status) ? .gone : .failed }
+        if let preview = BlueskyPost.parseThread(object) { return .found(preview) }
+        return BlueskyPost.threadIsGone(object) ? .gone : .failed
     }
 
     private static func crossref(doi: String, url: URL, session: URLSession) async -> LinkPreview? {
@@ -315,6 +360,26 @@ public enum BlueskyPost {
         let parts = url.pathComponents.filter { $0 != "/" }
         guard parts.count >= 4, parts[0].lowercased() == "profile", parts[2].lowercased() == "post" else { return nil }
         return (parts[1], parts[3])
+    }
+
+    /// A 4xx other than 429 answers about the post (NotFound for a deleted post or unknown
+    /// handle, InvalidRequest for a URL that can never resolve), not about the connection.
+    public static func statusMeansGone(_ status: Int?) -> Bool {
+        guard let status else { return false }
+        return (400..<500).contains(status) && status != 429
+    }
+
+    /// A 200 whose thread is a notFoundPost or blockedPost stub, with no post in it.
+    public static func threadIsGone(_ object: Any) -> Bool {
+        guard let thread = (object as? [String: Any])?["thread"] as? [String: Any] else { return false }
+        return thread["post"] == nil
+    }
+
+    /// The settled card for a post that is gone, so it is not asked for again.
+    public static func unavailablePreview(actor: String) -> LinkPreview {
+        let text = "This post is no longer available."
+        return LinkPreview(kind: .socialPost, siteName: "Bluesky", title: "Bluesky", description: text,
+                           authorHandle: actor.hasPrefix("did:") ? nil : "@" + actor, postText: text)
     }
 
     /// `getPostThread`: thread.post.{author{displayName, handle, avatar},

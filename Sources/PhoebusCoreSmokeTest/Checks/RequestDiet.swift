@@ -201,3 +201,70 @@ private func dietMessage(_ id: String, author: String, fullname: String?) -> Red
     await LinkPreviewCache.shared.clear()
     DietStub.reset()
 }
+
+@MainActor func checkLinkPreviewLookupsAreTrimmed() async throws {
+    let session = DietStub.session()
+    let url = URL(string: "https://news.example/story")!
+    func outcome(_ json: String) -> String {
+        let object = try! JSONSerialization.jsonObject(with: Data(json.utf8))
+        switch LinkPreviewFetcher.redditInfoOutcome(object, url: url) {
+        case .preview: return "preview"
+        case .noPreview: return "noPreview"
+        case .noSubmission: return "noSubmission"
+        }
+    }
+    check("Reddit with no submission of an address says so", outcome(#"{"data":{"children":[]}}"#) == "noSubmission")
+    check("Reddit with submissions that carry no picture says so", outcome(#"{"data":{"children":[{"data":{"title":"t","thumbnail":"self"}}]}}"#) == "noPreview")
+    check("a submission with a picture is a preview", outcome(#"{"data":{"children":[{"data":{"title":"t","thumbnail":"https://b.thumbs.example/x.jpg"}}]}}"#) == "preview")
+    check("an unreadable answer is not an invitation to try the sibling", outcome("{}") == "noPreview")
+
+    // The www sibling is a second request, so it is sent only when Reddit has no submission of the first.
+    func lookups(_ name: String, info: (Int, String)) async -> (info: Int, other: Int) {
+        await LinkPreviewCache.shared.clear()
+        DietStub.reset()
+        DietStub.respond = { u in u.host?.contains("reddit.com") == true ? info : (403, "") }
+        let link = URL(string: "https://news.example/\(name)")!
+        _ = await LinkPreviewFetcher.preview(for: link, session: session)
+        return (DietStub.count("api/info.json"), DietStub.count("reddit.com") - DietStub.count("api/info.json"))
+    }
+    let unknown = await lookups("a", info: (200, #"{"data":{"children":[]}}"#))
+    check("a link Reddit has no submission of tries both host spellings", unknown.info == 2)
+    let wallOnly = await lookups("b", info: (200, #"{"data":{"children":[{"data":{"title":"t","thumbnail":"self"}}]}}"#))
+    check("a link whose submissions have no picture is asked once", wallOnly.info == 1)
+    let limited = await lookups("c", info: (429, "{}"))
+    check("a refused lookup is not repeated for the sibling", limited.info == 1)
+    let failed = await lookups("d", info: (500, ""))
+    check("a failed lookup is not repeated for the sibling", failed.info == 1)
+
+    // A deleted Bluesky post settles at one request, once per launch.
+    func bluesky(_ rkey: String, handle: (Int, String), thread: (Int, String)) async -> (card: LinkPreview?, requests: Int, page: Int, repeated: Int) {
+        await LinkPreviewCache.shared.clear()
+        DietStub.reset()
+        DietStub.respond = { u in
+            if u.path.contains("resolveHandle") { return handle }
+            if u.path.contains("getPostThread") { return thread }
+            return (u.host?.contains("reddit.com") == true) ? (200, #"{"data":{"children":[]}}"#) : (403, "")
+        }
+        let link = URL(string: "https://bsky.app/profile/gone.example/post/\(rkey)")!
+        let card = await LinkPreviewFetcher.preview(for: link, session: session)
+        let first = DietStub.urls.count
+        _ = await LinkPreviewFetcher.preview(for: link, session: session)
+        _ = await LinkPreviewFetcher.preview(for: link, session: session)
+        return (card, first, DietStub.count("bsky.app/profile"), DietStub.urls.count - first)
+    }
+    let deleted = await bluesky("3aaa", handle: (200, #"{"did":"did:plc:abc"}"#), thread: (400, #"{"error":"InvalidRequest"}"#))
+    check("a deleted Bluesky post is one request and a settled card, not a page fetch and Reddit lookups",
+          deleted.requests == 2 && deleted.page == 0 && DietStub.count("reddit.com") == 0
+          && deleted.card?.kind == .socialPost && deleted.card?.postText == "This post is no longer available."
+          && deleted.card?.authorHandle == "@gone.example")
+    check("...and showing the card again asks nothing", deleted.repeated == 0)
+    let notFound = await bluesky("3bbb", handle: (200, #"{"did":"did:plc:abc"}"#),
+                                 thread: (200, #"{"thread":{"$type":"app.bsky.feed.defs#notFoundPost","uri":"at://x"}}"#))
+    check("a notFoundPost answer settles the same way", notFound.card?.postText == "This post is no longer available." && notFound.page == 0)
+    let unknownHandle = await bluesky("3ccc", handle: (400, #"{"error":"InvalidRequest"}"#), thread: (200, "{}"))
+    check("a handle that no longer resolves settles too", unknownHandle.card?.postText == "This post is no longer available." && unknownHandle.requests == 1)
+    let limitedBsky = await bluesky("3ddd", handle: (200, #"{"did":"did:plc:abc"}"#), thread: (429, "{}"))
+    check("a rate limited Bluesky answer is not a deleted post", limitedBsky.card?.postText != "This post is no longer available.")
+    await LinkPreviewCache.shared.clear()
+    DietStub.reset()
+}

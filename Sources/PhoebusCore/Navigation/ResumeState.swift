@@ -1,7 +1,8 @@
 import Foundation
 
 /// "Resume Where I Left Off": a cold launch reopens the tab, feed, post
-/// and thread the reader left. Phoebus-only; neither Apollo nor Reborn has it.
+/// and thread the reader left. Reborn's nearest feature is Restore Reading Session,
+/// whose key a backup import maps onto this switch.
 public struct ResumeSettings: Codable, Sendable, Equatable {
     public var resumeWhereLeftOff: Bool
 

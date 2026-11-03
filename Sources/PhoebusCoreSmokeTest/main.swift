@@ -1568,6 +1568,7 @@ try await checkImportingARealApolloBackupS()
 try await checkAISummarySettingsComeAcrossFrom()
 
 try await checkEveryKeyInARealApollo()
+try await checkRebornFourPointZeroKeysAreAccountedFor()
 try await checkCrashReportSanitizer()
 try await checkOpenInAppTargets()
 try await checkNitterInstances()

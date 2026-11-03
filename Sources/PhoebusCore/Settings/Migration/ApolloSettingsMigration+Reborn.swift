@@ -40,6 +40,7 @@ extension ApolloSettingsMigration {
         "ForwardSwipeForgetAfterScrolling", "FeedTextPostThumbnails",
         "DevvitFeedWidgets", "PollOptionAlignment", "AutoplayGIFs",
         "RememberRedditCommentsSort", "PerPostCommentSort",
+        "RestoreReadingSession", "RecentlyVisitedSubredditsLimit", "DisableNavigationGestures",
         // Appearance
         "BoldPostTitles", "CompactModeHideVotingButtons", "CompactModeRightVotingButtons",
         "LargeThumbnailsShowVotingButtons", "ShowGIFProgressLocation", "RememberRedditPostSize",
@@ -131,6 +132,7 @@ extension ApolloSettingsMigration {
         "DateOfLastSavedItemsFullRefresh": "cache timestamp",
         "DateOfLastScrollProgressBeam110-2": "timestamp", "DateOfLatestProReminder": "purchase prompt",
         "UpdateLastCheck": "update-check throttle", "UpdateSkippedVersion": "skipped Reborn release; Phoebus skips by build",
+        "UpdateLastFailure": "update-check throttle", "UpdateDeferredReminder": "update-check throttle",
         "LastReviewRequestDate": "review prompt", "ScrollDistanceMilestone2_Date": "timestamp",
         "SubmittedComment_Date": "timestamp", "WallpaperPromptMostRecent2": "prompt timestamp",
         "RatesUsedHistorically2": "API rate history", "RatesUsedInTimestamp2": "API rate history",
@@ -185,6 +187,27 @@ extension ApolloSettingsMigration {
         "CommunityHighlightsWebCache": "cache",
         "TranslationProviderUserSelected": "UI hint",
         "UseFullWidthSwipeBack": "stock key with no known meaning (no matching UI); not guessed",
+        // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
+        "ThreeStateVoting": "ported in a later change", "CommentNavigationMode": "ported in a later change",
+        "SubredditShowIcon": "ported in a later change", "ApolloGalleryTileSizeV2": "ported in a later change",
+        "ApolloGalleryTileSize": "ported in a later change", "ReduceRateLimiting": "ported in a later change",
+        // Reborn 4.0 state and screens with no counterpart.
+        "ApolloGalleryPinchIntroductionAcknowledged": "one-shot hint",
+        "ReduceRateLimitingOffered": "one-shot offer state",
+        "KeylessRouteUpdates": "no remote route file",
+        "SearchTabSectionOrder": "Search tab has no trending/random sections",
+        "RecentlyReadCompactPosts": "no per-screen post size for Recently Read",
+        "HiddenContentCompactPosts": "Reborn's own Hidden & Deleted screen",
+        "SettingsIconAppearance": "Reborn's Settings artwork",
+        "LiquidGlassEnabled": "no Liquid Glass switch in Settings; glass follows the device",
+        "ApolloRebornSetupAssistantState": "onboarding state", "ApolloRebornSetupPreset": "onboarding state",
+        "DuoLandscapeFeedLayout": "Duo / iPad layout not ported", "DuoSubredditPanelGlassEnabled": "Duo / iPad layout not ported",
+        "ApolloDuoPostsSplitDisabled": "Duo / iPad layout not ported", "IPadPaneLayout": "Duo / iPad layout not ported",
+        "IPadLayoutWelcomeSeen": "Duo / iPad layout not ported", "ApolloPaneMessageBarRegion": "Duo / iPad layout not ported",
+        "ApolloLGAppliedIconName": "icon state; Phoebus chooses icons per install",
+        "ApolloLGIconCheckedInstallPath": "icon state; Phoebus chooses icons per install",
+        "ApolloLGSpotlightDate": "daily spotlight debug override",
+        "ApolloNativeSubredditIconPendingURLs": "icon fetch queue",
         // Unlocks for Apollo's purchasable icon packs. Not transferable.
         "ATPUnlocked": "icon unlock", "AndruUnlocked": "icon unlock", "ApolloBookProUnlocked": "icon unlock",
         "CanadaUnlocked": "icon unlock", "Dave2DUnlocked": "icon unlock", "EAPUnlocked": "icon unlock",
@@ -364,6 +387,12 @@ extension ApolloSettingsMigration {
         if perPost != nil || perSub != nil {
             CommentSortMemoryStore.saveMode(perPost == true ? .post : (perSub == true ? .subreddit : .off))
             note("Comment Sort Memory")
+        }
+        // Reborn's Restore Reading Session (#1441) is Resume Where I Left Off; off forgets
+        // the saved place, as the switch does.
+        take("RestoreReadingSession", "Resume Where I Left Off", bool) {
+            ResumeSettingsStore.storage.save(ResumeSettings(resumeWhereLeftOff: $0))
+            if !$0 { ResumeStore.clear() }
         }
 
         // MARK: Appearance
@@ -557,6 +586,11 @@ extension ApolloSettingsMigration {
         take("HideMultiredditDescriptions", "Hide Multireddit Descriptions", bool) { sections.hideMultiredditDescriptions = $0 }
         take("SubredditListEnhancements", "Subreddit List Enhancements", bool) { sections.subredditListEnhancements = $0 }
         take("ModernSubredditDividers", "Modern Subreddit Dividers", bool) { sections.modernSubredditDividers = $0 }
+        // Reborn's row limit is a string; "0" hides the section. Our section always
+        // collapses at five, so any other count only means it is shown.
+        take("RecentlyVisitedSubredditsLimit", "Show Recently Visited", string) {
+            sections.showRecentlyVisited = $0.trimmingCharacters(in: .whitespaces) != "0"
+        }
         SubredditSectionsSettingsStore.save(sections)
 
         // MARK: Floating post tabs, recently read
@@ -592,6 +626,8 @@ extension ApolloSettingsMigration {
             note("\(screen.displayName) Swipe Actions")
         }
         var navigation = NavigationGestureSettingsStore.load()
+        // Stock "Disable Navigation Gestures" is the inverse of our page-swipe switch.
+        take("DisableNavigationGestures", "Navigation Gestures", bool) { navigation.pushPopSwipeGesturesEnabled = !$0 }
         // Apollo spells the third value "later".
         take("LongSwipeGestureTriggerPoint", "Long Swipe Trigger Point",
              { string($0).map(LongSwipeTriggerPoint.init(storedValue:)) }) { navigation.longSwipeTriggerPoint = $0 }

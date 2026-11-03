@@ -585,8 +585,11 @@ Apollo or Reborn, add an entry here.
   and the post you had open (at its comment, with Remember Thread
   Position). Only within a day of leaving and for the same account; a
   link, widget, notification, quick action or Shortcut opens where it
-  points instead. Neither Apollo nor Reborn has this; it is inspired by
-  Continuum's resume.
+  points instead. Reborn 4.0's Restore Reading Session (#1441, off by
+  default) restores the feed and reading position after iOS evicts the
+  app, with its own comment and time-sort memory; Phoebus keeps this
+  switch instead and a backup's `RestoreReadingSession` is imported into
+  it. Inspired by Continuum's resume.
 - **Update checks read Phoebus's AltStore source.** Reborn's in-app
   update prompt (#1343) reads a release manifest and compares release
   versions. Phoebus reads the AltStore source of the build's channel

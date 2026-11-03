@@ -614,6 +614,79 @@ import PhoebusCore
     }
 }
 
+// --- Reborn 4.0's new keys are imported or accounted for ---
+//
+// The keys 3.9.0 - 4.0.1 added to Reborn's defaults. Each is either applied
+// to the setting Phoebus has for it or listed in `notImported` with a reason,
+// and a backup from before they existed leaves the same settings alone.
+@MainActor func checkRebornFourPointZeroKeysAreAccountedFor() async throws {
+    let deliberate = [
+        "ThreeStateVoting", "CommentNavigationMode", "SubredditShowIcon", "ApolloGalleryTileSizeV2",
+        "ApolloGalleryTileSize", "ReduceRateLimiting", "ApolloGalleryPinchIntroductionAcknowledged",
+        "ReduceRateLimitingOffered", "KeylessRouteUpdates", "SearchTabSectionOrder", "RecentlyReadCompactPosts",
+        "HiddenContentCompactPosts", "SettingsIconAppearance", "LiquidGlassEnabled", "ApolloRebornSetupAssistantState",
+        "ApolloRebornSetupPreset", "DuoLandscapeFeedLayout", "DuoSubredditPanelGlassEnabled",
+        "ApolloDuoPostsSplitDisabled", "IPadPaneLayout", "IPadLayoutWelcomeSeen", "ApolloPaneMessageBarRegion",
+        "ApolloLGAppliedIconName", "ApolloLGIconCheckedInstallPath", "ApolloLGSpotlightDate",
+        "ApolloNativeSubredditIconPendingURLs", "UpdateLastFailure", "UpdateDeferredReminder",
+    ]
+    check("every Reborn 4.0 key without a Phoebus setting is a listed skip with a reason",
+          deliberate.allSatisfy { !(ApolloSettingsMigration.notImported[$0] ?? "").isEmpty })
+    check("keys for ports that have not landed say so",
+          ["ThreeStateVoting", "CommentNavigationMode", "SubredditShowIcon", "ApolloGalleryTileSizeV2",
+           "ReduceRateLimiting"].allSatisfy { ApolloSettingsMigration.notImported[$0] == "ported in a later change" })
+    check("the route file key is skipped because there is no remote route file",
+          ApolloSettingsMigration.notImported["KeylessRouteUpdates"] == "no remote route file")
+    check("imported keys are not also listed as skipped",
+          ["RestoreReadingSession", "DisableNavigationGestures", "RecentlyVisitedSubredditsLimit"]
+              .allSatisfy { ApolloSettingsMigration.notImported[$0] == nil })
+
+    let resume0 = ResumeSettingsStore.load(), nav0 = NavigationGestureSettingsStore.load()
+    let sections0 = SubredditSectionsSettingsStore.load()
+    defer {
+        ResumeSettingsStore.storage.save(resume0); NavigationGestureSettingsStore.save(nav0)
+        SubredditSectionsSettingsStore.save(sections0); ResumeStore.clear()
+    }
+
+    // A backup from before these keys existed changes none of the settings they map to.
+    ResumeSettingsStore.storage.save(ResumeSettings(resumeWhereLeftOff: true))
+    NavigationGestureSettingsStore.save(NavigationGestureSettings(pushPopSwipeGesturesEnabled: false))
+    var sections = sections0
+    sections.showRecentlyVisited = false
+    SubredditSectionsSettingsStore.save(sections)
+    let old = ApolloSettingsMigration.apply(.init(preferences: ["DefaultPostsSort": "hot"]))
+    check("a backup without the Reborn 4.0 keys leaves Resume Where I Left Off alone",
+          ResumeSettingsStore.load().resumeWhereLeftOff && !old.applied.contains("Resume Where I Left Off"))
+    check("...and the navigation gesture switch", !NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled)
+    check("...and Show Recently Visited", !SubredditSectionsSettingsStore.load().showRecentlyVisited)
+
+    // Restore Reading Session: Reborn 4.0.0 shipped it on, 4.0.1 off; the backup's value is taken as written.
+    ResumeSettingsStore.storage.save(ResumeSettings(resumeWhereLeftOff: false))
+    let on = ApolloSettingsMigration.apply(.init(preferences: ["RestoreReadingSession": true]))
+    check("Restore Reading Session on turns Resume Where I Left Off on",
+          ResumeSettingsStore.load().resumeWhereLeftOff && on.applied.contains("Resume Where I Left Off"))
+    ResumeStore.record(ResumeSnapshot(savedAt: Date(), account: nil, tab: 0, feed: nil, sort: nil,
+                                      topPostID: nil, openPost: nil), force: true)
+    check("a saved place exists while it is on", ResumeStore.load() != nil)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["RestoreReadingSession": false]))
+    check("Restore Reading Session off turns it off and forgets the saved place",
+          !ResumeSettingsStore.load().resumeWhereLeftOff && ResumeStore.load() == nil)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["RestoreReadingSession": 1]))
+    check("a non-boolean Restore Reading Session is ignored", !ResumeSettingsStore.load().resumeWhereLeftOff)
+
+    // Stock "Disable Navigation Gestures" is the inverse of the page-swipe switch.
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["DisableNavigationGestures": false]))
+    check("Disable Navigation Gestures off enables page swipes", NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["DisableNavigationGestures": true]))
+    check("Disable Navigation Gestures on disables page swipes", !NavigationGestureSettingsStore.load().pushPopSwipeGesturesEnabled)
+
+    // Recently Visited limit: a string, "0" hides the section.
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["RecentlyVisitedSubredditsLimit": "10"]))
+    check("a Recently Visited limit above zero shows the section", SubredditSectionsSettingsStore.load().showRecentlyVisited)
+    _ = ApolloSettingsMigration.apply(.init(preferences: ["RecentlyVisitedSubredditsLimit": "0"]))
+    check("a Recently Visited limit of 0 hides the section", !SubredditSectionsSettingsStore.load().showRecentlyVisited)
+}
+
 // --- A backup from before the Wallpapers removal still imports ---
 //
 // The Goodbye wallpaper collection is gone from the app, but the two keys a

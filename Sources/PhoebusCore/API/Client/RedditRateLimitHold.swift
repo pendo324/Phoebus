@@ -38,6 +38,11 @@ public final class RedditRateLimitHold: @unchecked Sendable {
         return newlyLimited ? wait : nil
     }
 
+    /// What an optional lookup throws instead of asking Reddit while the hold runs.
+    public struct Held: Error, Sendable {
+        public init() {}
+    }
+
     /// Seconds left on the hold; 0 when none.
     public func remaining(now: TimeInterval = Date().timeIntervalSince1970) -> TimeInterval {
         lock.lock(); defer { lock.unlock() }

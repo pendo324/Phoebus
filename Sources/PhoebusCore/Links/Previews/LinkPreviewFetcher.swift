@@ -23,10 +23,23 @@ public enum LinkPreviewFetcher {
 
     public static func preview(for url: URL, twitterFallback: TwitterFallbackProvider = .none,
                                session: URLSession = .shared) async -> LinkPreview? {
-        await LinkPreviewCache.shared.preview(for: url) {
-            let preview = await fetch(url, twitterFallback: twitterFallback, session: session)
+        let skips = HoldSkips()
+        return await LinkPreviewCache.shared.preview(for: url, rememberMiss: { !skips.happened }) {
+            let preview = await HoldSkips.$current.withValue(skips) {
+                await fetch(url, twitterFallback: twitterFallback, session: session)
+            }
             return preview?.hasContent == true ? preview : nil
         }
+    }
+
+    /// Whether a fetch skipped a Reddit lookup for the rate limit hold, so its miss
+    /// is not remembered as "this link has no preview".
+    final class HoldSkips: @unchecked Sendable {
+        @TaskLocal static var current: HoldSkips?
+        private let lock = NSLock()
+        private var skipped = false
+        var happened: Bool { lock.lock(); defer { lock.unlock() }; return skipped }
+        func note() { lock.lock(); skipped = true; lock.unlock() }
     }
 
     static func fetch(_ url: URL, twitterFallback: TwitterFallbackProvider, session: URLSession) async -> LinkPreview? {
@@ -124,7 +137,13 @@ public enum LinkPreviewFetcher {
                            imageHeight: TweetClient.jsonNumber(json["thumbnail_height"]))
     }
 
+    /// A Reddit lookup for a card is optional: while the rate limit hold runs it asks
+    /// nothing, rather than add to the limit (Reborn `Apollo-Reborn#1416`).
     private static func redditJSON(path: String, parameters: [String: String] = [:], session: URLSession) async -> Any? {
+        guard RedditRateLimitHold.shared.remaining() == 0 else {
+            HoldSkips.current?.note()
+            return nil
+        }
         if let repository = redditProvider(),
            let data = try? await repository.rawGET(path: path, parameters: parameters.merging(["raw_json": "1"]) { a, _ in a }) {
             return try? JSONSerialization.jsonObject(with: data)

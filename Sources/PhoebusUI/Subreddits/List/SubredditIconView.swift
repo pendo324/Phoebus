@@ -71,15 +71,10 @@ public struct SubredditIconView: View {
             icons = SubredditIconCache.Icons(classic: nil, community: nil)
             return
         }
-        if let known = await SubredditIconCache.shared.lookup(subreddit) {
-            icons = known
-            return
-        }
         let repository = repository, subreddit = subreddit
-        _ = try? await SubredditIconCache.shared.info(for: subreddit) {
+        icons = await SubredditIconCache.shared.icons(for: subreddit) {
             try await repository.fetchSubredditInfo(name: subreddit)
         }
-        icons = await SubredditIconCache.shared.lookup(subreddit)
     }
 }
 

@@ -28,7 +28,11 @@ public actor LinkPreviewCache {
         }
     }
 
-    public func preview(for url: URL, fetch: @escaping @Sendable () async -> LinkPreview?) async -> LinkPreview? {
+    /// `rememberMiss` is asked once a fetch found nothing: false leaves the link
+    /// unknown, so a later card asks again (a lookup that stood down for Reddit's
+    /// rate limit hold says nothing about the link).
+    public func preview(for url: URL, rememberMiss: @escaping @Sendable () -> Bool = { true },
+                        fetch: @escaping @Sendable () async -> LinkPreview?) async -> LinkPreview? {
         let key = url.absoluteString
         switch entries[key] {
         case .found(let preview): return preview
@@ -40,7 +44,7 @@ public actor LinkPreviewCache {
         inFlight[key] = task
         let result = await task.value
         inFlight[key] = nil
-        entries[key] = result.map(Entry.found) ?? .empty
+        entries[key] = result.map(Entry.found) ?? (rememberMiss() ? .empty : nil)
         return result
     }
 

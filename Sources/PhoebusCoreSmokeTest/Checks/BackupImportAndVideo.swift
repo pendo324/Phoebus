@@ -633,8 +633,10 @@ import PhoebusCore
     check("every Reborn 4.0 key without a Phoebus setting is a listed skip with a reason",
           deliberate.allSatisfy { !(ApolloSettingsMigration.notImported[$0] ?? "").isEmpty })
     check("keys for ports that have not landed say so",
-          ["ThreeStateVoting", "CommentNavigationMode", "SubredditShowIcon", "ApolloGalleryTileSizeV2",
-           "ReduceRateLimiting"].allSatisfy { ApolloSettingsMigration.notImported[$0] == "ported in a later change" })
+          ["ThreeStateVoting", "CommentNavigationMode", "SubredditShowIcon", "ApolloGalleryTileSizeV2"]
+            .allSatisfy { ApolloSettingsMigration.notImported[$0] == "ported in a later change" })
+    check("Reduce Rate Limiting is skipped because the request reductions always apply",
+          ApolloSettingsMigration.notImported["ReduceRateLimiting"] == "no switch: the reductions always apply")
     check("the route file key is skipped because there is no remote route file",
           ApolloSettingsMigration.notImported["KeylessRouteUpdates"] == "no remote route file")
     check("imported keys are not also listed as skipped",

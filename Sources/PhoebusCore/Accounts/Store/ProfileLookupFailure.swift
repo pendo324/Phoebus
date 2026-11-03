@@ -18,6 +18,8 @@ public enum ProfileLookupFailure: Equatable, Sendable {
     public init(_ error: Error) {
         if error is CancellationError || (error as? URLError)?.code == .cancelled {
             self = .cancelled
+        } else if error is RedditRateLimitHold.Held {
+            self = .rateLimited
         } else if case RedditAPIError.httpError(let status, _) = error {
             switch status {
             case 403, 404, 410: self = .noSuchAccount

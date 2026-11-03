@@ -77,6 +77,16 @@ public actor SubredditIconCache {
         entries[subreddit.lowercased()] = Entry(icons: value, expiresAt: nil)
     }
 
+    /// A row's icons: what is known, else one `/about`. Asks nothing while Reddit's
+    /// rate limit hold runs (the icon is optional and shows once the hold ends).
+    public func icons(for subreddit: String, now: Date = Date(),
+                      fetch: @escaping @Sendable () async throws -> RedditSubreddit) async -> Icons? {
+        if let known = lookup(subreddit, now: now) { return known }
+        guard RedditRateLimitHold.shared.remaining() == 0 else { return nil }
+        _ = try? await info(for: subreddit, now: now, fetch: fetch)
+        return lookup(subreddit, now: now)
+    }
+
     /// The subreddit's `/about`, fetched once while a fetch for it is running,
     /// and its icons remembered. Always asks Reddit (the feed header needs the
     /// moderator and join state fresh); `SubredditIconView` reads `lookup` first.

@@ -190,7 +190,7 @@ extension ApolloSettingsMigration {
         // Reborn 4.0 settings for features Phoebus has not ported yet; each port moves its key to `rebornKeys`.
         "ThreeStateVoting": "ported in a later change", "CommentNavigationMode": "ported in a later change",
         "SubredditShowIcon": "ported in a later change", "ApolloGalleryTileSizeV2": "ported in a later change",
-        "ApolloGalleryTileSize": "ported in a later change", "ReduceRateLimiting": "ported in a later change",
+        "ApolloGalleryTileSize": "ported in a later change", "ReduceRateLimiting": "no switch: the reductions always apply",
         // Reborn 4.0 state and screens with no counterpart.
         "ApolloGalleryPinchIntroductionAcknowledged": "one-shot hint",
         "ReduceRateLimitingOffered": "one-shot offer state",

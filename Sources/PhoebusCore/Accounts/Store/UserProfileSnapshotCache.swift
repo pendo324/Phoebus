@@ -23,6 +23,8 @@ public struct UserProfileSnapshot: Sendable, Equatable {
 /// meanwhile share it) and fills `AvatarCache` and `AccountAgeCache`, which
 /// the other then finds fresh. An account Reddit has no page for is recorded
 /// as a miss in both; a failed connection or a 429 is recorded in neither.
+/// While Reddit's rate limit hold runs a new lookup throws `RedditRateLimitHold.Held`
+/// instead of asking (the picture and badge are optional; they come back after it).
 public actor UserProfileSnapshotCache {
     public static let shared = UserProfileSnapshotCache()
 
@@ -40,6 +42,7 @@ public actor UserProfileSnapshotCache {
                          fetch: @escaping @Sendable () async throws -> UserProfileSnapshot) async throws -> UserProfileSnapshot {
         let key = username.lowercased()
         if let running = lookups[key] { return try await running.value }
+        guard RedditRateLimitHold.shared.remaining() == 0 else { throw RedditRateLimitHold.Held() }
         let task = Task { try await fetch() }
         lookups[key] = task
         do {

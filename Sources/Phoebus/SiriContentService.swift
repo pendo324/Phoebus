@@ -392,6 +392,7 @@ actor PhoebusContentService {
     }
 
     private static func subscriptionPage(_ repository: RedditRepository, after: String?) async throws -> RedditListing {
+        guard RedditRateLimitHold.shared.remaining() == 0 else { throw Failure.rateLimit }
         do {
             return try await repository.fetchSubscribedSubredditsPage(after: after)
         } catch let error as RedditAPIError {

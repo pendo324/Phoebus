@@ -135,3 +135,69 @@ private func dietMessage(_ id: String, author: String, fullname: String?) -> Red
     await AvatarCache.shared.clear()
     DietStub.reset()
 }
+
+@MainActor func checkOptionalLookupsStandDownDuringHold() async throws {
+    struct Counted: Error {}
+    actor Hits { var count = 0; func hit() { count += 1 } }
+    let created = Date(timeIntervalSinceNow: -86_400)
+
+    // The avatar and NEW badge share one /about; neither asks while the hold runs.
+    let profiles = UserProfileSnapshotCache.shared
+    await AvatarCache.shared.clear()
+    let profileHits = Hits()
+    RedditRateLimitHold.shared.record(reset: "300", retryAfter: nil)
+    var held = false
+    do {
+        _ = try await profiles.snapshot(for: "DietHeld") { await profileHits.hit(); return UserProfileSnapshot(iconURL: nil, createdAt: created) }
+    } catch is RedditRateLimitHold.Held { held = true } catch {}
+    let heldHits = await profileHits.count
+    let remembered = await AvatarCache.shared.hasFreshEntry(for: "dietheld")
+    check("no /about is sent for a picture during the rate limit hold, and nothing is remembered", held && heldHits == 0 && !remembered)
+    check("a lookup the hold stopped is a rate limit, not a missing account",
+          ProfileLookupFailure(RedditRateLimitHold.Held()) == .rateLimited)
+    RedditRateLimitHold.shared.reset()
+    let after = try await profiles.snapshot(for: "DietHeld") { await profileHits.hit(); return UserProfileSnapshot(iconURL: "https://styles.example/h.png", createdAt: created) }
+    let afterHits = await profileHits.count
+    check("the picture arrives once the hold ends", afterHits == 1 && after.iconURL == "https://styles.example/h.png")
+    await AvatarCache.shared.clear()
+    await AccountAgeCache.shared.clear()
+
+    // Subreddit icons: known icons still show; an unknown one waits for the hold to end.
+    let icons = SubredditIconCache()
+    let about = #"{"name":"t5_abc","display_name":"dietsub","title":"D","community_icon":"https://styles.example/s.png"}"#
+    let subreddit = try JSONDecoder.reddit.decode(RedditSubreddit.self, from: Data(about.utf8))
+    let iconHits = Hits()
+    RedditRateLimitHold.shared.record(reset: "300", retryAfter: nil)
+    let duringHold = await icons.icons(for: "dietsub") { await iconHits.hit(); return subreddit }
+    let duringHits = await iconHits.count
+    check("a subreddit icon is not looked up during the rate limit hold", duringHold == nil && duringHits == 0)
+    await icons.store(SubredditIconCache.Icons(classic: nil, community: "https://styles.example/k.png"), for: "knownsub")
+    let known = await icons.icons(for: "knownsub") { await iconHits.hit(); return subreddit }
+    check("an icon already known still shows during the hold", known?.community == "https://styles.example/k.png")
+    RedditRateLimitHold.shared.reset()
+    let later = await icons.icons(for: "dietsub") { await iconHits.hit(); return subreddit }
+    let laterHits = await iconHits.count
+    check("the icon is fetched once the hold ends", later?.community == "https://styles.example/s.png" && laterHits == 1)
+
+    // Link previews: a walled page's Reddit lookup waits, and the miss is not remembered.
+    let session = DietStub.session()
+    await LinkPreviewCache.shared.clear()
+    DietStub.reset()
+    DietStub.respond = { url in
+        url.host?.contains("reddit.com") == true ? (200, #"{"data":{"children":[]}}"#) : (403, "")
+    }
+    let link = URL(string: "https://news.example/walled-story")!
+    RedditRateLimitHold.shared.record(reset: "300", retryAfter: nil)
+    let heldPreview = await LinkPreviewFetcher.preview(for: link, session: session)
+    let heldRequests = DietStub.count("reddit.com")
+    let heldKnown = await LinkPreviewCache.shared.cached(for: link).isKnown
+    check("a walled link asks Reddit for nothing during the rate limit hold", heldPreview == nil && heldRequests == 0)
+    check("...and the missing card is not remembered as a link with no preview", !heldKnown)
+    RedditRateLimitHold.shared.reset()
+    _ = await LinkPreviewFetcher.preview(for: link, session: session)
+    let afterRequests = DietStub.count("reddit.com")
+    let afterKnown = await LinkPreviewCache.shared.cached(for: link).isKnown
+    check("the lookup goes out once the hold ends and its answer is remembered", afterRequests >= 1 && afterKnown)
+    await LinkPreviewCache.shared.clear()
+    DietStub.reset()
+}

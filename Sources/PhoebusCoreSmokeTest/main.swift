@@ -385,6 +385,8 @@ try await checkRepeatedLookupsShareARequest()
 
 try await checkFeedPageAvatarBatch()
 
+try await checkOptionalLookupsStandDownDuringHold()
+
 try await checkSteamDeepLinkingApolloRebornFeature()
 
 try await checkBackupRestoreApolloRebornFeature()

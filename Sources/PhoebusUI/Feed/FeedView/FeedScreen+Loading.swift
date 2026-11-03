@@ -40,6 +40,9 @@ extension FeedScreen {
             apply(posts: cached.posts, scraped: cached.scraped)
             if !force, !CommunityHighlights.isStale(fetchedAt: cached.fetchedAt) { return }
         }
+        // Optional lookups stand down while Reddit's rate limit hold runs (Reborn
+        // `Apollo-Reborn#1369`): the carousel keeps what it shows and refreshes after.
+        guard RedditRateLimitHold.shared.remaining() == 0 else { return }
         guard let listing = try? await repository.fetchListing(
             subreddit: name, sort: "hot", timeframe: nil, after: nil) else { return }
         let decoded = await listing.postsInBackground()

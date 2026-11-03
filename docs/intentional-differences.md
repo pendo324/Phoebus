@@ -221,6 +221,13 @@ Apollo or Reborn, add an entry here.
   buttons in the bar are always there). The size is stored under Reborn's
   `ApolloGalleryTileSizeV2` and imported from backups; the card's
   `ApolloGalleryPinchIntroductionAcknowledged` is not.
+- **Gallery View for Saved is a row, not a bar button, and only covers
+  Reddit's Saved list.** Reborn puts a grid button in the navigation bar
+  beside its category button. Phoebus's Saved page keeps its category
+  filter as a row, so "Gallery View" is a row beside it, and it opens All
+  Saved or the category chosen there. The gallery has no Sort menu (Saved
+  keeps its saved order). "Kept Locally" items, which Reddit no longer
+  lists, have no gallery: their media is gone.
 
 ## Comments
 

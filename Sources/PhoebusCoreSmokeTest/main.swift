@@ -1677,6 +1677,8 @@ try await checkGalleryMuteIsStickyAndThe()
 
 try await checkGalleryTileSizeStepsAndPinch()
 
+try await checkGalleryViewSavedScope()
+
 try await checkTheAudioSessionSurvivesAPage()
 
 try await checkBuildChannelParsing()

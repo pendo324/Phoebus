@@ -64,6 +64,7 @@ struct ProfileListingView: View {
     @State private var savedListingStartedAt: Date?
     @State private var keptLocallyCount = 0
     @State private var showingKeptLocally = false
+    @State private var showingGallery = false
     @Setting(LocalSavedSettings.self) private var localSavedSettings
 
     var body: some View {
@@ -86,6 +87,9 @@ struct ProfileListingView: View {
             }
             if showsKeptLocally {
                 keptLocallyRow
+            }
+            if tab == .saved && isOwnProfile {
+                galleryViewRow
             }
             if tab == .saved && !categories.isEmpty && generalSettings.allowSaveCategories {
                 // Saved-category filter ("Show saved items for category…"), gated on
@@ -212,6 +216,14 @@ struct ProfileListingView: View {
             LocalSavedScreen(username: username, repository: repository)
         }
         .apolloTracksForwardNavigation($showingKeptLocally)
+        // Reborn "Gallery View" for All Saved or the selected Saved category.
+        .navigationDestination(isPresented: $showingGallery) {
+            GalleryViewScreen(
+                savedUsername: username, category: generalSettings.allowSaveCategories ? selectedCategory : nil,
+                loadedPosts: items.compactMap { if case .post(let post) = $0 { post } else { nil } },
+                after: after, repository: repository)
+        }
+        .apolloTracksForwardNavigation($showingGallery)
         .onReceive(NotificationCenter.default.publisher(for: .localSavedChanged)) { _ in refreshKeptLocallyCount() }
         .onAppear { refreshKeptLocallyCount() }
         .apolloPopsOnTabReselection(item: $selectedPost)
@@ -282,6 +294,23 @@ struct ProfileListingView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("profile.saved.keptLocally")
+    }
+
+    /// Gallery View of what this Saved list shows: all of it, or the category
+    /// picked above.
+    private var galleryViewRow: some View {
+        Button { showingGallery = true } label: {
+            HStack {
+                Label("Gallery View", systemImage: "square.grid.2x2")
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("profile.saved.galleryView")
     }
 
     private func refreshKeptLocallyCount() {

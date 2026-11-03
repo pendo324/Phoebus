@@ -5,7 +5,7 @@ import UIKit
 import PhoebusCore
 
 /// Reborn's "Gallery View": a waterfall/grid photo browser for a
-/// subreddit or feed's image/video posts, with fullscreen paging,
+/// subreddit, feed or Saved list's image/video posts, with fullscreen paging,
 /// sorting, sharing and media saving inherited from the feed it was
 /// opened from. Filters the feed down to posts with viewable media via
 /// `GalleryPostMedia`.
@@ -28,6 +28,10 @@ public struct GalleryViewScreen: View {
     /// already holding. A sort change still refetches.
     let initialPosts: [RedditPost]
     let repository: RedditRepository
+    /// Set when this gallery shows your Saved posts, or one Saved category,
+    /// instead of a subreddit listing (Reborn `#1440`).
+    private let savedUsername: String?
+    @State private var savedScope: SavedGalleryScope
 
     @State private var posts: [RedditPost] = []
     @State private var errorMessage: String?
@@ -81,9 +85,36 @@ public struct GalleryViewScreen: View {
         self.initialTimeframe = timeframe
         self.initialPosts = posts
         self.repository = repository
+        self.savedUsername = nil
+        _savedScope = State(initialValue: SavedGalleryScope(category: nil, assignments: [:]))
         _sort = State(initialValue: sort)
         _timeframe = State(initialValue: timeframe)
         _posts = State(initialValue: GalleryPostMedia.filterMediaPosts(posts))
+    }
+
+    /// Gallery View of Saved (`category` nil) or of one Saved category.
+    /// `loadedPosts` and `after` are what the Saved screen already holds, so
+    /// the gallery opens populated and continues from its cursor.
+    public init(savedUsername: String, category: String?, loadedPosts: [RedditPost] = [],
+                after: String? = nil, repository: RedditRepository) {
+        var scope = SavedGalleryScope(category: category, assignments: SavedCategoryStore.allAssignments())
+        let media = GalleryPostMedia.filterMediaPosts(scope.admit(loadedPosts))
+        self.subreddit = ""
+        self.multiredditPath = nil
+        self.feedTitle = nil
+        self.initialSort = "new"
+        self.initialTimeframe = "all"
+        self.initialPosts = []
+        self.repository = repository
+        self.savedUsername = savedUsername
+        let handedOver = !loadedPosts.isEmpty
+        _afterToken = State(initialValue: handedOver ? after : nil)
+        _isExhausted = State(initialValue: scope.isEmptyByConstruction
+            || (handedOver && scope.outcome(gained: media.count, after: after, previousAfter: nil).exhausted))
+        _savedScope = State(initialValue: scope)
+        _sort = State(initialValue: "new")
+        _timeframe = State(initialValue: "all")
+        _posts = State(initialValue: media)
     }
 
     public var body: some View {
@@ -186,6 +217,8 @@ public struct GalleryViewScreen: View {
                 .accessibilityValue("Size \(tileSizeIndex + 1) of \(GalleryTileSize.count)")
                 .accessibilityIdentifier("gallery.largerTiles")
             }
+            // Saved follows its own saved order, so there is nothing to sort.
+            if savedUsername == nil {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     // The sort set includes Best and Controversial. "best" is home-only,
@@ -228,6 +261,7 @@ public struct GalleryViewScreen: View {
                     .accessibilityLabel("Sort")
                 }
             }
+            }
             // Filter menu (Photos/GIFs/Videos) with Reborn's titles and SF Symbols,
             // and a filled glyph while filtering.
             ToolbarItem(placement: .primaryAction) {
@@ -257,6 +291,7 @@ public struct GalleryViewScreen: View {
             }
         }
         .task {
+            if savedUsername != nil { await startSaved(); return }
             // Only fetch if the feed handed nothing over, so the gallery does not
             // flash empty before repopulating. Handed-over posts have no
             // pagination cursor, so `loadMore` cannot continue from them; a quiet
@@ -365,11 +400,18 @@ public struct GalleryViewScreen: View {
             \(allTiles.count) items are loaded — tap the filter button to widen it.
             """
         }
+        if savedUsername != nil {
+            // Later pages can still bring media: Saved keeps walking quietly.
+            return isLoadingMore
+                ? "No media found yet in \(sourceDescription)."
+                : "No media found in \(sourceDescription)."
+        }
         return "No media found in \(sourceDescription) (\(sortDisplayName))."
     }
 
     /// Verbatim source-description shapes from Reborn.
     private var sourceDescription: String {
+        if savedUsername != nil { return savedScope.sourceDescription }
         if let multiredditPath {
             return "m/" + (multiredditPath.split(separator: "/").last.map(String.init) ?? multiredditPath)
         }
@@ -415,6 +457,14 @@ public struct GalleryViewScreen: View {
         isLoadingMore = true
         footerText = "Loading more…"
         defer { isLoadingMore = false }
+        if savedUsername != nil {
+            do {
+                try await loadSavedPages(from: after, replacing: false)
+            } catch {
+                footerText = "Couldn't load more"
+            }
+            return
+        }
         do {
             let listing: RedditListing
             if let multiredditPath {
@@ -447,6 +497,10 @@ public struct GalleryViewScreen: View {
         // current grid up and swaps it, rather than blanking.
         if posts.isEmpty { isLoading = true }
         defer { isLoading = false }
+        if let savedUsername {
+            await loadSaved(username: savedUsername)
+            return
+        }
         do {
             let listing: RedditListing
             // A multireddit has no subreddit name and would fall through to
@@ -483,6 +537,62 @@ private final class VisibleTileTracker {
     func middleTile(in order: [String]) -> String? {
         let visible = order.filter { ids.contains($0) }
         return visible.isEmpty ? nil : visible[visible.count / 2]
+    }
+}
+
+// MARK: Saved source
+
+extension GalleryViewScreen {
+    /// Opens a Saved gallery: what the Saved screen handed over is already
+    /// shown, so only a gallery with nothing yet (or no media yet) fetches.
+    fileprivate func startSaved() async {
+        guard !isExhausted else { return }
+        if afterToken != nil {
+            if posts.isEmpty { await loadMore() }
+        } else {
+            await load()
+        }
+    }
+
+    /// First page(s) of Saved, from the top.
+    fileprivate func loadSaved(username: String) async {
+        savedScope = SavedGalleryScope(category: savedScope.category, assignments: SavedCategoryStore.allAssignments())
+        errorMessage = nil
+        if savedScope.isEmptyByConstruction {
+            posts = []
+            afterToken = nil
+            isExhausted = true
+            footerText = nil
+            return
+        }
+        do {
+            try await loadSavedPages(from: nil, replacing: true)
+        } catch {
+            errorMessage = UserFacingError.message(for: error)
+        }
+    }
+
+    /// Fetches Saved pages until one adds media or the listing ends: an empty
+    /// grid has no tile whose appearance would load the next page.
+    fileprivate func loadSavedPages(from start: String?, replacing: Bool) async throws {
+        guard let savedUsername else { return }
+        var cursor = start
+        var replace = replacing
+        while true {
+            let listing = try await repository.fetchSavedItems(
+                username: savedUsername, after: cursor, limit: SavedGalleryScope.pageSize)
+            let media = GalleryPostMedia.filterMediaPosts(savedScope.admit(await listing.postsInBackground()))
+            let existing = replace ? [] : Set(posts.map(\.id))
+            let fresh = media.filter { !existing.contains($0.id) }
+            posts = replace ? fresh : posts + fresh
+            let outcome = savedScope.outcome(gained: fresh.count, after: listing.data.after, previousAfter: cursor)
+            afterToken = outcome.exhausted ? nil : listing.data.after
+            isExhausted = outcome.exhausted
+            footerText = (outcome.exhausted && !replace) ? "That's everything" : nil
+            guard outcome.walkOn else { return }
+            cursor = listing.data.after
+            replace = false
+        }
     }
 }
 

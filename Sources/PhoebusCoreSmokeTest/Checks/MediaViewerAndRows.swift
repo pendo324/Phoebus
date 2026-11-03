@@ -1698,3 +1698,62 @@ extension NSLock {
           ApolloSettingsMigration.notImported["ApolloGalleryTileSizeV2"] == nil
               && ApolloSettingsMigration.notImported["ApolloGalleryTileSize"] == nil)
 }
+
+// --- Gallery View for Saved and Saved categories ---
+//
+// A category is a local fullname list, so its gallery walks the ordinary Saved
+// listing and keeps the posts assigned to it, stopping once every member has
+// been met. A category with no post members is empty without any request, and
+// Saved keeps walking while pages add no media (an empty grid has no tile whose
+// appearance would load the next one).
+@MainActor func checkGalleryViewSavedScope() async throws {
+    func post(_ id: String, image: Bool = true) -> RedditPost {
+        let preview = image
+            ? #""preview": {"images": [{"source": {"url": "https://i.redd.it/\#(id).jpg", "width": 800, "height": 600}}]},"#
+            : ""
+        let json = """
+        {"id": "\(id)", "name": "t3_\(id)", "title": "t", "author": "u", "subreddit": "pics", "selftext": "",
+         "url": "https://\(image ? "i.redd.it" : "example.com")/\(id)\(image ? ".jpg" : "")", \(preview) "permalink": "/r/pics/comments/\(id)/x/", "score": 1,
+         "upvote_ratio": 1.0, "num_comments": 0, "created_utc": 0, "is_self": false, "over_18": false,
+         "spoiler": false, "stickied": false, "saved": true, "likes": null}
+        """
+        return try! JSONDecoder.reddit.decode(RedditPost.self, from: Data(json.utf8))
+    }
+    let a = post("a"), b = post("b"), c = post("c"), d = post("d", image: false)
+    let assignments = ["t3_a": "Cats", "t3_c": "Cats", "t3_b": "Dogs", "t1_zz": "Cats"]
+
+    var all = SavedGalleryScope(category: nil, assignments: assignments)
+    check("All Saved keeps every post", all.admit([a, b, c, d]).map(\.id) == ["a", "b", "c", "d"])
+    check("All Saved is never complete or empty by construction", !all.isComplete && !all.isEmptyByConstruction)
+    check("All Saved is described as Saved", all.sourceDescription == "Saved")
+
+    var cats = SavedGalleryScope(category: "Cats", assignments: assignments)
+    check("a category counts only its posts, not its comments", !cats.isEmptyByConstruction && !cats.isComplete)
+    check("a category keeps just its posts, in listing order", cats.admit([b, a, d]).map(\.id) == ["a"])
+    check("a category is not complete until every member was met", !cats.isComplete)
+    check("a category is complete once every member was met", cats.admit([c]).map(\.id) == ["c"] && cats.isComplete)
+    check("a category is described with its name", cats.sourceDescription == "Saved — Cats")
+
+    let empty = SavedGalleryScope(category: "Birds", assignments: assignments)
+    check("a category nobody is assigned to is empty without a request", empty.isEmptyByConstruction && !empty.isComplete)
+    let commentsOnly = SavedGalleryScope(category: "Notes", assignments: ["t1_x": "Notes"])
+    check("a category of only comments is empty without a request", commentsOnly.isEmptyByConstruction)
+    check("category names match exactly",
+          SavedGalleryScope(category: "cats", assignments: assignments).isEmptyByConstruction)
+
+    var walking = SavedGalleryScope(category: "Cats", assignments: assignments)
+    check("a page that adds media publishes it and stops walking",
+          walking.outcome(gained: 2, after: "t3_n", previousAfter: nil) == .init(exhausted: false, walkOn: false))
+    check("a page with no media keeps walking while Saved has more",
+          walking.outcome(gained: 0, after: "t3_n", previousAfter: nil) == .init(exhausted: false, walkOn: true))
+    check("the end of Saved ends the walk", walking.outcome(gained: 0, after: nil, previousAfter: "t3_n")
+          == .init(exhausted: true, walkOn: false))
+    check("an empty cursor is the end too", walking.outcome(gained: 1, after: "", previousAfter: "t3_n").exhausted)
+    check("a cursor that did not advance ends the walk",
+          walking.outcome(gained: 0, after: "t3_n", previousAfter: "t3_n") == .init(exhausted: true, walkOn: false))
+    _ = walking.admit([a, c])
+    check("a category with every member met is exhausted even with Saved pages left",
+          walking.outcome(gained: 2, after: "t3_n", previousAfter: nil) == .init(exhausted: true, walkOn: false))
+    check("Saved pages are the largest Reddit lists", SavedGalleryScope.pageSize == 100)
+    check("a text-only saved post makes no tile", GalleryPostMedia.filterMediaPosts([d]).isEmpty)
+}

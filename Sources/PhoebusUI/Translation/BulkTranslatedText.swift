@@ -25,7 +25,9 @@ public struct BulkTranslatedText: View {
     }
     let original: String
     let lineLimit: Int?
-    @State private var translated: String?
+    /// The provider's answer once one is in; its marker, rewrite and
+    /// "Translate" control all follow `isShown`.
+    @State private var outcome: TranslationOutcome?
     @State private var isTranslating = false
     @State private var errorMessage: String?
 
@@ -44,17 +46,23 @@ public struct BulkTranslatedText: View {
             }
         }
         .task(id: original) {
-            guard settings.enableBulkTranslation, settings.mode == .automatic,
-                  translated == nil, !Self.isSkipped(original, settings: settings) else { return }
+            guard settings.enableBulkTranslation, !Self.isSkipped(original, settings: settings) else { return }
+            // Text the provider already handed back unchanged this session
+            // never gets a "Translate" control or another request.
+            if outcome == nil, let known = TranslationOutcomeCache.shared.outcome(for: original, target: settings.targetLanguageCode),
+               !known.isChanged || settings.mode == .automatic {
+                outcome = known
+            }
+            guard settings.mode == .automatic, outcome == nil else { return }
             await translate(settings: settings)
         }
     }
 
     @ViewBuilder
     private func content(settings: TranslationSettings) -> some View {
-        if let translated {
+        if let outcome, outcome.isShown(skipping: settings.skipLanguageCodes) {
             VStack(alignment: .leading, spacing: 4) {
-                LongBodyText(translated, lineLimit: lineLimit)
+                LongBodyText(outcome.text, lineLimit: lineLimit)
                 // Reborn's "🌐 Translated from <Language>" marker, shown when
                 // "Details on Comments & Posts" is on or the mode is Tap to Translate.
                 // The globe and language name take the marker tint: dimmed system
@@ -63,10 +71,13 @@ public struct BulkTranslatedText: View {
                     let tint = settings.matchAppColour ? Color.apolloAccent : Color.green.opacity(0.7)
                     (Text(Image(systemName: "globe")).foregroundColor(tint)
                      + Text(" Translated from ").foregroundColor(.secondary)
-                     + Text(Self.languageName(of: original) ?? "another language").foregroundColor(tint))
+                     + Text(outcome.markerLanguageName(fallbackCode: Self.dominantLanguage(of: original))).foregroundColor(tint))
                         .font(.caption2)
                 }
             }
+        } else if outcome != nil {
+            // Unchanged, or in a Don't Translate language: nothing to mark or offer.
+            LongBodyText(original, lineLimit: lineLimit)
         } else if isTranslating {
             HStack(spacing: 6) {
                 ProgressView()
@@ -126,11 +137,6 @@ public struct BulkTranslatedText: View {
 
     private static var languageCache: [String: String?] = [:]
 
-    static func languageName(of text: String) -> String? {
-        guard let code = dominantLanguage(of: text) else { return nil }
-        return Locale.current.localizedString(forLanguageCode: code)
-    }
-
     /// Reborn's "Don't Translate" list (`TranslationSkipLanguages`):
     /// text whose dominant language is listed is left alone.
     static func isSkipped(_ text: String, settings: TranslationSettings) -> Bool {
@@ -142,7 +148,7 @@ public struct BulkTranslatedText: View {
         isTranslating = true
         defer { isTranslating = false }
         do {
-            translated = try await BulkTranslationClient.translate(text: original, to: settings.targetLanguageCode, settings: settings)
+            outcome = try await BulkTranslationClient.translateCached(text: original, to: settings.targetLanguageCode, settings: settings)
         } catch {
             // A cancelled request is not a failure. Automatic translation runs in
             // `.task`, which SwiftUI cancels when the row re-renders or leaves the

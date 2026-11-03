@@ -123,6 +123,12 @@ Apollo or Reborn, add an entry here.
   Reddit features (which can be the viewer's own award); the sheet lists
   the full breakdown. Posts keep the old medal count, since the thread
   data has no post awards.
+- **Translation answers are remembered for the session only.** Reborn
+  keeps each translation and its reported source language on disk;
+  Phoebus keeps them in memory (`TranslationOutcomeCache`), so a text the
+  provider handed back unchanged is asked for once per launch, not once
+  ever. Apple's on-device provider reports the language Phoebus detected
+  and handed it, as Reborn does.
 
 ## Removed posts and comments
 

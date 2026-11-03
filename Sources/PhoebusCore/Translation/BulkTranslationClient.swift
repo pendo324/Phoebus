@@ -21,8 +21,35 @@ public enum BulkTranslationClient {
         case providerError(message: String, isQuota: Bool)
     }
 
-    public static func translate(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession = .shared) async throws -> String {
+    /// A provider's raw answer: the translated text and the language it says
+    /// it translated from (nil when it names none).
+    public struct ProviderReply: Sendable, Equatable {
+        public let text: String
+        public let sourceLanguage: String?
+
+        public init(text: String, sourceLanguage: String?) {
+            self.text = text
+            self.sourceLanguage = sourceLanguage
+        }
+    }
+
+    /// Translates `text`, answering from this session's results when the
+    /// same text was already sent (changed or not).
+    public static func translateCached(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession = .shared) async throws -> TranslationOutcome {
+        let cache = TranslationOutcomeCache.shared
+        if let known = cache.outcome(for: text, target: targetLanguageCode) { return known }
+        let outcome = try await translate(text: text, to: targetLanguageCode, settings: settings, session: session)
+        cache.store(outcome, for: text, target: targetLanguageCode)
+        return outcome
+    }
+
+    public static func translate(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession = .shared) async throws -> TranslationOutcome {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ClientError.emptyText }
+        let reply = try await translateReply(text: text, to: targetLanguageCode, settings: settings, session: session)
+        return TranslationOutcome(original: text, translated: reply.text, reportedSource: reply.sourceLanguage)
+    }
+
+    private static func translateReply(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession) async throws -> ProviderReply {
         let primary = settings.provider
         do {
             return try await translate(text: text, to: targetLanguageCode, via: primary, settings: settings, session: session)
@@ -60,7 +87,7 @@ public enum BulkTranslationClient {
     }
 
     private static func translate(text: String, to targetLanguageCode: String, via provider: TranslationProvider,
-                                  settings: TranslationSettings, session: URLSession) async throws -> String {
+                                  settings: TranslationSettings, session: URLSession) async throws -> ProviderReply {
         switch provider {
         case .apple:
             return try await translateViaApple(text: text, to: targetLanguageCode)
@@ -75,7 +102,7 @@ public enum BulkTranslationClient {
 
     /// LibreTranslate's public POST API, self-hostable. Uses the current
     /// default (`libretranslate.com`) via `settings.normalizedLibreTranslateURL`.
-    private static func translateViaLibreTranslate(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession) async throws -> String {
+    private static func translateViaLibreTranslate(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession) async throws -> ProviderReply {
         guard let url = URL(string: settings.normalizedLibreTranslateURL) else { throw ClientError.invalidResponse }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -94,16 +121,24 @@ public enum BulkTranslationClient {
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw ClientError.invalidResponse
         }
+        return try parseLibreTranslateResponse(data)
+    }
+
+    /// `{"translatedText": "...", "detectedLanguage": {"confidence": 90,
+    /// "language": "es"}}`; the language comes back because the request
+    /// asks for `source: auto`.
+    public static func parseLibreTranslateResponse(_ data: Data) throws -> ProviderReply {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let translated = json["translatedText"] as? String else {
             throw ClientError.invalidResponse
         }
-        return translated
+        let detected = (json["detectedLanguage"] as? [String: Any])?["language"] as? String
+        return ProviderReply(text: translated, sourceLanguage: detected)
     }
 
     /// Google's public (keyless, undocumented) `translate.googleapis.com`
     /// single-text endpoint, Reborn's default provider.
-    private static func translateViaGoogle(text: String, to targetLanguageCode: String, session: URLSession) async throws -> String {
+    private static func translateViaGoogle(text: String, to targetLanguageCode: String, session: URLSession) async throws -> ProviderReply {
         var components = URLComponents(string: "https://translate.googleapis.com/translate_a/single")!
         components.queryItems = [
             URLQueryItem(name: "client", value: "gtx"),
@@ -117,37 +152,19 @@ public enum BulkTranslationClient {
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw ClientError.invalidResponse
         }
-        if let source = parseGoogleSourceLanguage(data) {
-            recordDetected(source, for: text)
-        }
-        return try parseGoogleResponse(data)
+        return ProviderReply(text: try parseGoogleResponse(data), sourceLanguage: parseGoogleSourceLanguage(data))
     }
 
-    /// Google's response is a deeply-nested untyped JSON array:
-    /// `[[[translatedChunk, originalChunk, ...], ...], ...]` — this
-    /// concatenates every translated chunk in the first sub-array.
-    /// Google's detected source language (top-level index 2, e.g. "fr").
-    /// Used for the "Translated from" marker on titles, where on-device
-    /// detection of a few words is unreliable.
+    /// Google's detected source language (top-level index 2, e.g. "fr"),
+    /// which names the "Translated from" marker.
     public static func parseGoogleSourceLanguage(_ data: Data) -> String? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [Any], json.count > 2 else { return nil }
         return json[2] as? String
     }
 
-    /// Last detected source language per translated text (Google only).
-    nonisolated(unsafe) private static var detected: [String: String] = [:]
-    private static let detectedLock = NSLock()
-
-    private static func recordDetected(_ code: String, for text: String) {
-        detectedLock.lock(); defer { detectedLock.unlock() }
-        detected[text] = code
-    }
-
-    public static func detectedSourceLanguage(for text: String) -> String? {
-        detectedLock.lock(); defer { detectedLock.unlock() }
-        return detected[text]
-    }
-
+    /// Google's response is a deeply-nested untyped JSON array:
+    /// `[[[translatedChunk, originalChunk, ...], ...], ...]` — this
+    /// concatenates every translated chunk in the first sub-array.
     public static func parseGoogleResponse(_ data: Data) throws -> String {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [Any],
               let sentenceArray = json.first as? [Any] else {
@@ -185,7 +202,7 @@ public enum BulkTranslationClient {
         }
     }
 
-    private static func translateViaMicrosoft(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession) async throws -> String {
+    private static func translateViaMicrosoft(text: String, to targetLanguageCode: String, settings: TranslationSettings, session: URLSession) async throws -> ProviderReply {
         guard let apiKey = settings.microsoftAPIKey, !apiKey.isEmpty else {
             throw ClientError.notConfigured
         }
@@ -211,12 +228,20 @@ public enum BulkTranslationClient {
         guard (200..<300).contains(httpResponse.statusCode) else {
             throw microsoftError(forStatus: httpResponse.statusCode, data: data)
         }
+        return try parseMicrosoftResponse(data)
+    }
+
+    /// `[{"detectedLanguage": {"language": "es", "score": 1.0},
+    /// "translations": [{"text": "...", "to": "en"}]}]`; the language
+    /// comes back because the request names no `from`.
+    public static func parseMicrosoftResponse(_ data: Data) throws -> ProviderReply {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let translations = json.first?["translations"] as? [[String: Any]],
               let translated = translations.first?["text"] as? String else {
             throw ClientError.invalidResponse
         }
-        return translated
+        let detected = (json.first?["detectedLanguage"] as? [String: Any])?["language"] as? String
+        return ProviderReply(text: translated, sourceLanguage: detected)
     }
 
     /// Azure status-code-to-message mapping.
@@ -251,7 +276,7 @@ public enum BulkTranslationClient {
     /// Apple on-device. The source is detected here and passed explicitly,
     /// as Reborn does: Apple's own auto-detect can stall on a language
     /// picker. Text whose language can't be told is left alone.
-    private static func translateViaApple(text: String, to targetLanguageCode: String) async throws -> String {
+    private static func translateViaApple(text: String, to targetLanguageCode: String) async throws -> ProviderReply {
         #if canImport(Translation) && canImport(NaturalLanguage) && os(iOS)
         if #available(iOS 26.0, *) {
             let recognizer = NLLanguageRecognizer()
@@ -263,11 +288,12 @@ public enum BulkTranslationClient {
             let target = targetLanguageCode.isEmpty ? deviceLanguageCode() : targetLanguageCode
             let source = Locale.Language(identifier: detected.rawValue)
             let destination = Locale.Language(identifier: target)
-            if source.languageCode == destination.languageCode { return text }
+            if source.languageCode == destination.languageCode {
+                return ProviderReply(text: text, sourceLanguage: detected.rawValue)
+            }
             let translator = TranslationSession(installedSource: source, target: destination)
             let response = try await translator.translate(text)
-            recordDetected(detected.rawValue, for: text)
-            return response.targetText
+            return ProviderReply(text: response.targetText, sourceLanguage: detected.rawValue)
         }
         #endif
         throw ClientError.notConfigured

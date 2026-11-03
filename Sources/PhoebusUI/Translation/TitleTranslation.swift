@@ -8,30 +8,36 @@ import PhoebusCore
 /// list. Titles swap in place in the feed row and post header; the
 /// "Translated from …" marker follows `ShowTranslationTitleDetails`.
 ///
-/// Results live in one process-wide cache keyed by (target, text), since
-/// titles repeat across feed, header, peek and tabs.
+/// Answers live in the shared `TranslationOutcomeCache` keyed by (target,
+/// text), since titles repeat across feed, header, peek and tabs. A title the
+/// provider hands back unchanged (already in the target language) is kept
+/// there too, so it is neither swapped, marked nor asked for again.
 @MainActor
 final class TitleTranslationCache {
     static let shared = TitleTranslationCache()
-    private var done: [String: String] = [:]
-    private var inFlight: [String: Task<String?, Never>] = [:]
+    private var inFlight: [String: Task<TranslationOutcome?, Never>] = [:]
 
-    func cached(_ title: String, target: String) -> String? { done[target + "\u{1}" + title] }
+    /// The text to show, nil when the title is unknown or needs no swap.
+    func cached(_ title: String, settings: TranslationSettings) -> String? {
+        let outcome = TranslationOutcomeCache.shared.outcome(for: title, target: settings.targetLanguageCode)
+        return outcome.flatMap { $0.isShown(skipping: settings.skipLanguageCodes) ? $0.text : nil }
+    }
 
     func translate(_ title: String, settings: TranslationSettings) async -> String? {
-        let key = settings.targetLanguageCode + "\u{1}" + title
-        if let hit = done[key] { return hit }
-        if let task = inFlight[key] { return await task.value }
-        let task = Task<String?, Never> {
-            try? await BulkTranslationClient.translate(text: title, to: settings.targetLanguageCode, settings: settings)
+        if TranslationOutcomeCache.shared.outcome(for: title, target: settings.targetLanguageCode) == nil {
+            let key = settings.targetLanguageCode + "\u{1}" + title
+            if let task = inFlight[key] {
+                _ = await task.value
+            } else {
+                let task = Task<TranslationOutcome?, Never> {
+                    try? await BulkTranslationClient.translateCached(text: title, to: settings.targetLanguageCode, settings: settings)
+                }
+                inFlight[key] = task
+                _ = await task.value
+                inFlight[key] = nil
+            }
         }
-        inFlight[key] = task
-        let result = await task.value
-        inFlight[key] = nil
-        // Same text back means the source already was the target
-        // language: nothing to swap or mark.
-        if let result, result != title { done[key] = result }
-        return done[key]
+        return cached(title, settings: settings)
     }
 }
 
@@ -68,7 +74,7 @@ struct TitleTranslationModifier: ViewModifier {
                 translated = nil
                 return
             }
-            if let hit = TitleTranslationCache.shared.cached(title, target: settings.targetLanguageCode) {
+            if let hit = TitleTranslationCache.shared.cached(title, settings: settings) {
                 translated = hit
                 return
             }
@@ -90,13 +96,13 @@ struct TitleTranslationMarker: View {
     @Setting(TranslationSettings.self) private var translationSettings
     let original: String
 
-    /// The provider's own detection first (Google reports it), falling
-    /// back to on-device detection.
-    private var languageName: String? {
-        if let code = BulkTranslationClient.detectedSourceLanguage(for: original) {
-            return Locale.current.localizedString(forLanguageCode: code)
-        }
-        return BulkTranslatedText.languageName(of: original)
+    /// The language the provider reported, falling back to on-device
+    /// detection for an answer that named none.
+    private func languageName(_ settings: TranslationSettings) -> String {
+        let outcome = TranslationOutcomeCache.shared.outcome(for: original, target: settings.targetLanguageCode)
+        let fallback = BulkTranslatedText.dominantLanguage(of: original)
+        return outcome?.markerLanguageName(fallbackCode: fallback)
+            ?? TranslationSource.markerLanguageName(code: fallback)
     }
 
     var body: some View {
@@ -105,7 +111,7 @@ struct TitleTranslationMarker: View {
             let tint = settings.matchAppColour ? Color.apolloAccent : Color.green.opacity(0.7)
             (Text(Image(systemName: "globe")).foregroundColor(tint)
              + Text(" Translated from ").foregroundColor(.secondary)
-             + Text(languageName ?? "another language").foregroundColor(tint))
+             + Text(languageName(settings)).foregroundColor(tint))
                 .font(.caption2)
                 .accessibilityIdentifier("title.translationMarker")
         }

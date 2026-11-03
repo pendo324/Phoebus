@@ -150,14 +150,17 @@ public enum VideoDownloader {
 /// Per-listing failure copy from Apollo's posts-list empty state. Lives
 /// here rather than in the view so it's directly testable, and so every
 /// listing screen shares one source instead of surfacing raw thrown-error
-/// descriptions.
+/// descriptions. A 403 says "private" only when Reddit's JSON says so; the
+/// block page, or an empty answer, says Reddit blocked the request.
 public enum FeedErrorCopy {
     public static func message(status: Int, body: String, subreddit: String) -> String {
-        if body.contains("quarantined") { return quarantined(subreddit: subreddit) }
+        if !KeylessRouteResponse.isPageBody(body), body.contains("quarantined") { return quarantined(subreddit: subreddit) }
         let name = subreddit.isEmpty ? "This feed" : "r/\(subreddit)"
         switch status {
-        case 403:
+        case 403 where KeylessRouteResponse.jsonReason(body) == "private":
             return "\(name) has been set to private by its subreddit moderators"
+        case 403:
+            return "Reddit blocked this request, so \(name) couldn't load. Try again in a while."
         case 404:
             return "\(name) has been banned by Reddit Administrators for breaking Reddit rules"
         default:

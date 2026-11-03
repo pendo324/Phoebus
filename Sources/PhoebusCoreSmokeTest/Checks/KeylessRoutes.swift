@@ -298,6 +298,8 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
     do { _ = try await client.get(path: "/r/all/rising") } catch { allRefused = error }
     check("when every route refuses the read fails with the 403, not with the sign-in page as data",
           hosts().count == 3 && status(of: allRefused) == 403)
+    check("...and the screen is told Reddit blocked it, not that the feed is private",
+          allRefused.flatMap { UserFacingError.message(for: $0) } == "Reddit blocked this request. Try again in a while.")
 
     // What is not a refusal is not resent.
     KeylessRouteHealth.shared.reset()

@@ -160,6 +160,25 @@ public enum KeylessRouteResponse {
         return contentType?.lowercased().contains("text/html") ?? false
     }
 
+    /// Whether an error's body is a web page rather than Reddit's JSON, so a
+    /// 403 with it is the block page and not a private community. The block
+    /// page is a fragment that opens with `<body`, with no `<html` or doctype,
+    /// and Reddit's JSON never starts with `<`.
+    public static func isPageBody(_ body: String) -> Bool {
+        let head = body.prefix(512).lowercased()
+        return head.contains("<html") || head.contains("<!doctype html")
+            || head.drop(while: { $0.isWhitespace || $0 == "\u{FEFF}" }).first == "<"
+    }
+
+    /// The `reason` of a JSON error body (`{"reason": "private", "message":
+    /// "Forbidden", "error": 403}`), lowercased; nil for a page or no reason.
+    public static func jsonReason(_ body: String) -> String? {
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let reason = object["reason"] as? String else { return nil }
+        return reason.lowercased()
+    }
+
     public static func isRefusal(status: Int, contentType: String?, finalURL: URL?) -> Bool {
         isBlockPage(status: status, contentType: contentType) || isSignInGate(finalURL: finalURL, contentType: contentType)
     }
@@ -289,9 +308,11 @@ public enum KeylessRouteDebug {
     }()
 
     static func blocks(_ route: KeylessRoute) -> Bool { blockedRoutes.contains(route) }
+    static let blockPage = "<html><body>whoa there, pardner!</body></html>"
 }
 #else
 enum KeylessRouteDebug {
     static func blocks(_ route: KeylessRoute) -> Bool { false }
+    static let blockPage = ""
 }
 #endif

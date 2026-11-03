@@ -245,7 +245,7 @@ public actor RedditAPIClient {
             tried.insert(route)
             if KeylessRouteDebug.blocks(route) {
                 health.noteRefusal(account: webSession.username, method: method, path: path, route: route)
-                refusal = (403, "")
+                refusal = (403, KeylessRouteDebug.blockPage)
                 continue
             }
             let built = webJSONRequest(path: path, method: method, parameters: parameters, session: webSession, route: route)

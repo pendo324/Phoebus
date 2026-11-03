@@ -768,6 +768,12 @@ Apollo or Reborn, add an entry here.
   and changes with a release; a backup's `KeylessRouteUpdates` is not
   imported. The routes and the three-refusals cooldown are Reborn's, and
   there is no "Use Route Updates" switch or Routes screen.
+- **A refused feed says Reddit blocked it unless Reddit says private.**
+  Apollo called every 403 on a listing "set to private by its subreddit
+  moderators". Reddit now also answers reads with a 403 block page, so
+  Phoebus says "private" only for a JSON body whose `reason` is `private`,
+  and any other 403 (the block page, an empty body) reads "Reddit blocked
+  this request, so r/x couldn't load. Try again in a while."
 - **Push notifications go through a self-hosted notification backend.**
   There is no central push server: the backend you run delivers through
   the Bark app when a Bark push URL is set, and otherwise over APNs when

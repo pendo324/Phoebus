@@ -1029,6 +1029,7 @@ checkKeylessRouteTable()
 checkKeylessRouteResponses()
 checkKeylessRouteHealth()
 try await checkKeylessRouteFallbackRequests()
+checkKeylessRefusalMessages()
 
 try await checkChatSendQueueDesignPortedFrom()
 

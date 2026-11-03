@@ -862,7 +862,7 @@ import PhoebusCore
     // description.
     check(
         "Private subreddit uses Apollo's real copy",
-        FeedErrorCopy.message(status: 403, body: "", subreddit: "pics")
+        FeedErrorCopy.message(status: 403, body: "{\"reason\": \"private\", \"message\": \"Forbidden\", \"error\": 403}", subreddit: "pics")
             == "r/pics has been set to private by its subreddit moderators"
     )
     check(

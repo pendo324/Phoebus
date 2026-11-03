@@ -30,7 +30,9 @@ public enum UserFacingError {
             case .notAuthenticated: return "You need to be signed in to do that."
             case .sessionExpired: return "Your Reddit session expired. Sign in again."
             case .decodingFailed: return "Reddit sent something this app couldn't read."
-            case .httpError(let status, _): return httpMessage(status)
+            case .httpError(let status, let body):
+                if status == 403, KeylessRouteResponse.isPageBody(body) { return "Reddit blocked this request. Try again in a while." }
+                return httpMessage(status)
             }
         }
         if error is DecodingError { return "Reddit sent something this app couldn't read." }

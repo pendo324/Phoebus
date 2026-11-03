@@ -1500,6 +1500,7 @@ try await checkWidgetFeedSourcesReborn37()
 try await checkAzureTargetLanguageCodesReborn3()
 
 try await checkCommunityHighlightsReborn370()
+try await checkCommunityHighlightsPanYield()
 
 try await checkWholeDomainSettingsBackup()
 

@@ -75,6 +75,20 @@ Phoebus implements this as a real interactive transition of the
   row swipe, so `apolloDisableSystemPopGestures()` turns off both it and
   the classic edge recognizer.
 
+### Over a horizontal scroller
+
+A horizontal scroll view under the finger is "scrolling" the moment its pan
+begins, which makes the page swipe refuse. The feed gallery
+(`FeedGalleryPanYield`, `FeedGalleryPanPolicy`) and the Community Highlights
+carousel (`CommunityHighlightsPanYield`, `CommunityHighlightsPanPolicy`) refuse
+the pan themselves when a page swipe would take it, so the page follows the
+finger: the carousel at its first card for Back and at its last for Forward,
+with the same start-zone and angle rules as above. Anywhere in between it
+scrolls, so one swipe returns to the first card and the next goes Back. The
+gallery's scroll view is a `TabView`'s and can't be subclassed, so a gate
+recognizer does it; the carousel's `DirectionalLockScrollView` overrides
+`gestureRecognizerShouldBegin` instead.
+
 ### Unsaved changes
 
 The page swipe pops the navigation controller itself, so a SwiftUI

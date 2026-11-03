@@ -1,5 +1,8 @@
 import SwiftUI
 import PhoebusCore
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// The Community Highlights carousel (Reborn).
 ///
@@ -136,7 +139,8 @@ public struct CommunityHighlightsCarousel: View {
         .padding(.horizontal, CommunityHighlights.Metrics.sidePadding)
 
         #if canImport(UIKit)
-        DirectionalLockScrollView(height: CommunityHighlights.Metrics.cardHeight) {
+        DirectionalLockScrollView(height: CommunityHighlights.Metrics.cardHeight,
+                                  yieldsPan: CommunityHighlightsPanYield.shouldYield) {
             // Leading, not centred, when the cards are narrower than the screen.
             HStack(spacing: 0) { row; Spacer(minLength: 0) }
         }
@@ -162,6 +166,33 @@ public struct CommunityHighlightsCarousel: View {
                              isRead: ReadPostStore.isRead(post.name))
     }
 }
+
+#if canImport(UIKit)
+/// Reads the carousel's drag for `CommunityHighlightsPanPolicy`. The carousel's
+/// scroll view is ours, so it refuses the pan itself; the feed gallery's
+/// `FeedGalleryPanYield` needs a gate because a `TabView`'s can't be subclassed.
+@MainActor
+enum CommunityHighlightsPanYield {
+    static func shouldYield(_ scrollView: UIScrollView) -> Bool {
+        let pan = scrollView.panGestureRecognizer
+        let space: UIView = scrollView.window ?? scrollView
+        let velocity = pan.velocity(in: scrollView)
+        let navigation = NavigationGestureSettingsStore.load()
+        return CommunityHighlightsPanPolicy.yieldsToNavigation(
+            contentOffsetX: Double(scrollView.contentOffset.x),
+            maximumOffsetX: Double(scrollView.contentSize.width - scrollView.bounds.width),
+            edgeSlack: CommunityHighlights.Metrics.sidePadding,
+            velocityX: Double(velocity.x), velocityY: Double(velocity.y),
+            touchX: Double(pan.location(in: space).x - pan.translation(in: space).x),
+            viewWidth: Double(space.bounds.width),
+            navigationEnabled: navigation.pushPopSwipeGesturesEnabled,
+            backAnywhere: navigation.disableLeftSwipeGestureActions,
+            forwardAnywhere: navigation.disableRightSwipeGestureActions,
+            canGoBack: PageSwipeController.canGoBack,
+            canGoForward: ForwardNavigationStore.shared.canGoForward)
+    }
+}
+#endif
 
 /// One highlight card, as in Reborn: the post's image filling the card
 /// under a frosted, darkened scrim (a plain 10% fill without one), the

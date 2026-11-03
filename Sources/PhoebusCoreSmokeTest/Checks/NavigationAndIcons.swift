@@ -371,6 +371,47 @@ import PhoebusCore
     }
 }
 
+// MARK: - Community Highlights: Back/Forward over the carousel (Reborn #1577)
+
+@MainActor func checkCommunityHighlightsPanYield() async throws {
+    // 393pt screen, 1000pt of cards, the 16pt side padding as slack.
+    func yields(offset: Double, vx: Double, vy: Double = 20, x: Double,
+                enabled: Bool = true, backAnywhere: Bool = false, forwardAnywhere: Bool = false,
+                back: Bool = true, forward: Bool = true, maximum: Double = 607) -> Bool {
+        CommunityHighlightsPanPolicy.yieldsToNavigation(
+            contentOffsetX: offset, maximumOffsetX: maximum, edgeSlack: 16,
+            velocityX: vx, velocityY: vy, touchX: x, viewWidth: 393,
+            navigationEnabled: enabled, backAnywhere: backAnywhere, forwardAnywhere: forwardAnywhere,
+            canGoBack: back, canGoForward: forward)
+    }
+    check("at the first card a back swipe from the left edge goes back",
+          yields(offset: 0, vx: 300, x: 30))
+    check("...also when the card has come to rest a few points short of the start",
+          yields(offset: 12, vx: 300, x: 30))
+    check("...and not once the carousel has scrolled a card away",
+          !yields(offset: 170, vx: 300, x: 30))
+    check("a back swipe from mid-screen stays with the carousel unless swipe-anywhere is on",
+          !yields(offset: 0, vx: 300, x: 200) && yields(offset: 0, vx: 300, x: 200, backAnywhere: true))
+    check("a leftward swipe at the first card scrolls the carousel",
+          !yields(offset: 0, vx: -300, x: 30) && !yields(offset: 0, vx: -300, x: 200))
+    check("a diagonal swipe stays with the carousel",
+          !yields(offset: 0, vx: 300, vy: 250, x: 30))
+    check("no back swipe at the root of a stack",
+          !yields(offset: 0, vx: 300, x: 30, back: false))
+    check("at the last card a forward swipe from the right edge goes forward",
+          yields(offset: 607, vx: -300, x: 380) && yields(offset: 600, vx: -300, x: 380))
+    check("...only with a page to go forward to",
+          !yields(offset: 607, vx: -300, x: 380, forward: false))
+    check("...not from mid-screen unless swipe-anywhere is on",
+          !yields(offset: 607, vx: -300, x: 200) && yields(offset: 607, vx: -300, x: 200, forwardAnywhere: true))
+    check("a forward swipe mid-carousel scrolls it",
+          !yields(offset: 300, vx: -300, x: 380))
+    check("with page swipes off the carousel always keeps the pan",
+          !yields(offset: 0, vx: 300, x: 30, enabled: false) && !yields(offset: 607, vx: -300, x: 380, enabled: false))
+    check("cards that all fit are at both ends",
+          yields(offset: 0, vx: 300, x: 30, maximum: 0) && yields(offset: 0, vx: -300, x: 380, maximum: 0))
+}
+
 // MARK: - Whole-domain settings backup
 //
 // Like Reborn, backups cover whole preference DOMAINS rather than a

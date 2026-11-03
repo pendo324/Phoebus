@@ -20,12 +20,21 @@ import UIKit
 /// with no constraint system to arbitrate.
 struct DirectionalLockScrollView<Content: View>: UIViewRepresentable {
     let height: CGFloat
+    /// Asked as a drag begins; true refuses it, so a page swipe follows the
+    /// finger instead of the content rubber-banding.
+    var yieldsPan: (@MainActor (UIScrollView) -> Bool)?
     @ViewBuilder var content: () -> Content
 
     /// Pins `contentOffset.y` to zero at the lowest level available; every
     /// vertical movement (drag, deceleration, bounce) lands here.
     final class HorizontalOnlyScrollView: UIScrollView {
         var contentWidthProvider: (() -> CGFloat)?
+        var yieldsPan: (@MainActor (UIScrollView) -> Bool)?
+
+        override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            if gestureRecognizer === panGestureRecognizer, yieldsPan?(self) == true { return false }
+            return super.gestureRecognizerShouldBegin(gestureRecognizer)
+        }
 
         override var contentOffset: CGPoint {
             get { super.contentOffset }
@@ -77,6 +86,7 @@ struct DirectionalLockScrollView<Content: View>: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIScrollView, context: Context) {
+        (uiView as? HorizontalOnlyScrollView)?.yieldsPan = yieldsPan
         context.coordinator.host.rootView = content()
         // A hosted view does not re-measure when the SwiftUI content changes
         // size, which would leave a stale contentSize.

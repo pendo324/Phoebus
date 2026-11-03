@@ -24,6 +24,24 @@ public enum FeedPaginationPolicy {
         return index >= loadedCount - loadMoreThreshold
     }
 
+    /// Whether the next page should load because rows were just removed
+    /// (Hide Read, a hide swipe): a row only asks for more when it appears,
+    /// so a feed emptied of rows, or left with a few that never reappear,
+    /// would otherwise sit on "No posts" with its cursor unused. An empty
+    /// feed continues even with Infinite Scrolling off, as there is no row
+    /// left to carry the manual "Load Page" button.
+    public static func shouldLoadAfterRemovingRows(
+        remainingCount: Int,
+        infiniteScrollingEnabled: Bool,
+        reachedEnd: Bool,
+        isLoadingMore: Bool,
+        isLoading: Bool
+    ) -> Bool {
+        guard !reachedEnd, !isLoadingMore, !isLoading else { return false }
+        if remainingCount == 0 { return true }
+        return infiniteScrollingEnabled && remainingCount <= loadMoreThreshold
+    }
+
     /// Whether the feed should offer a manual "load next page" row (Apollo's
     /// "Double tap to load next page" cell). Without it, turning off Infinite
     /// Scrolling would dead-end the feed.

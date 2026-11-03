@@ -951,6 +951,26 @@ import PhoebusCore
     check("it never offers to load page 1 again", FeedPaginationPolicy.nextPageNumber(loadedCount: 3) == 2)
 }
 
+// MARK: - Next page after rows are removed
+//
+// Hide Read (and a hide swipe) can remove every loaded row; no row is left to
+// ask for the next page.
+@MainActor func checkNextPageAfterRemovingRows() async throws {
+    func decide(remaining: Int, infinite: Bool = true, reachedEnd: Bool = false,
+                loadingMore: Bool = false, loading: Bool = false) -> Bool {
+        FeedPaginationPolicy.shouldLoadAfterRemovingRows(
+            remainingCount: remaining, infiniteScrollingEnabled: infinite, reachedEnd: reachedEnd,
+            isLoadingMore: loadingMore, isLoading: loading)
+    }
+    check("a feed emptied of rows loads its next page", decide(remaining: 0))
+    check("...even with Infinite Scrolling off, as no manual row is left", decide(remaining: 0, infinite: false))
+    check("...but not once the listing has ended", !decide(remaining: 0, reachedEnd: true))
+    check("...nor while a page is already loading", !decide(remaining: 0, loadingMore: true) && !decide(remaining: 0, loading: true))
+    check("a few rows left at the end of the feed load more", decide(remaining: FeedPaginationPolicy.loadMoreThreshold))
+    check("...unless Infinite Scrolling is off", !decide(remaining: 3, infinite: false))
+    check("plenty of rows left wait for the scroll", !decide(remaining: FeedPaginationPolicy.loadMoreThreshold + 1))
+}
+
 // MARK: - ReachedEndCopy
 //
 // End-of-feed cell; every string is Apollo's own wording.

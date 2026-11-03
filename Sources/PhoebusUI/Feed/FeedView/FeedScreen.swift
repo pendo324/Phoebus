@@ -295,11 +295,8 @@ public struct FeedScreen: View {
                     .listRowBackground(Color.clear)
                 }
             } else if posts.isEmpty && !isLoading {
-                Text(emptyStateText)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                FeedEmptyState(paging: listing.paging, text: emptyStateText)
                     .listRowSeparator(.hidden)
-                    .accessibilityIdentifier("feed.emptyState")
             } else if posts.isEmpty && isLoading {
                 // First-page spinner: the footer spinner below only
                 // covers `isLoadingMore`, leaving the screen blank
@@ -756,6 +753,15 @@ public struct FeedScreen: View {
         .onAppear { registerForResume() }
         .onDisappear { feedResume.noteTopPost() }
         .onChange(of: sort) { _, newSort in feedResume.sort = newSort }
+        .onChange(of: posts.count) { old, new in
+            guard new < old, FeedPaginationPolicy.shouldLoadAfterRemovingRows(
+                remainingCount: new,
+                infiniteScrollingEnabled: generalSettings.infiniteScrollingEnabled,
+                reachedEnd: reachedEnd,
+                isLoadingMore: isLoadingMore,
+                isLoading: isLoading) else { return }
+            Task { await loadMore() }
+        }
         .onChange(of: selectedPost?.id) { _, _ in
             feedResume.openPost = selectedPost.map { .init(id: $0.id, subreddit: $0.subreddit) }
         }
@@ -1064,6 +1070,29 @@ private struct FeedBackButton: View {
         }
         .accessibilityLabel("Subreddits")
         .accessibilityIdentifier("feed.backToSubreddits")
+    }
+}
+
+/// The "No posts" line, or a spinner while a next page loads into a feed
+/// whose rows were all hidden.
+private struct FeedEmptyState: View {
+    @ObservedObject var paging: FeedPagingState
+    let text: String
+
+    var body: some View {
+        if paging.isLoadingMore {
+            HStack {
+                Spacer()
+                ProgressView()
+                Spacer()
+            }
+            .accessibilityIdentifier("feed.loadingMore")
+        } else {
+            Text(text)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .accessibilityIdentifier("feed.emptyState")
+        }
     }
 }
 

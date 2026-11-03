@@ -321,7 +321,7 @@ flowchart LR
 | Filters | Core `ContentFilter`, `PostFilterRules`, `TagFilterSettings`, `RESFilterImporter`, `PostRule`/`PostRuleFeed`/`PostRuleStore`; UI `PostRulesScreen`, `PostRuleEditorScreen` | Keyword/user/subreddit/flair filters, Reborn Post Filters and Tag Filters, RES filter import; Phoebus-only Post Rules (score/comment/award ranges, NSFW/spoiler only, title regex, per-feed scope; inspired by Continuum) | All run in `FeedFilterPipeline`; `FeedListingModel` skips pages the filters empty (`FeedPaginationPolicy.shouldSkipFilteredPage`) |
 | Read/recent | Core `ReadPostStore`, `RecentlyReadStore`, `RecentEntryPolicy`, `NewCommentsTracker`; UI `RecentlyReadScreen`, `HiddenPostsScreen` | Mark read / auto hide (incl. Popular and All), Recently Read, "N new comments" badge, Hidden Posts | |
 | Community Highlights | UI `CommunityHighlightsCarousel`, `CommunityHighlightsWebFetch`; Core `CommunityHighlights`, `HighlightsCollapseStore` | Reborn 3.7.0 carousel; full mode scrapes up to 6 via a hidden web view | |
-| Pagination | Core `FeedPaginationPolicy`, `PostSortMemoryStore`, `PostSizeMemoryStore`, `LastViewedSubredditStore` | Page-ahead threshold, remembered sort/size per sub, last viewed sub | |
+| Pagination | Core `FeedPaginationPolicy`, `PostSortMemoryStore`, `PostSizeMemoryStore`, `LastViewedSubredditStore` | Page-ahead threshold, remembered sort/size per sub, last viewed sub | `FeedScreen` asks `shouldLoadAfterRemovingRows` when rows leave the feed (Hide Read, hide swipes), as a feed emptied of rows has none left to request the next page |
 
 ## 3. Post detail and comments
 

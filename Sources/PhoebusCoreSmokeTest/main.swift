@@ -759,6 +759,7 @@ check("an older saved settings blob picks up the real defaults",
       !sparse.sharePostIncludesTitle)
 
 try await checkLoadNextPageCellNodeManualPagination()
+try await checkNextPageAfterRemovingRows()
 
 try await checkReachedEndCopy()
 

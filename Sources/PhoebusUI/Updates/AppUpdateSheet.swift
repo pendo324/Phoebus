@@ -28,21 +28,28 @@ struct AppUpdateSheet: View {
 
     // MARK: Summary
 
+    /// The icon, version and notes scroll above Update / Later / Skip, which stay
+    /// in reach on a short screen or at the largest Dynamic Type sizes.
     private var summary: some View {
         VStack(spacing: 16) {
-            icon
-            VStack(spacing: 4) {
-                Text("Update available")
-                    .font(.title2.weight(.bold))
-                (Text(AppUpdateCoordinator.installedVersionText) + Text(" → ")
-                    + Text(update.versionText).fontWeight(.semibold).foregroundColor(.apolloAccent))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(spacing: 16) {
+                    icon
+                    VStack(spacing: 4) {
+                        Text("Update available")
+                            .font(.title2.weight(.bold))
+                        (Text(AppUpdateCoordinator.installedVersionText) + Text(" → ")
+                            + Text(update.versionText).fontWeight(.semibold).foregroundColor(.apolloAccent))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    if !update.notes.isEmpty || update.notesURL != nil {
+                        notes
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
-            if !update.notes.isEmpty || update.notesURL != nil {
-                notes
-            }
-            Spacer(minLength: 0)
+            .scrollBounceBehaviorBasedOnSizeIfAvailable()
             VStack(spacing: 8) {
                 Button {
                     startUpdate()
@@ -99,17 +106,15 @@ struct AppUpdateSheet: View {
             Text("Release Notes")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if !update.notes.isEmpty {
-                        Text(update.notes).font(.callout)
-                    }
-                    if let url = update.notesURL {
-                        Link("Open Release Notes", destination: url).font(.callout)
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                if !update.notes.isEmpty {
+                    Text(update.notes).font(.callout)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                if let url = update.notesURL {
+                    Link("Open Release Notes", destination: url).font(.callout)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

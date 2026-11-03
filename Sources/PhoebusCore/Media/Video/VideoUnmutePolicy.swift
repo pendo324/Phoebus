@@ -19,12 +19,13 @@ public enum VideoUnmutePolicy {
     /// - `feedRememberedMuted`: the feed's own last manual choice.
     /// - `fullscreenUnmutedThisSession`: stock "Remember" keeps an
     ///   unmute until the user re-mutes or the app closes.
-    /// - `alreadyAudible`: the viewer shares the inline video's player, so
-    ///   a video already playing with sound keeps it when opened.
+    /// - `alreadyAudible`: the viewer and the post's header share the inline
+    ///   video's player, so a video already playing with sound keeps it when
+    ///   opened, as Apollo keeps the sound of a video you unmuted yourself.
     public static func startsMuted(_ context: VideoUnmuteContext, settings: GeneralSettings,
                                    feedRememberedMuted: Bool, fullscreenUnmutedThisSession: Bool,
                                    alreadyAudible: Bool = false) -> Bool {
-        if context == .fullscreen, alreadyAudible { return false }
+        if context == .fullscreen || context == .commentsHeader, alreadyAudible { return false }
         switch context {
         case .feed:
             switch settings.unmuteFeedVideosMode {

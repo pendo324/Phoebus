@@ -749,6 +749,20 @@ import PhoebusCore
     check("opening fullscreen from a video already playing with sound keeps it",
           !VideoUnmutePolicy.startsMuted(.fullscreen, settings: GeneralSettings.default, feedRememberedMuted: true,
                                          fullscreenUnmutedThisSession: false, alreadyAudible: true))
+    func headerStartsMuted(_ mode: VideoUnmuteMode, alreadyAudible: Bool) -> Bool {
+        var settings = GeneralSettings.default
+        settings.unmuteCommentsVideosMode = mode
+        return VideoUnmutePolicy.startsMuted(.commentsHeader, settings: settings, feedRememberedMuted: true,
+                                             fullscreenUnmutedThisSession: false, alreadyAudible: alreadyAudible)
+    }
+    check("opening the post of a feed video playing with sound keeps the sound, in every comments mode",
+          VideoUnmuteMode.allCases.allSatisfy { !headerStartsMuted($0, alreadyAudible: true) })
+    check("a header video nobody is playing still follows Unmute Videos in Comments",
+          headerStartsMuted(.never, alreadyAudible: false) && headerStartsMuted(.remember, alreadyAudible: false)
+              && !headerStartsMuted(.always, alreadyAudible: false))
+    check("an embedded video playing with sound is still started muted by its own context",
+          VideoUnmutePolicy.startsMuted(.embed, settings: GeneralSettings.default, feedRememberedMuted: true,
+                                        fullscreenUnmutedThisSession: false, alreadyAudible: true))
     check("fullscreen Remember keeps this session's unmute", startsMuted(.fullscreen) && !startsMuted(.fullscreen, fullscreenUnmuted: true))
     unmuteSettings.unmuteFeedVideosMode = .always
     check("the feed setting never reaches the comments header", startsMuted(.commentsHeader) && !startsMuted(.feed))

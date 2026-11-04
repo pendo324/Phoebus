@@ -15,12 +15,7 @@ public struct AccountAgeBadge: View {
 
     public var body: some View {
         if let createdAt, AccountAgeCache.isNewAccount(createdAt: createdAt) {
-            Text("NEW")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 1)
-                .background(Capsule().fill(Color.orange))
+            CommentHeaderBadge(text: "NEW", fill: Color.orange)
                 .accessibilityLabel("New account")
         }
     }

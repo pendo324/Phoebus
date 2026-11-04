@@ -306,23 +306,14 @@ struct CommentRow: View {
                     }
                     // "OP" badge next to the post's own author's comments.
                     if node.comment.isSubmitter == true {
-                        Text("OP")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(Color.apolloAccent))
+                        CommentHeaderBadge(text: "OP", fill: Color.apolloAccent)
                     }
                     // Mod/admin badge, separate from the OP badge (a moderator replying
                     // to their own post shows both).
                     if let distinguished = isDistinguished ? "moderator" : (node.comment.distinguished == "admin" ? "admin" : nil),
                        distinguished == "moderator" || distinguished == "admin", !isStickied {
-                        Text(distinguished == "moderator" ? "MOD" : "ADMIN")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(distinguished == "moderator" ? Color(hex: ApolloPalette.moderatorGreenHex) : Color.red))
+                        CommentHeaderBadge(text: distinguished == "moderator" ? "MOD" : "ADMIN",
+                                           fill: distinguished == "moderator" ? Color(hex: ApolloPalette.moderatorGreenHex) : Color.red)
                     }
                     // Reborn "New Account Highlight" (`GeneralSettings.highlightAccountAge`);
                     // see `AccountAgeBadge`.
@@ -923,6 +914,49 @@ enum FlairRuns {
     }
 }
 
+/// The byline's small capsules (OP, MOD/ADMIN, NEW). They keep their one-line
+/// width when the byline is tight: the flair and then the name give way first.
+struct CommentHeaderBadge: View {
+    let text: String
+    let fill: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(Capsule().fill(fill))
+    }
+}
+
+/// Lets its one child take less width than it needs, clipped on the right (a
+/// row of fixed-size emoji cannot shrink by itself), and none at all when
+/// under a pill's padding and one emoji, so no sliver is drawn.
+private struct FlairShrinkLayout: Layout {
+    private static let narrowest: CGFloat = 24
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let child = subviews.first else { return .zero }
+        let size = child.sizeThatFits(proposal)
+        guard let width = proposal.width else { return size }
+        return CGSize(width: width < Self.narrowest ? 0 : min(size.width, width), height: size.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading,
+                              proposal: ProposedViewSize(width: bounds.width, height: bounds.height))
+    }
+}
+
+private extension View {
+    func shrinksToFit() -> some View {
+        FlairShrinkLayout { self }.clipped()
+    }
+}
+
 /// A commenter's flair as Apollo draws it: a 16pt rounded pill (5pt
 /// corners) in #1A1A1A with #616269 text at the username's size, custom
 /// emoji as 16pt images. Reddit's `:flag-me:` codes are the emoji's
@@ -970,6 +1004,8 @@ struct CommentFlairPill: View {
             .frame(height: size + 1.5)
             .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(fill ?? Self.defaultFill))
             .fixedSize(horizontal: false, vertical: true)
+            // Apollo's flair truncates to the room the byline leaves.
+            .shrinksToFit()
         }
     }
 }

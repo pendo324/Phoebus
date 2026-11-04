@@ -69,11 +69,32 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
     typealias T = KeylessRouteTable
     func routes(_ method: String, _ path: String) -> [KeylessRoute] { T.routes(method: method, path: path) }
 
-    check("/api/info and /api/morechildren go www with /.json, then old, whatever the spelling",
+    check("/api/info goes www with /.json, then old, whatever the spelling",
           routes("GET", "/api/info") == [.wwwDotJSON, .old] && routes("GET", "/api/info.json") == [.wwwDotJSON, .old]
-            && routes("GET", "/API/Info/.json?id=t3_a") == [.wwwDotJSON, .old]
-            && routes("POST", "/api/morechildren.json") == [.wwwDotJSON, .old]
-            && routes("GET", "/api/morechildren") == [.wwwDotJSON, .old])
+            && routes("GET", "/API/Info/.json?id=t3_a") == [.wwwDotJSON, .old])
+    check("/api/morechildren, GET and POST, goes oauth first, then www with /.json, then old",
+          routes("POST", "/api/morechildren.json") == [.oauth, .wwwDotJSON, .old]
+            && routes("GET", "/api/morechildren") == [.oauth, .wwwDotJSON, .old]
+            && routes("GET", "/API/MoreChildren/.json") == [.oauth, .wwwDotJSON, .old])
+    check("hot, new and rising go oauth with the cookie, then www: the front page, a subreddit, popular and a + list",
+          ["hot", "new", "rising"].allSatisfy { sort in
+              routes("GET", "/\(sort).json") == [.oauth, .www] && routes("GET", "/r/swift/\(sort).json") == [.oauth, .www]
+                && routes("GET", "/r/popular/\(sort)") == [.oauth, .www] && routes("GET", "/R/Swift/\(sort)/.json?limit=25") == [.oauth, .www]
+                && routes("GET", "/r/swift+ios/\(sort).json") == [.oauth, .www]
+          })
+    check("...while best, top, controversial, multireddits, listings of a user and a bare subreddit stay on www",
+          ["/best.json", "/top.json", "/controversial.json", "/r/swift/best.json", "/r/swift/top.json", "/r/popular/controversial.json",
+           "/r/swift+ios/top.json", "/user/bob/m/dev/hot.json", "/user/bob/m/dev/new.json", "/user/bob/submitted.json",
+           "/r/swift.json", "/r/swift/hot/extra.json", "/r/a+/hot.json", "/r/swift/gilded.json"]
+            .allSatisfy { routes("GET", $0) == [.www] })
+    check("r/all keeps its own routes for hot, new and rising, and only GET is routed",
+          routes("GET", "/r/all/hot.json") == [.oauth, .api, .old] && routes("GET", "/r/all+pics/new.json") == [.oauth, .api, .old]
+            && ["POST", "PUT", "DELETE"].allSatisfy { routes($0, "/r/swift/hot.json") == [.www] && routes($0, "/hot.json") == [.www] }
+            && T.mayResend(method: "GET", path: "/r/swift/hot.json") && !T.mayResend(method: "GET", path: "/r/swift/best.json"))
+    check("hot, new and rising share one health record per entry, not one per subreddit",
+          T.entry(method: "GET", path: "/r/swift/hot.json")?.pattern == "/r/*/hot"
+            && T.entry(method: "GET", path: "/r/ios/hot.json")?.pattern == "/r/*/hot"
+            && T.entry(method: "GET", path: "/r/a+b/new.json")?.pattern == "/r/+/new" && T.entry(method: "GET", path: "/rising.json")?.pattern == "/rising")
     check("post and subreddit search go oauth with the cookie, then old",
           routes("GET", "/search.json") == [.oauth, .old] && routes("GET", "/subreddits/search.json") == [.oauth, .old]
             && routes("GET", "/r/swift/search.json") == [.oauth, .old] && routes("GET", "/r/swift+ios/search.json") == [.oauth, .old])
@@ -84,11 +105,11 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
           routes("GET", "/r/all-funny/hot.json") == [.oauth, .api, .old] && routes("GET", "/r/all+pics/new.json") == [.oauth, .api, .old]
             && routes("GET", "/r/all-funny-pics/top.json") == [.oauth, .api, .old]
             && routes("GET", "/r/all/search.json") == [.oauth, .api, .old])
-    check("everything else stays on www, popular and single subreddits included",
-          routes("GET", "/r/popular/hot.json") == [.www] && routes("GET", "/r/allergies/hot.json") == [.www]
-            && routes("GET", "/r/swift+ios/hot.json") == [.www] && routes("GET", "/user/x/submitted.json") == [.www]
+    check("everything else stays on www, popular's top and a subreddit's comments included",
+          routes("GET", "/r/popular/top.json") == [.www] && routes("GET", "/r/allergies/best.json") == [.www]
+            && routes("GET", "/r/swift+ios/controversial.json") == [.www] && routes("GET", "/user/x/submitted.json") == [.www]
             && routes("GET", "/comments/abc.json") == [.www] && routes("GET", "/r/swift/comments/abc.json") == [.www]
-            && routes("GET", "/api/me.json") == [.www] && routes("GET", "/hot.json") == [.www])
+            && routes("GET", "/api/me.json") == [.www] && routes("GET", "/best.json") == [.www])
     check("a search with a different segment count is not a search entry",
           routes("GET", "/search/extra.json") == [.www] && routes("GET", "/r/swift/search/extra.json") == [.www])
     check("no write has a second route, and the morechildren POST is the only POST with one",
@@ -178,8 +199,8 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
     health.noteSuccess(account: "alice", method: "GET", path: "/r/all/hot.json", route: .oauth)
     check("a success puts the route back", choose("alice", "/r/all/hot.json", now: 5) == .oauth)
     check("an endpoint with one route is always www and keeps no record",
-          health.choose(account: "alice", method: "GET", path: "/r/popular/hot.json", tried: [], now: 0) == .www
-            && !health.noteRefusal(account: "alice", method: "GET", path: "/r/popular/hot.json", route: .www, now: 0))
+          health.choose(account: "alice", method: "GET", path: "/r/popular/top.json", tried: [], now: 0) == .www
+            && !health.noteRefusal(account: "alice", method: "GET", path: "/r/popular/top.json", route: .www, now: 0))
 }
 
 @MainActor func checkKeylessRouteFallbackRequests() async throws {
@@ -250,13 +271,80 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
 
     // morechildren: a POST that only reads is resent with its body.
     KeylessRouteHealth.shared.reset()
-    reset(refusing(["www.reddit.com"]))
+    reset(refusing([]))
+    _ = try await client.post(path: "/api/morechildren.json", parameters: ["link_id": "t3_a", "children": "b,c"])
+    check("the morechildren POST goes to oauth.reddit.com first, with the cookie and no bearer",
+          hosts() == ["oauth.reddit.com"] && paths() == ["/api/morechildren.json"]
+            && Stub.captured[0].headers["Cookie"] == "reddit_session=abc; loid=1" && Stub.captured[0].headers["Authorization"] == nil)
+    reset(refusing(["oauth.reddit.com", "www.reddit.com"]))
     let more = try await client.post(path: "/api/morechildren.json", parameters: ["link_id": "t3_a", "children": "b,c"])
-    check("the morechildren POST is resent to old.reddit.com with the same form body",
-          hosts() == ["www.reddit.com", "old.reddit.com"] && Stub.captured.map(\.method) == ["POST", "POST"]
-            && paths() == ["/api/morechildren/.json", "/api/morechildren.json"]
-            && Stub.captured[0].body == Stub.captured[1].body && body(Stub.captured[1].body).contains("children=b%2Cc")
-            && Stub.captured[1].headers["X-Modhash"] == "mh" && body(more).contains("old.reddit.com"))
+    check("a refused morechildren POST is resent to www as /.json, then to old.reddit.com, with the same form body",
+          hosts() == ["oauth.reddit.com", "www.reddit.com", "old.reddit.com"] && Stub.captured.map(\.method) == ["POST", "POST", "POST"]
+            && paths() == ["/api/morechildren.json", "/api/morechildren/.json", "/api/morechildren.json"]
+            && Stub.captured[0].body == Stub.captured[2].body && body(Stub.captured[2].body).contains("children=b%2Cc")
+            && Stub.captured[2].headers["X-Modhash"] == "mh" && body(more).contains("old.reddit.com"))
+    KeylessRouteHealth.shared.reset()
+    reset(refusing(["oauth.reddit.com"]))
+    _ = try await client.get(path: "/api/morechildren.json", parameters: ["link_id": "t3_a", "children": "b"])
+    check("...and the GET form the same way", hosts() == ["oauth.reddit.com", "www.reddit.com"] && paths().last == "/api/morechildren/.json")
+
+    // hot, new and rising: oauth with the cookie, then www.
+    KeylessRouteHealth.shared.reset()
+    reset(refusing([]))
+    let hot = try await client.get(path: "/r/popular/hot", parameters: ["limit": "25"])
+    check("a subreddit's hot feed goes to oauth.reddit.com with the cookie, no bearer and the browser identity",
+          hosts() == ["oauth.reddit.com"] && paths() == ["/r/popular/hot.json"] && body(hot).contains("oauth.reddit.com")
+            && Stub.captured[0].headers["Cookie"] == "reddit_session=abc; loid=1" && Stub.captured[0].headers["Authorization"] == nil
+            && Stub.captured[0].headers["User-Agent"] == RedditAPIClient.webBrowserUserAgent
+            && Stub.captured[0].url.query?.contains("limit=25") == true)
+    for path in ["/hot", "/new", "/rising", "/r/swift/new", "/r/swift/rising", "/r/swift+ios/hot"] {
+        reset(refusing(["oauth.reddit.com"]))
+        _ = try await client.get(path: path, parameters: ["limit": "25"])
+        check("a refused \(path) falls back to www.reddit.com",
+              hosts() == ["oauth.reddit.com", "www.reddit.com"] && paths() == [path + ".json", path + ".json"]
+                && Stub.captured[1].headers["Cookie"] == "reddit_session=abc; loid=1")
+    }
+    KeylessRouteHealth.shared.reset()
+    reset(refusing([]))
+    for path in ["/best", "/r/swift/top", "/r/swift/controversial", "/user/bob/m/dev/hot"] {
+        _ = try await client.get(path: path)
+    }
+    check("best, top, controversial and a multireddit's hot feed still go to www alone",
+          hosts() == Array(repeating: "www.reddit.com", count: 4))
+    KeylessRouteHealth.shared.reset()
+    reset { request in
+        request.url?.host == "oauth.reddit.com" || request.url?.host == "www.reddit.com"
+            ? Stub.Reply(status: 403, contentType: "text/html; charset=utf-8", body: "<body class=theme-beta><div><style>.x{}</style>You've been blocked by network security.</div></body>")
+            : Stub.Reply(body: "{}")
+    }
+    var blockedFeed: Error?
+    do { _ = try await client.get(path: "/r/inthenews/hot", parameters: ["limit": "25"]) } catch { blockedFeed = error }
+    check("when oauth and www both answer with the bare <body> block page the feed fails with it, and says Reddit blocked it",
+          hosts() == ["oauth.reddit.com", "www.reddit.com"] && status(of: blockedFeed) == 403
+            && blockedFeed.flatMap { UserFacingError.message(for: $0) } == "Reddit blocked this request. Try again in a while."
+            && FeedErrorCopy.message(status: 403, body: { if case RedditAPIError.httpError(_, let b)? = blockedFeed as? RedditAPIError { return b } else { return "" } }(), subreddit: "inthenews")
+            == "Reddit blocked this request, so r/inthenews couldn't load. Try again in a while.")
+    KeylessRouteHealth.shared.reset()
+    reset(refusing(["oauth.reddit.com"]))
+    for path in ["/r/inthenews/hot", "/r/pics/hot", "/r/other/hot"] { _ = try await client.get(path: path) }
+    reset(refusing(["oauth.reddit.com"]))
+    _ = try await client.get(path: "/r/news/hot")
+    check("three refusals put oauth on cooldown for every subreddit's hot feed: the next read goes straight to www",
+          hosts() == ["www.reddit.com"])
+    KeylessRouteHealth.shared.reset()
+    reset { _ in Stub.Reply(status: 403, contentType: "application/json; charset=UTF-8", body: #"{"reason": "private", "message": "Forbidden", "error": 403}"#) }
+    var privateFeed: Error?
+    do { _ = try await client.get(path: "/r/secret/hot") } catch { privateFeed = error }
+    check("a private subreddit's JSON 403 on hot is the answer, not resent, and still says private",
+          hosts() == ["oauth.reddit.com"] && status(of: privateFeed) == 403
+            && { if case RedditAPIError.httpError(_, let b)? = privateFeed as? RedditAPIError {
+                    return FeedErrorCopy.message(status: 403, body: b, subreddit: "secret") == "r/secret has been set to private by its subreddit moderators"
+                } else { return false } }())
+    KeylessRouteHealth.shared.reset()
+    reset(refusing(["www.reddit.com", "oauth.reddit.com"]))
+    var postedHot: Error?
+    do { _ = try await client.post(path: "/r/swift/hot", parameters: [:]) } catch { postedHot = error }
+    check("a POST to a hot path is never resent", hosts() == ["www.reddit.com"] && status(of: postedHot) == 403)
 
     // Search: oauth with the cookie and no bearer, then old.
     KeylessRouteHealth.shared.reset()
@@ -330,8 +418,8 @@ private let blockPage = KeylessRouteStub.Reply(status: 403, contentType: "text/h
 
     // Reads that have no second route are unchanged.
     reset(refusing([]))
-    _ = try await client.get(path: "/r/popular/hot", parameters: ["limit": "25"])
-    check("a listing with no entry still goes to www as <path>.json", hosts() == ["www.reddit.com"] && paths() == ["/r/popular/hot.json"])
+    _ = try await client.get(path: "/r/popular/top", parameters: ["limit": "25"])
+    check("a listing with no entry still goes to www as <path>.json", hosts() == ["www.reddit.com"] && paths() == ["/r/popular/top.json"])
 
     // An API-key account has none of this.
     let credentials = InMemoryCredentialStore()

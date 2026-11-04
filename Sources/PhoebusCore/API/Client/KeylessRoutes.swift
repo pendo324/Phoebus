@@ -49,23 +49,29 @@ public struct KeylessRouteEntry: Sendable, Equatable {
 }
 
 public enum KeylessRouteTable {
-    private static let infoAndMoreChildren: [KeylessRoute] = [.wwwDotJSON, .old]
+    private static let info: [KeylessRoute] = [.wwwDotJSON, .old]
+    private static let moreChildren: [KeylessRoute] = [.oauth, .wwwDotJSON, .old]
     private static let search: [KeylessRoute] = [.oauth, .old]
     private static let rAll: [KeylessRoute] = [.oauth, .api, .old]
+    private static let hotNewRising: [KeylessRoute] = [.oauth, .www]
 
     /// Reads www refuses at their usual path. `/api/morechildren` is a POST
     /// that only reads; no write is ever listed, so none is ever resent.
+    /// The hot, new and rising sorts name the sort, so they beat a wildcard
+    /// entry such as `/r/all/*` only where it is less specific.
     public static let builtIn: [KeylessRouteEntry] = [
-        KeylessRouteEntry(method: "GET", pattern: "/api/info", routes: infoAndMoreChildren),
-        KeylessRouteEntry(method: "GET", pattern: "/api/morechildren", routes: infoAndMoreChildren),
-        KeylessRouteEntry(method: "POST", pattern: "/api/morechildren", routes: infoAndMoreChildren),
+        KeylessRouteEntry(method: "GET", pattern: "/api/info", routes: info),
+        KeylessRouteEntry(method: "GET", pattern: "/api/morechildren", routes: moreChildren),
+        KeylessRouteEntry(method: "POST", pattern: "/api/morechildren", routes: moreChildren),
         KeylessRouteEntry(method: "GET", pattern: "/r/all", routes: rAll),
         KeylessRouteEntry(method: "GET", pattern: "/r/all/*", routes: rAll),
         KeylessRouteEntry(method: "GET", pattern: "/search", routes: search),
         KeylessRouteEntry(method: "GET", pattern: "/subreddits/search", routes: search),
         KeylessRouteEntry(method: "GET", pattern: "/r/*/search", routes: search),
         KeylessRouteEntry(method: "GET", pattern: "/r/+/search", routes: search),
-    ]
+    ] + ["hot", "new", "rising"].flatMap { sort in
+        ["/\(sort)", "/r/*/\(sort)", "/r/+/\(sort)"].map { KeylessRouteEntry(method: "GET", pattern: $0, routes: hotNewRising) }
+    }
 
     /// `/api/info` for `api/info.json`, `/api/info/.json?id=…`, `/API/Info/`
     /// and so on: lowercased, one leading slash, no query, `.json` or

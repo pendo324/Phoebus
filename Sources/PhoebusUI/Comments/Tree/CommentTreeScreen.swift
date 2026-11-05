@@ -405,15 +405,19 @@ struct CommentTreeContent: View {
                     .apolloSwipeActions(settings: interactionPolicy(for: node).restricting(swipeSettings), subject: SwipeSubject(comment: node.comment)) { action in
                         Task { await handleSwipeAction(action, on: node) }
                     }
+                    // The row's own insets, inside the cell: the list measures every cell at its
+                    // full width, whatever depth or collapse state the cell showed before.
+                    .padding(EdgeInsets(top: node.isCollapsed ? 10.5 : 10, leading: CommentRowMetrics.leadingInset(depth: node.depth), bottom: node.isCollapsed ? 10.5 : 11, trailing: 16))
                     // Apollo's hairline sits on top of each row, starting at that row's own
                     // indent (the depth bar's x), and runs to the screen edge.
                     .listRowSeparator(.hidden)
                     // Reborn tints a recovered comment's whole cell.
                     .listRowBackground(recoveredHighlight(for: node))
-                    .listRowInsets(EdgeInsets(top: node.isCollapsed ? 10.5 : 10, leading: CommentRowMetrics.leadingInset(depth: node.depth), bottom: node.isCollapsed ? 10.5 : 11, trailing: 16))
+                    .listRowInsets(EdgeInsets())
                     // A collapsed row is 48pt between rules.
                     .overlay(alignment: .top) {
-                        rowRule(depth: node.depth, topInset: node.isCollapsed ? 10.5 : 10)
+                        rowRule(depth: node.depth, topInset: 0, trailingBleed: 0)
+                            .padding(.leading, CommentRowMetrics.leadingInset(depth: node.depth))
                     }
                     // Changes with each collapse toggle; see
                     // `CommentTreeStore.rowGeneration`.
@@ -498,11 +502,11 @@ struct CommentTreeContent: View {
 
     /// The hairline above a comment-list row, from its indent to the
     /// screen's trailing edge.
-    private func rowRule(depth: Int, topInset: CGFloat) -> some View {
+    private func rowRule(depth: Int, topInset: CGFloat, trailingBleed: CGFloat = 16) -> some View {
         Rectangle()
             .fill(Color.apolloSeparator(colorScheme: colorScheme))
             .frame(height: 1.0 / 3.0)
-            .padding(.trailing, -16)
+            .padding(.trailing, -trailingBleed)
             .offset(y: -topInset)
     }
 

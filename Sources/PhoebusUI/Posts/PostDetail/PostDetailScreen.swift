@@ -304,6 +304,7 @@ public struct PostDetailScreen: View {
             // replies" row is 39pt and a collapsed comment 48pt, both
             // under the List's default 44pt floor.
             .environment(\.defaultMinListRowHeight, 1)
+            .guardsStaleRowHeights()
             // Stock dark surface + Pure Black tiers.
             .scrollContentBackground(.hidden)
             .apolloStockSurface()

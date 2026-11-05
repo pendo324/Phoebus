@@ -69,6 +69,7 @@ public struct CommentTreeScreen: View {
             }
             // See `PostDetailScreen`: comment rows size to their content.
             .environment(\.defaultMinListRowHeight, 1)
+            .guardsStaleRowHeights()
             // See `PostDetailScreen`: room under the last comment.
             .modifier(ApolloTabBarClearance())
             // Status-bar tap to the top and back, as in `PostDetailScreen`.

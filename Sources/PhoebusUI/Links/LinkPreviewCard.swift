@@ -89,10 +89,13 @@ public struct LinkPreviewCard: View {
             } else if loaded {
                 ApolloLinkButton(url: url)
             } else {
+                // In Full mode the placeholder is the full card's shape, so the row does not
+                // grow by the image and caption when the preview arrives.
                 LinkPreviewCardContent(preview: LinkPreview(siteName: LinkPreviewHosts.displayHost(url),
                                                             title: "Loading the link's preview",
                                                             description: "A line of description"),
-                                       url: url, layout: .compact, cardColorHex: settings.cardColorHex)
+                                       url: url, layout: mode == .full && !forceCompact ? .full : .compact,
+                                       cardColorHex: settings.cardColorHex)
                     .redacted(reason: .placeholder)
             }
         }

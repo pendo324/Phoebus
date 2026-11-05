@@ -1,6 +1,55 @@
 import Foundation
 import PhoebusCore
 
+// MARK: - Inline YouTube Player
+//
+// Media > YouTube: with the switch off a YouTube video is a thumbnail that
+// opens YouTube, and nothing creates the embedded player.
+@MainActor func checkInlineYouTubePlayerSetting() async throws {
+    typealias Policy = YouTubeInlinePolicy
+    let watch = URL(string: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")!
+    var settings = GeneralSettings.default
+
+    check("Inline YouTube Player defaults on", settings.inlineYouTubePlayer)
+    check("on, a YouTube link plays inline", Policy.presentation(for: watch, settings: settings) == .inlinePlayer
+          && Policy.presentation(for: watch, settings: settings)?.createsPlayer == true)
+    settings.inlineYouTubePlayer = false
+    check("off, it is a thumbnail that opens the link and creates no player",
+          Policy.presentation(for: watch, settings: settings) == .thumbnailOpensLink
+            && Policy.presentation(for: watch, settings: settings)?.createsPlayer == false)
+    check("off covers youtu.be, Shorts and mobile links alike",
+          ["https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+           "https://m.youtube.com/watch?v=dQw4w9WgXcQ"]
+            .allSatisfy { Policy.presentation(for: URL(string: $0)!, settings: settings) == .thumbnailOpensLink })
+    check("a link that isn't a YouTube video has no YouTube presentation",
+          ["https://example.com/watch?v=dQw4w9WgXcQ", "https://www.youtube.com/@channel",
+           "https://www.youtube.com/", "https://notyoutube.com/watch?v=dQw4w9WgXcQ"]
+            .allSatisfy { Policy.presentation(for: URL(string: $0)!, settings: .default) == nil })
+    settings.openVideosInYouTubeApp = true
+    check("Open Videos in YouTube App stays a thumbnail for the app, whatever the inline switch says",
+          Policy.presentation(for: watch, settings: settings) == .thumbnailOpensYouTubeApp
+            && Policy.presentation(inlinePlayerEnabled: true, openInYouTubeApp: true) == .thumbnailOpensYouTubeApp)
+    check("only the inline player uses the YouTube sign-in",
+          Policy.usesYouTubeSignIn(.inlinePlayer) && !Policy.usesYouTubeSignIn(.thumbnailOpensLink)
+            && !Policy.usesYouTubeSignIn(.thumbnailOpensYouTubeApp))
+
+    // Stored with the neighbouring Media switches: in the settings blob and backups, per account.
+    let decoded = try JSONDecoder().decode(GeneralSettings.self, from: Data("{}".utf8))
+    check("a settings blob or an old backup without the key reads on", decoded.inlineYouTubePlayer)
+    let saved = GeneralSettingsStore.load()
+    var off = saved
+    off.inlineYouTubePlayer = false
+    GeneralSettingsStore.save(off)
+    let backup = try BackupBundle.decode(from: try BackupBundle.captureCurrent().encoded())
+    check("Inline YouTube Player round-trips through a settings backup",
+          backup.generalSettings.inlineYouTubePlayer == false)
+    GeneralSettingsStore.save(saved)
+    check("a per-account override names the field",
+          AccountSettingsOverrides.field(of: \GeneralSettings.inlineYouTubePlayer, in: .default) == "inlineYouTubePlayer")
+    check("the Media screen lists a YouTube section",
+          SettingsCategory.media.sections.contains { $0.title == "YouTube" })
+}
+
 // MARK: - Sign in to YouTube
 //
 // The player runs as the user's Google account once its web views hold a

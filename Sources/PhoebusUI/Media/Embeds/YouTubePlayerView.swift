@@ -14,31 +14,43 @@ public struct YouTubePlayerView: View {
     var votePost: RedditPost?
     var repository: RedditRepository?
     var onJumpToComments: (() -> Void)?
+    /// Opens a link through the user's link settings (Open Links In), for the
+    /// thumbnail shown while the inline player is off.
+    var onOpenLink: ((URL) -> Void)?
     @State private var unplayableInline = false
     @Environment(\.openURL) private var openURL
     @Setting(GeneralSettingsStore.storage) private var settings
 
     public init(videoID: String, startSeconds: Int = 0, votePost: RedditPost? = nil,
-                repository: RedditRepository? = nil, onJumpToComments: (() -> Void)? = nil) {
+                repository: RedditRepository? = nil, onJumpToComments: (() -> Void)? = nil,
+                onOpenLink: ((URL) -> Void)? = nil) {
         self.videoID = videoID
         self.startSeconds = startSeconds
         self.votePost = votePost
         self.repository = repository
         self.onJumpToComments = onJumpToComments
+        self.onOpenLink = onOpenLink
     }
 
     public var body: some View {
         Group {
-            // Apollo's OpenVideosInYouTubeApp setting: hands off to the native
-            // YouTube app (via Universal Links) instead of playing inline.
-            if settings.openVideosInYouTubeApp {
+            switch YouTubeInlinePolicy.presentation(settings: settings) {
+            case .thumbnailOpensYouTubeApp:
+                // Apollo's OpenVideosInYouTubeApp setting: hands off to the native
+                // YouTube app (via Universal Links) instead of playing inline.
                 openInYouTubeAppPrompt(caption: nil)
-            } else if unplayableInline {
-                openInYouTubeAppPrompt(caption: "Can't play here. Watch on YouTube")
-            } else {
-                YouTubeInlinePlayer(videoID: videoID, startSeconds: startSeconds, votePost: votePost,
-                                    repository: repository, onJumpToComments: onJumpToComments) {
-                    unplayableInline = true
+            case .thumbnailOpensLink:
+                // Phoebus's Inline YouTube Player off: no embed, web view or
+                // sign-in until the thumbnail is tapped.
+                openThumbnail(caption: nil, opensLinkSettings: true)
+            case .inlinePlayer:
+                if unplayableInline {
+                    openInYouTubeAppPrompt(caption: "Can't play here. Watch on YouTube")
+                } else {
+                    YouTubeInlinePlayer(videoID: videoID, startSeconds: startSeconds, votePost: votePost,
+                                        repository: repository, onJumpToComments: onJumpToComments) {
+                        unplayableInline = true
+                    }
                 }
             }
         }
@@ -48,16 +60,19 @@ public struct YouTubePlayerView: View {
     /// YouTube App" is on. A poster rather than text, because the setting means
     /// "open in the app when I tap it": nothing launches until the user taps.
     private func openInYouTubeAppPrompt(caption: String?) -> some View {
+        openThumbnail(caption: caption, opensLinkSettings: false)
+    }
+
+    private func openThumbnail(caption: String?, opensLinkSettings: Bool) -> some View {
         Button {
-            if let url = YouTubeURLParser.nativeAppURL(forVideoID: videoID) {
-                openURL(url)
-            }
+            guard let url = YouTubeURLParser.nativeAppURL(forVideoID: videoID, startSeconds: startSeconds) else { return }
+            if opensLinkSettings, let onOpenLink { onOpenLink(url) } else { openURL(url) }
         } label: {
             YouTubePoster(videoID: videoID, caption: caption)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Play on YouTube")
-        .accessibilityIdentifier("youtube.openInApp")
+        .accessibilityIdentifier(opensLinkSettings ? "youtube.openLink" : "youtube.openInApp")
     }
 
     /// Extracts an 11-character YouTube video ID from any common YouTube URL

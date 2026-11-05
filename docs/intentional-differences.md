@@ -220,6 +220,14 @@ Apollo or Reborn, add an entry here.
   YouTube logo shows at the bottom-left of the picture (inline, fullscreen
   and on the card); tapping it opens the video on YouTube at the current
   time.
+- **The inline YouTube player can be turned off.** Settings > Media >
+  YouTube > Inline YouTube Player (default on). Off, a YouTube post shows
+  the video's thumbnail with a play button instead of the player, loads
+  nothing from YouTube but that image until it is tapped, and a tap opens
+  the video through Open Links In (or the YouTube app when Open in App >
+  YouTube is on). The fullscreen viewer is the same web view as the inline
+  player, so it is not offered without it. Open in App > YouTube still wins
+  over the inline player. Apollo and Reborn always play inline.
 - **You can sign in to YouTube for the player.** Settings > Accounts & Security >
   YouTube signs the player in as your Google account
   (YouTube Premium without ads, watch history, age-restricted videos), by

@@ -303,6 +303,7 @@ struct PerAccountSettingsSections: View {
 /// Phoebus-only: signs the YouTube player in as the user's Google account.
 struct YouTubeSections: View {
     @StateObject private var youTube = YouTubeAccount.shared
+    @Setting(GeneralSettingsStore.storage) private var general
     @State private var isShowingYouTubeSignIn = false
     @State private var isShowingYouTubeImport = false
     @State private var isConfirmingYouTubeSignOut = false
@@ -343,7 +344,9 @@ struct YouTubeSections: View {
             Text("YouTube")
                 .apolloSectionHeader()
         } footer: {
-            Text("Plays YouTube videos as your Google account: Premium without ads, watch history, age-restricted videos. Also turn on \"Allow Cross-Website Tracking\" for Phoebus in iOS Settings, or iOS hides the sign-in from the player. Kept apart from the in-app browser and Reddit.")
+            Text("Plays YouTube videos as your Google account: Premium without ads, watch history, age-restricted videos. Also turn on \"Allow Cross-Website Tracking\" for Phoebus in iOS Settings, or iOS hides the sign-in from the player. Kept apart from the in-app browser and Reddit."
+                 + (YouTubeInlinePolicy.usesYouTubeSignIn(YouTubeInlinePolicy.presentation(settings: general))
+                    ? "" : "\n\nVideos open outside the app right now (Inline YouTube Player in Media, or Open in App \u{2192} YouTube), so this sign-in isn't used."))
                 .apolloSectionFooter()
         }
         .sheet(isPresented: $isShowingYouTubeSignIn) { YouTubeSignInSheet() }

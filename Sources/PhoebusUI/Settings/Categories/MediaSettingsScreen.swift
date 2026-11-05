@@ -18,6 +18,7 @@ public struct MediaSettingsScreen: View {
         List {
             browsingSection
             playbackSection
+            youTubeSection
             nsfwSection
             savingSection
             pictureInPictureSection
@@ -144,6 +145,21 @@ public struct MediaSettingsScreen: View {
                 .apolloSectionHeader()
         } footer: {
             Text("Unmute Videos in Feed: Never keeps feed videos silent, Always plays every one with sound, and Remember follows the last video you muted or unmuted yourself. Only one feed video plays sound at a time. Hold for Video Speed: press and hold the right side of a fullscreen video to play it at the chosen speed.\n\nDefault Playback Speed: every video starts at this speed; releasing Hold for Video Speed returns to it. Loop Videos: turn off to stop every video at its end, including silent ones; while on, videos with sound loop only with Loop Videos with Audio. Seek Interval: how far the fullscreen viewer's skip buttons jump.")
+                .apolloSectionFooter()
+        }
+    }
+
+    /// Phoebus-only: Apollo and Reborn always play YouTube in the post.
+    private var youTubeSection: some View {
+        Section {
+            Toggle("Inline YouTube Player", isOn: $settings.inlineYouTubePlayer)
+                .accessibilityIdentifier("media.inlineYouTubePlayer")
+                .apolloSearchRow("Inline YouTube Player", lastBeforeFooter: true)
+        } header: {
+            Text("YouTube")
+                .apolloSectionHeader()
+        } footer: {
+            Text("Plays a YouTube video in its post with Phoebus's own controls. Off, the post shows the video's thumbnail with a play button, and nothing is loaded from YouTube until you tap it. Tapping opens the video the way your other links open (Links & Sharing), or in the YouTube app if Open in App > YouTube is on. Links in comments and feed rows look the same either way.")
                 .apolloSectionFooter()
         }
     }

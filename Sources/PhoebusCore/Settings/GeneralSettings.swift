@@ -444,6 +444,10 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     /// false) — when true, tapping a YouTube link opens the native app
     /// instead of playing inline via the embedded IFrame player.
     public var openVideosInYouTubeApp: Bool
+    /// "Inline YouTube Player" (Media > YouTube), default on. Off keeps a
+    /// YouTube video a thumbnail that opens YouTube (`YouTubeInlinePolicy`).
+    /// Apollo and Reborn always play inline, so there is no stock key.
+    public var inlineYouTubePlayer: Bool = true
     /// Reborn "Show User Profile Pictures": small avatar next to author
     /// usernames. Off by default (extra network cost).
     public var showUserProfilePictures: Bool
@@ -1130,6 +1134,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         thumbnailSize = try container.decode(.thumbnailSize, default: d, \.thumbnailSize)
         postDisplayStyle = try container.decode(.postDisplayStyle, default: d, \.postDisplayStyle)
         openVideosInYouTubeApp = try container.decode(.openVideosInYouTubeApp, default: d, \.openVideosInYouTubeApp)
+        inlineYouTubePlayer = try container.decode(.inlineYouTubePlayer, default: d, \.inlineYouTubePlayer)
         showUserProfilePictures = try container.decode(.showUserProfilePictures, default: d, \.showUserProfilePictures)
         showRichLinkPreviews = try container.decode(.showRichLinkPreviews, default: d, \.showRichLinkPreviews)
         linkPreviewStyle = try container.decode(.linkPreviewStyle, default: d, \.linkPreviewStyle)

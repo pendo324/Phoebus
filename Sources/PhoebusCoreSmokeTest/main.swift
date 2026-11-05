@@ -482,6 +482,7 @@ try await checkYouTubePlaysWithTheAppSControls()
 try await checkYouTubeVideoElementIsTheSourceOfTruth()
 
 try await checkSignInToYouTube()
+try await checkInlineYouTubePlayerSetting()
 
 try await checkSettingsRootRowsAreInThe()
 

@@ -174,6 +174,7 @@ extension SettingsSearch {
         SettingsSearchEntry(title: "Hold for Video Speed", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Hold for Video Speed"),
         SettingsSearchEntry(title: "Loop Videos", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Loop Videos"),
         SettingsSearchEntry(title: "Loop Videos with Audio", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Loop Videos with Audio"),
+        SettingsSearchEntry(title: "Inline YouTube Player", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Inline YouTube Player"),
         SettingsSearchEntry(title: "Save to “Phoebus” Album", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Save to “Phoebus” Album"),
         SettingsSearchEntry(title: "Proxy Imgur via DuckDuckGo", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Proxy Imgur via DuckDuckGo"),
         SettingsSearchEntry(title: "Album Fallback Proxies", breadcrumb: "Settings → Media", screen: .categoryMedia, rowTitle: "Album Fallback Proxies"),

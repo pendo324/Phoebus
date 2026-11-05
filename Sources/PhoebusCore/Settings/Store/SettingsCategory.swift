@@ -200,6 +200,7 @@ public enum SettingsCategory: String, CaseIterable, Sendable, Identifiable {
             return [
                 .init("Browsing"),
                 .init("Playback"),
+                .init("YouTube"),
                 .init("NSFW Media"),
                 .init("Saving"),
                 .init("Miniplayer", drillDowns: [.pictureInPicture]),

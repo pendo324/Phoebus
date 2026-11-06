@@ -217,13 +217,36 @@ public enum RedditMediaTokens {
         return text
     }
 
-    /// The file each `![img](<id>)` token names, from the comment's
-    /// `media_metadata`: `i.redd.it/<id>.<ext>` with the extension its MIME
-    /// type gives (the jpeg guess 404s for a png upload), or the GIF's own
-    /// URL. Items Reddit hasn't finished processing are left out.
-    public static func imageURLs(from metadata: [String: GalleryMediaItem]?) -> [String: String] {
-        guard let metadata else { return [:] }
+    private static let uploadPattern = try! NSRegularExpression(
+        pattern: #"https?://(?:preview|i)\.redd\.it/([A-Za-z0-9]{8,20})\.(jpe?g|png|gif|webp)\b"#, options: [.caseInsensitive])
+
+    /// The uploaded images a post's markdown links, `i.redd.it/<id>.<ext>`
+    /// by media id. A post opened from a listing can still carry the
+    /// `*Processing img <id>...*` placeholders and no `media_metadata`,
+    /// while its comments response holds the same images as
+    /// `preview.redd.it/<id>.<ext>` links: the only place the real
+    /// extension is written (i.redd.it 404s for any other).
+    public static func uploadedImageURLs(inBody body: String) -> [String: String] {
+        guard body.contains("redd.it/") else { return [:] }
         var urls: [String: String] = [:]
+        let range = NSRange(body.startIndex..., in: body)
+        for match in uploadPattern.matches(in: body, range: range) {
+            guard let id = Range(match.range(at: 1), in: body), let ext = Range(match.range(at: 2), in: body) else { continue }
+            urls[String(body[id])] = "https://i.redd.it/\(body[id]).\(body[ext].lowercased())"
+        }
+        return urls
+    }
+
+    /// The file each `![img](<id>)` token names, from the comment's
+    /// `media_metadata`: `i.redd.it/<id>.<ext>` with the extension the
+    /// entry's own `s.u` link has, else its MIME type (the jpeg guess 404s
+    /// for a png upload), or the GIF's own URL. Items Reddit hasn't
+    /// finished processing are left out, and `uploaded` (see
+    /// `uploadedImageURLs`) names the files metadata doesn't.
+    public static func imageURLs(from metadata: [String: GalleryMediaItem]?,
+                                 uploaded: [String: String] = [:]) -> [String: String] {
+        var urls = uploaded
+        guard let metadata else { return urls }
         for (id, item) in metadata where item.status == nil || item.status == "valid" {
             if item.kind == "AnimatedImage", let gif = item.source?.gifURL {
                 let gifURL = gif.replacingOccurrences(of: "&amp;", with: "&")
@@ -234,15 +257,28 @@ public enum RedditMediaTokens {
                 continue
             }
             let ext: String
-            switch item.mimeType?.lowercased() {
-            case "image/png": ext = "png"
-            case "image/gif": ext = "gif"
-            case "image/webp": ext = "webp"
-            default: ext = "jpeg"
+            if let named = linkedExtension(item.source?.url) {
+                ext = named
+            } else {
+                switch item.mimeType?.lowercased() {
+                case "image/png": ext = "png"
+                case "image/gif": ext = "gif"
+                case "image/webp": ext = "webp"
+                case "image/jpg": ext = "jpg"
+                default: ext = "jpeg"
+                }
             }
             urls[id] = "https://i.redd.it/\(id).\(ext)"
         }
         return urls
+    }
+
+    /// The image extension of an `s.u` link on Reddit's image hosts.
+    private static func linkedExtension(_ link: String?) -> String? {
+        guard let link, let url = URL(string: link.replacingOccurrences(of: "&amp;", with: "&")),
+              let host = url.host?.lowercased(), host == "preview.redd.it" || host == "i.redd.it" else { return nil }
+        let ext = url.pathExtension.lowercased()
+        return ["jpg", "jpeg", "png", "gif", "webp"].contains(ext) ? ext : nil
     }
 
     /// Width over height for each of those URLs, from the metadata's pixel size,

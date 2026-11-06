@@ -526,6 +526,9 @@ public struct InlineMediaBodyView: View {
     let context: Context
     /// The comment's or post's `media_metadata`, when the caller has it.
     let mediaMetadata: [String: GalleryMediaItem]?
+    /// Files for `Processing img` placeholders `mediaMetadata` doesn't cover
+    /// (`RedditMediaTokens.uploadedImageURLs`).
+    let uploadedImages: [String: String]
     /// Which Rich Link Previews mode the body's link cards follow: a self
     /// post's or a comment's.
     let linkContext: LinkPreviewContext
@@ -533,8 +536,9 @@ public struct InlineMediaBodyView: View {
     let showsLinkCards: Bool
 
     public init(_ body: String, lineLimit: Int? = nil, context: Context = .postsAndComments,
-                mediaMetadata: [String: GalleryMediaItem]? = nil, linkContext: LinkPreviewContext = .comments,
-                showsLinkCards: Bool = true) {
+                mediaMetadata: [String: GalleryMediaItem]? = nil, uploadedImages: [String: String] = [:],
+                linkContext: LinkPreviewContext = .comments, showsLinkCards: Bool = true) {
+        self.uploadedImages = uploadedImages
         self.showsLinkCards = showsLinkCards
         self.body_ = body
         self.lineLimit = lineLimit
@@ -546,7 +550,8 @@ public struct InlineMediaBodyView: View {
     public var body: some View {
         let settings = inlineMediaSettings
         let isEnabled = context == .messages ? settings.enabledInMessages : settings.enabled
-        let (text, attachments) = InlineMediaBodyMemo.layout(body_, isEnabled: isEnabled, mediaMetadata: mediaMetadata)
+        let (text, attachments) = InlineMediaBodyMemo.layout(body_, isEnabled: isEnabled, mediaMetadata: mediaMetadata,
+                                                              uploadedImages: uploadedImages)
         // Apollo puts a card under a comment or self post for each link
         // in it (not in truncated previews or messages), stacked after the
         // text with the inline media in the order the links appear; with
@@ -611,16 +616,16 @@ enum InlineMediaBodyMemo {
     private static let limit = 3000
 
     @MainActor
-    static func layout(_ body: String, isEnabled: Bool,
-                       mediaMetadata: [String: GalleryMediaItem]?) -> (text: String, attachments: [InlineBodyAttachment]) {
+    static func layout(_ body: String, isEnabled: Bool, mediaMetadata: [String: GalleryMediaItem]?,
+                       uploadedImages: [String: String] = [:]) -> (text: String, attachments: [InlineBodyAttachment]) {
         InlineMediaRatioCache.seed(RedditMediaTokens.ratios(from: mediaMetadata))
-        return resolved(body, isEnabled: isEnabled, mediaMetadata: mediaMetadata)
+        return resolved(body, isEnabled: isEnabled, mediaMetadata: mediaMetadata, uploadedImages: uploadedImages)
     }
 
     /// `layout` without seeding the shape table, for any thread.
-    nonisolated static func resolved(_ body: String, isEnabled: Bool,
-                                     mediaMetadata: [String: GalleryMediaItem]?) -> (text: String, attachments: [InlineBodyAttachment]) {
-        let imageURLs = RedditMediaTokens.imageURLs(from: mediaMetadata)
+    nonisolated static func resolved(_ body: String, isEnabled: Bool, mediaMetadata: [String: GalleryMediaItem]?,
+                                     uploadedImages: [String: String] = [:]) -> (text: String, attachments: [InlineBodyAttachment]) {
+        let imageURLs = RedditMediaTokens.imageURLs(from: mediaMetadata, uploaded: uploadedImages)
         let key = Key(body: body, isEnabled: isEnabled, imageURLs: imageURLs)
         lock.lock()
         let hit = entries[key]

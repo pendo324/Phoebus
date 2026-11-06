@@ -21,6 +21,9 @@ struct PostDetailHeader: View {
 
     let post: RedditPost
     let repository: RedditRepository
+    /// The images the post's comments response links, for a body that still
+    /// holds `Processing img` placeholders (`CommentTreeStore.postUploadedImages`).
+    let uploadedImages: [String: String]
     /// Per-subreddit flair colors, gated on "Color Flairs"
     /// (`GeneralSettings.enableFlairColors`, default true).
     private var linkFlairTextColor: Color? {
@@ -81,7 +84,7 @@ struct PostDetailHeader: View {
     /// With this device's own vote, as the feed row shows it.
     private var displayScore: Int { post.score + voteStore.scoreDelta(for: post.name) }
 
-    init(post: RedditPost, repository: RedditRepository, onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil, aiSummary: AISummaryController? = nil, overflowMenu: AnyView? = nil, isEditing: Binding<Bool> = .constant(false), isDeleted: Binding<Bool> = .constant(false)) {
+    init(post: RedditPost, repository: RedditRepository, uploadedImages: [String: String] = [:], onSubredditTap: @escaping () -> Void = {}, onAuthorTap: @escaping () -> Void = {}, onJumpToComments: (() -> Void)? = nil, onReply: (() -> Void)? = nil, aiSummary: AISummaryController? = nil, overflowMenu: AnyView? = nil, isEditing: Binding<Bool> = .constant(false), isDeleted: Binding<Bool> = .constant(false)) {
         self.onReply = onReply
         self.overflowMenu = overflowMenu
         _isEditing = isEditing
@@ -90,6 +93,7 @@ struct PostDetailHeader: View {
         self.post = post
         self.onJumpToComments = onJumpToComments
         self.repository = repository
+        self.uploadedImages = uploadedImages
         self.onSubredditTap = onSubredditTap
         self.onAuthorTap = onAuthorTap
         _editedText = State(initialValue: post.selftext ?? "")
@@ -205,7 +209,7 @@ struct PostDetailHeader: View {
                 if let selftext = post.selftext, !selftext.isEmpty {
                     // Collapsing the body hides it entirely, not a truncated line budget.
                     if !selfTextCollapsed {
-                        InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
+                        InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, uploadedImages: uploadedImages, linkContext: .body)
                             .apolloFont(size: Self.bodyFontSize, role: .postBody)
                             .bodyForeground(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))
@@ -231,7 +235,7 @@ struct PostDetailHeader: View {
                     postSummaryCard
                     // Collapsing the body hides it entirely, not a truncated line budget.
                     if !selfTextCollapsed {
-                        InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, linkContext: .body)
+                        InlineMediaBodyView(selftext, mediaMetadata: post.mediaMetadata, uploadedImages: uploadedImages, linkContext: .body)
                             .apolloFont(size: Self.bodyFontSize, role: .postBody)
                             .bodyForeground(Color.apolloPrimaryText(
                                 colorScheme: colorScheme, themeColors: apolloTheme))

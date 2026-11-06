@@ -40,6 +40,9 @@ final class CommentTreeStore: ObservableObject {
     @Published var rootMoreStub: MoreStub?
     /// The post's other discussions as the comments response reports them.
     @Published var postDuplicateCount: Int?
+    /// The post's uploaded images as its comments response names them, for
+    /// a body still holding `Processing img` placeholders.
+    @Published var postUploadedImages: [String: String] = [:]
     /// IDs of "more" stubs currently being resolved, so the UI can
     /// show a spinner in place of the tappable row.
     @Published var resolvingStubIDs: Set<String> = []
@@ -464,6 +467,7 @@ final class CommentTreeStore: ObservableObject {
             roots = cached.roots.applyingCollapseChoices(savedCollapseChoices(), focusedCommentID: focusedCommentID)
             rootMoreStub = cached.moreStub
             postDuplicateCount = cached.duplicateCount
+            postUploadedImages = cached.uploadedImages
             hadPreviousVisit = true
             errorMessage = nil
             // Refresh the entry's age on use, so a post the user keeps
@@ -504,7 +508,9 @@ final class CommentTreeStore: ObservableObject {
             rootMoreStub = built.moreStub
             warmBodies(roots)
             postDuplicateCount = built.postDuplicateCount
-            Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub, duplicateCount: built.postDuplicateCount)
+            postUploadedImages = built.postUploadedImages
+            Self.recentTrees.store(key: key, roots: roots, moreStub: built.moreStub, duplicateCount: built.postDuplicateCount,
+                                   uploadedImages: built.postUploadedImages)
             await prefetchAvatars(of: roots, repository: repository)
             let allIDs = roots.flatMap { $0.allIDs() }
             hadPreviousVisit = NewCommentsTracker.hasBaseline(postID: postID)
@@ -649,7 +655,10 @@ final class CommentTreeStore: ObservableObject {
     func insertPosted(_ comment: RedditComment, parentFullname: String) -> Bool {
         defer {
             // A screen rebuilt from the cache must still show it.
-            if let lastKey { Self.recentTrees.store(key: lastKey, roots: roots, moreStub: rootMoreStub, duplicateCount: postDuplicateCount) }
+            if let lastKey {
+                Self.recentTrees.store(key: lastKey, roots: roots, moreStub: rootMoreStub, duplicateCount: postDuplicateCount,
+                                       uploadedImages: postUploadedImages)
+            }
         }
         postedReplies.append((PostedReply(comment: comment, parentFullname: parentFullname), Date()))
         if parentFullname.hasPrefix("t3_") {
@@ -816,36 +825,41 @@ final class RecentCommentTreeCache {
         let roots: [CommentTreeNode]
         let moreStub: MoreStub?
         let duplicateCount: Int?
+        let uploadedImages: [String: String]
         let storedAt: Date
     }
 
     private var entries: [String: Entry] = [:]
 
-    func value(for key: String) -> (roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?)? {
+    func value(for key: String) -> (roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?, uploadedImages: [String: String])? {
         guard let entry = entries[key] else { return nil }
         guard RecentEntryPolicy.isFresh(age: Date().timeIntervalSince(entry.storedAt)) else {
             entries[key] = nil
             return nil
         }
-        return (entry.roots, entry.moreStub, entry.duplicateCount)
+        return (entry.roots, entry.moreStub, entry.duplicateCount, entry.uploadedImages)
     }
 
     /// Resets an entry's age, so a post the user keeps returning to
     /// stays cached for as long as they keep returning to it.
     func touch(key: String) {
         guard let entry = entries[key] else { return }
-        entries[key] = Entry(roots: entry.roots, moreStub: entry.moreStub, duplicateCount: entry.duplicateCount, storedAt: Date())
+        entries[key] = Entry(roots: entry.roots, moreStub: entry.moreStub, duplicateCount: entry.duplicateCount,
+                             uploadedImages: entry.uploadedImages, storedAt: Date())
     }
 
     /// Applies a change to every cached tree, leaving their ages alone.
     func edit(_ transform: ([CommentTreeNode]) -> [CommentTreeNode]) {
         for (key, entry) in entries {
-            entries[key] = Entry(roots: transform(entry.roots), moreStub: entry.moreStub, duplicateCount: entry.duplicateCount, storedAt: entry.storedAt)
+            entries[key] = Entry(roots: transform(entry.roots), moreStub: entry.moreStub, duplicateCount: entry.duplicateCount,
+                                 uploadedImages: entry.uploadedImages, storedAt: entry.storedAt)
         }
     }
 
-    func store(key: String, roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?) {
-        entries[key] = Entry(roots: roots, moreStub: moreStub, duplicateCount: duplicateCount, storedAt: Date())
+    func store(key: String, roots: [CommentTreeNode], moreStub: MoreStub?, duplicateCount: Int?,
+               uploadedImages: [String: String] = [:]) {
+        entries[key] = Entry(roots: roots, moreStub: moreStub, duplicateCount: duplicateCount,
+                             uploadedImages: uploadedImages, storedAt: Date())
         let now = Date()
         let ages = entries.mapValues { now.timeIntervalSince($0.storedAt) }
         for key in RecentEntryPolicy.keysToEvict(agesByKey: ages) {

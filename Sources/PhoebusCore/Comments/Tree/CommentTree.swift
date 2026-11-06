@@ -596,6 +596,10 @@ public struct CommentsResponse: Sendable {
     public let postCommentCount: Int?
     /// The post's `num_duplicates`, for the Other Discussions row.
     public let postDuplicateCount: Int?
+    /// The images the post's own markdown links, by media id
+    /// (`RedditMediaTokens.uploadedImageURLs`): the listing the post was
+    /// opened from can still hold `Processing img` placeholders for them.
+    public let postUploadedImages: [String: String]
 }
 
 extension CommentTreeBuilder {
@@ -615,15 +619,17 @@ extension CommentTreeBuilder {
                                autoCollapsePinned: autoCollapsePinned, autoCollapseAutoModerator: autoCollapseAutoModerator)
         var count: Int?
         var duplicateCount: Int?
+        var uploadedImages: [String: String] = [:]
         if let postListing = json.first as? [String: Any],
            let postData = postListing["data"] as? [String: Any],
            let postChildren = postData["children"] as? [[String: Any]],
            let first = postChildren.first?["data"] as? [String: Any] {
             count = first["num_comments"] as? Int
             duplicateCount = first["num_duplicates"] as? Int
+            uploadedImages = RedditMediaTokens.uploadedImageURLs(inBody: first["selftext"] as? String ?? "")
         }
         return CommentsResponse(roots: built.roots, moreStub: built.moreStub, postCommentCount: count,
-                                postDuplicateCount: duplicateCount)
+                                postDuplicateCount: duplicateCount, postUploadedImages: uploadedImages)
     }
 
     /// `parseCommentsResponse` off the calling actor: the comment screen

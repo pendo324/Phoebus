@@ -513,6 +513,7 @@ public struct PostDetailScreen: View {
         PostDetailHeader(
             post: markedPost,
             repository: repository,
+            uploadedImages: commentStore.postUploadedImages,
             onSubredditTap: { jumpDestination = .subreddit(post.subreddit) },
             onAuthorTap: { jumpDestination = .user(post.author) },
             onJumpToComments: {

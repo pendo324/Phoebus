@@ -299,6 +299,57 @@ import PhoebusCore
               RedditMediaTokens.ratios(from: meta)["https://i.redd.it/abc123def45.png"] == 2.0)
     }
 
+    // The web editor's `*Processing img <id>...*` placeholders, whose file
+    // extension has to come from somewhere other than the jpeg guess.
+    do {
+        let json = #"""
+        {"pngid0001":{"status":"valid","e":"Image","m":"image/png","s":{"x":10,"y":5,"u":"https://preview.redd.it/pngid0001.png?width=2880&amp;s=x"}},
+         "jpgid0001":{"status":"valid","e":"Image","m":"image/jpg","s":{"x":10,"y":5,"u":"https://preview.redd.it/jpgid0001.jpg?width=640&amp;s=x"}},
+         "webpid001":{"status":"valid","e":"Image","m":"image/webp","s":{"x":10,"y":5,"u":"https://preview.redd.it/webpid001.webp?s=x"}},
+         "mimeonly1":{"status":"valid","e":"Image","m":"image/jpg","s":{"x":10,"y":5}},
+         "nomime001":{"status":"valid","e":"Image","s":{"x":10,"y":5}},
+         "gifid0001":{"status":"valid","e":"AnimatedImage","m":"image/gif","s":{"x":10,"y":5,"gif":"https://i.redd.it/gifid0001.gif"}},
+         "waiting01":{"status":"unprocessed"}}
+        """#
+        let meta = try? JSONDecoder().decode([String: GalleryMediaItem].self, from: Data(json.utf8))
+        let urls = RedditMediaTokens.imageURLs(from: meta)
+        check("processing img: the extension of the entry's own s.u link wins (png, jpg, webp)",
+              urls["pngid0001"] == "https://i.redd.it/pngid0001.png" && urls["jpgid0001"] == "https://i.redd.it/jpgid0001.jpg"
+                && urls["webpid001"] == "https://i.redd.it/webpid001.webp")
+        check("processing img: without s.u the MIME type names it (image/jpg is .jpg), and none means .jpeg",
+              urls["mimeonly1"] == "https://i.redd.it/mimeonly1.jpg" && urls["nomime001"] == "https://i.redd.it/nomime001.jpeg")
+        check("processing img: an animated image keeps its own file; an unprocessed one has none",
+              urls["gifid0001"] == "https://i.redd.it/gifid0001.gif" && urls["waiting01"] == nil)
+        let body = "a\n\n*Processing img pngid0001...*\n\n*Processing img waiting01...*"
+        check("processing img: an unprocessed entry falls back to the i.redd.it jpeg guess",
+              RedditMediaTokens.expand(body, imageURLs: urls) == "a\n\nhttps://i.redd.it/pngid0001.png\n\nhttps://i.redd.it/waiting01.jpeg")
+        check("processing img: with no metadata at all the placeholder is still the i.redd.it guess, never italic text",
+              RedditMediaTokens.expand("*Processing img nometa0001...*") == "https://i.redd.it/nometa0001.jpeg"
+                && RedditMediaTokens.removingTokens("*Processing img nometa0001...*").isEmpty)
+        check("processing img: the placeholder expands to an image the detector draws",
+              InlineMediaDetector.detect(in: body, imageURLs: urls).first == .image(URL(string: "https://i.redd.it/pngid0001.png")!))
+
+        // A listing's selftext holds the placeholders, no `media_metadata`; the comments response's copy of the same
+        // post holds `preview.redd.it/<id>.<ext>` links, which name the files.
+        let fresh = "Have fun!\n\nhttps://preview.redd.it/pngid0001.png?width=2880&format=png&auto=webp&s=abc\n\nhttps://preview.redd.it/jpgid0001.JPG?auto=webp&s=def\n\nhttps://i.redd.it/webpid001.webp"
+        let uploaded = RedditMediaTokens.uploadedImageURLs(inBody: fresh)
+        check("processing img: uploaded images are read from preview.redd.it and i.redd.it links",
+              uploaded == ["pngid0001": "https://i.redd.it/pngid0001.png", "jpgid0001": "https://i.redd.it/jpgid0001.jpg",
+                           "webpid001": "https://i.redd.it/webpid001.webp"]
+                && RedditMediaTokens.uploadedImageURLs(inBody: "see https://example.com/pngid0001.png").isEmpty)
+        let listingBody = "*Processing img pngid0001...*\n\n*Processing img jpgid0001...*"
+        check("processing img: with no metadata the uploaded links name the files",
+              RedditMediaTokens.expand(listingBody, imageURLs: RedditMediaTokens.imageURLs(from: nil, uploaded: uploaded))
+                == "https://i.redd.it/pngid0001.png\n\nhttps://i.redd.it/jpgid0001.jpg")
+        check("processing img: metadata outranks the uploaded links",
+              RedditMediaTokens.imageURLs(from: meta, uploaded: ["pngid0001": "https://i.redd.it/pngid0001.jpg"])["pngid0001"]
+                == "https://i.redd.it/pngid0001.png")
+        let commentsJSON = #"[{"data":{"children":[{"data":{"num_comments":0,"selftext":"x\n\nhttps://preview.redd.it/pngid0001.png?width=1&s=z"}}]}},{"data":{"children":[]}}]"#
+        check("processing img: the comments response carries the post's uploaded images",
+              (try? CommentTreeBuilder.parseCommentsResponse(Data(commentsJSON.utf8), postID: "p"))?.postUploadedImages
+                == ["pngid0001": "https://i.redd.it/pngid0001.png"])
+    }
+
     // "Swipe anywhere" (the no-inset branch; Gestures footers "Becomes swipe
     // anywhere to go back/forward").
     do {

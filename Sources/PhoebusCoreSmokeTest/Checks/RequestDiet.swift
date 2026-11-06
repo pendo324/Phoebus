@@ -198,6 +198,8 @@ private func dietMessage(_ id: String, author: String, fullname: String?) -> Red
     let afterRequests = DietStub.count("reddit.com")
     let afterKnown = await LinkPreviewCache.shared.cached(for: link).isKnown
     check("the lookup goes out once the hold ends and its answer is remembered", afterRequests >= 1 && afterKnown)
+    check("a card read in the same pass sees what the cache holds, without the actor hop",
+          LinkPreviewCache.shared.cachedNow(for: link).isKnown && !LinkPreviewCache.shared.cachedNow(for: URL(string: "https://news.example/other")!).isKnown)
     await LinkPreviewCache.shared.clear()
     DietStub.reset()
 }

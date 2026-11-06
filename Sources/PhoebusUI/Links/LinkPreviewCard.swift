@@ -53,6 +53,13 @@ public struct LinkPreviewCard: View {
         self.fallbackTitle = fallbackTitle
         self.forceCompact = forceCompact
         self.onOpen = onOpen
+        // A card built again starts from what the cache holds, so it is the
+        // card's own size from its first frame: a comment row rebuilt by a
+        // collapse or expand would otherwise draw the placeholder first and
+        // change height in the middle of the row animation.
+        let known = LinkPreviewCache.shared.cachedNow(for: url)
+        _preview = State(initialValue: known.isKnown ? known.preview : nil)
+        _loaded = State(initialValue: known.isKnown)
     }
 
     private var mode: LinkPreviewDisplayMode {

@@ -288,6 +288,11 @@ import PhoebusCore
         check("comment images: a png token names a .png, not the jpeg guess",
               urls["abc123def45"] == "https://i.redd.it/abc123def45.png"
                 && RedditMediaTokens.expand("look ![img](abc123def45)", imageURLs: urls) == "look https://i.redd.it/abc123def45.png")
+        check("comment images: the web editor's `*Processing img <id>...*` placeholder is the same image",
+              RedditMediaTokens.expand("shots:\n\n*Processing img abc123def45...*\n\n_Processing img gif9xyz12\u{2026}_", imageURLs: urls)
+                == "shots:\n\nhttps://i.redd.it/abc123def45.png\n\nhttps://i.redd.it/gif9xyz12.gif"
+                && RedditMediaTokens.removingTokens("a\n\n*Processing img abc123def45...*") == "a"
+                && RedditMediaTokens.expand("I said *Processing img* is odd") == "I said *Processing img* is odd")
         check("comment images: a GIF uses its own file; unprocessed items are skipped",
               urls["gif9xyz12"] == "https://i.redd.it/gif9xyz12.gif" && urls["wait1"] == nil)
         check("comment images: the box shape comes from the metadata's pixel size",

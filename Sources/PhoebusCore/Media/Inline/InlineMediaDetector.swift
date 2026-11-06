@@ -187,6 +187,12 @@ public enum RedditMediaTokens {
         pattern: #"!\[[^\]]*\]\(giphy\|([A-Za-z0-9_-]{1,128})(?:\|[^)]*)?\)"#)
     private static let imgPattern = try! NSRegularExpression(
         pattern: #"!\[(?:img|gif)\]\(([A-Za-z0-9]{8,20})\)"#)
+    /// The placeholder the web editor leaves in a post's or comment's
+    /// markdown for an uploaded image, `*Processing img <media id>...*`:
+    /// Reddit keeps it in `selftext` after the image is ready, and the
+    /// image is that media id's `media_metadata` entry.
+    private static let processingPattern = try! NSRegularExpression(
+        pattern: #"[*_]{1,2}Processing img ([A-Za-z0-9]{8,20})(?:\.{3}|\x{2026})[*_]{1,2}"#)
 
     public static func giphyURL(id: String) -> String {
         "https://media.giphy.com/media/\(id)/giphy.gif"
@@ -196,9 +202,9 @@ public enum RedditMediaTokens {
     /// the file's extension, which only `media_metadata` knows; an
     /// uploaded comment image is an `i.redd.it` jpeg by default.
     public static func expand(_ body: String, imageURLs: [String: String] = [:]) -> String {
-        guard body.contains("](") else { return body }
+        guard body.contains("](") || body.contains("Processing img") else { return body }
         var text = body
-        for (pattern, isGiphy) in [(giphyPattern, true), (imgPattern, false)] {
+        for (pattern, isGiphy) in [(giphyPattern, true), (imgPattern, false), (processingPattern, false)] {
             let range = NSRange(text.startIndex..., in: text)
             for match in pattern.matches(in: text, range: range).reversed() {
                 guard let whole = Range(match.range, in: text),
@@ -255,9 +261,9 @@ public enum RedditMediaTokens {
     /// Text for display: a token contributes nothing to the prose, since
     /// its media is drawn below the text.
     public static func removingTokens(_ body: String) -> String {
-        guard body.contains("](") else { return body }
+        guard body.contains("](") || body.contains("Processing img") else { return body }
         var text = body
-        for pattern in [giphyPattern, imgPattern] {
+        for pattern in [giphyPattern, imgPattern, processingPattern] {
             text = pattern.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)

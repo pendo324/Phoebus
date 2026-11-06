@@ -17,12 +17,28 @@ public enum ChatRoomUnread {
 
     /// Unread and not muted: the rooms the badges and pushes are made of.
     public static func countsTowardBadge(_ room: ChatRoom) -> Bool {
-        isUnread(room) && room.countsTowardGlobalBadge
+        isUnread(room) && !room.isMuted && room.countsTowardGlobalBadge
     }
 
-    /// Unread but silenced by the account; drawn in grey rather than the accent.
+    /// Unread but silenced, by a mute or by Reddit leaving it out of the
+    /// badge; drawn in grey rather than the accent.
     public static func isMutedUnread(_ room: ChatRoom) -> Bool {
-        isUnread(room) && !room.countsTowardGlobalBadge
+        isUnread(room) && (room.isMuted || !room.countsTowardGlobalBadge)
+    }
+
+    /// The muted bell shown beside a room Phoebus knows is muted.
+    public static func showsMutedIndicator(_ room: ChatRoom) -> Bool {
+        room.isMuted && !room.isInvite
+    }
+
+    /// What VoiceOver adds to a row: "Muted, unread", "Muted", "Unread", or nil.
+    public static func accessibilityStatus(_ room: ChatRoom) -> String? {
+        var words: [String] = []
+        if showsMutedIndicator(room) { words.append("muted") }
+        if isUnread(room) { words.append("unread") }
+        guard !words.isEmpty else { return nil }
+        let text = words.joined(separator: ", ")
+        return text.prefix(1).uppercased() + text.dropFirst()
     }
 
     /// The badge total derived from the rooms when Reddit sends no counter.

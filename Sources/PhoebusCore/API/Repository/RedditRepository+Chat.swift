@@ -163,6 +163,22 @@ extension RedditRepository {
         }
     }
 
+    /// Mutes or unmutes a room with a push rule, re-minting once on 401.
+    public func sendChatMute(_ action: ChatMuteAction, roomID: String) async throws {
+        try await ChatMute.perform(action, roomID: roomID) { [self] forceMint in
+            if forceMint { await clearChatBearer() }
+            return try await chatBearer(forceMint: forceMint)
+        }
+    }
+
+    /// The rooms the account has muted, from its push rules.
+    public func fetchChatMutedRoomIDs() async throws -> Set<String> {
+        try await ChatMute.fetchMutedRoomIDs { [self] forceMint in
+            if forceMint { await clearChatBearer() }
+            return try await chatBearer(forceMint: forceMint)
+        }
+    }
+
     /// Blocks a request's sender on their Reddit account, so a declined
     /// request is not followed by another.
     public func blockChatRequester(matrixUserID: String) async throws {

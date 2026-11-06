@@ -312,6 +312,6 @@ private extension ChatRoom {
         ChatRoom(id: id, name: name, chatType: chatType, participants: participants, isInvite: isInvite,
                  lastMessageTimestamp: lastMessageTimestamp, preview: preview, previewSender: previewSender,
                  notificationCount: notificationCount, countsTowardGlobalBadge: countsTowardGlobalBadge,
-                 inviter: inviter)
+                 inviter: inviter, isMuted: isMuted)
     }
 }

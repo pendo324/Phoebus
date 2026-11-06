@@ -902,6 +902,12 @@ Apollo or Reborn, add an entry here.
   Inbox badge, the app icon badge and the Bark pushes, which is what the
   mute is for. Opening the room clears it. See
   `docs/chat-sending-and-threads.md`.
+- **Chat rooms can be muted and unmuted in the app.** Reborn hosts Reddit's web
+  chat and leaves muting to its page, and Apollo had no Reddit Chat. Phoebus
+  adds Mute and Unmute on a conversation's swipe and long press and in its menu,
+  with a muted bell on the row. It writes the same push rule Reddit's own chat
+  does, so the state matches Reddit's app. See
+  `docs/chat-sending-and-threads.md`.
 - **The Safari extension's mode is chosen in its popup.** Automatic, Ask
   or Off is set from the extension's toolbar popup, not in Settings.
 

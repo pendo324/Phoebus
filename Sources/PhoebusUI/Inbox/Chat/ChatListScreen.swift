@@ -164,6 +164,8 @@ public struct ChatListScreen: View {
                     } label: {
                         roomRow(room)
                     }
+                    .swipeActions(edge: .trailing) { muteButton(for: room).tint(.indigo) }
+                    .contextMenu { muteButton(for: room) }
                 }
             }
         }
@@ -226,6 +228,27 @@ public struct ChatListScreen: View {
         .refreshable { await load() }
     }
 
+    /// Mute or Unmute for a conversation, from its swipe and its long-press menu.
+    private func muteButton(for room: ChatRoom) -> some View {
+        Button {
+            Task { await setMuted(!room.isMuted, room) }
+        } label: {
+            Label(room.isMuted ? "Unmute" : "Mute", systemImage: room.isMuted ? "bell" : "bell.slash")
+        }
+        .accessibilityIdentifier(room.isMuted ? "chat.room.unmute.\(room.id)" : "chat.room.mute.\(room.id)")
+    }
+
+    /// Goes through `ChatLive`, which changes the row and the badge first and puts them back
+    /// if Reddit refuses.
+    private func setMuted(_ muted: Bool, _ room: ChatRoom) async {
+        errorMessage = nil
+        do {
+            try await ChatLive.shared.engine(for: repository).setMuted(muted, room: room)
+        } catch {
+            errorMessage = ChatMute.failureMessage(for: error, action: muted ? .mute : .unmute)
+        }
+    }
+
     @ViewBuilder
     private func roomRow(_ room: ChatRoom) -> some View {
         HStack(spacing: 10) {
@@ -242,6 +265,13 @@ public struct ChatListScreen: View {
                         .font(.subheadline.weight(ChatRoomUnread.isUnread(room) ? .bold : .semibold))
                         .lineLimit(1)
                     Spacer()
+                    if ChatRoomUnread.showsMutedIndicator(room) {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                            .accessibilityIdentifier("chat.room.muted.\(room.id)")
+                    }
                     if let date = room.lastMessageDate {
                         Text(date, style: .relative)
                             .font(.caption2)
@@ -256,6 +286,7 @@ public struct ChatListScreen: View {
                 }
             }
         }
+        .accessibilityValue(ChatRoomUnread.accessibilityStatus(room) ?? "")
         .accessibilityIdentifier("chat.room.\(room.id)")
     }
 
@@ -280,7 +311,9 @@ public struct ChatListScreen: View {
             // "you, them".
             if selfUserID == nil { selfUserID = await repository.chatSelfUserID() }
             // A request answered a moment ago stays answered, whichever sync reports it.
-            let result = await ChatLive.shared.engine(for: repository).reconciled(try await repository.fetchChatRooms())
+            let engine = ChatLive.shared.engine(for: repository)
+            await engine.refreshMuteRules()
+            let result = await engine.reconciled(try await repository.fetchChatRooms())
             rooms = result.rooms
             unreadCount = result.unreadCount
             requestsCount = result.requestsCount
@@ -319,6 +352,8 @@ struct ChatRoomScreen: View {
     var onRequestAccepted: (() -> Void)?
 
     @State private var accepted = false
+    /// The room's mute state as the live sync last reported it; the row it was opened from is a snapshot.
+    @State private var mutedState: Bool?
     @State private var messages: [RedditChatClient.ChatMessage] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -346,6 +381,39 @@ struct ChatRoomScreen: View {
 
     /// A room that is still a request takes no messages until it is accepted.
     private var isPendingRequest: Bool { !ChatRequests.canReply(in: room) && !accepted }
+
+    private var isMuted: Bool { mutedState ?? room.isMuted }
+
+    /// Mute or Unmute Conversation, kept with the room's other actions in its menu.
+    @ToolbarContentBuilder
+    private var muteToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if !isPendingRequest {
+                Menu {
+                    Button {
+                        Task { await setMuted(!isMuted) }
+                    } label: {
+                        Label(isMuted ? "Unmute Conversation" : "Mute Conversation",
+                              systemImage: isMuted ? "bell" : "bell.slash")
+                    }
+                    .accessibilityIdentifier(isMuted ? "chat.room.unmuteConversation" : "chat.room.muteConversation")
+                } label: {
+                    Image(systemName: isMuted ? "bell.slash.fill" : "ellipsis.circle")
+                        .accessibilityLabel(isMuted ? "Conversation options, muted" : "Conversation options")
+                }
+                .accessibilityIdentifier("chat.room.menu")
+            }
+        }
+    }
+
+    private func setMuted(_ muted: Bool) async {
+        errorMessage = nil
+        do {
+            try await ChatLive.shared.engine(for: repository).setMuted(muted, room: room)
+        } catch {
+            errorMessage = ChatMute.failureMessage(for: error, action: muted ? .mute : .unmute)
+        }
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -432,6 +500,7 @@ struct ChatRoomScreen: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayModeIfAvailable()
+        .toolbar { muteToolbar }
         .task {
             // The messages first; the draft's account lookup can be a network round trip.
             async let loaded: Void = load()
@@ -981,6 +1050,7 @@ struct ChatRoomScreen: View {
             for await update in await engine.updates() {
                 if Task.isCancelled { return }
                 if let state = update.ephemeral[room.id] { ephemeral = state }
+                if let current = update.snapshot.rooms.first(where: { $0.id == room.id }) { mutedState = current.isMuted }
                 if update.timelineRoomIDs.contains(room.id), !isLoading {
                     await refreshIfNewMessages()
                 }

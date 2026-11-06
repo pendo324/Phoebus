@@ -1027,6 +1027,7 @@ try await checkRedditChatOverMatrix()
 
 try await checkChatRequests()
 try await checkChatRoomUnread()
+try await checkChatMute()
 
 try await checkWebSessionModeratorRequestsWebBearer()
 

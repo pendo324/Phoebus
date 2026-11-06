@@ -1119,6 +1119,9 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
     public let countsTowardGlobalBadge: Bool
     /// For a request: the Matrix user id that sent the invite.
     public let inviter: String?
+    /// A push rule silences the room (see `ChatMute`). Not part of `/sync`:
+    /// the live state fills it in from the account's push rules.
+    public let isMuted: Bool
 
     public init(
         id: String,
@@ -1131,7 +1134,8 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
         previewSender: String?,
         notificationCount: Int,
         countsTowardGlobalBadge: Bool,
-        inviter: String? = nil
+        inviter: String? = nil,
+        isMuted: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -1144,6 +1148,7 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
         self.notificationCount = notificationCount
         self.countsTowardGlobalBadge = countsTowardGlobalBadge
         self.inviter = inviter
+        self.isMuted = isMuted
     }
 
     /// The same room as a request or as a joined conversation.
@@ -1151,7 +1156,15 @@ public struct ChatRoom: Sendable, Equatable, Identifiable {
         ChatRoom(id: id, name: name, chatType: chatType, participants: participants, isInvite: isInvite,
                  lastMessageTimestamp: lastMessageTimestamp, preview: preview, previewSender: previewSender,
                  notificationCount: notificationCount, countsTowardGlobalBadge: countsTowardGlobalBadge,
-                 inviter: inviter)
+                 inviter: inviter, isMuted: isMuted)
+    }
+
+    /// The same room with its mute state and whether Reddit's badge counts it.
+    public func withMute(_ isMuted: Bool, countsTowardGlobalBadge: Bool) -> ChatRoom {
+        ChatRoom(id: id, name: name, chatType: chatType, participants: participants, isInvite: isInvite,
+                 lastMessageTimestamp: lastMessageTimestamp, preview: preview, previewSender: previewSender,
+                 notificationCount: notificationCount, countsTowardGlobalBadge: countsTowardGlobalBadge,
+                 inviter: inviter, isMuted: isMuted)
     }
 
     /// Newest first. Invites carry no message, so ties are broken by id to keep

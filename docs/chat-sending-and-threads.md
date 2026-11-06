@@ -133,6 +133,27 @@ Implemented in `RedditChatClient` on the same credential:
   with a grey dot, but only a room that counts toward the badge feeds the
   Inbox tab badge, the app icon badge, `lastChatUnread` and the Bark
   pushes. Opening the room clears it with the read receipt as for any room.
+- Muting (`ChatMute`, `ChatSyncState.beginMute`): Reddit's own chat page mutes a
+  room with a push rule, and Phoebus writes and reads the same one. Mute is
+  `PUT /_matrix/client/v3/pushrules/global/override/<room id>` with
+  `{"actions":["dont_notify"],"conditions":[{"key":"room_id","kind":"event_match","pattern":"<room id>"}]}`;
+  unmute is `DELETE` of that rule (a 404 is already unmuted). A room is muted
+  when an enabled `override` rule has the room id as its id and as the only
+  condition's pattern and `dont_notify` among its actions, and has no
+  `com.reddit.expiration_ts` in the past (a timed mute made on Reddit's side).
+  The rules that mute only mentions, threads or reports have other ids and extra
+  conditions, and are not a muted room. `/sync` does not carry push rules, so the
+  engine reads `GET /pushrules/` after its first sync and on every list refresh.
+  Reddit then leaves the room out of its global counter, but its counted flag is
+  only re-sent when the room changes. A change made here therefore applies at
+  once (the row, the grey dot, the Inbox total, which is derived from the rooms
+  while it settles), is read back from a fresh room list two seconds after the
+  rule is accepted, overrides stale `/sync` flags for `ChatMute.staleShield`
+  seconds, and is rolled back with a plain sentence if the rule is refused. A
+  change made here records the new total for Bark and never pushes for it. The
+  row shows `bell.slash.fill` beside its time (also in Inbox's chat row), the
+  conversation's menu button shows it too, and Mute/Unmute is on the row's swipe
+  and long press and in the conversation's menu.
 
 ### Reactions
 

@@ -13,7 +13,10 @@ import PhoebusCore
 @MainActor
 public enum ChatBarkNotifier {
     /// Handles one sync result for `username`.
-    static func process(_ sync: RedditChatClient.SyncResult, username: String) async {
+    /// `announce` is false for a change made on this device (a room muted or
+    /// unmuted): its new total is recorded, so the next real message is compared
+    /// with it, but nothing is pushed for messages already seen.
+    static func process(_ sync: RedditChatClient.SyncResult, username: String, announce: Bool = true) async {
         guard let bark = PushNotificationClient.barkURL(NotificationBackendSettingsStore.load()) else { return }
         let unreadRooms = sync.rooms.filter(ChatRoomUnread.countsTowardBadge)
         let latest = unreadRooms.max { $0.lastMessageTimestamp < $1.lastMessageTimestamp }
@@ -22,6 +25,11 @@ public enum ChatBarkNotifier {
         guard let marks = ChatUnreadNotifier.marks(for: username) else {
             // First poll ever for this account: record, announce nothing.
             ChatUnreadNotifier.save(.init(unread: sync.unreadCount, requests: sync.requestsCount, latestTs: latestTs), for: username)
+            return
+        }
+        guard announce else {
+            ChatUnreadNotifier.save(.init(unread: sync.unreadCount, requests: sync.requestsCount,
+                                          latestTs: max(latestTs, marks.latestTs)), for: username)
             return
         }
         let decision = ChatUnreadNotifier.decide(unread: sync.unreadCount, requests: sync.requestsCount,

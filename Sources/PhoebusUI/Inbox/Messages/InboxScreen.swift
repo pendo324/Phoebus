@@ -330,7 +330,10 @@ public struct InboxCategoryScreen: View {
     /// alone; Direct Chat reports it.
     private func loadChatRooms() async {
         if chatSelfUserID == nil { chatSelfUserID = await repository.chatSelfUserID() }
-        guard let result = try? await repository.fetchChatRooms() else { return }
+        let engine = ChatLive.shared.engine(for: repository)
+        await engine.refreshMuteRules()
+        guard let fetched = try? await repository.fetchChatRooms() else { return }
+        let result = await engine.reconciled(fetched)
         chatRooms = result.rooms.filter { !$0.isInvite && $0.lastMessageDate != nil }
         let missing = Set(chatRooms.filter { ($0.name ?? "").isEmpty }
             .flatMap { $0.otherParticipants(excluding: chatSelfUserID) })
@@ -531,6 +534,12 @@ struct ChatMirrorRow: View {
                     Text("•••").padding(.horizontal, 6).contentShape(Rectangle())
                 }
                 .accessibilityLabel("More Options")
+                if ChatRoomUnread.showsMutedIndicator(room) {
+                    Image(systemName: "bell.slash.fill")
+                        .padding(.leading, 8)
+                        .accessibilityLabel("Muted")
+                        .accessibilityIdentifier("inbox.chatRow.muted.\(room.id)")
+                }
                 if let date = room.lastMessageDate {
                     Text(ShareCardFormatting.compactAge(since: date))
                         .padding(.leading, 8)

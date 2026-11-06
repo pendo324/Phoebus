@@ -43,7 +43,7 @@ public final class InboxBadge: ObservableObject {
                 self.apply(self.combinedCount)
                 // Bark chat notifications ride on the same events.
                 if let username = self.username {
-                    await ChatBarkNotifier.process(update.snapshot, username: username)
+                    await ChatBarkNotifier.process(update.snapshot, username: username, announce: !update.isLocalChange)
                 }
             }
         }

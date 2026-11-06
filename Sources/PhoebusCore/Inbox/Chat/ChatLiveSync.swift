@@ -289,9 +289,8 @@ public struct ChatSyncState: Sendable {
         }
         // Reddit's own counters when the response carries them;
         // otherwise derived from the rooms, which is what they count.
-        unreadCount = delta.unreadCount ?? (delta.rooms.isEmpty ? unreadCount : rooms.values
-            .filter { $0.countsTowardGlobalBadge && !$0.isInvite }
-            .reduce(0) { $0 + $1.notificationCount })
+        unreadCount = delta.unreadCount ?? (delta.rooms.isEmpty ? unreadCount
+            : ChatRoomUnread.badgeTotal(of: Array(rooms.values)))
         // Reddit's counter can still include a request answered a moment ago, so
         // while an answer is awaiting its sync the lower of the two is kept.
         let answering = answered.values.contains { $0.hidesInvite(at: now) }

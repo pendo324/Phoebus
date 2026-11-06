@@ -87,8 +87,8 @@ public enum ChatMessagesFilterStore {
     ) -> [ChatRoom] {
         rooms.filter { room in
             guard filter.admits(chatType: room.chatType) else { return false }
-            // `notificationCount` is Reddit's unread count for the room.
-            guard !unreadOnly || room.notificationCount > 0 else { return false }
+            // Lists exactly the rooms that show the unread dot, muted ones included.
+            guard !unreadOnly || ChatRoomUnread.isUnread(room) else { return false }
             return true
         }
     }

@@ -15,7 +15,7 @@ public enum ChatBarkNotifier {
     /// Handles one sync result for `username`.
     static func process(_ sync: RedditChatClient.SyncResult, username: String) async {
         guard let bark = PushNotificationClient.barkURL(NotificationBackendSettingsStore.load()) else { return }
-        let unreadRooms = sync.rooms.filter { $0.notificationCount > 0 && !$0.isInvite }
+        let unreadRooms = sync.rooms.filter(ChatRoomUnread.countsTowardBadge)
         let latest = unreadRooms.max { $0.lastMessageTimestamp < $1.lastMessageTimestamp }
         let latestTs = latest?.lastMessageTimestamp ?? 0
 

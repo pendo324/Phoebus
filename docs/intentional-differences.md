@@ -895,6 +895,13 @@ Apollo or Reborn, add an entry here.
   put back with the reason if Reddit refuses. Until it is accepted there is
   no composer, only the Accept bar. Report is not offered. See
   `docs/chat-sending-and-threads.md`.
+- **A muted chat room still shows as unread.** Reddit and Reborn's chat
+  poller leave a muted room out of the badge and show nothing for it.
+  Phoebus shows the unread dot (grey) and bold title on a muted room that has
+  unread messages, and lists it under Unread Only, but keeps it out of the
+  Inbox badge, the app icon badge and the Bark pushes, which is what the
+  mute is for. Opening the room clears it. See
+  `docs/chat-sending-and-threads.md`.
 - **The Safari extension's mode is chosen in its popup.** Automatic, Ask
   or Off is set from the extension's toolbar popup, not in Settings.
 

@@ -478,7 +478,8 @@ struct ChatMirrorRow: View {
     let title: String
     let repository: RedditRepository
 
-    private var isUnread: Bool { room.countsTowardGlobalBadge && room.notificationCount > 0 }
+    private var isUnread: Bool { ChatRoomUnread.isUnread(room) }
+    private var isMuted: Bool { ChatRoomUnread.isMutedUnread(room) }
 
     private var secondary: Color {
         Color.apolloSecondaryText(colorScheme: colorScheme, themeColors: apolloTheme)
@@ -494,7 +495,7 @@ struct ChatMirrorRow: View {
                         .foregroundStyle(Color(hex: "75787E"))
                     if isUnread {
                         StockIcon.image("inbox-highlighted")
-                            .foregroundStyle(Color(hex: "E26F2C"))
+                            .foregroundStyle(isMuted ? Color(hex: "75787E") : Color(hex: "E26F2C"))
                     }
                 }
                 .frame(width: 27, alignment: .center)
@@ -539,7 +540,7 @@ struct ChatMirrorRow: View {
             .foregroundStyle(secondary)
         }
         .padding(.vertical, 4)
-        .listRowBackground(isUnread ? (colorScheme == .dark ? Color(hex: "1C2E48") : Color.apolloAccent.opacity(0.12)) : nil)
+        .listRowBackground(isUnread && !isMuted ? (colorScheme == .dark ? Color(hex: "1C2E48") : Color.apolloAccent.opacity(0.12)) : nil)
         .listRowInsets(EdgeInsets(top: 10, leading: 11, bottom: 10, trailing: 17))
     }
 }

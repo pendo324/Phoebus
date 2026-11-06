@@ -229,18 +229,17 @@ public struct ChatListScreen: View {
     @ViewBuilder
     private func roomRow(_ room: ChatRoom) -> some View {
         HStack(spacing: 10) {
-            // A room's unread status is whether it counts toward the
-            // global badge, not simply whether it has a nonzero
-            // notification count.
-            if room.countsTowardGlobalBadge && room.notificationCount > 0 {
-                Circle().fill(Color.apolloAccent).frame(width: 8, height: 8)
+            // A muted room is unread too, in grey; it stays out of the badge.
+            if ChatRoomUnread.isUnread(room) {
+                Circle().fill(ChatRoomUnread.isMutedUnread(room) ? Color.secondary : Color.apolloAccent)
+                    .frame(width: 8, height: 8)
             } else {
                 Circle().fill(.clear).frame(width: 8, height: 8)
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(title(for: room))
-                        .font(.subheadline.weight(room.countsTowardGlobalBadge && room.notificationCount > 0 ? .bold : .semibold))
+                        .font(.subheadline.weight(ChatRoomUnread.isUnread(room) ? .bold : .semibold))
                         .lineLimit(1)
                     Spacer()
                     if let date = room.lastMessageDate {

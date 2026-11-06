@@ -125,6 +125,14 @@ Implemented in `RedditChatClient` on the same credential:
 - Date separators (`ChatDateFormatter`), the Direct/Group/All and
   Unread Only filter (`ChatMessagesFilter`), and Bark unread
   notifications (`ChatUnreadNotifier`).
+- Unread rules (`ChatRoomUnread`, one source for every screen and total):
+  a joined room with `notification_count` above zero is unread and shows
+  the dot, the bold title and a place under Unread Only. A room Reddit
+  keeps out of its global counter (a muted one,
+  `is_counted_in_global_navigation_counter` false) is still unread, drawn
+  with a grey dot, but only a room that counts toward the badge feeds the
+  Inbox tab badge, the app icon badge, `lastChatUnread` and the Bark
+  pushes. Opening the room clears it with the read receipt as for any room.
 
 ### Reactions
 

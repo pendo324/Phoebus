@@ -79,6 +79,10 @@ enum CommentCollapseAnimation {
         var removedHeight: CGFloat = 0
         /// How far the new collapsed header starts below its place.
         var headerRise: CGFloat = 0
+        /// Whether the row after the removed run was off screen before the
+        /// change: a comment that runs past the bottom of the screen (an
+        /// embed makes one that tall) has no row after it on screen.
+        var nextRowWasOffScreen = false
     }
 
     private static var pending = Update()
@@ -208,6 +212,10 @@ enum CommentCollapseAnimation {
         update.isCollapse = update.deleted.count >= update.inserted.count
         holdsOffset = !update.isCollapse
         if let list = layout.collectionView {
+            if let old = update.toggledOld {
+                let next = IndexPath(item: old.item + update.deleted.count, section: old.section)
+                update.nextRowWasOffScreen = list.cellForItem(at: next) == nil
+            }
             // Only what is on screen: rows past the bottom are capped by
             // `capTravel` anyway.
             for path in update.deleted {
@@ -281,6 +289,17 @@ enum CommentCollapseAnimation {
     private static func collapseShift(header: CGRect, layout: UICollectionViewLayout) -> CGFloat {
         guard let list = layout.collectionView else { return 0 }
         let cap = max(0, list.bounds.maxY - header.maxY)
+        // A row after the run that was off screen starts wherever the layout
+        // puts it, which is not where the removed height says: the header
+        // starts right above that row, so the two rise together and the
+        // header does not pass through it.
+        if pending.nextRowWasOffScreen, let row = pending.toggledRow {
+            let next = IndexPath(item: row.item + 1, section: row.section)
+            if !pending.inserted.contains(next), next.item < list.numberOfItems(inSection: next.section),
+               let start = layout.initialLayoutAttributesForAppearingItem(at: next)?.frame.minY {
+                return max(0, min(start - header.maxY, cap))
+            }
+        }
         return max(0, min(pending.removedHeight - header.height, cap))
     }
 

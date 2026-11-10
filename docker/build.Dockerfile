@@ -30,6 +30,9 @@ ENV PATH=/opt/phoebus/swift/usr/bin:/opt/phoebus/go/bin:$PATH
 
 COPY scripts/ci/setup-linux.sh scripts/ci/build-libimobiledevice.sh /phoebus/scripts/ci/
 COPY scripts/lgrender/go.mod /phoebus/scripts/lgrender/
+# The ISO week, passed by build-image.yml: a new week misses the layer cache
+# from here on, so the weekly build picks up the OS packages' updates.
+ARG REFRESH=
 RUN /phoebus/scripts/ci/setup-linux.sh && rm -rf /var/lib/apt/lists/*
 
 # xtool, with the libimobiledevice it is built against copied next to it

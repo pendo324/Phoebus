@@ -28,8 +28,9 @@ Publish to AltStore sources (.github/workflows/publish-altstore.yml)
 ```
 
 Build container image (`build-image.yml`) builds the image the builds run
-in. App Intents reference (`appintents-reference.yml`) regenerates the App
-Intents test fixtures with Xcode 27 (see "App Intents reference" below).
+in, when its inputs change and weekly. App Intents reference
+(`appintents-reference.yml`) regenerates the App Intents test fixtures with
+Xcode 27 (see "App Intents reference" below).
 
 Pull requests run Checks and PR title, which must pass before merging, and
 maintainers can run the full suite or a build on one by commenting (see
@@ -39,8 +40,9 @@ maintainers can run the full suite or a build on one by commenting (see
 
 `docker/build.Dockerfile` is Ubuntu 24.04 with:
 
-- the swift.org Swift toolchain and Go (for the icon renderer), and the
-  packages the build needs (`scripts/ci/setup-linux.sh`);
+- the swift.org Swift toolchain (6.4.2, the Swift in Xcode 27.2) and Go (for
+  the icon renderer), and the packages the build needs
+  (`scripts/ci/setup-linux.sh`);
 - the pinned xtool fork (`scripts/install-xtool.sh`), built against a
   libimobiledevice from `scripts/ci/build-libimobiledevice.sh`, since
   Ubuntu's is older than xtool needs;
@@ -54,10 +56,16 @@ maintainers can run the full suite or a build on one by commenting (see
 
 `build-image.yml` pushes it to `ghcr.io/<owner>/phoebus-builder` as
 `:latest` and `:<commit>` when the Dockerfile or a script it copies changes
-on `main`, or when run by hand. Layers are cached in the Actions cache, and
-the image is built without provenance attestations, so an unchanged image
-keeps its digest. After a push that rewrites history, run it by hand: path
-filters only see the files of the new tip commit.
+on `main`, when run by hand, and every Monday at 05:17 UTC (from `main`).
+Layers are cached in the Actions cache, which alone would keep the Ubuntu
+packages from the first build for good, so the build passes the ISO week as
+the `REFRESH` build argument: the first build of a week misses the cache
+from the package install on (Swift, Go, libimobiledevice and xtool are
+installed again too), later builds that week reuse those layers, and the
+weekly run is what picks up the base image's and the packages' updates. The
+image is built without provenance attestations, so a build whose layers are
+all cached keeps its digest. After a push that rewrites history, run it by
+hand: path filters only see the files of the new tip commit.
 
 The image can also be built locally and pushed by hand:
 

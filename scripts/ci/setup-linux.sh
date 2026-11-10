@@ -5,13 +5,13 @@
 # asks for). scripts/ci/Dockerfile runs it for the CI image. Safe to re-run.
 #
 # Usage: scripts/ci/setup-linux.sh
-#   SWIFT_VERSION  default 6.4.0
+#   SWIFT_VERSION  default 6.4.2 (the Swift in Xcode 27.2)
 #   SWIFT_DIR, GO_DIR  where the toolchains go, by default under
 #                      PHOEBUS_TOOLS (~/.local/lib/phoebus)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-SWIFT_VERSION="${SWIFT_VERSION:-6.4.0}"
+SWIFT_VERSION="${SWIFT_VERSION:-6.4.2}"
 GO_VERSION=$(sed -n 's/^go //p' scripts/lgrender/go.mod)
 tools="${PHOEBUS_TOOLS:-$HOME/.local/lib/phoebus}"
 SWIFT_DIR="${SWIFT_DIR:-$tools/swift-$SWIFT_VERSION}"

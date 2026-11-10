@@ -12,6 +12,9 @@ on:
       - scripts/xtool-env.sh
       - scripts/lgrender/go.mod
       - .github/workflows/build-image.yml
+  # Weekly, Mondays 05:17 UTC, from main: refreshes the OS packages.
+  schedule:
+    - cron: '17 5 * * 1'
   workflow_dispatch: {}
 
 permissions:
@@ -32,8 +35,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - id: week
+        run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v7
         with:
+          build-args: REFRESH=${{ steps.week.outputs.week }}
           context: .
           file: docker/build.Dockerfile
           platforms: linux/amd64

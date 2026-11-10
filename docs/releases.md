@@ -213,8 +213,9 @@ before it is merged). Nothing is published.
    variant like Build IPA does, restoring its SDK and build caches without
    saving a build of its own, and uploads each target's const values and
    sources (`scripts/ci/collect-appintents-input.sh`) as `appintents-input`.
-2. **apple** runs on `xcode-27`, a larger macOS runner with Xcode 27 (Apple
-   silicon only), which it selects with `DEVELOPER_DIR`. It runs
+2. **apple** runs on `xcode-27`, a larger macOS runner (Apple silicon only) whose image
+   has Xcode 27.0, 27.1 and 27.2 side by side; it selects 27.2 (27B52, the
+   `toolsVersion` the generator writes) with `DEVELOPER_DIR`. It runs
    `appintentsmetadataprocessor` on that input
    (`scripts/ci/appintents-reference.sh`), uploads the result as the
    `appintents-fixtures` artifact, then runs

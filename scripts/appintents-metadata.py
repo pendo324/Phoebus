@@ -57,7 +57,7 @@ import json
 import sys
 from pathlib import Path
 
-TOOLS_VERSION = "27A266a"  # Xcode 27.0's appintentsmetadataprocessor, whose format this follows
+TOOLS_VERSION = "27B52"  # Xcode 27.2's appintentsmetadataprocessor, whose format this follows
 WIDGET_CONFIGURATION = "com.apple.link.systemProtocol.WidgetConfiguration"
 OPEN_ENTITY = "com.apple.link.systemProtocol.OpenEntity"
 SHOW_IN_APP_SEARCH = "com.apple.link.systemProtocol.ShowInAppStringSearchResults"
@@ -552,7 +552,8 @@ def assistant_schema(entry):
     schema, protocol = ASSISTANT_SCHEMAS[declared["value"]]
     if protocol not in conformances:
         raise Unsupported(f"{name}: assistant schema {declared['value']} needs {protocol}")
-    return {"domain": declared["value"].split(".")[0], "name": schema, "version": "1.0.0"}
+    return {"domain": declared["value"].split(".")[0], "name": schema, "publicIdentifier": declared["value"],
+            "version": "1.0.0"}
 
 
 def system_protocol(entry, widget):
